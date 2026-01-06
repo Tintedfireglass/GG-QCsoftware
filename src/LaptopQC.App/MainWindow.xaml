@@ -120,111 +120,154 @@
                     </Grid>
                 </StackPanel>
                 
-                <Button Grid.Column="1" 
-                        Content="▶ Run Diagnostics" 
-                        Style="{StaticResource PrimaryButton}"
-                        Command="{Binding RunDiagnosticsCommand}"
-                        IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="⚡ Stress Test" 
+                            Command="{Binding RunStressTestsCommand}"
+                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
+                            Margin="0,0,10,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                <Setter Property="Background" Value="#e0a800"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#ffc107"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Content="▶ Run Diagnostics" 
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding RunDiagnosticsCommand}"
+                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"/>
+                </StackPanel>
             </Grid>
         </Border>
         
         <!-- Results Grid -->
         <Grid Grid.Row="2" Margin="0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             
-            <!-- CPU Card -->
-            <Border Grid.Column="0" Style="{StaticResource CardPanel}">
-                <StackPanel>
-                    <TextBlock Text="💻 CPU" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,15"/>
-                    
-                    <TextBlock Text="Processor" Style="{StaticResource InfoText}"/>
-                    <TextBlock Text="{Binding CpuInfo.Name, FallbackValue='-'}" Style="{StaticResource ValueText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                    
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                        </Grid.RowDefinitions>
+            <!-- CPU and RAM Cards Row -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- CPU Card -->
+                <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                    <StackPanel>
+                        <TextBlock Text="💻 CPU" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
                         
-                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,5">
-                            <TextBlock Text="Cores" Style="{StaticResource InfoText}"/>
-                            <TextBlock Text="{Binding CpuInfo.Cores, FallbackValue='-'}" Style="{StaticResource ValueText}" FontSize="20"/>
-                        </StackPanel>
+                        <TextBlock Text="Processor" Style="{StaticResource InfoText}"/>
+                        <TextBlock Text="{Binding CpuInfo.Name, FallbackValue='-'}" Style="{StaticResource ValueText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                         
-                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,5">
-                            <TextBlock Text="Threads" Style="{StaticResource InfoText}"/>
-                            <TextBlock Text="{Binding CpuInfo.Threads, FallbackValue='-'}" Style="{StaticResource ValueText}" FontSize="20"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Cores / Threads" Style="{StaticResource InfoText}"/>
+                                <TextBlock Style="{StaticResource ValueText}" FontSize="18">
+                                    <Run Text="{Binding CpuInfo.Cores, FallbackValue='-'}"/>
+                                    <Run Text=" / "/>
+                                    <Run Text="{Binding CpuInfo.Threads, FallbackValue='-'}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Base Clock" Style="{StaticResource InfoText}"/>
+                                <TextBlock Style="{StaticResource ValueText}" FontSize="18">
+                                    <Run Text="{Binding CpuInfo.MaxClockSpeedMHz, FallbackValue='-'}"/>
+                                    <Run Text=" MHz"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
                         
-                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,5">
-                            <TextBlock Text="Max Clock" Style="{StaticResource InfoText}"/>
-                            <TextBlock Style="{StaticResource ValueText}" FontSize="16">
-                                <Run Text="{Binding CpuInfo.MaxClockSpeedMHz, FallbackValue='-'}"/>
-                                <Run Text=" MHz"/>
-                            </TextBlock>
-                        </StackPanel>
-                        
-                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,5">
-                            <TextBlock Text="Architecture" Style="{StaticResource InfoText}"/>
-                            <TextBlock Text="{Binding CpuInfo.Architecture, FallbackValue='-'}" Style="{StaticResource ValueText}" FontSize="16"/>
-                        </StackPanel>
-                    </Grid>
-                    
-                    <Border Background="#0f3460" CornerRadius="6" Padding="10" Margin="0,15,0,0">
-                        <TextBlock Text="{Binding CpuStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="12"/>
-                    </Border>
-                </StackPanel>
-            </Border>
-            
-            <!-- RAM Card -->
-            <Border Grid.Column="1" Style="{StaticResource CardPanel}">
-                <StackPanel>
-                    <TextBlock Text="🧠 Memory" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,15"/>
-                    
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{Binding RamInfo.TotalCapacityGB, FallbackValue='-'}" 
-                                   Foreground="#ffffff" FontSize="36" FontWeight="Bold"/>
-                        <TextBlock Text=" GB" Foreground="#a0a0a0" FontSize="18" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
+                        <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
+                            <TextBlock Text="{Binding CpuStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11"/>
+                        </Border>
                     </StackPanel>
+                </Border>
+                
+                <!-- RAM Card -->
+                <Border Grid.Column="1" Style="{StaticResource CardPanel}">
+                    <StackPanel>
+                        <TextBlock Text="🧠 Memory" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{Binding RamInfo.TotalCapacityGB, FallbackValue='-'}" 
+                                       Foreground="#ffffff" FontSize="28" FontWeight="Bold"/>
+                            <TextBlock Text=" GB" Foreground="#a0a0a0" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+                        </StackPanel>
+                        
+                        <TextBlock Style="{StaticResource InfoText}" Margin="0,0,0,5">
+                            <Run Text="{Binding RamInfo.UsedSlots, FallbackValue='-'}"/>
+                            <Run Text=" of "/>
+                            <Run Text="{Binding RamInfo.TotalSlots, FallbackValue='-'}"/>
+                            <Run Text=" slots"/>
+                        </TextBlock>
+                        
+                        <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
+                            <TextBlock Text="{Binding RamStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            
+            <!-- Test Results List -->
+            <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="5,10,5,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
                     
-                    <TextBlock Style="{StaticResource InfoText}" Margin="0,0,0,10">
-                        <Run Text="{Binding RamInfo.UsedSlots, FallbackValue='-'}"/>
-                        <Run Text=" of "/>
-                        <Run Text="{Binding RamInfo.TotalSlots, FallbackValue='-'}"/>
-                        <Run Text=" slots used"/>
-                    </TextBlock>
+                    <TextBlock Grid.Row="0" Text="📋 Test Results" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
                     
-                    <ItemsControl ItemsSource="{Binding RamInfo.Modules}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#0f3460" CornerRadius="4" Padding="8" Margin="0,2">
-                                    <TextBlock Foreground="#ffffff" FontSize="12">
-                                        <Run Text="Slot "/>
-                                        <Run Text="{Binding Slot}"/>
-                                        <Run Text=": "/>
-                                        <Run Text="{Binding CapacityGB}"/>
-                                        <Run Text="GB "/>
-                                        <Run Text="{Binding MemoryType}"/>
-                                        <Run Text=" @ "/>
-                                        <Run Text="{Binding SpeedMHz}"/>
-                                        <Run Text="MHz"/>
-                                    </TextBlock>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Results}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0f3460" CornerRadius="6" Padding="12,8" Margin="0,2">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#e94560" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="#a0a0a0" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#ffffff" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Status}" VerticalAlignment="Center" FontWeight="Bold" Margin="10,0,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#ff6b6b"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Passed}" Value="True">
+                                                                <Setter Property="Foreground" Value="#00d9ff"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                     
-                    <Border Background="#0f3460" CornerRadius="6" Padding="10" Margin="0,15,0,0">
-                        <TextBlock Text="{Binding RamStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="12"/>
-                    </Border>
-                </StackPanel>
+                </Grid>
             </Border>
         </Grid>
         
