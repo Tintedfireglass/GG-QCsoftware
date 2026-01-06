@@ -1,0 +1,23 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# Extracted content from PDF
+extracted_content.txt
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
