@@ -24,6 +24,32 @@ public class WmiProvider
     }
 
     /// <summary>
+    /// Executes a WMI query in a specific namespace
+    /// </summary>
+    public IEnumerable<ManagementObject> Query(string wmiClass, string wmiNamespace)
+    {
+        var results = new List<ManagementObject>();
+        
+        try
+        {
+            var scope = new ManagementScope(wmiNamespace);
+            var query = new ObjectQuery($"SELECT * FROM {wmiClass}");
+
+            using var searcher = new ManagementObjectSearcher(scope, query);
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                results.Add(obj);
+            }
+        }
+        catch
+        {
+            // Namespace may not exist on all systems
+        }
+        
+        return results;
+    }
+
+    /// <summary>
     /// Gets a single property value from WMI
     /// </summary>
     public T? GetValue<T>(ManagementObject obj, string propertyName, T? defaultValue = default)

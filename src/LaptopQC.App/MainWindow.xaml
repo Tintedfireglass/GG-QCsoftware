@@ -72,11 +72,13 @@
         </Style>
     </Window.Resources>
     
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
@@ -148,6 +150,7 @@
         <!-- Results Grid -->
         <Grid Grid.Row="2" Margin="0,10">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
@@ -222,8 +225,159 @@
                 </Border>
             </Grid>
             
+            <!-- Storage and Battery Cards Row -->
+            <Grid Grid.Row="1" Margin="0,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Storage Card -->
+                <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                    <StackPanel>
+                        <TextBlock Text="💾 Storage" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{Binding StorageInfo.TotalCapacityGB, FallbackValue='-', StringFormat='{}{0:F0}'}" 
+                                       Foreground="#ffffff" FontSize="28" FontWeight="Bold"/>
+                            <TextBlock Text=" GB" Foreground="#a0a0a0" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+                        </StackPanel>
+                        
+                        <ItemsControl ItemsSource="{Binding StorageInfo.Devices}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0f3460" CornerRadius="4" Padding="8" Margin="0,2">
+                                        <StackPanel>
+                                            <TextBlock Foreground="#ffffff" FontSize="11" TextWrapping="Wrap" Text="{Binding Model}"/>
+                                            <TextBlock Foreground="#a0a0a0" FontSize="10">
+                                                <Run Text="{Binding SizeGB, StringFormat='{}{0:F0} GB'}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
+                            <TextBlock Text="{Binding StorageStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Battery Card -->
+                <Border Grid.Column="1" Style="{StaticResource CardPanel}">
+                    <StackPanel>
+                        <TextBlock Text="🔋 Battery" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Charge" Style="{StaticResource InfoText}"/>
+                                <TextBlock Style="{StaticResource ValueText}" FontSize="24">
+                                    <Run Text="{Binding BatteryInfo.EstimatedChargeRemaining, FallbackValue='-'}"/>
+                                    <Run Text="%"/>
+                                </TextBlock>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Health" Style="{StaticResource InfoText}"/>
+                                <TextBlock Style="{StaticResource ValueText}" FontSize="24">
+                                    <Run Text="{Binding BatteryInfo.HealthPercent, FallbackValue='-'}"/>
+                                    <Run Text="%"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <TextBlock Style="{StaticResource InfoText}" Margin="0,8,0,0">
+                            <Run Text="Wear: "/>
+                            <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-'}"/>
+                            <Run Text="% • Cycles: "/>
+                            <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-'}"/>
+                        </TextBlock>
+                        
+                        <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
+                            <TextBlock Text="{Binding BatteryStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            
+            <!-- Devices Card (Keyboard, USB, Webcam, etc.) -->
+            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
+                <StackPanel>
+                    <TextBlock Text="🔌 Devices" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Input Devices -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Input Devices" Style="{StaticResource InfoText}" Margin="0,0,0,5"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="⌨️" FontSize="14"/>
+                                <TextBlock Text="{Binding DevicesInfo.HasKeyboard, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
+                                           Foreground="{Binding DevicesInfo.HasKeyboard, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
+                                <TextBlock Text="Keyboard" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="🖱️" FontSize="14"/>
+                                <TextBlock Text="{Binding DevicesInfo.HasTrackpad, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
+                                           Foreground="{Binding DevicesInfo.HasTrackpad, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
+                                <TextBlock Text="Trackpad" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- USB Ports -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="USB Ports" Style="{StaticResource InfoText}" Margin="0,0,0,5"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" 
+                                           Foreground="#ffffff" FontSize="28" FontWeight="Bold"/>
+                                <TextBlock Text=" total" Foreground="#a0a0a0" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource InfoText}">
+                                <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                <Run Text=" USB 3.x • "/>
+                                <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                <Run Text=" USB 2.0"/>
+                            </TextBlock>
+                        </StackPanel>
+                        
+                        <!-- Camera and Displays -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Camera/Display" Style="{StaticResource InfoText}" Margin="0,0,0,5"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="📷" FontSize="14"/>
+                                <TextBlock Text="{Binding DevicesInfo.HasWebcam, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
+                                           Foreground="{Binding DevicesInfo.HasWebcam, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
+                                <TextBlock Text="Webcam" Style="{StaticResource ValueText}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="🖥️" FontSize="14"/>
+                                <TextBlock Style="{StaticResource ValueText}" Margin="5,0">
+                                    <Run Text="{Binding DevicesInfo.Displays.Count, Mode=OneWay, FallbackValue='0'}"/>
+                                    <Run Text=" Display(s)"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
+                        <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11" TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+            
             <!-- Test Results List -->
-            <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="5,10,5,0">
+            <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,10,5,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -272,7 +426,7 @@
         </Grid>
         
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#0f3460" CornerRadius="8" Padding="15,10">
+        <Border Grid.Row="4" Background="#0f3460" CornerRadius="8" Padding="15,10">
             <Grid>
                 <TextBlock Text="{Binding StatusMessage}" Foreground="#00d9ff" VerticalAlignment="Center"/>
                 <ProgressBar IsIndeterminate="{Binding IsScanning}" 
@@ -284,4 +438,5 @@
             </Grid>
         </Border>
     </Grid>
+    </ScrollViewer>
 </Window>

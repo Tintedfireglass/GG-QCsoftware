@@ -1,5 +1,6 @@
 using LaptopQC.Hardware.Providers;
 using System.Diagnostics;
+using System.Management;
 
 namespace LaptopQC.Core.Diagnostics;
 
@@ -16,6 +17,9 @@ public class CpuStressTest
     // Shared data
     private readonly List<double> _temps = new();
     private readonly List<double> _clocks = new();
+    
+    // Throttle detector for advanced analysis
+    private ThermalThrottleDetector? _throttleDetector;
 
     public event Action<StressTestProgress>? OnProgress;
 
@@ -28,11 +32,16 @@ public class CpuStressTest
 
     public async Task<CpuStressResult> RunAsync(CancellationToken cancellationToken = default)
     {
+        // Get base clock from WMI for throttle detection
+        int baseClockMHz = GetBaseClockFromWmi();
+        _throttleDetector = new ThermalThrottleDetector(baseClockMHz);
+        
         var result = new CpuStressResult
         {
             ThreadsUsed = _threadCount,
             DurationSeconds = _durationSeconds,
-            StartTime = DateTime.Now
+            StartTime = DateTime.Now,
+            BaseClockMHz = baseClockMHz
         };
 
         _isRunning = true;
@@ -100,33 +109,54 @@ public class CpuStressTest
             result.AvgClock = _clocks.Count > 0 ? _clocks.Average() : 0;
         }
 
-        // Failure criteria
-        var failures = new List<string>();
-
-        // Critical overheating
-        if (result.MaxTemp > 95)
-            failures.Add($"CRITICAL: CPU overheated ({result.MaxTemp:F1}°C > 95°C)");
-        else if (result.MaxTemp > 90)
-            failures.Add($"WARNING: High temperature ({result.MaxTemp:F1}°C)");
-
-        // Thermal throttling detection
-        if (result.MaxClock > 0 && result.MaxTemp > 80)
+        // 6. Advanced throttle analysis
+        var throttleAnalysis = _throttleDetector?.Analyze();
+        result.ThrottleAnalysis = throttleAnalysis;
+        
+        // Determine pass/fail based on throttle analysis
+        if (throttleAnalysis != null)
         {
-            double dropPercent = (1 - (result.MinClock / result.MaxClock)) * 100;
-            if (dropPercent > 25)
+            result.Passed = throttleAnalysis.Verdict == ThrottleVerdict.Excellent || 
+                           throttleAnalysis.Verdict == ThrottleVerdict.Pass;
+            result.Message = throttleAnalysis.Message;
+            
+            // Add pattern details if any concerning patterns detected
+            var concerningPatterns = throttleAnalysis.Patterns
+                .Where(p => p.Severity >= ThrottleSeverity.Moderate)
+                .ToList();
+            
+            if (concerningPatterns.Any())
             {
-                failures.Add($"THROTTLING: Speed dropped {dropPercent:F0}% ({result.MaxClock:F0}→{result.MinClock:F0}MHz) at {result.MaxTemp:F1}°C");
+                result.Message += " | Patterns: " + string.Join("; ", 
+                    concerningPatterns.Select(p => p.Description));
             }
         }
+        else
+        {
+            // Fallback to legacy detection if throttle detector failed
+            var failures = new List<string>();
+            
+            if (result.MaxTemp > 95)
+                failures.Add($"CRITICAL: CPU overheated ({result.MaxTemp:F1}°C > 95°C)");
+            else if (result.MaxTemp > 90)
+                failures.Add($"WARNING: High temperature ({result.MaxTemp:F1}°C)");
 
-        // Test completion check
-        if (stopwatch.Elapsed.TotalSeconds < _durationSeconds * 0.9 && !cancellationToken.IsCancellationRequested)
-            failures.Add("Test interrupted unexpectedly");
+            if (result.MaxClock > 0 && result.MaxTemp > 80)
+            {
+                double dropPercent = (1 - (result.MinClock / result.MaxClock)) * 100;
+                if (dropPercent > 25)
+                    failures.Add($"THROTTLING: Speed dropped {dropPercent:F0}%");
+            }
 
-        result.Passed = failures.Count == 0;
-        result.Message = result.Passed
-            ? $"PASSED: Max {result.MaxTemp:F1}°C, Speed stable at ~{result.AvgClock:F0}MHz"
-            : $"FAILED: {string.Join("; ", failures)}";
+            // Test completion check
+            if (stopwatch.Elapsed.TotalSeconds < _durationSeconds * 0.9 && !cancellationToken.IsCancellationRequested)
+                failures.Add("Test interrupted unexpectedly");
+
+            result.Passed = failures.Count == 0;
+            result.Message = result.Passed
+                ? $"PASSED: Max {result.MaxTemp:F1}°C, Speed stable at ~{result.AvgClock:F0}MHz"
+                : $"FAILED: {string.Join("; ", failures)}";
+        }
 
         return result;
     }
@@ -154,6 +184,10 @@ public class CpuStressTest
                     {
                         if (temp.HasValue) _temps.Add(temp.Value);
                         if (clock.HasValue) _clocks.Add(clock.Value);
+                        
+                        // Feed data to throttle detector
+                        if (temp.HasValue && clock.HasValue)
+                            _throttleDetector?.RecordSample(temp.Value, clock.Value);
 
                         double maxClock = _clocks.Count > 0 ? _clocks.Max() : 0;
                         double throttle = maxClock > 0 ? (1 - (clock ?? maxClock) / maxClock) * 100 : 0;
@@ -201,6 +235,29 @@ public class CpuStressTest
             }
         }
     }
+    
+    /// <summary>
+    /// Gets the base clock speed from WMI (Win32_Processor.MaxClockSpeed)
+    /// Note: MaxClockSpeed in WMI is actually the base clock, not boost clock
+    /// </summary>
+    private static int GetBaseClockFromWmi()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT MaxClockSpeed FROM Win32_Processor");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                var speed = obj["MaxClockSpeed"];
+                if (speed != null)
+                    return Convert.ToInt32(speed);
+            }
+        }
+        catch
+        {
+            // Fallback if WMI fails
+        }
+        return 2000; // Default fallback: 2 GHz
+    }
 }
 
 public class CpuStressResult
@@ -217,6 +274,43 @@ public class CpuStressResult
     public double MinClock { get; set; }
     public double MaxClock { get; set; }
     public double AvgClock { get; set; }
+    
+    // New: Base clock and advanced throttle analysis
+    public int BaseClockMHz { get; set; }
+    public ThrottleAnalysisResult? ThrottleAnalysis { get; set; }
+    
+    /// <summary>
+    /// Get a detailed summary of the stress test results
+    /// </summary>
+    public string GetDetailedSummary()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"=== CPU Stress Test Results ===");
+        sb.AppendLine($"Verdict: {(Passed ? "PASS" : "FAIL")} - {Message}");
+        sb.AppendLine($"Duration: {ActualDurationSeconds:F1}s with {ThreadsUsed} threads");
+        sb.AppendLine($"Base Clock: {BaseClockMHz} MHz");
+        sb.AppendLine($"Temperature: {AvgTemp:F0}°C avg, {MaxTemp:F0}°C max");
+        sb.AppendLine($"Clock Speed: {AvgClock:F0} MHz avg ({MinClock:F0} - {MaxClock:F0} MHz)");
+        
+        if (ThrottleAnalysis != null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"--- Throttle Analysis ---");
+            sb.AppendLine($"Verdict: {ThrottleAnalysis.Verdict}");
+            sb.AppendLine($"Sustained: {ThrottleAnalysis.AvgPercentOfBase:F0}% of base clock");
+            sb.AppendLine($"Minimum: {ThrottleAnalysis.MinPercentOfBase:F0}% of base clock");
+            sb.AppendLine($"Stability: {ThrottleAnalysis.ClockStabilityPercent:F0}%");
+            
+            if (ThrottleAnalysis.Patterns.Any())
+            {
+                sb.AppendLine("Detected Patterns:");
+                foreach (var p in ThrottleAnalysis.Patterns)
+                    sb.AppendLine($"  [{p.Severity}] {p.Description}");
+            }
+        }
+        
+        return sb.ToString();
+    }
 }
 
 public class StressTestProgress

@@ -106,8 +106,84 @@ public class SensorProvider : IDisposable
         return clockSensors.Average(s => s.Value);
     }
 
+    /// <summary>
+    /// Gets storage SMART health data
+    /// </summary>
+    public StorageSmartData? GetStorageHealth(string modelName)
+    {
+        var storage = _computer.Hardware
+            .FirstOrDefault(h => h.HardwareType == HardwareType.Storage && 
+                                 h.Name.Contains(modelName, StringComparison.OrdinalIgnoreCase));
+        
+        if (storage == null)
+            storage = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Storage);
+            
+        if (storage == null) return null;
+
+        storage.Update();
+        
+        var data = new StorageSmartData();
+        
+        // Temperature
+        var temp = storage.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature);
+        if (temp?.Value != null) data.Temperature = (int)temp.Value;
+
+        // Health/Wear level (SSD specific)
+        var life = storage.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Level && 
+            (s.Name.Contains("Life") || s.Name.Contains("Health") || s.Name.Contains("Remaining")));
+        if (life?.Value != null) data.HealthPercent = (int)life.Value;
+
+        // Data written
+        var written = storage.Sensors.FirstOrDefault(s => s.Name.Contains("Written"));
+        if (written?.Value != null) data.TotalBytesWritten = (long)(written.Value * 1024 * 1024 * 1024); // Convert GB to bytes
+
+        return data;
+    }
+
+    /// <summary>
+    /// Gets battery capacity data
+    /// </summary>
+    public BatteryData? GetBatteryData()
+    {
+        var battery = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Battery);
+        if (battery == null) return null;
+
+        battery.Update();
+        
+        var data = new BatteryData();
+        
+        // Designed capacity
+        var designed = battery.Sensors.FirstOrDefault(s => s.Name.Contains("Designed"));
+        if (designed?.Value != null) data.DesignedCapacity = (uint)designed.Value;
+
+        // Full charged capacity
+        var fullCharged = battery.Sensors.FirstOrDefault(s => s.Name.Contains("Full") || s.Name.Contains("Charged"));
+        if (fullCharged?.Value != null) data.FullChargedCapacity = (uint)fullCharged.Value;
+
+        // Degradation level
+        var degradation = battery.Sensors.FirstOrDefault(s => s.Name.Contains("Degradation"));
+        if (degradation?.Value != null) data.DegradationLevel = (int)degradation.Value;
+
+        return data;
+    }
+
     public void Dispose()
     {
         _computer.Close();
     }
+}
+
+public class StorageSmartData
+{
+    public int? HealthPercent { get; set; }
+    public int? Temperature { get; set; }
+    public int? PowerOnHours { get; set; }
+    public long? TotalBytesWritten { get; set; }
+}
+
+public class BatteryData
+{
+    public uint DesignedCapacity { get; set; }
+    public uint FullChargedCapacity { get; set; }
+    public int DegradationLevel { get; set; }
 }

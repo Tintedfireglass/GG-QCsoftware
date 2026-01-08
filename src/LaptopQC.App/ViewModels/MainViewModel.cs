@@ -11,6 +11,9 @@ public partial class MainViewModel : ObservableObject
     private readonly CpuDiagnostic _cpuDiagnostic;
     private readonly RamDiagnostic _ramDiagnostic;
     private readonly SystemDiagnostic _systemDiagnostic;
+    private readonly StorageDiagnostic _storageDiagnostic;
+    private readonly BatteryDiagnostic _batteryDiagnostic;
+    private readonly DeviceDiagnostic _deviceDiagnostic;
 
     [ObservableProperty]
     private SystemInfo? _systemInfo;
@@ -20,6 +23,15 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private RamInfo? _ramInfo;
+
+    [ObservableProperty]
+    private StorageInfo? _storageInfo;
+
+    [ObservableProperty]
+    private BatteryInfo? _batteryInfo;
+
+    [ObservableProperty]
+    private DevicesInfo? _devicesInfo;
 
     [ObservableProperty]
     private bool _isScanning;
@@ -33,6 +45,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _ramStatus = "";
 
+    [ObservableProperty]
+    private string _storageStatus = "";
+
+    [ObservableProperty]
+    private string _batteryStatus = "";
+
+    [ObservableProperty]
+    private string _devicesStatus = "";
+
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
 
     public MainViewModel()
@@ -40,6 +61,9 @@ public partial class MainViewModel : ObservableObject
         _cpuDiagnostic = new CpuDiagnostic();
         _ramDiagnostic = new RamDiagnostic();
         _systemDiagnostic = new SystemDiagnostic();
+        _storageDiagnostic = new StorageDiagnostic();
+        _batteryDiagnostic = new BatteryDiagnostic();
+        _deviceDiagnostic = new DeviceDiagnostic();
     }
 
     [RelayCommand]
@@ -74,6 +98,104 @@ public partial class MainViewModel : ObservableObject
                 {
                     AddResult("RAM", $"Slot {module.Slot}", true, 
                         $"{module.CapacityGB}GB {module.MemoryType} @ {module.SpeedMHz}MHz");
+                }
+
+                // Storage
+                StorageInfo = _storageDiagnostic.GetInfo();
+                var storageValidation = _storageDiagnostic.ValidateStorage(StorageInfo);
+                StorageStatus = storageValidation.Message;
+                
+                foreach (var device in StorageInfo.Devices)
+                {
+                    var deviceType = device.IsSsd ? "SSD" : "HDD";
+                    var health = device.HealthPercent.HasValue ? $" ({device.HealthPercent}% health)" : "";
+                    AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB{health}");
+                }
+                AddResult("Storage", "Total", storageValidation.IsHealthy, $"{StorageInfo.TotalCapacityGB:F0} GB");
+
+                // Battery
+                BatteryInfo = _batteryDiagnostic.GetInfo();
+                var batteryValidation = _batteryDiagnostic.ValidateBattery(BatteryInfo);
+                BatteryStatus = batteryValidation.Message;
+                
+                if (BatteryInfo.IsPresent)
+                {
+                    AddResult("Battery", "Status", true, BatteryInfo.BatteryStatus);
+                    AddResult("Battery", "Charge", true, $"{BatteryInfo.EstimatedChargeRemaining}%");
+                    
+                    if (BatteryInfo.HealthPercent.HasValue)
+                        AddResult("Battery", "Health", BatteryInfo.HealthPercent >= 60, $"{BatteryInfo.HealthPercent}%");
+                    
+                    if (BatteryInfo.WearLevelPercent.HasValue)
+                        AddResult("Battery", "Wear Level", BatteryInfo.WearLevelPercent <= 30, $"{BatteryInfo.WearLevelPercent}% worn");
+                    
+                    if (BatteryInfo.CycleCount > 0)
+                        AddResult("Battery", "Cycle Count", BatteryInfo.CycleCount < 500, $"{BatteryInfo.CycleCount} cycles");
+                }
+                else
+                {
+                    AddResult("Battery", "Status", true, "No battery (Desktop)");
+                }
+
+                // Devices (Keyboard, Trackpad, USB, Webcam, etc.)
+                DevicesInfo = _deviceDiagnostic.GetInfo();
+                var deviceValidation = _deviceDiagnostic.ValidateDevices(DevicesInfo);
+                DevicesStatus = deviceValidation.Message;
+                
+                // Input Devices
+                foreach (var input in DevicesInfo.InputDevices)
+                {
+                    var typeLabel = input.Type switch
+                    {
+                        InputDeviceType.Keyboard => "Keyboard",
+                        InputDeviceType.Trackpad => "Trackpad",
+                        InputDeviceType.Mouse => "Mouse",
+                        InputDeviceType.Touchscreen => "Touchscreen",
+                        _ => "Input"
+                    };
+                    AddResult("Devices", typeLabel, input.IsWorking, input.Name);
+                }
+
+                // USB Ports
+                var usb3Count = DevicesInfo.Usb3Ports;
+                var usb2Count = DevicesInfo.Usb2Ports;
+                AddResult("Devices", "USB Ports", DevicesInfo.TotalUsbPorts > 0, 
+                    $"{DevicesInfo.TotalUsbPorts} total ({usb3Count} USB 3.x, {usb2Count} USB 2.0)");
+
+                // Connected USB devices
+                foreach (var usb in DevicesInfo.ConnectedUsbDevices.Take(5))
+                {
+                    AddResult("Devices", "USB Device", usb.IsConnected, usb.Name);
+                }
+
+                // Webcam
+                if (DevicesInfo.Camera != null)
+                {
+                    AddResult("Devices", "Webcam", DevicesInfo.Camera.IsWorking, DevicesInfo.Camera.Name);
+                }
+                else
+                {
+                    AddResult("Devices", "Webcam", false, "Not detected");
+                }
+
+                // Displays
+                foreach (var display in DevicesInfo.Displays)
+                {
+                    var resolution = display.ScreenWidth > 0 ? $" ({display.Resolution})" : "";
+                    AddResult("Devices", $"Display ({display.ConnectionType})", display.IsActive, $"{display.Name}{resolution}");
+                }
+
+                // Audio
+                foreach (var audio in DevicesInfo.AudioDevices)
+                {
+                    AddResult("Devices", "Audio", audio.IsWorking, audio.Name);
+                }
+
+                // Network
+                foreach (var net in DevicesInfo.NetworkDevices)
+                {
+                    var status = net.IsConnected ? "Connected" : "Disconnected";
+                    AddResult("Devices", net.AdapterType, net.IsConnected, $"{net.Name} - {status}");
                 }
             });
 

@@ -9,5 +9,13 @@
         <!-- Inverse Bool Converter -->
         <local:InverseBoolConverter x:Key="InverseBoolConverter" 
                                      xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
+        <!-- Bool to Pass/Fail Converter -->
+        <local:BoolToPassFailConverter x:Key="BoolToPassFailConverter" 
+                                        xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
+        <!-- Bool to Color Converter -->
+        <local:BoolToColorConverter x:Key="BoolToColorConverter" 
+                                     xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
     </Application.Resources>
 </Application>
