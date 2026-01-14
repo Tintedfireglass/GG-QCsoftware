@@ -32,5 +32,17 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
+  <!-- Bundle smartctl.exe for SMART testing -->
+  <ItemGroup>
+    <None Include="tools\smartctl.exe" Condition="Exists('tools\smartctl.exe')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>tools\smartctl.exe</Link>
+    </None>
+    <None Include="tools\*.dll" Condition="Exists('tools\smartctl.exe')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>tools\%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+
 </Project>
 

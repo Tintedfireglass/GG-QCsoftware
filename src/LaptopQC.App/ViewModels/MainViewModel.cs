@@ -14,6 +14,7 @@ public partial class MainViewModel : ObservableObject
     private readonly StorageDiagnostic _storageDiagnostic;
     private readonly BatteryDiagnostic _batteryDiagnostic;
     private readonly DeviceDiagnostic _deviceDiagnostic;
+    private readonly SmartTestService _smartTestService;
 
     [ObservableProperty]
     private SystemInfo? _systemInfo;
@@ -54,6 +55,18 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _devicesStatus = "";
 
+    [ObservableProperty]
+    private bool _isSmartTestRunning;
+
+    [ObservableProperty]
+    private string _smartTestStatus = "";
+
+    [ObservableProperty]
+    private int _smartTestProgress;
+
+    [ObservableProperty]
+    private bool _smartctlAvailable;
+
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
 
     public MainViewModel()
@@ -64,6 +77,10 @@ public partial class MainViewModel : ObservableObject
         _storageDiagnostic = new StorageDiagnostic();
         _batteryDiagnostic = new BatteryDiagnostic();
         _deviceDiagnostic = new DeviceDiagnostic();
+        _smartTestService = new SmartTestService();
+        
+        // Check if smartctl is available
+        SmartctlAvailable = _smartTestService.IsAvailable;
     }
 
     [RelayCommand]
@@ -281,6 +298,122 @@ public partial class MainViewModel : ObservableObject
                 Details = details
             });
         });
+    }
+
+    [RelayCommand]
+    private async Task RunSmartTestAsync()
+    {
+        if (!SmartctlAvailable)
+        {
+            StatusMessage = "smartctl.exe not found. Please install smartmontools.";
+            AddResult("Storage", "SMART Test", false, "smartctl.exe not found");
+            return;
+        }
+
+        IsSmartTestRunning = true;
+        SmartTestProgress = 0;
+        SmartTestStatus = "Starting SMART tests...";
+        StatusMessage = "Running SMART self-tests on all drives...";
+
+        try
+        {
+            // First, do a quick health check
+            var healthCheck = await Task.Run(() => _smartTestService.QuickHealthCheck());
+            
+            foreach (var device in healthCheck.Devices)
+            {
+                AddResult("Storage", "SMART Health", 
+                    device.HealthPassed, 
+                    $"{device.Model}: {device.HealthScore}% - {device.HealthStatus}");
+                
+                if (device.Temperature.HasValue)
+                    AddResult("Storage", "Temperature", 
+                        device.Temperature < 55, 
+                        $"{device.Model}: {device.Temperature}°C");
+                
+                if (device.PowerOnHours.HasValue)
+                    AddResult("Storage", "Power-On Hours", 
+                        true, 
+                        $"{device.Model}: {device.PowerOnHours:N0} hours");
+                
+                foreach (var warning in device.Warnings)
+                {
+                    AddResult("Storage", "⚠ Warning", false, warning);
+                }
+            }
+
+            // Run short self-test on each drive
+            foreach (var device in healthCheck.Devices)
+            {
+                SmartTestStatus = $"Running short self-test on {device.Model}...";
+                
+                var progress = new Progress<SmartTestProgress>(p =>
+                {
+                    SmartTestProgress = p.PercentComplete;
+                    SmartTestStatus = $"{device.Model}: {p.Status} ({p.PercentComplete}%)";
+                });
+
+                var result = await _smartTestService.RunShortTestAsync(device.DevicePath, progress);
+                
+                AddResult("Storage", "SMART Self-Test",
+                    result.Success,
+                    $"{device.Model}: {result.Message} ({result.Duration.TotalSeconds:F0}s)");
+            }
+
+            StorageStatus = healthCheck.OverallHealthy ? "✓ All Drives Healthy" : "⚠ Issues Detected";
+            StatusMessage = "SMART tests complete!";
+            SmartTestStatus = healthCheck.Message;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"SMART test error: {ex.Message}";
+            SmartTestStatus = "Error occurred";
+            AddResult("Storage", "SMART Test Error", false, ex.Message);
+        }
+        finally
+        {
+            IsSmartTestRunning = false;
+            SmartTestProgress = 100;
+        }
+    }
+
+    [RelayCommand]
+    private async Task QuickSmartCheckAsync()
+    {
+        if (!SmartctlAvailable)
+        {
+            StatusMessage = "smartctl.exe not found. Please install smartmontools.";
+            return;
+        }
+
+        IsSmartTestRunning = true;
+        SmartTestStatus = "Checking drive health...";
+        StatusMessage = "Reading SMART data...";
+
+        try
+        {
+            var healthCheck = await Task.Run(() => _smartTestService.QuickHealthCheck());
+            
+            foreach (var device in healthCheck.Devices)
+            {
+                AddResult("Storage", $"SMART: {device.Model}", 
+                    device.HealthPassed, 
+                    $"Health: {device.HealthScore}% | Temp: {device.Temperature ?? 0}°C | {device.PowerOnHours ?? 0}h");
+            }
+
+            StorageStatus = healthCheck.Message;
+            StatusMessage = healthCheck.Message;
+            SmartTestStatus = healthCheck.OverallHealthy ? "All drives healthy" : "Issues detected";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+            SmartTestStatus = "Error";
+        }
+        finally
+        {
+            IsSmartTestRunning = false;
+        }
     }
 }
 

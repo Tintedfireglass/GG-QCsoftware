@@ -43,6 +43,17 @@ public class SystemDiagnostic
             break;
         }
 
+        // Get MAC address from primary network adapter
+        foreach (var obj in _wmi.Query("Win32_NetworkAdapterConfiguration WHERE IPEnabled = TRUE"))
+        {
+            var mac = _wmi.GetValue<string>(obj, "MACAddress", "");
+            if (!string.IsNullOrEmpty(mac))
+            {
+                systemInfo.MacAddress = mac;
+                break; // Get first active adapter's MAC
+            }
+        }
+
         return systemInfo;
     }
 }

@@ -109,6 +109,7 @@
                             <RowDefinition/>
                             <RowDefinition/>
                             <RowDefinition/>
+                            <RowDefinition/>
                         </Grid.RowDefinitions>
                         
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Computer:" Style="{StaticResource InfoText}"/>
@@ -119,6 +120,9 @@
                         
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Serial:" Style="{StaticResource InfoText}"/>
                         <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding SystemInfo.SerialNumber, FallbackValue='-'}" Style="{StaticResource ValueText}"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="MAC:" Style="{StaticResource InfoText}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding SystemInfo.MacAddress, FallbackValue='-'}" Style="{StaticResource ValueText}"/>
                     </Grid>
                 </StackPanel>
                 
@@ -235,7 +239,50 @@
                 <!-- Storage Card -->
                 <Border Grid.Column="0" Style="{StaticResource CardPanel}">
                     <StackPanel>
-                        <TextBlock Text="💾 Storage" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="💾 Storage" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
+                            
+                            <!-- SMART Test Button -->
+                            <Button Grid.Column="1" Content="🔍 SMART Test" 
+                                    Command="{Binding RunSmartTestCommand}"
+                                    IsEnabled="{Binding IsSmartTestRunning, Converter={StaticResource InverseBoolConverter}}"
+                                    ToolTip="Run SMART self-test on all drives (~2 min per drive)">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="#2d5a27"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="FontSize" Value="11"/>
+                                        <Setter Property="Padding" Value="10,5"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" 
+                                                            CornerRadius="4"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#3d7a37"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Background" Value="#555555"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
                         
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="{Binding StorageInfo.TotalCapacityGB, FallbackValue='-', StringFormat='{}{0:F0}'}" 
@@ -257,6 +304,17 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        
+                        <!-- SMART Test Progress -->
+                        <StackPanel Visibility="{Binding IsSmartTestRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ProgressBar Value="{Binding SmartTestProgress}" 
+                                         Minimum="0" Maximum="100"
+                                         Height="4" 
+                                         Background="#0f3460"
+                                         Foreground="#2d5a27"
+                                         Margin="0,8,0,4"/>
+                            <TextBlock Text="{Binding SmartTestStatus}" Foreground="#a0a0a0" FontSize="10"/>
+                        </StackPanel>
                         
                         <Border Background="#0f3460" CornerRadius="6" Padding="8" Margin="0,10,0,0">
                             <TextBlock Text="{Binding StorageStatus, FallbackValue='Not scanned'}" Foreground="#00d9ff" FontSize="11"/>

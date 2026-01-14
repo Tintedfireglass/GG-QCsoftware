@@ -32,8 +32,20 @@ public class CpuStressTest
 
     public async Task<CpuStressResult> RunAsync(CancellationToken cancellationToken = default)
     {
-        // Get base clock from WMI for throttle detection
-        int baseClockMHz = GetBaseClockFromWmi();
+        // Run slow initialization on background thread to prevent UI freeze
+        int baseClockMHz = 0;
+        SensorProvider? sensors = null;
+        
+        await Task.Run(() =>
+        {
+            // Get base clock from WMI for throttle detection
+            baseClockMHz = GetBaseClockFromWmi();
+            
+            // Initialize sensors (this takes time due to WMI/LibreHardwareMonitor)
+            sensors = new SensorProvider();
+            sensors.Initialize();
+        }, cancellationToken);
+        
         _throttleDetector = new ThermalThrottleDetector(baseClockMHz);
         
         var result = new CpuStressResult
@@ -47,10 +59,6 @@ public class CpuStressTest
         _isRunning = true;
         _temps.Clear();
         _clocks.Clear();
-
-        // Initialize sensors FIRST (this takes time)
-        var sensors = new SensorProvider();
-        sensors.Initialize();
 
         var stopwatch = Stopwatch.StartNew();
         var stressThreads = new List<Thread>();

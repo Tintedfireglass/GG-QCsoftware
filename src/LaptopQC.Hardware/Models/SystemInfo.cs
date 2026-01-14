@@ -9,6 +9,7 @@ public class SystemInfo
     public string Manufacturer { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
+    public string MacAddress { get; set; } = string.Empty;
     public string BiosVersion { get; set; } = string.Empty;
     public string OsVersion { get; set; } = string.Empty;
     public DateTime ScanTimestamp { get; set; } = DateTime.UtcNow;
