@@ -84,6 +84,31 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenKeyboardTest()
+    {
+        var keyboardWindow = new Views.KeyboardTestWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+
+        StatusMessage = "Testing keyboard... Press all keys.";
+        
+        var result = keyboardWindow.ShowDialog();
+        
+        if (result.HasValue)
+        {
+            var (passed, message) = keyboardWindow.GetResult();
+            AddResult("Keyboard", "Key Test", passed, message);
+            DevicesStatus = passed ? "✓ Keyboard test passed" : $"✗ Keyboard: {message}";
+            StatusMessage = passed ? "Keyboard test passed!" : "Keyboard test failed";
+        }
+        else
+        {
+            StatusMessage = "Keyboard test cancelled";
+        }
+    }
+
+    [RelayCommand]
     private async Task RunDiagnosticsAsync()
     {
         IsScanning = true;

@@ -365,7 +365,7 @@
             </Grid>
             
             <!-- Devices Card (Keyboard, USB, Webcam, etc.) -->
-            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
+            <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
                 <StackPanel>
                     <TextBlock Text="🔌 Devices" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
                     
@@ -384,6 +384,38 @@
                                 <TextBlock Text="{Binding DevicesInfo.HasKeyboard, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
                                            Foreground="{Binding DevicesInfo.HasKeyboard, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
                                 <TextBlock Text="Keyboard" Style="{StaticResource ValueText}"/>
+                                <Button Content="🧪 Test" 
+                                        Command="{Binding OpenKeyboardTestCommand}"
+                                        Margin="10,0,0,0"
+                                        ToolTip="Test all keyboard keys">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#2d5a27"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="Padding" Value="8,2"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#3d7a37"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,2">
                                 <TextBlock Text="🖱️" FontSize="14"/>

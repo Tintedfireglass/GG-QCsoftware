@@ -17,5 +17,13 @@
         <!-- Bool to Color Converter -->
         <local:BoolToColorConverter x:Key="BoolToColorConverter" 
                                      xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
+        <!-- Keyboard Position Converter -->
+        <local:KeyPositionConverter x:Key="KeyPositionConverter" 
+                                     xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
+        <!-- Keyboard Width Converter -->
+        <local:KeyWidthConverter x:Key="KeyWidthConverter" 
+                                  xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
     </Application.Resources>
 </Application>
