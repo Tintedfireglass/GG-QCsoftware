@@ -28,7 +28,12 @@ public partial class KeyboardTestViewModel : ObservableObject
     private bool _passed;
 
     [ObservableProperty]
+    private bool _showNumpad;
+
+    [ObservableProperty]
     private string _resultMessage = "";
+
+
 
     /// <summary>
     /// Observable collection of key states for UI binding
@@ -47,10 +52,28 @@ public partial class KeyboardTestViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Toggle Numpad visibility and update test requirements
+    /// </summary>
+    partial void OnShowNumpadChanged(bool value)
+    {
+        _testState.ResetExpectedKeys(value);
+        InitializeKeyboard();
+        
+        // Refresh progress based on new total key count
+        ProgressPercent = _testState.PercentComplete;
+        var tested = _testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count();
+        ProgressText = $"{ProgressPercent:F0}% tested ({tested}/{_testState.ExpectedKeys.Count} keys)";
+    }
+
+    /// <summary>
     /// Initialize all keyboard keys with their positions and labels
     /// </summary>
     private void InitializeKeyboard()
     {
+        Keys.Clear();
+        _keyLookup.Clear();
+
+        // Row 0: Function keys
         // Row 0: Function keys
         AddKey(0x1B, "Esc", 0, 0);
         AddKey(0x70, "F1", 0, 2);
@@ -140,6 +163,41 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0x26, "↑", 5, 13.25);
         AddKey(0x28, "↓", 5, 14.25);
         AddKey(0x27, "→", 5, 15.25);
+
+        if (ShowNumpad)
+        {
+            // Numpad starts around column 16.5
+            double npStart = 16.5;
+
+            // Row 0
+            AddKey(0x90, "Num", 0, npStart);
+            AddKey(0x6F, "/", 0, npStart + 1);
+            AddKey(0x6A, "*", 0, npStart + 2);
+            AddKey(0x6D, "-", 0, npStart + 3);
+
+            // Row 1
+            AddKey(0x67, "7", 1, npStart);
+            AddKey(0x68, "8", 1, npStart + 1);
+            AddKey(0x69, "9", 1, npStart + 2);
+            AddKey(0x6B, "+", 1, npStart + 3, 1); // + spans 2 rows usually but let's keep it simple grid for now or use Height
+
+            // Row 2
+            AddKey(0x64, "4", 2, npStart);
+            AddKey(0x65, "5", 2, npStart + 1);
+            AddKey(0x66, "6", 2, npStart + 2);
+            // + continues
+
+            // Row 3
+            AddKey(0x61, "1", 3, npStart);
+            AddKey(0x62, "2", 3, npStart + 1);
+            AddKey(0x63, "3", 3, npStart + 2);
+            // Enter spans 2 rows
+
+            // Row 4
+            AddKey(0x60, "0", 4, npStart, 2);
+            AddKey(0x6E, ".", 4, npStart + 2);
+            // Enter continues
+        }
     }
 
     private void AddKey(int virtualKeyCode, string label, int row, double column, double width = 1)

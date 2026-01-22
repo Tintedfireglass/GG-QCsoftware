@@ -109,6 +109,82 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenAudioVideoTest()
+    {
+        var avWindow = new Views.AudioVideoTestWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+
+        StatusMessage = "Testing Audio/Video... Follow on-screen instructions.";
+
+        var result = avWindow.ShowDialog();
+
+        if (avWindow.DataContext is AudioVideoTestViewModel vm)
+        {
+            if (vm.IsComplete) 
+            {
+                AddResult("Devices", "A/V Test", vm.Passed, vm.ResultMessage);
+                StatusMessage = vm.Passed ? "A/V test passed!" : "A/V test failed";
+            }
+            else
+            {
+                StatusMessage = "A/V test cancelled";
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void OpenTrackpadTest()
+    {
+        var trackpadWindow = new Views.TrackpadTestWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+
+        StatusMessage = "Testing trackpad... Move, click, and scroll.";
+        
+        var result = trackpadWindow.ShowDialog();
+        
+        if (result.HasValue)
+        {
+            var (passed, message) = trackpadWindow.GetResult();
+            AddResult("Trackpad", "Input Test", passed, message);
+            DevicesStatus = passed ? "✓ Trackpad test passed" : $"✗ Trackpad: {message}";
+            StatusMessage = passed ? "Trackpad test passed!" : "Trackpad test failed";
+        }
+        else
+        {
+            StatusMessage = "Trackpad test cancelled";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenUsbPortTest()
+    {
+        var usbWindow = new Views.UsbPortTestWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+
+        StatusMessage = "Testing USB ports... Plug devices into each port.";
+        
+        var result = usbWindow.ShowDialog();
+        
+        if (result.HasValue)
+        {
+            var (passed, message) = usbWindow.GetResult();
+            AddResult("Devices", "USB Port Test", passed, message);
+            DevicesStatus = passed ? "✓ USB port test passed" : $"✗ USB: {message}";
+            StatusMessage = passed ? "USB port test passed!" : "USB port test failed";
+        }
+        else
+        {
+            StatusMessage = "USB port test cancelled";
+        }
+    }
+
+    [RelayCommand]
     private async Task RunDiagnosticsAsync()
     {
         IsScanning = true;

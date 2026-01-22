@@ -1,0 +1,185 @@
+<Window x:Class="LaptopQC.App.Views.AudioVideoTestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
+        Title="Audio &amp; Video Test" 
+        Height="450" Width="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#1a1a2e"
+        ResizeMode="NoResize">
+
+    <Window.DataContext>
+        <vm:AudioVideoTestViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2d2d44"/>
+            <Setter Property="Foreground" Value="#ffffff"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3d3d54"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#e0e0e0"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Audio &amp; Video Diagnostics" 
+                   FontSize="24" FontWeight="Bold" Foreground="#e94560" 
+                   HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+        <!-- Progress/Step -->
+        <TextBlock Grid.Row="1" Text="{Binding CurrentStepName}" 
+                   FontSize="18" FontWeight="SemiBold" Foreground="#00d9ff" 
+                   HorizontalAlignment="Center" Margin="0,0,0,10"/>
+        
+        <TextBlock Grid.Row="1" Text="{Binding Instructions}" 
+                   FontSize="14" Foreground="#a0a0a0" 
+                   HorizontalAlignment="Center" Margin="0,30,0,20"/>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="2" Margin="0,10">
+            
+            <!-- Speaker Test -->
+            <StackPanel Visibility="{Binding IsSpeakerTestActive, Converter={StaticResource BoolToVisibilityConverter}}">
+                
+                <!-- Left Speaker Section -->
+                <Border Background="#16213e" CornerRadius="8" Padding="15" Margin="0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="🔊 Left Speaker" FontWeight="SemiBold" FontSize="16"/>
+                            <Button Content="▶ Play Test Sound" Command="{Binding TestLeftSpeakerCommand}" 
+                                    Width="150" Height="35" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="✓ Pass" Command="{Binding PassLeftSpeakerCommand}" 
+                                    Background="#28a745" Width="80" Height="35" Margin="5"
+                                    IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                            <Button Content="✗ Fail" Command="{Binding FailLeftSpeakerCommand}" 
+                                    Background="#dc3545" Width="80" Height="35" Margin="5"
+                                    IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                            <TextBlock Text="{Binding LeftSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
+                                       FontSize="24" VerticalAlignment="Center" Margin="10,0,0,0"
+                                       Foreground="{Binding LeftSpeakerPassed, Converter={StaticResource BoolToColorConverter}}"
+                                       Visibility="{Binding LeftSpeakerTested, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- Right Speaker Section -->
+                <Border Background="#16213e" CornerRadius="8" Padding="15" Margin="0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="🔊 Right Speaker" FontWeight="SemiBold" FontSize="16"/>
+                            <Button Content="▶ Play Test Sound" Command="{Binding TestRightSpeakerCommand}" 
+                                    Width="150" Height="35" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="✓ Pass" Command="{Binding PassRightSpeakerCommand}" 
+                                    Background="#28a745" Width="80" Height="35" Margin="5"
+                                    IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                            <Button Content="✗ Fail" Command="{Binding FailRightSpeakerCommand}" 
+                                    Background="#dc3545" Width="80" Height="35" Margin="5"
+                                    IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                            <TextBlock Text="{Binding RightSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
+                                       FontSize="24" VerticalAlignment="Center" Margin="10,0,0,0"
+                                       Foreground="{Binding RightSpeakerPassed, Converter={StaticResource BoolToColorConverter}}"
+                                       Visibility="{Binding RightSpeakerTested, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+            </StackPanel>
+
+            <!-- Mic Test -->
+            <StackPanel Visibility="{Binding IsMicTestActive, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                <!-- Simplified Mic Controls -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+                    <Button Content="🔴 Start Recording" Command="{Binding StartRecordingCommand}" 
+                            Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVisConverter}}"
+                            Width="150"/>
+                    <Button Content="⏹ Stop Recording" Command="{Binding StopRecordingCommand}" 
+                            Visibility="{Binding IsRecording, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Background="#e94560" Width="150"/>
+                    
+                    <Button Content="▶ Playback" Command="{Binding PlaybackRecordingCommand}" 
+                            IsEnabled="{Binding CanPlayback}"
+                            Margin="20,5,5,5" Width="150"/>
+                </StackPanel>
+
+                <TextBlock Text="Did you clearly hear your voice in the playback?" HorizontalAlignment="Center" Margin="0,30,0,10"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Yes (Pass)" Command="{Binding PassMicTestCommand}" Background="#28a745" Width="100"/>
+                    <Button Content="No (Fail)" Command="{Binding FailMicTestCommand}" Background="#dc3545" Width="100"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Camera Test -->
+            <StackPanel Visibility="{Binding IsCameraTestActive, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Button Content="📷 Open Camera App" Command="{Binding OpenCameraCommand}" 
+                        HorizontalAlignment="Center" Width="200" Height="60" FontSize="18" Margin="0,20"/>
+                
+                <TextBlock Text="Did the camera open and show the video feed correctly?" HorizontalAlignment="Center" Margin="0,30,0,10"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Yes (Pass)" Command="{Binding PassCameraTestCommand}" Background="#28a745" Width="100"/>
+                    <Button Content="No (Fail)" Command="{Binding FailCameraTestCommand}" Background="#dc3545" Width="100"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Complete -->
+            <StackPanel Visibility="{Binding IsComplete, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="{Binding ResultMessage}" 
+                           FontSize="20" FontWeight="Bold" 
+                           Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}}"
+                           HorizontalAlignment="Center" Margin="0,30"/>
+                
+                <Button Content="Close" Click="CloseButton_Click" HorizontalAlignment="Center" Width="120" Margin="0,20"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

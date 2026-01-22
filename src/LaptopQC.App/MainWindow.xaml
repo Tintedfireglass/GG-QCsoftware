@@ -156,6 +156,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
@@ -365,7 +366,7 @@
             </Grid>
             
             <!-- Devices Card (Keyboard, USB, Webcam, etc.) -->
-            <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
+            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
                 <StackPanel>
                     <TextBlock Text="🔌 Devices" FontSize="16" FontWeight="SemiBold" Foreground="#e94560" Margin="0,0,0,10"/>
                     
@@ -422,6 +423,38 @@
                                 <TextBlock Text="{Binding DevicesInfo.HasTrackpad, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
                                            Foreground="{Binding DevicesInfo.HasTrackpad, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
                                 <TextBlock Text="Trackpad" Style="{StaticResource ValueText}"/>
+                                <Button Content="🧪 Test" 
+                                        Command="{Binding OpenTrackpadTestCommand}"
+                                        Margin="10,0,0,0"
+                                        ToolTip="Test trackpad movement, clicks, and scroll">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#2d5a27"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="Padding" Value="8,2"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#3d7a37"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </StackPanel>
                         </StackPanel>
                         
@@ -432,13 +465,45 @@
                                 <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" 
                                            Foreground="#ffffff" FontSize="28" FontWeight="Bold"/>
                                 <TextBlock Text=" total" Foreground="#a0a0a0" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+                                <Button Content="🧪 Test" 
+                                        Command="{Binding OpenUsbPortTestCommand}"
+                                        Margin="15,0,0,0"
+                                        ToolTip="Test each USB port by plugging in a device">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#2d5a27"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="Padding" Value="8,2"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#3d7a37"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </StackPanel>
-                            <TextBlock Style="{StaticResource InfoText}">
-                                <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                <Run Text=" USB 3.x • "/>
-                                <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                <Run Text=" USB 2.0"/>
-                            </TextBlock>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource InfoText}" Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                <TextBlock Style="{StaticResource InfoText}" Text=" USB 3.x • "/>
+                                <TextBlock Style="{StaticResource InfoText}" Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                <TextBlock Style="{StaticResource InfoText}" Text=" USB 2.0"/>
+                            </StackPanel>
                         </StackPanel>
                         
                         <!-- Camera and Displays -->
@@ -449,6 +514,38 @@
                                 <TextBlock Text="{Binding DevicesInfo.HasWebcam, Mode=OneWay, Converter={StaticResource BoolToPassFailConverter}, FallbackValue='?'}" 
                                            Foreground="{Binding DevicesInfo.HasWebcam, Mode=OneWay, Converter={StaticResource BoolToColorConverter}}" Margin="5,0"/>
                                 <TextBlock Text="Webcam" Style="{StaticResource ValueText}"/>
+                                <Button Content="🔊 Test A/V" 
+                                        Command="{Binding OpenAudioVideoTestCommand}"
+                                        Margin="10,0,0,0"
+                                        ToolTip="Test Speakers, Microphone, and Camera">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#2d5a27"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="Padding" Value="8,2"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#3d7a37"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,2">
                                 <TextBlock Text="🖥️" FontSize="14"/>

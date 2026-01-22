@@ -9,6 +9,10 @@
         <!-- Inverse Bool Converter -->
         <local:InverseBoolConverter x:Key="InverseBoolConverter" 
                                      xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+
+        <!-- Inverse Bool to Visibility Converter -->
+        <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisConverter" 
+                                     xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
         
         <!-- Bool to Pass/Fail Converter -->
         <local:BoolToPassFailConverter x:Key="BoolToPassFailConverter" 

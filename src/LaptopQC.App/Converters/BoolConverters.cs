@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows;
 
 namespace LaptopQC.App.Converters;
 
@@ -32,6 +33,24 @@ public class BoolToColorConverter : IValueConverter
         if (value is bool boolValue)
             return boolValue ? new SolidColorBrush(Color.FromRgb(0, 217, 255)) : new SolidColorBrush(Color.FromRgb(255, 107, 107));
         return new SolidColorBrush(Color.FromRgb(160, 160, 160));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converts boolean to Visibility.Visible (if false) or Collapsed (if true)
+/// </summary>
+public class InverseBooleanToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue)
+            return boolValue ? Visibility.Collapsed : Visibility.Visible;
+        return Visibility.Visible;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

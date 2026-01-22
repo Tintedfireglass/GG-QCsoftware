@@ -63,11 +63,41 @@ public class InputTestService
             0x25, 0x26, 0x27, 0x28 // Arrow keys
         };
 
+        // Numpad keys
+        public static readonly int[] NumpadKeys = new[]
+        {
+            0x90, // Num Lock
+            0x6F, // Divide
+            0x6A, // Multiply
+            0x6D, // Subtract
+            0x67, 0x68, 0x69, // 7 8 9
+            0x6B, // Add
+            0x64, 0x65, 0x66, // 4 5 6
+            0x61, 0x62, 0x63, // 1 2 3
+            0x60, // 0
+            0x6E, // Decimal
+            // Enter on numpad shares virtual key with main enter usually, 
+            // but can be distinguished by extended bit. 
+            // For simple virtual key matching we might just re-use 0x0D or skip specific check if key same
+        };
+
         public KeyboardTestState()
         {
+            ResetExpectedKeys(false);
+            StartTime = DateTime.Now;
+        }
+
+        public void ResetExpectedKeys(bool includeNumpad)
+        {
+            ExpectedKeys.Clear();
             foreach (var key in CommonKeys)
                 ExpectedKeys.Add(key);
-            StartTime = DateTime.Now;
+            
+            if (includeNumpad)
+            {
+                foreach (var key in NumpadKeys)
+                    ExpectedKeys.Add(key);
+            }
         }
 
         public void RegisterKeyPress(int virtualKeyCode)
@@ -248,6 +278,15 @@ public class InputTestService
             0xBC => ",", 0xBE => ".", 0xBF => "/",
             0x11 => "Ctrl", 0x5B => "Win", 0x12 => "Alt", 0x20 => "Space",
             0x25 => "Left", 0x26 => "Up", 0x27 => "Right", 0x28 => "Down",
+
+            
+            // Numpad
+            0x90 => "NumLock", 0x6F => "Div", 0x6A => "Mult", 0x6D => "Sub",
+            0x67 => "Num7", 0x68 => "Num8", 0x69 => "Num9", 0x6B => "Add",
+            0x64 => "Num4", 0x65 => "Num5", 0x66 => "Num6",
+            0x61 => "Num1", 0x62 => "Num2", 0x63 => "Num3",
+            0x60 => "Num0", 0x6E => "Dec",
+
             _ => $"Key_{virtualKeyCode:X2}"
         };
     }

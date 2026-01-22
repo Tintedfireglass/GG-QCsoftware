@@ -82,14 +82,20 @@ public class DeviceDiagnostic
         var nameLower = name.ToLower();
         
         // Check for trackpad/touchpad indicators
-        if (pointingType == 5 || // PointingType 5 = Touch Pad
+        // PointingType 5 = Touch Pad per WMI spec
+        if (pointingType == 5 || 
             nameLower.Contains("touchpad") ||
             nameLower.Contains("trackpad") ||
             nameLower.Contains("clickpad") ||
             nameLower.Contains("precision") ||
             nameLower.Contains("synaptics") ||
             nameLower.Contains("elan") ||
-            nameLower.Contains("i2c hid"))
+            nameLower.Contains("alps") ||
+            nameLower.Contains("i2c hid") ||
+            nameLower.Contains("smbus") ||
+            nameLower.Contains("ps/2") ||  // PS/2 pointing devices are usually internal (trackpad)
+            nameLower.Contains("hid-compliant mouse") || // Many trackpads report as this
+            (nameLower.Contains("hid") && nameLower.Contains("device") && !nameLower.Contains("usb"))) // Internal HID devices
         {
             return InputDeviceType.Trackpad;
         }
@@ -109,43 +115,116 @@ public class DeviceDiagnostic
     /// </summary>
     private void DetectUsbPorts(DevicesInfo info)
     {
-        // Query USB Controllers
+        // Track USB hubs by version for more accurate counting
+        var usb3HubCount = 0;
+        var usb2HubCount = 0;
+        
+        // First, analyze USB Hubs to get accurate port counts and versions
+        foreach (var obj in _wmi.Query("Win32_USBHub"))
+        {
+            var name = _wmi.GetValue<string>(obj, "Name", "") ?? "";
+            var deviceId = _wmi.GetValue<string>(obj, "DeviceID", "") ?? "";
+            
+            // Skip non-root hubs (external hubs)
+            if (!name.Contains("Root Hub", StringComparison.OrdinalIgnoreCase))
+                continue;
+            
+            // Determine USB version from hub name
+            var hubVersion = DetermineUsbVersionFromHub(name);
+            
+            if (hubVersion.StartsWith("3."))
+            {
+                usb3HubCount++;
+            }
+            else if (hubVersion.StartsWith("2."))
+            {
+                usb2HubCount++;
+            }
+        }
+        
+        // Query USB Controllers  
         foreach (var obj in _wmi.Query("Win32_USBController"))
         {
             var name = _wmi.GetValue<string>(obj, "Name", "") ?? "";
             var deviceId = _wmi.GetValue<string>(obj, "DeviceID", "") ?? "";
+            
+            var controllerVersion = DetermineUsbVersion(name, deviceId);
             
             var port = new UsbPortInfo
             {
                 ControllerName = name,
                 DeviceId = deviceId,
                 Status = _wmi.GetValue<string>(obj, "Status", "Unknown") ?? "Unknown",
-                UsbVersion = DetermineUsbVersion(name, deviceId),
+                UsbVersion = controllerVersion,
                 PortCount = EstimatePortCount(name)
             };
             
             info.UsbPorts.Add(port);
         }
-
-        // Also check USB Hubs for more accurate port counting
-        foreach (var obj in _wmi.Query("Win32_USBHub"))
+        
+        // If we detected USB 2.0 root hubs but no USB 2.0 controllers are showing,
+        // this means there are USB 2.0-only ports that need to be accounted for
+        var hasUsb2Entry = info.UsbPorts.Any(p => p.UsbVersion.StartsWith("2."));
+        var hasUsb3Entry = info.UsbPorts.Any(p => p.UsbVersion.StartsWith("3."));
+        
+        // Modern systems with xHCI controllers may have companion USB 2.0 hubs
+        // for USB 2.0-only physical ports. Detect these via registry or hub analysis.
+        if (usb2HubCount > 0 && !hasUsb2Entry)
         {
-            var name = _wmi.GetValue<string>(obj, "Name", "") ?? "";
-            var deviceId = _wmi.GetValue<string>(obj, "DeviceID", "") ?? "";
-            
-            // Root hubs indicate additional ports
-            if (name.Contains("Root Hub", StringComparison.OrdinalIgnoreCase))
+            // Add USB 2.0 port entry based on detected hubs
+            info.UsbPorts.Add(new UsbPortInfo
             {
-                var existingPort = info.UsbPorts.FirstOrDefault(p => 
-                    deviceId.Contains(p.DeviceId.Split('\\').LastOrDefault() ?? "NOMATCH"));
-                
-                if (existingPort != null)
-                {
-                    // Each root hub typically exposes multiple ports
-                    existingPort.PortCount = Math.Max(existingPort.PortCount, 2);
-                }
+                ControllerName = "USB 2.0 Root Hub",
+                DeviceId = "USB2_HUB",
+                Status = "OK",
+                UsbVersion = "2.0",
+                PortCount = usb2HubCount  // At least 1 port per hub
+            });
+        }
+        
+        // Adjust xHCI controller port counts based on actual hub detection
+        if (usb3HubCount > 0)
+        {
+            var xhciController = info.UsbPorts.FirstOrDefault(p => 
+                p.ControllerName.Contains("xHCI", StringComparison.OrdinalIgnoreCase));
+            if (xhciController != null)
+            {
+                // USB 3.0 ports are typically the SuperSpeed hubs
+                xhciController.PortCount = Math.Max(xhciController.PortCount, usb3HubCount);
             }
         }
+    }
+    
+    /// <summary>
+    /// Determines USB version from hub name (more accurate than controller name)
+    /// </summary>
+    private string DetermineUsbVersionFromHub(string hubName)
+    {
+        var name = hubName.ToLower();
+        
+        // SuperSpeed indicates USB 3.x
+        if (name.Contains("superspeed") || name.Contains("super speed"))
+        {
+            if (name.Contains("usb 3.2") || name.Contains("usb3.2") || name.Contains("20 gbps") || name.Contains("gen 2x2"))
+                return "3.2";
+            if (name.Contains("usb 3.1") || name.Contains("usb3.1") || name.Contains("10 gbps") || name.Contains("gen 2"))
+                return "3.1";
+            return "3.0";
+        }
+        
+        if (name.Contains("3.2"))
+            return "3.2";
+        if (name.Contains("3.1"))
+            return "3.1";
+        if (name.Contains("3.0") || name.Contains("usb 3") || name.Contains("usb3"))
+            return "3.0";
+        if (name.Contains("2.0") || name.Contains("usb 2") || name.Contains("usb2") || 
+            name.Contains("enhanced") || name.Contains("ehci"))
+            return "2.0";
+        if (name.Contains("1.1") || name.Contains("uhci") || name.Contains("ohci"))
+            return "1.1";
+            
+        return "2.0"; // Default for generic Root Hubs
     }
 
     /// <summary>
