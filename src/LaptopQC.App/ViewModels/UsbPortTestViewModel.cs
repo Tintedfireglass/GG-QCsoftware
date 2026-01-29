@@ -24,7 +24,7 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
     private readonly HashSet<string> _testedPortLocations = new();
 
     [ObservableProperty]
-    private int _expectedPortCount = 3;
+    private int _expectedPortCount = 2;
 
     [ObservableProperty]
     private double _progressPercent;

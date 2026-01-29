@@ -215,16 +215,211 @@ public class SensorProvider : IDisposable
     }
 
     /// <summary>
+    /// Checks if a discrete GPU (NVIDIA or AMD) is present
+    /// </summary>
+    public bool HasDiscreteGpu()
+    {
+        var gpu = GetDiscreteGpuHardware();
+        return gpu != null;
+    }
+
+    /// <summary>
+    /// Gets the name of the discrete GPU if present
+    /// </summary>
+    public string? GetDiscreteGpuName()
+    {
+        var gpu = GetDiscreteGpuHardware();
+        return gpu?.Name;
+    }
+
+    /// <summary>
+    /// Gets the discrete GPU hardware, prioritizing NVIDIA and AMD dGPU over Intel/AMD integrated
+    /// </summary>
+    private IHardware? GetDiscreteGpuHardware()
+    {
+        // NVIDIA GPUs are always discrete (no NVIDIA iGPUs in laptops)
+        var nvidia = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.GpuNvidia);
+        if (nvidia != null) return nvidia;
+        
+        // For AMD, we need to distinguish between iGPU (Radeon Graphics, Vega) and dGPU (Radeon RX, Pro)
+        var amdGpus = _computer.Hardware.Where(h => h.HardwareType == HardwareType.GpuAmd).ToList();
+        
+        foreach (var gpu in amdGpus)
+        {
+            if (IsAmdDiscreteGpu(gpu.Name))
+                return gpu;
+        }
+        
+        return null;
+    }
+
+    /// <summary>
+    /// Determines if an AMD GPU is discrete (dGPU) vs integrated (iGPU)
+    /// </summary>
+    private static bool IsAmdDiscreteGpu(string gpuName)
+    {
+        if (string.IsNullOrWhiteSpace(gpuName))
+            return false;
+
+        var name = gpuName.ToUpperInvariant();
+        
+        // AMD iGPU patterns (integrated graphics in Ryzen APUs)
+        // Examples: "AMD Radeon Graphics", "AMD Radeon Vega 8 Graphics", "AMD Radeon(TM) Graphics"
+        var igpuPatterns = new[]
+        {
+            "RADEON GRAPHICS",       // Generic iGPU name on modern Ryzen
+            "RADEON(TM) GRAPHICS",   // Alternative branding
+            "RADEON VEGA",           // Vega iGPU (Ryzen 2000/3000 series APUs)
+            "RADEON RX VEGA",        // Vega iGPU variant
+            "MICROSOFT BASIC",       // Generic driver
+            "DISPLAY ADAPTER"        // Generic
+        };
+        
+        // Check if it matches any iGPU pattern
+        foreach (var pattern in igpuPatterns)
+        {
+            if (name.Contains(pattern))
+                return false; // It's an iGPU
+        }
+        
+        // AMD dGPU patterns (discrete graphics cards)
+        // Examples: "AMD Radeon RX 6600M", "AMD Radeon RX 7900 XT", "AMD Radeon Pro W6800"
+        var dgpuPatterns = new[]
+        {
+            "RADEON RX 5",    // RX 5000 series (RDNA1)
+            "RADEON RX 6",    // RX 6000 series (RDNA2) 
+            "RADEON RX 7",    // RX 7000 series (RDNA3)
+            "RADEON PRO",     // Professional cards
+            "RADEON R9",      // Older discrete (R9 series)
+            "RADEON R7",      // Older discrete (R7 series)
+            "RADEON HD",      // Older discrete (HD series)
+            "RADEON VII",     // Radeon VII
+            "NAVI",           // RDNA codenames
+            "POLARIS",        // Polaris architecture
+            "ELLESMERE",      // RX 400/500 series codename
+        };
+        
+        // Check if it matches any dGPU pattern
+        foreach (var pattern in dgpuPatterns)
+        {
+            if (name.Contains(pattern))
+                return true; // It's a dGPU
+        }
+        
+        // If we can't determine, assume it's NOT discrete to be safe
+        // This prevents false positives on unknown AMD iGPUs
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the discrete GPU temperature
+    /// </summary>
+    public double? GetGpuTemperature()
+    {
+        var gpu = GetDiscreteGpuHardware();
+        if (gpu == null) return null;
+
+        gpu.Update();
+
+        // Look for GPU Core temperature
+        var coreTemp = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Temperature && 
+            (s.Name.Contains("Core") || s.Name.Contains("GPU")));
+        
+        if (coreTemp?.Value != null && coreTemp.Value > 0)
+            return coreTemp.Value;
+
+        // Fallback: any temperature sensor
+        var anyTemp = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Temperature && 
+            s.Value.HasValue && s.Value.Value > 0);
+        
+        return anyTemp?.Value;
+    }
+
+    /// <summary>
+    /// Gets the discrete GPU load percentage
+    /// </summary>
+    public double? GetGpuLoad()
+    {
+        var gpu = GetDiscreteGpuHardware();
+        if (gpu == null) return null;
+
+        gpu.Update();
+
+        // Look for GPU Core load
+        var coreLoad = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Load && 
+            (s.Name.Contains("Core") || s.Name.Contains("GPU")));
+        
+        if (coreLoad?.Value != null)
+            return coreLoad.Value;
+
+        // Fallback: any load sensor
+        var anyLoad = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Load && 
+            s.Value.HasValue);
+        
+        return anyLoad?.Value;
+    }
+
+    /// <summary>
+    /// Gets the discrete GPU core clock speed in MHz
+    /// </summary>
+    public double? GetGpuClockSpeed()
+    {
+        var gpu = GetDiscreteGpuHardware();
+        if (gpu == null) return null;
+
+        gpu.Update();
+
+        // Look for GPU Core clock
+        var coreClock = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Clock && 
+            (s.Name.Contains("Core") || s.Name.Contains("GPU")));
+        
+        if (coreClock?.Value != null && coreClock.Value > 0)
+            return coreClock.Value;
+
+        // Fallback: any clock sensor
+        var anyClock = gpu.Sensors.FirstOrDefault(s => 
+            s.SensorType == SensorType.Clock && 
+            s.Value.HasValue && s.Value.Value > 0);
+        
+        return anyClock?.Value;
+    }
+
+    /// <summary>
     /// Gets storage SMART health data
     /// </summary>
     public StorageSmartData? GetStorageHealth(string modelName)
     {
+        // 1. Try exact/contains match
         var storage = _computer.Hardware
             .FirstOrDefault(h => h.HardwareType == HardwareType.Storage && 
                                  h.Name.Contains(modelName, StringComparison.OrdinalIgnoreCase));
         
+        // 2. Try partial match (e.g. "Samsung SSD 970" matches "Samsung SSD 970 EVO Plus")
         if (storage == null)
-            storage = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Storage);
+        {
+            var parts = modelName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 0)
+            {
+                // Try matching just the first 2-3 words (Brand + Model prefix)
+                var shortName = string.Join(" ", parts.Take(Math.Min(parts.Length, 2)));
+                storage = _computer.Hardware
+                    .FirstOrDefault(h => h.HardwareType == HardwareType.Storage && 
+                                         h.Name.Contains(shortName, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+            
+        // 3. If we only have one storage device in system, assume it's the one (fallback)
+        if (storage == null)
+        {
+            var allStorage = _computer.Hardware.Where(h => h.HardwareType == HardwareType.Storage).ToList();
+            if (allStorage.Count == 1)
+                storage = allStorage.First();
+        }
             
         if (storage == null) return null;
 
@@ -239,11 +434,43 @@ public class SensorProvider : IDisposable
         // Health/Wear level (SSD specific)
         var life = storage.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Level && 
             (s.Name.Contains("Life") || s.Name.Contains("Health") || s.Name.Contains("Remaining")));
-        if (life?.Value != null) data.HealthPercent = (int)life.Value;
+            
+        if (life?.Value != null) 
+        {
+            data.HealthPercent = (int)life.Value;
+        }
+        else
+        {
+            // Some drives report "Wear Level" which is inverse of health (0% wear = 100% health, 10% wear = 90% health)
+            var wear = storage.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Level && s.Name.Contains("Wear"));
+            if (wear?.Value != null)
+                data.HealthPercent = 100 - (int)wear.Value;
+        }
+
+        // Power On Hours
+        // Often reported as a generic factor or time
+        var hours = storage.Sensors.FirstOrDefault(s => 
+            s.Name.Contains("Power On Hours", StringComparison.OrdinalIgnoreCase) || 
+            s.Name.Contains("Power-On Hours", StringComparison.OrdinalIgnoreCase));
+            
+        if (hours?.Value != null)
+            data.PowerOnHours = (int)hours.Value;
 
         // Data written
         var written = storage.Sensors.FirstOrDefault(s => s.Name.Contains("Written"));
-        if (written?.Value != null) data.TotalBytesWritten = (long)(written.Value * 1024 * 1024 * 1024); // Convert GB to bytes
+        if (written?.Value != null) 
+        {
+             // Some SSDs report in GB, others in bytes. LHM usually normalizes but let's check.
+             // Usually LHM exposes 'Total Bytes Written' in GB or TB as a Factor sensor for NVMe
+             // If the value is small (< 1000000), it's likely GB or TB.
+             double val = written.Value.Value;
+             if (written.Name.Contains("GB"))
+                data.TotalBytesWritten = (long)(val * 1024 * 1024 * 1024);
+             else if (written.Name.Contains("TB"))
+                data.TotalBytesWritten = (long)(val * 1024 * 1024 * 1024 * 1024);
+             else
+                data.TotalBytesWritten = (long)val; // Assume raw bytes or LHM normalized
+        }
 
         return data;
     }

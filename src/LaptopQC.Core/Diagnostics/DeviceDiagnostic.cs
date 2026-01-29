@@ -28,6 +28,7 @@ public class DeviceDiagnostic
         DetectUsbPorts(info);
         DetectConnectedUsbDevices(info);
         DetectDisplays(info);
+        DetectGpus(info);
         DetectAudioDevices(info);
         DetectNetworkDevices(info);
         DetectCamera(info);
@@ -320,11 +321,34 @@ public class DeviceDiagnostic
             info.Displays.Add(display);
         }
 
-        // Also check video controllers for port capability
+    }
+
+    /// <summary>
+    /// Detects GPUs / Video Controllers
+    /// </summary>
+    private void DetectGpus(DevicesInfo info)
+    {
         foreach (var obj in _wmi.Query("Win32_VideoController"))
         {
-            var name = _wmi.GetValue<string>(obj, "Name", "") ?? "";
-            // This gives us info about the GPU, useful for port detection
+            var gpu = new GpuInfo
+            {
+                Name = _wmi.GetValue<string>(obj, "Name", "Unknown GPU") ?? "Unknown GPU",
+                DeviceId = _wmi.GetValue<string>(obj, "DeviceID", "") ?? "",
+                Status = _wmi.GetValue<string>(obj, "Status", "Unknown") ?? "Unknown",
+                DriverVersion = _wmi.GetValue<string>(obj, "DriverVersion", "") ?? "",
+                CurrentResX = (int)_wmi.GetValue<uint>(obj, "CurrentHorizontalResolution", 0),
+                CurrentResY = (int)_wmi.GetValue<uint>(obj, "CurrentVerticalResolution", 0),
+                CurrentRefreshRate = _wmi.GetValue<uint>(obj, "CurrentRefreshRate", 0)
+            };
+            
+            // AdapterRAM is often reported in bytes, but is unreliable on modern systems (often 0 or capped at 4GB)
+            var adapterRam = _wmi.GetValue<uint>(obj, "AdapterRAM", 0);
+            if (adapterRam > 0)
+            {
+                gpu.MemoryGB = adapterRam / (1024.0 * 1024 * 1024);
+            }
+            
+            info.Gpus.Add(gpu);
         }
     }
 

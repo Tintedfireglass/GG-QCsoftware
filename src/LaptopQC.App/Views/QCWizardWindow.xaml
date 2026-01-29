@@ -1,0 +1,80 @@
+<Window x:Class="LaptopQC.App.Views.QCWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
+        mc:Ignorable="d"
+        Title="QC Wizard" Height="450" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    
+    <Window.DataContext>
+        <vm:QCWizardViewModel/>
+    </Window.DataContext>
+
+    <Grid Margin="20">
+        <!-- Step 1: Preparation -->
+        <StackPanel Visibility="{Binding IsPrepStep, Converter={StaticResource BoolToVisibilityConverter}}">
+            <TextBlock Text="Step 1: Preparation" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+            
+            <TextBlock Text="Refurbish ID / Asset Tag:" Margin="0,5"/>
+            <TextBox Text="{Binding RefurbId, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,0,0,15"/>
+            
+            <TextBlock Text="Technician Notes (Optional):" Margin="0,5"/>
+            <TextBox Text="{Binding TechnicianNotes}" Height="100" TextWrapping="Wrap" AcceptsReturn="True" Padding="5" Margin="0,0,0,20"/>
+            
+            <Button Command="{Binding StartTestsCommand}" Content="Start QC Process" 
+                    Height="40" Background="#007ACC" Foreground="White" FontWeight="Bold"/>
+        </StackPanel>
+
+        <!-- Step 2: Automated Tests -->
+        <StackPanel Visibility="{Binding IsAutomatedStep, Converter={StaticResource BoolToVisibilityConverter}}"
+                    VerticalAlignment="Center">
+            <TextBlock Text="Step 2: Automated System Checks" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+            
+            <ProgressBar Value="{Binding AutomatedProgress}" Height="20" Margin="0,0,0,10"/>
+            <TextBlock Text="{Binding AutomatedStatus}" HorizontalAlignment="Center" FontSize="14" Foreground="#666"/>
+        </StackPanel>
+
+        <!-- Step 3: Interactive Tests -->
+        <StackPanel Visibility="{Binding IsInteractiveStep, Converter={StaticResource BoolToVisibilityConverter}}"
+                    VerticalAlignment="Center">
+            <TextBlock Text="Step 3: Interactive Tests" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            <TextBlock Text="{Binding InteractiveInstruction}" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,30" Foreground="#007ACC"/>
+
+            <Button Command="{Binding RunKeyboardTestCommand}" Content="Run Keyboard Test" 
+                    Visibility="{Binding IsKeyboardNext, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Height="50" Margin="0,10" FontSize="14"/>
+
+            <Button Command="{Binding RunTrackpadTestCommand}" Content="Run Trackpad Test" 
+                    Visibility="{Binding IsTrackpadNext, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Height="50" Margin="0,10" FontSize="14"/>
+            
+            <Button Command="{Binding RunUsbTestCommand}" Content="Run USB Port Test" 
+                    Visibility="{Binding IsUsbNext, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Height="50" Margin="0,10" FontSize="14"/>
+            
+            <Button Command="{Binding RunAvTestCommand}" Content="Run Audio &amp; Video Test" 
+                    Visibility="{Binding IsAvNext, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Height="50" Margin="0,10" FontSize="14"/>
+        </StackPanel>
+
+        <!-- Step 4: Report -->
+        <StackPanel Visibility="{Binding IsReportStep, Converter={StaticResource BoolToVisibilityConverter}}"
+                    VerticalAlignment="Center">
+            <TextBlock Text="QC Complete" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+            
+            <TextBlock Text="{Binding CompletionMessage}" FontSize="18" FontWeight="SemiBold" 
+                       HorizontalAlignment="Center" Margin="0,0,0,5"
+                       Foreground="{Binding OverallPassed, Converter={StaticResource BoolToColorConverter}}"/>
+            
+            <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,30" Foreground="Gray" FontSize="10"/>
+
+            <Button Command="{Binding OpenReportCommand}" Content="View Report" 
+                    Height="40" Background="#007ACC" Foreground="White" Margin="0,0,0,10"/>
+            
+            <Button Command="{Binding CloseWizardCommand}" Content="Close" Height="40"/>
+        </StackPanel>
+    </Grid>
+</Window>

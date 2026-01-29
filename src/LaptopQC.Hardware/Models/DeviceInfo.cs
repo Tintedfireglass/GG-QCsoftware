@@ -9,6 +9,7 @@ public class DevicesInfo
     public List<UsbPortInfo> UsbPorts { get; set; } = new();
     public List<UsbDevice> ConnectedUsbDevices { get; set; } = new();
     public List<DisplayDevice> Displays { get; set; } = new();
+    public List<GpuInfo> Gpus { get; set; } = new();
     public List<AudioDevice> AudioDevices { get; set; } = new();
     public List<NetworkDevice> NetworkDevices { get; set; } = new();
     public CameraDevice? Camera { get; set; }
@@ -119,4 +120,19 @@ public class CameraDevice
     public string Status { get; set; } = "";
     public bool IsDetected { get; set; }
     public bool IsWorking => Status.Equals("OK", StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>
+/// GPU / Video Controller information
+/// </summary>
+public class GpuInfo
+{
+    public string Name { get; set; } = "";
+    public string DeviceId { get; set; } = "";
+    public string DriverVersion { get; set; } = "";
+    public double MemoryGB { get; set; }
+    public string Status { get; set; } = "";
+    public int CurrentResX { get; set; }
+    public int CurrentResY { get; set; }
+    public uint CurrentRefreshRate { get; set; }
 }

@@ -84,6 +84,16 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void StartFullQc()
+    {
+        var wizard = new Views.QCWizardWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+        wizard.ShowDialog();
+    }
+
+    [RelayCommand]
     private void OpenKeyboardTest()
     {
         var keyboardWindow = new Views.KeyboardTestWindow
@@ -373,6 +383,39 @@ public partial class MainViewModel : ObservableObject
             var ramResult = await ramStress.RunAsync();
             AddResult("RAM", "Stress Test", ramResult.Passed, ramResult.Message);
             RamStatus = ramResult.Passed ? "✓ Passed Stress Test" : "✗ Failed Stress Test";
+
+            // GPU Stress Test (only if discrete GPU is detected)
+            StatusMessage = "Checking for discrete GPU...";
+            var gpuStress = new GpuStressTest(durationSeconds: 15);
+            gpuStress.OnProgress += (p) =>
+            {
+                var temp = p.CurrentTemp > 0 ? $"{p.CurrentTemp:F0}°C" : "N/A";
+                var load = p.CurrentLoad > 0 ? $" | Load: {p.CurrentLoad:F0}%" : "";
+                var speed = p.CurrentClock > 0 ? $" @ {p.CurrentClock:F0}MHz" : "";
+                StatusMessage = $"Stress testing GPU ({p.GpuName}): {p.PercentComplete}% | Temp: {temp}{load}{speed}";
+            };
+
+            var gpuResult = await gpuStress.RunAsync();
+            
+            if (gpuResult.Skipped)
+            {
+                AddResult("GPU", "Stress Test", true, gpuResult.Message);
+            }
+            else
+            {
+                AddResult("GPU", "Stress Test", gpuResult.Passed, gpuResult.Message);
+                
+                // Add detailed GPU metrics
+                if (gpuResult.MaxTemp > 0)
+                    AddResult("GPU", "Max Temperature", gpuResult.MaxTemp <= 90, $"{gpuResult.MaxTemp:F1}°C");
+                if (gpuResult.MaxLoad > 0)
+                    AddResult("GPU", "Load", true, $"{gpuResult.AvgLoad:F0}% avg, {gpuResult.MaxLoad:F0}% max");
+                if (gpuResult.MaxClock > 0)
+                {
+                    double throttlePercent = gpuResult.MaxClock > 0 ? (1 - gpuResult.MinClock / gpuResult.MaxClock) * 100 : 0;
+                    AddResult("GPU", "Clock Range", throttlePercent < 30, $"{gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
+                }
+            }
 
             StatusMessage = "Stress tests complete!";
         }

@@ -142,12 +142,27 @@
                             </Style>
                         </Button.Style>
                     </Button>
+                    
+                    <Button Content="🚀 Full QC" 
+                            Command="{Binding StartFullQcCommand}"
+                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
+                            Margin="0,0,10,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                <Setter Property="Background" Value="#2d5a27"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3d7a37"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
                     <Button Content="▶ Run Diagnostics" 
                             Style="{StaticResource PrimaryButton}"
                             Command="{Binding RunDiagnosticsCommand}"
-                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"/>
-                </StackPanel>
+                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"/>                </StackPanel>
             </Grid>
         </Border>
         
@@ -460,9 +475,9 @@
                         
                         <!-- USB Ports -->
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="USB Ports" Style="{StaticResource InfoText}" Margin="0,0,0,5"/>
+                            <TextBlock Text="USB Controllers" Style="{StaticResource InfoText}" Margin="0,0,0,5"/>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" 
+                                <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='-', TargetNullValue='-'}" 
                                            Foreground="#ffffff" FontSize="28" FontWeight="Bold"/>
                                 <TextBlock Text=" total" Foreground="#a0a0a0" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
                                 <Button Content="🧪 Test" 
