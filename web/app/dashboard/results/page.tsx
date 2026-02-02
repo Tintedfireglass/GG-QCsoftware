@@ -98,7 +98,7 @@ export default function ResultsPage() {
                                             {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>
                                         <td className="p-4 align-middle text-right space-x-2">
-                                            <Link href={`/dashboard/results/${test.id}?print=true`} target="_blank">
+                                            <Link href={`/report/${test.id}`} target="_blank">
                                                 <Button variant="outline" size="sm">
                                                     <Printer className="h-4 w-4 mr-2" />
                                                     Print

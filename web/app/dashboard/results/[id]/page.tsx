@@ -10,18 +10,10 @@ import { useParams, useSearchParams } from "next/navigation"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
-    const searchParams = useSearchParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
-    // Handle auto-print
-    useEffect(() => {
-        if (!loading && data && searchParams.get('print') === 'true') {
-            setTimeout(() => {
-                window.print()
-            }, 500) // Small delay to render
-        }
-    }, [loading, data, searchParams])
+    // Handle auto-print removed (moved to dedicated page)
 
     useEffect(() => {
         async function load() {
@@ -67,10 +59,12 @@ export default function ResultDetailPage() {
                     </Button>
                 </Link>
                 <div className="space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => window.print()}>
-                        <Printer className="h-4 w-4 mr-2" />
-                        Print
-                    </Button>
+                    <Link href={`/report/${id}`} target="_blank">
+                        <Button variant="outline" size="sm">
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
