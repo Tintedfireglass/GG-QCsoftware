@@ -1,26 +1,25 @@
-# Build outputs
+# Ignore build outputs
 bin/
 obj/
-publish/
-
-# IDE
 .vs/
-.vscode/
 *.user
 *.suo
 
-# Rider
-.idea/
+# Node modules and build
+web/node_modules/
+web/.next/
+web/out/
+web/.env*.local
 
-# Extracted content from PDF
-extracted_content.txt
+# Reports (these are now stored in database, local reports are for backup)
+*.html
+Reports/
 
-# Logs and debug files
+# Logs
 *.log
 *.txt
-!README.txt
-!LICENSE.txt
 
-# OS
-Thumbs.db
+# OS files
 .DS_Store
+Thumbs.db
+desktop.ini

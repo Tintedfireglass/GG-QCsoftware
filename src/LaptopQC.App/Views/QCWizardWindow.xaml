@@ -69,7 +69,10 @@
                        HorizontalAlignment="Center" Margin="0,0,0,5"
                        Foreground="{Binding OverallPassed, Converter={StaticResource BoolToColorConverter}}"/>
             
-            <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,30" Foreground="Gray" FontSize="10"/>
+            <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,10" Foreground="Gray" FontSize="10"/>
+            
+            <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold" 
+                       HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="#2E7D32"/>
 
             <Button Command="{Binding OpenReportCommand}" Content="View Report" 
                     Height="40" Background="#007ACC" Foreground="White" Margin="0,0,0,10"/>

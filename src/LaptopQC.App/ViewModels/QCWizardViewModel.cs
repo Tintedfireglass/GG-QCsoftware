@@ -61,10 +61,16 @@ public partial class QCWizardViewModel : ObservableObject
     [ObservableProperty]
     private string _reportPath = "";
 
+    [ObservableProperty]
+    private string _submissionStatus = "";
+
+    private readonly QCSubmissionService _submissionService;
+
     public QCWizardViewModel()
     {
         _workflowService = new QCWorkflowService();
         _reportGenerator = new ReportGenerator();
+        _submissionService = new QCSubmissionService();
 
         _workflowService.OnStatusUpdate += (status) => AutomatedStatus = status;
         _workflowService.OnProgressUpdate += (progress) => AutomatedProgress = progress;
@@ -181,7 +187,7 @@ public partial class QCWizardViewModel : ObservableObject
         }
     }
 
-    private void FinishAndGenerateReport()
+    private async void FinishAndGenerateReport()
     {
         IsInteractiveStep = false;
         IsReportStep = true;
@@ -191,6 +197,11 @@ public partial class QCWizardViewModel : ObservableObject
         
         OverallPassed = report.OverallPass;
         CompletionMessage = OverallPassed ? "QC PASSED" : "QC FAILED";
+
+        // Submit to API
+        SubmissionStatus = "Submitting to Central Server...";
+        var success = await _submissionService.SubmitReportAsync(report);
+        SubmissionStatus = success ? "Successfully Submitted to Server" : "Failed to Submit to Server (Saved Locally)";
     }
 
     [RelayCommand]
