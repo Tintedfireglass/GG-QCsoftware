@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 // This works with any PostgreSQL database (Vercel Postgres, Supabase, Railway, Neon, etc.)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    ssl: { rejectUnauthorized: false },
 });
 
 export default pool;
