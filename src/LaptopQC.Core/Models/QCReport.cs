@@ -6,7 +6,7 @@ namespace LaptopQC.Core.Models;
 public class QCReport
 {
     public string ReportId { get; set; } = Guid.NewGuid().ToString();
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string RefurbishId { get; set; } = "";
     public string TechnicianNotes { get; set; } = "";
     

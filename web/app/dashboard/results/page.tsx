@@ -5,7 +5,7 @@ import { getQCResults } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Printer } from "lucide-react"
 
 export default function ResultsPage() {
     const [results, setResults] = useState<any[]>([])
@@ -64,10 +64,10 @@ export default function ResultsPage() {
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b">
                             <tr className="border-b transition-colors hover:bg-muted/50 bg-slate-50">
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[100px]">Test ID</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[100px]">Status</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Refurb ID</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Machine</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Model</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Serial</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Date</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Actions</th>
                             </tr>
@@ -80,6 +80,7 @@ export default function ResultsPage() {
                             ) : (
                                 results.map((test) => (
                                     <tr key={test.id} className="border-b transition-colors hover:bg-slate-50">
+                                        <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                         <td className="p-4 align-middle">
                                             {test.overall_pass ? (
                                                 <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
@@ -91,13 +92,18 @@ export default function ResultsPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="p-4 align-middle font-medium">{test.refurbish_id}</td>
-                                        <td className="p-4 align-middle text-slate-500">{test.machine_identifier}</td>
                                         <td className="p-4 align-middle dark:text-slate-400">{test.system_manufacturer} {test.system_model}</td>
+                                        <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
                                         <td className="p-4 align-middle text-slate-500">
                                             {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>
-                                        <td className="p-4 align-middle text-right">
+                                        <td className="p-4 align-middle text-right space-x-2">
+                                            <Link href={`/dashboard/results/${test.id}?print=true`} target="_blank">
+                                                <Button variant="outline" size="sm">
+                                                    <Printer className="h-4 w-4 mr-2" />
+                                                    Print
+                                                </Button>
+                                            </Link>
                                             <Link href={`/dashboard/results/${test.id}`}>
                                                 <Button variant="outline" size="sm">View Report</Button>
                                             </Link>

@@ -114,7 +114,7 @@ export default function DashboardPage() {
                                     <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Test ID</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Status</th>
-                                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Refurb ID</th>
+
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Model</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Serial</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Date</th>
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="p-4 align-middle font-medium">{test.refurbish_id}</td>
+
                                             <td className="p-4 align-middle">{test.system_model}</td>
                                             <td className="p-4 align-middle">{test.system_serial}</td>
                                             <td className="p-4 align-middle text-slate-500">
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                                     ))}
                                     {stats.recentTests.length === 0 && (
                                         <tr>
-                                            <td colSpan={6} className="p-4 text-center text-slate-500">No test results found</td>
+                                            <td colSpan={5} className="p-4 text-center text-slate-500">No test results found</td>
                                         </tr>
                                     )}
                                 </tbody>

@@ -6,12 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Printer, Download } from "lucide-react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
+    const searchParams = useSearchParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+
+    // Handle auto-print
+    useEffect(() => {
+        if (!loading && data && searchParams.get('print') === 'true') {
+            setTimeout(() => {
+                window.print()
+            }, 500) // Small delay to render
+        }
+    }, [loading, data, searchParams])
 
     useEffect(() => {
         async function load() {
