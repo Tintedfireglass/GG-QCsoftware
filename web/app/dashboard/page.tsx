@@ -3,43 +3,45 @@
 import { useEffect, useState } from "react"
 import { getMachines, getQCResults } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity, CheckCircle, XCircle, Monitor } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Activity, CheckCircle, XCircle, Monitor, Search } from "lucide-react"
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
         activeMachines: 0,
+
         recentTests: [] as any[]
     })
     const [loading, setLoading] = useState(true)
+    const [searchQuery, setSearchQuery] = useState("")
+
+    async function loadData(query = "") {
+        setLoading(true)
+        try {
+            const [resultsData, machinesData] = await Promise.all([
+                getQCResults(1, 10, { search: query }),
+                getMachines()
+            ])
+
+            const total = resultsData.pagination.total
+
+            setStats({
+                totalTests: total,
+                passRate: 0,
+                activeMachines: machinesData.machines.length,
+                recentTests: resultsData.results
+            })
+        } catch (error) {
+            console.error("Failed to load dashboard data", error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
-        async function loadData() {
-            try {
-                const [resultsData, machinesData] = await Promise.all([
-                    getQCResults(1, 10), // Get recent 10
-                    getMachines()
-                ])
-
-                const total = resultsData.pagination.total
-                // We don't have pass rate from API yet, so we'll just display what we have or calculate from the page
-                //Ideally backend should provide stats. 
-                // For MVP layout, we'll just show the total count.
-
-                setStats({
-                    totalTests: total,
-                    passRate: 0, // Placeholder
-                    activeMachines: machinesData.machines.length,
-                    recentTests: resultsData.results
-                })
-            } catch (error) {
-                console.error("Failed to load dashboard data", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
         loadData()
     }, [])
 
@@ -89,13 +91,28 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-1">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Recent QC Results</CardTitle>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Recent QC Results</CardTitle>
+                            <div className="flex w-full max-w-sm items-center space-x-2">
+                                <Input
+                                    type="text"
+                                    placeholder="Search Test ID, Serial..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && loadData(searchQuery)}
+                                />
+                                <Button size="icon" onClick={() => loadData(searchQuery)}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="relative w-full overflow-auto">
                             <table className="w-full caption-bottom text-sm text-left">
                                 <thead className="[&_tr]:border-b">
                                     <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                        <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Test ID</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Status</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Refurb ID</th>
                                         <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Model</th>
@@ -106,6 +123,7 @@ export default function DashboardPage() {
                                 <tbody className="[&_tr:last-child]:border-0">
                                     {stats.recentTests.map((test) => (
                                         <tr key={test.id} className="border-b transition-colors hover:bg-muted/50">
+                                            <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                             <td className="p-4 align-middle">
                                                 {test.overall_pass ? (
                                                     <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
@@ -127,7 +145,7 @@ export default function DashboardPage() {
                                     ))}
                                     {stats.recentTests.length === 0 && (
                                         <tr>
-                                            <td colSpan={5} className="p-4 text-center text-slate-500">No test results found</td>
+                                            <td colSpan={6} className="p-4 text-center text-slate-500">No test results found</td>
                                         </tr>
                                     )}
                                 </tbody>

@@ -13,7 +13,9 @@ public class QCSubmissionService
     {
         _config = config ?? new ApiConfiguration();
         _httpClient = new HttpClient();
-        _httpClient.BaseAddress = new Uri(_config.ApiUrl);
+        var url = _config.ApiUrl;
+        if (!url.EndsWith("/")) url += "/";
+        _httpClient.BaseAddress = new Uri(url);
         _httpClient.DefaultRequestHeaders.Add("X-API-Key", _config.ApiKey);
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
@@ -78,7 +80,7 @@ public class QCSubmissionService
                 SerialNumber = report.SystemInfo?.SerialNumber,
                 MacAddress = report.MacAddress,
                 CpuModel = report.CpuDetails?.Name,
-                RamTotal = ramTotal > 0 ? ramTotal : (report.SystemInfo?.TotalMemoryBytes ?? 0)
+                RamTotal = ramTotal > 0 ? ramTotal : 0
             },
             
             CpuDetails = report.CpuDetails,

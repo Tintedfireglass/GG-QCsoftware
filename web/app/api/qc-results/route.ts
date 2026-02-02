@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
         const offset = parseInt(searchParams.get('offset') || '0');
         const machineId = searchParams.get('machineId');
         const refurbishId = searchParams.get('refurbishId');
+
         const overallPass = searchParams.get('overallPass');
+        const search = searchParams.get('search');
 
         // Build query
         let queryText = `
@@ -53,6 +55,18 @@ export async function GET(request: NextRequest) {
         if (overallPass !== null && overallPass !== undefined) {
             queryText += ` AND qr.overall_pass = $${paramCount}`;
             params.push(overallPass === 'true');
+            paramCount++;
+        }
+
+        if (search) {
+            queryText += ` AND (
+                CAST(qr.id AS TEXT) ILIKE $${paramCount} OR 
+                qr.refurbish_id ILIKE $${paramCount} OR 
+                m.machine_id ILIKE $${paramCount} OR 
+                m.serial_number ILIKE $${paramCount} OR
+                qr.system_model ILIKE $${paramCount}
+            )`;
+            params.push(`%${search}%`);
             paramCount++;
         }
 
