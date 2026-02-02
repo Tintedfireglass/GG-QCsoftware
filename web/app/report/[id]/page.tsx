@@ -47,7 +47,7 @@ export default function DedicatedReportPage() {
                     <p className="text-sm mt-1 text-gray-600">Quality Control Report</p>
                 </div>
                 <div className="text-right">
-                    <div className="text-lg font-bold">Refurb ID: {data.refurbish_id}</div>
+                    <div className="text-lg font-bold">Test ID: #{data.id}</div>
                     <div className="text-sm text-gray-600">{new Date(data.timestamp).toLocaleString()}</div>
                 </div>
             </header>
@@ -83,6 +83,10 @@ export default function DedicatedReportPage() {
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Serial No.</td>
                                 <td className="py-2 font-mono">{data.system_serial}</td>
+                            </tr>
+                            <tr className="border-b border-dotted border-gray-300">
+                                <td className="py-2 text-gray-600">MAC Address</td>
+                                <td className="py-2 font-mono">{data.mac_address}</td>
                             </tr>
                         </tbody>
                     </table>

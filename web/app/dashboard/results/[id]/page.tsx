@@ -73,7 +73,7 @@ export default function ResultDetailPage() {
                 <CardContent className="p-8">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">QC Report: {data.refurbish_id}</h1>
+                            <h1 className="text-3xl font-bold mb-2">QC Report: #{data.id}</h1>
                             <p className="text-slate-500">
                                 Date: {new Date(data.timestamp).toLocaleString()}
                             </p>
