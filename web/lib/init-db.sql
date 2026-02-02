@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, password_hash, role, email)
 VALUES (
     'admin',
-    '$2a$10$rQZ5YvHvJvJvJvJvJvJvJO5YvHvJvJvJvJvJvJvJvJvJvJvJvJvJv', 
+    '$2b$10$9DgF/9FC6czJpFL0ng7ULukZfoXStlVWYeDGZ6sPDzvbeOTo2oK1q', 
     'Admin',
     'admin@example.com'
 ) ON CONFLICT (username) DO NOTHING;
