@@ -198,10 +198,61 @@ public partial class QCWizardViewModel : ObservableObject
         OverallPassed = report.OverallPass;
         CompletionMessage = OverallPassed ? "QC PASSED" : "QC FAILED";
 
-        // Submit to API
-        SubmissionStatus = "Submitting to Central Server...";
-        var success = await _submissionService.SubmitReportAsync(report);
-        SubmissionStatus = success ? "Successfully Submitted to Server" : "Failed to Submit to Server (Saved Locally)";
+        // Check if logged in - prompt login for cloud submission
+        if (!App.IsLoggedIn)
+        {
+            SubmissionStatus = "Login required to submit to cloud...";
+            
+            // Show login dialog
+            var loginWindow = new Views.LoginWindow(App.AuthService)
+            {
+                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.DataContext == this)
+            };
+            var loginResult = loginWindow.ShowDialog();
+            
+            // If still not logged in after dialog, ask if user wants to skip
+            if (!App.IsLoggedIn)
+            {
+                var skipResult = MessageBox.Show(
+                    "Login is required to submit results to the cloud.\n\n" +
+                    "The report has been saved locally.\n\n" +
+                    "Would you like to try logging in again?",
+                    "Cloud Submission",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                
+                if (skipResult == MessageBoxResult.Yes)
+                {
+                    // Retry login
+                    var retryWindow = new Views.LoginWindow(App.AuthService)
+                    {
+                        Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.DataContext == this)
+                    };
+                    retryWindow.ShowDialog();
+                }
+                
+                if (!App.IsLoggedIn)
+                {
+                    SubmissionStatus = "⚠ Skipped cloud submission (saved locally only)";
+                    return;
+                }
+            }
+        }
+
+        // Now logged in - submit to API
+        var technicianId = App.TechnicianId;
+        SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
+        
+        var success = await _submissionService.SubmitReportAsync(report, technicianId);
+        
+        if (success)
+        {
+            SubmissionStatus = $"✓ Submitted (by {App.UserDisplayName})";
+        }
+        else
+        {
+            SubmissionStatus = "✗ Failed to Submit (Saved Locally)";
+        }
     }
 
     [RelayCommand]

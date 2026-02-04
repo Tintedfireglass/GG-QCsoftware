@@ -1,18 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
-import { ApiError } from '@/lib/types';
+import { ApiError, CreateUserRequest, UserRole } from '@/lib/types';
+import { authenticateRequest, getCreatableRoles, requireRole } from '@/lib/auth-middleware';
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { username, password, email, role } = body;
+        // Authenticate the request
+        const { user: authUser, error: authError } = await authenticateRequest(request);
+        if (authError) return authError;
+        if (!authUser) {
+            return NextResponse.json(
+                { error: 'Authentication Error', message: 'Not authenticated' } as ApiError,
+                { status: 401 }
+            );
+        }
+
+        // Only SuperAdmin and Admin can create users
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Admin']);
+        if (roleError) return roleError;
+
+        const body: CreateUserRequest = await request.json();
+        const { username, password, email, display_name, role } = body;
 
         // Validate input
         if (!username || !password) {
             return NextResponse.json(
                 { error: 'Validation Error', message: 'Username and password are required' } as ApiError,
                 { status: 400 }
+            );
+        }
+
+        // Validate role
+        const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'User'];
+        if (!role || !validRoles.includes(role)) {
+            return NextResponse.json(
+                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Admin, or User)' } as ApiError,
+                { status: 400 }
+            );
+        }
+
+        // Check if the creator can create this role
+        const creatableRoles = getCreatableRoles(authUser);
+        if (!creatableRoles.includes(role)) {
+            return NextResponse.json(
+                {
+                    error: 'Authorization Error',
+                    message: `You can only create users with roles: ${creatableRoles.join(', ')}`
+                } as ApiError,
+                { status: 403 }
             );
         }
 
@@ -32,12 +68,12 @@ export async function POST(request: NextRequest) {
         // Hash password
         const passwordHash = await hashPassword(password);
 
-        // Insert user
+        // Insert user with created_by reference
         const result = await query(
-            `INSERT INTO users (username, password_hash, email, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, username, email, role, created_at`,
-            [username, passwordHash, email || null, role || 'Viewer']
+            `INSERT INTO users (username, password_hash, email, display_name, role, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, username, email, display_name, role, created_by, is_active, created_at`,
+            [username, passwordHash, email || null, display_name || username, role, authUser.id]
         );
 
         return NextResponse.json(
@@ -55,3 +91,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+

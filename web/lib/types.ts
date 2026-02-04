@@ -51,14 +51,57 @@ export interface TestResult {
     timestamp?: Date;
 }
 
+// User role types for role-based access control
+export type UserRole = 'SuperAdmin' | 'Admin' | 'User';
+
+// Role display names for UI
+export const UserRoleDisplayNames: Record<UserRole, string> = {
+    SuperAdmin: 'Gadget Guruz',
+    Admin: 'Refurbisher',
+    User: 'Technician',
+};
+
+// Role descriptions
+export const UserRoleDescriptions: Record<UserRole, string> = {
+    SuperAdmin: 'Full system access, can manage Admins and Users',
+    Admin: 'Can manage Technicians in their team',
+    User: 'QC Technician, can perform and view own QC tests',
+};
+
 export interface User {
     id: number;
     username: string;
     password_hash: string;
-    role: 'Admin' | 'Viewer';
+    role: UserRole;
     email?: string;
+    display_name?: string;
+    created_by?: number;
     is_active: boolean;
     created_at: Date;
+}
+
+// Extended user interface with creator info for API responses
+export interface UserWithCreator extends Omit<User, 'password_hash'> {
+    creator_username?: string;
+    team_size?: number; // For Admins: number of users they manage
+}
+
+// User creation request
+export interface CreateUserRequest {
+    username: string;
+    password: string;
+    email?: string;
+    display_name?: string;
+    role: UserRole;
+}
+
+// User update request
+export interface UpdateUserRequest {
+    email?: string;
+    display_name?: string;
+    role?: UserRole;
+    is_active?: boolean;
+    password?: string; // Optional: only if changing password
 }
 
 // DTOs for API requests/responses
@@ -69,6 +112,7 @@ export interface SubmitQCResultRequest {
     refurbishId?: string;
     technicianNotes?: string;
     overallPass: boolean;
+    technicianId?: number; // Optional: ID of logged-in technician
 
     systemInfo?: {
         manufacturer?: string;

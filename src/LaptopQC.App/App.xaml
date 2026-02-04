@@ -29,5 +29,11 @@
         <!-- Keyboard Width Converter -->
         <local:KeyWidthConverter x:Key="KeyWidthConverter" 
                                   xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
+        <!-- Card Shadow Effect -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          ShadowDepth="4" 
+                          BlurRadius="12" 
+                          Opacity="0.15"/>
     </Application.Resources>
 </Application>

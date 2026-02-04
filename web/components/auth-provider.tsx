@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
 interface User {
     id: number
     username: string
-    role: string
+    role: UserRole
+    display_name?: string
 }
 
 interface AuthContextType {
@@ -15,6 +17,14 @@ interface AuthContextType {
     login: (token: string, user: User) => void
     logout: () => void
     isLoading: boolean
+    // Role-based helpers
+    isSuperAdmin: () => boolean
+    isAdmin: () => boolean
+    isUser: () => boolean
+    canManageUsers: () => boolean
+    canViewAllResults: () => boolean
+    canViewMachines: () => boolean
+    getRoleDisplayName: () => string
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +33,13 @@ const AuthContext = createContext<AuthContextType>({
     login: () => { },
     logout: () => { },
     isLoading: true,
+    isSuperAdmin: () => false,
+    isAdmin: () => false,
+    isUser: () => false,
+    canManageUsers: () => false,
+    canViewAllResults: () => false,
+    canViewMachines: () => false,
+    getRoleDisplayName: () => "",
 })
 
 export function useAuth() {
@@ -52,7 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Redirect logic
         if (!isLoading) {
-            if (!token && !pathname.startsWith("/login")) {
+            const isPublicRoute = pathname.startsWith("/login") || pathname.startsWith("/report")
+
+            if (!token && !isPublicRoute) {
                 router.push("/login")
             } else if (token && pathname === "/login") {
                 router.push("/dashboard")
@@ -78,9 +97,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/login")
     }
 
+    // Role-based helper functions
+    const isSuperAdmin = () => user?.role === "SuperAdmin"
+    const isAdmin = () => user?.role === "Admin"
+    const isUser = () => user?.role === "User"
+
+    // Permission checks
+    const canManageUsers = () => user?.role === "SuperAdmin" || user?.role === "Admin"
+    const canViewAllResults = () => user?.role === "SuperAdmin" || user?.role === "Admin"
+    const canViewMachines = () => user?.role === "SuperAdmin" || user?.role === "Admin"
+
+    const getRoleDisplayName = () => {
+        if (!user) return ""
+        return UserRoleDisplayNames[user.role] || user.role
+    }
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            login,
+            logout,
+            isLoading,
+            isSuperAdmin,
+            isAdmin,
+            isUser,
+            canManageUsers,
+            canViewAllResults,
+            canViewMachines,
+            getRoleDisplayName,
+        }}>
             {children}
         </AuthContext.Provider>
     )
 }
+

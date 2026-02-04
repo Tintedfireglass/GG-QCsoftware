@@ -9,18 +9,70 @@ import {
     ClipboardList,
     Monitor,
     LogOut,
-    Laptop
+    Laptop,
+    Users,
+    UserPlus,
+    Shield
 } from "lucide-react"
+import { UserRoleDisplayNames } from "@/lib/types"
+
+interface NavLink {
+    href: string
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    roles?: ('SuperAdmin' | 'Admin' | 'User')[] // If undefined, visible to all
+}
 
 export function Sidebar() {
     const pathname = usePathname()
-    const { logout, user } = useAuth()
+    const { logout, user, canManageUsers, canViewMachines, getRoleDisplayName } = useAuth()
 
-    const links = [
-        { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-        { href: "/dashboard/results", label: "QC Results", icon: ClipboardList },
-        { href: "/dashboard/machines", label: "Machines", icon: Monitor },
+    // Define navigation links with role-based visibility
+    const links: NavLink[] = [
+        {
+            href: "/dashboard",
+            label: "Overview",
+            icon: LayoutDashboard
+        },
+        {
+            href: "/dashboard/results",
+            label: "QC Results",
+            icon: ClipboardList
+        },
+        {
+            href: "/dashboard/machines",
+            label: "Machines",
+            icon: Monitor,
+            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+        },
+        {
+            href: "/dashboard/users",
+            label: "User Management",
+            icon: Users,
+            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+        },
     ]
+
+    // Filter links based on user role
+    const visibleLinks = links.filter(link => {
+        if (!link.roles) return true // No role restriction
+        if (!user) return false
+        return link.roles.includes(user.role)
+    })
+
+    // Get role badge color
+    const getRoleBadgeColor = () => {
+        switch (user?.role) {
+            case 'SuperAdmin':
+                return 'bg-purple-500'
+            case 'Admin':
+                return 'bg-blue-500'
+            case 'User':
+                return 'bg-green-500'
+            default:
+                return 'bg-slate-500'
+        }
+    }
 
     return (
         <div className="flex h-screen w-64 flex-col border-r bg-slate-900 text-white">
@@ -31,9 +83,10 @@ export function Sidebar() {
 
             <div className="flex-1 py-4">
                 <nav className="space-y-1 px-2">
-                    {links.map((link) => {
+                    {visibleLinks.map((link) => {
                         const Icon = link.icon
-                        const isActive = pathname === link.href
+                        const isActive = pathname === link.href ||
+                            (link.href !== "/dashboard" && pathname.startsWith(link.href))
                         return (
                             <Link
                                 key={link.href}
@@ -55,12 +108,18 @@ export function Sidebar() {
 
             <div className="border-t border-slate-800 p-4">
                 <div className="flex items-center mb-4 px-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">
+                    <div className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold",
+                        getRoleBadgeColor()
+                    )}>
                         {user?.username.charAt(0).toUpperCase()}
                     </div>
-                    <div className="ml-3">
-                        <p className="text-sm font-medium">{user?.username}</p>
-                        <p className="text-xs text-slate-400">{user?.role}</p>
+                    <div className="ml-3 flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{user?.display_name || user?.username}</p>
+                        <div className="flex items-center gap-1">
+                            <Shield className="h-3 w-3 text-slate-400" />
+                            <p className="text-xs text-slate-400">{getRoleDisplayName()}</p>
+                        </div>
                     </div>
                 </div>
                 <button
@@ -74,3 +133,4 @@ export function Sidebar() {
         </div>
     )
 }
+

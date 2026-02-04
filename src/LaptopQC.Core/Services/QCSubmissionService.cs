@@ -20,11 +20,17 @@ public class QCSubmissionService
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
 
-    public async Task<bool> SubmitReportAsync(QCReport report)
+    /// <summary>
+    /// Submit a QC report to the server.
+    /// </summary>
+    /// <param name="report">The QC report to submit</param>
+    /// <param name="technicianId">Optional technician ID if user is logged in</param>
+    /// <returns>True if submission was successful</returns>
+    public async Task<bool> SubmitReportAsync(QCReport report, int? technicianId = null)
     {
         try
         {
-            var request = MapToRequest(report);
+            var request = MapToRequest(report, technicianId);
             
             // Adjust the URL if base address ends with /api or not
             var endpoint = _config.ApiUrl.EndsWith("/api") ? "/api/qc-results" : "qc-results";
@@ -55,7 +61,7 @@ public class QCSubmissionService
         }
     }
 
-    private SubmitQCResultRequest MapToRequest(QCReport report)
+    private SubmitQCResultRequest MapToRequest(QCReport report, int? technicianId = null)
     {
         // Calculate total RAM safely
         long ramTotal = 0;
@@ -72,6 +78,7 @@ public class QCSubmissionService
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,
             OverallPass = report.OverallPass,
+            TechnicianId = technicianId, // Include logged-in technician ID if available
             
             SystemInfo = new SystemInfoSnapshot
             {

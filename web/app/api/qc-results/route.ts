@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { verifyApiKey, extractToken, verifyToken } from '@/lib/auth';
+import { verifyApiKey, extractToken, verifyToken, decodeToken } from '@/lib/auth';
 import { SubmitQCResultRequest, ApiError } from '@/lib/types';
 
 // GET all QC results (requires JWT authentication)
@@ -17,28 +17,49 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // Decode token to get user info for role-based filtering
+        const decoded = decodeToken(token);
+        const userRole = decoded?.role;
+        const userId = decoded?.userId;
+
         // Get query parameters for filtering
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '50');
         const offset = parseInt(searchParams.get('offset') || '0');
         const machineId = searchParams.get('machineId');
         const refurbishId = searchParams.get('refurbishId');
-
         const overallPass = searchParams.get('overallPass');
         const search = searchParams.get('search');
 
-        // Build query
+        // Build query with role-based filtering
         let queryText = `
       SELECT 
         qr.*,
         m.machine_id as machine_identifier,
-        m.location as machine_location
+        m.location as machine_location,
+        u.username as technician_username,
+        u.display_name as technician_name
       FROM qc_results qr
       LEFT JOIN machines m ON qr.machine_id = m.id
+      LEFT JOIN users u ON qr.technician_id = u.id
       WHERE 1=1
     `;
         const params: any[] = [];
         let paramCount = 1;
+
+        // Role-based filtering
+        if (userRole === 'User') {
+            // Technicians only see their own results
+            queryText += ` AND qr.technician_id = $${paramCount}`;
+            params.push(userId);
+            paramCount++;
+        } else if (userRole === 'Admin') {
+            // Admins see results from their team (technicians they created)
+            queryText += ` AND (qr.technician_id IN (SELECT id FROM users WHERE created_by = $${paramCount}) OR qr.technician_id = $${paramCount})`;
+            params.push(userId);
+            paramCount++;
+        }
+        // SuperAdmin sees all results - no filter added
 
         if (machineId) {
             queryText += ` AND m.machine_id = $${paramCount}`;
@@ -75,10 +96,21 @@ export async function GET(request: NextRequest) {
 
         const results = await query(queryText, params);
 
-        // Get total count
+        // Get total count with same role-based filtering
         let countQuery = 'SELECT COUNT(*) as total FROM qc_results qr LEFT JOIN machines m ON qr.machine_id = m.id WHERE 1=1';
         const countParams: any[] = [];
         let countParamNum = 1;
+
+        // Apply same role-based filtering to count
+        if (userRole === 'User') {
+            countQuery += ` AND qr.technician_id = $${countParamNum}`;
+            countParams.push(userId);
+            countParamNum++;
+        } else if (userRole === 'Admin') {
+            countQuery += ` AND (qr.technician_id IN (SELECT id FROM users WHERE created_by = $${countParamNum}) OR qr.technician_id = $${countParamNum})`;
+            countParams.push(userId);
+            countParamNum++;
+        }
 
         if (machineId) {
             countQuery += ` AND m.machine_id = $${countParamNum}`;
@@ -95,6 +127,18 @@ export async function GET(request: NextRequest) {
         if (overallPass !== null && overallPass !== undefined) {
             countQuery += ` AND qr.overall_pass = $${countParamNum}`;
             countParams.push(overallPass === 'true');
+            countParamNum++;
+        }
+
+        if (search) {
+            countQuery += ` AND (
+                CAST(qr.id AS TEXT) ILIKE $${countParamNum} OR 
+                qr.refurbish_id ILIKE $${countParamNum} OR 
+                m.machine_id ILIKE $${countParamNum} OR
+                qr.system_model ILIKE $${countParamNum}
+            )`;
+            countParams.push(`%${search}%`);
+            countParamNum++;
         }
 
         const countResult = await query(countQuery, countParams);
@@ -117,6 +161,7 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
 
 // POST submit new QC result (requires API key authentication)
 export async function POST(request: NextRequest) {
@@ -198,14 +243,14 @@ export async function POST(request: NextRequest) {
             machineDbId = newMachine[0].id;
         }
 
-        // Insert QC result
+        // Insert QC result with optional technician_id
         const qcResult = await query(
             `INSERT INTO qc_results (
         report_id, machine_id, timestamp, refurbish_id, technician_notes, overall_pass,
         system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
         system_info_json, cpu_details_json, ram_details_json, storage_details_json, 
-        battery_details_json, device_details_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        battery_details_json, device_details_json, technician_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING id`,
             [
                 body.reportId,
@@ -226,6 +271,7 @@ export async function POST(request: NextRequest) {
                 body.storageDetails ? JSON.stringify(body.storageDetails) : null,
                 body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
                 body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
+                body.technicianId || null, // Optional: link to logged-in technician
             ]
         );
 

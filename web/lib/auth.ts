@@ -35,6 +35,11 @@ export function verifyToken(token: string): JwtPayload | null {
     }
 }
 
+// Decode JWT token (alias for verifyToken, returns payload or null)
+export function decodeToken(token: string): JwtPayload | null {
+    return verifyToken(token);
+}
+
 // Extract token from Authorization header
 export function extractToken(authHeader?: string | null): string | null {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

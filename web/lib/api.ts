@@ -1,5 +1,7 @@
 // Client-side API helper
 
+import { CreateUserRequest, UpdateUserRequest, UserRole } from "./types";
+
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem("qc_token");
 
@@ -66,3 +68,80 @@ export async function getDashboardStats() {
         activeMachines: 0
     };
 }
+
+// User Management API functions
+
+export interface UsersListResponse {
+    users: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}
+
+export async function getUsers(page = 1, limit = 20, filters: { search?: string; role?: UserRole } = {}): Promise<UsersListResponse> {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+    });
+
+    if (filters.search) params.append('search', filters.search);
+    if (filters.role) params.append('role', filters.role);
+
+    const res = await fetchWithAuth(`/api/users?${params.toString()}`);
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch users");
+    }
+    return res.json();
+}
+
+export async function getUser(id: number) {
+    const res = await fetchWithAuth(`/api/users/${id}`);
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch user");
+    }
+    return res.json();
+}
+
+export async function createUser(data: CreateUserRequest) {
+    const res = await fetchWithAuth('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create user");
+    }
+    return res.json();
+}
+
+export async function updateUser(id: number, data: UpdateUserRequest) {
+    const res = await fetchWithAuth(`/api/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update user");
+    }
+    return res.json();
+}
+
+export async function deleteUser(id: number) {
+    const res = await fetchWithAuth(`/api/users/${id}`, {
+        method: 'DELETE',
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete user");
+    }
+    return res.json();
+}
+

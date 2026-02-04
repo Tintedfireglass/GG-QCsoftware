@@ -23,6 +23,9 @@ public class SubmitQCResultRequest
     [JsonPropertyName("overallPass")]
     public bool OverallPass { get; set; }
     
+    [JsonPropertyName("technicianId")]
+    public int? TechnicianId { get; set; }
+    
     [JsonPropertyName("systemInfo")]
     public SystemInfoSnapshot? SystemInfo { get; set; }
     
