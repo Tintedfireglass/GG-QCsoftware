@@ -4,6 +4,7 @@ using LaptopQC.Core.Services;
 using LaptopQC.App.Views;
 using System.Diagnostics;
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Windows;
 
 namespace LaptopQC.App.ViewModels;
@@ -53,10 +54,25 @@ public partial class QCWizardViewModel : ObservableObject
     private bool _isAvNext;
 
     [ObservableProperty]
+    private bool _isWifiNext;
+
+    [ObservableProperty]
+    private string _wifiStatus = "";
+
+    [ObservableProperty]
+    private bool _isCheckingNetwork;
+
+    [ObservableProperty]
+    private bool _networkCheckDone;
+
+    [ObservableProperty]
     private string _completionMessage = "";
 
     [ObservableProperty]
-    private bool _overallPassed;
+    private string _overallGrade = "";
+    
+    [ObservableProperty]
+    private int _overallScore;
 
     [ObservableProperty]
     private string _reportPath = "";
@@ -112,6 +128,7 @@ public partial class QCWizardViewModel : ObservableObject
         else if (IsTrackpadNext) InteractiveInstruction = "Next: Trackpad Test";
         else if (IsUsbNext) InteractiveInstruction = "Next: USB Port Test";
         else if (IsAvNext) InteractiveInstruction = "Next: Audio / Video Test";
+        else if (IsWifiNext) InteractiveInstruction = "Next: Network Connectivity Test";
     }
 
     [RelayCommand]
@@ -182,9 +199,124 @@ public partial class QCWizardViewModel : ObservableObject
         {
             _workflowService.RecordAudioVideoResult(vm.Passed, vm.ResultMessage);
             
+            // Record jack test result separately
+            if (vm.JackTested)
+            {
+                _workflowService.RecordAudioJackResult(vm.JackPassed, 
+                    vm.JackPassed ? "3.5mm Jack Test Passed" : "3.5mm Jack Test Failed");
+            }
+            
             IsAvNext = false;
-            FinishAndGenerateReport();
+            IsWifiNext = true;
+            UpdateInteractiveState();
         }
+    }
+
+    [RelayCommand]
+    private async Task RunWifiTestAsync()
+    {
+        IsWifiNext = false;
+        InteractiveInstruction = "Testing Network Connectivity...";
+        IsCheckingNetwork = true;
+        WifiStatus = "🔍 Checking network adapters...";
+
+        bool wifiConnected = false;
+        bool ethernetConnected = false;
+        bool internetReachable = false;
+        var details = new List<string>();
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == OperationalStatus.Up
+                             && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+                foreach (var ni in interfaces)
+                {
+                    // Skip virtual adapters (Hyper-V, WSL, Docker, VMware, VPN, etc.)
+                    var desc = (ni.Description ?? "").ToLowerInvariant();
+                    var adapterName = (ni.Name ?? "").ToLowerInvariant();
+                    
+                    bool isVirtual = desc.Contains("virtual") ||
+                                     desc.Contains("hyper-v") ||
+                                     desc.Contains("vmware") ||
+                                     desc.Contains("virtualbox") ||
+                                     desc.Contains("docker") ||
+                                     desc.Contains("vpn") ||
+                                     desc.Contains("tap-") ||
+                                     desc.Contains("tunnel") ||
+                                     adapterName.Contains("vethernet") ||
+                                     adapterName.Contains("wsl") ||
+                                     adapterName.Contains("docker") ||
+                                     adapterName.Contains("vmware");
+                    
+                    if (isVirtual)
+                        continue;
+
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                    {
+                        wifiConnected = true;
+                        details.Add($"WiFi: Connected ({ni.Name})");
+                    }
+                    else if (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
+                             ni.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet)
+                    {
+                        ethernetConnected = true;
+                        details.Add($"Ethernet: Connected ({ni.Name})");
+                    }
+                }
+            });
+
+            // Test actual internet connectivity
+            if (wifiConnected || ethernetConnected)
+            {
+                WifiStatus = "🌐 Testing internet connectivity...";
+                try
+                {
+                    using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    var response = await http.GetAsync("https://www.google.com");
+                    internetReachable = response.IsSuccessStatusCode;
+                }
+                catch
+                {
+                    internetReachable = false;
+                }
+
+                details.Add(internetReachable ? "Internet: Reachable" : "Internet: Not Reachable");
+            }
+        }
+        catch (Exception ex)
+        {
+            details.Add($"Error: {ex.Message}");
+        }
+
+        IsCheckingNetwork = false;
+        NetworkCheckDone = true;
+
+        bool passed = (wifiConnected || ethernetConnected) && internetReachable;
+
+        string statusParts = "";
+        if (wifiConnected && ethernetConnected) statusParts = "WiFi ✓ + Ethernet ✓";
+        else if (wifiConnected) statusParts = "WiFi ✓";
+        else if (ethernetConnected) statusParts = "Ethernet ✓";
+        else statusParts = "No connection detected";
+
+        string internetStatus = internetReachable ? " — Internet ✓" : " — No Internet ✗";
+        string message = passed
+            ? $"Connected: {statusParts}{internetStatus}"
+            : $"Failed: {statusParts}{internetStatus}";
+
+        WifiStatus = passed
+            ? $"✓ {statusParts}{internetStatus}"
+            : $"✗ {statusParts}{internetStatus}";
+
+        _workflowService.RecordNetworkResult(passed, message, details);
+
+        // Short delay so tester can see result before moving on
+        await Task.Delay(1500);
+        FinishAndGenerateReport();
     }
 
     private async void FinishAndGenerateReport()
@@ -193,10 +325,16 @@ public partial class QCWizardViewModel : ObservableObject
         IsReportStep = true;
 
         var report = _workflowService.Report;
+        
+        // Compute all scores and grades
+        _workflowService.FinalizeGrades();
+        
         ReportPath = _reportGenerator.SaveReport(report);
         
-        OverallPassed = report.OverallPass;
-        CompletionMessage = OverallPassed ? "QC PASSED" : "QC FAILED";
+        OverallGrade = report.OverallGrade;
+        OverallScore = report.OverallScore;
+        var label = LaptopQC.Core.Services.GradingService.GradeLabel(report.OverallGrade);
+        CompletionMessage = $"Grade: {report.OverallGrade} — {label} ({report.OverallScore}/100)";
 
         // Check if logged in - prompt login for cloud submission
         if (!App.IsLoggedIn)

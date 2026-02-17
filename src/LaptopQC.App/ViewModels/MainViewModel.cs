@@ -23,6 +23,9 @@ public partial class MainViewModel : ObservableObject
     private CpuInfo? _cpuInfo;
 
     [ObservableProperty]
+    private GpuInfo? _gpuInfo;
+
+    [ObservableProperty]
     private RamInfo? _ramInfo;
 
     [ObservableProperty]
@@ -135,6 +138,14 @@ public partial class MainViewModel : ObservableObject
             if (vm.IsComplete) 
             {
                 AddResult("Devices", "A/V Test", vm.Passed, vm.ResultMessage);
+                
+                // Record 3.5mm jack result separately
+                if (vm.JackTested)
+                {
+                    AddResult("Devices", "3.5mm Jack", vm.JackPassed, 
+                        vm.JackPassed ? "Jack Test Passed" : "Jack Test Failed");
+                }
+                
                 StatusMessage = vm.Passed ? "A/V test passed!" : "A/V test failed";
             }
             else
@@ -197,6 +208,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunDiagnosticsAsync()
     {
+        // UI Thread: Start scan state
         IsScanning = true;
         StatusMessage = "Scanning hardware...";
 
@@ -204,139 +216,166 @@ public partial class MainViewModel : ObservableObject
         {
             await Task.Run(() =>
             {
-                // System Info
-                SystemInfo = _systemDiagnostic.GetInfo();
-                AddResult("System", "Detection", true, $"{SystemInfo.Manufacturer} {SystemInfo.Model}");
+                // Fetch all data on background thread
+                var sysInfo = _systemDiagnostic.GetInfo();
+                var cpuInfo = _cpuDiagnostic.GetInfo();
+                var ramInfo = _ramDiagnostic.GetInfo();
+                var storageInfo = _storageDiagnostic.GetInfo();
+                var batteryInfo = _batteryDiagnostic.GetInfo();
+                var devicesInfo = _deviceDiagnostic.GetInfo();
 
-                // CPU
-                CpuInfo = _cpuDiagnostic.GetInfo();
-                var cpuValidation = _cpuDiagnostic.ValidateCpu(CpuInfo);
-                CpuStatus = cpuValidation.Message;
-                AddResult("CPU", "Detection", cpuValidation.IsHealthy, CpuInfo.Name);
-                AddResult("CPU", "Cores/Threads", true, $"{CpuInfo.Cores} cores / {CpuInfo.Threads} threads");
-                AddResult("CPU", "Clock Speed", true, $"{CpuInfo.MaxClockSpeedMHz} MHz");
-
-                // RAM
-                RamInfo = _ramDiagnostic.GetInfo();
-                var ramValidation = _ramDiagnostic.ValidateRam(RamInfo);
-                RamStatus = ramValidation.Message;
-                AddResult("RAM", "Detection", ramValidation.IsHealthy, $"{RamInfo.TotalCapacityGB} GB Total");
-                
-                foreach (var module in RamInfo.Modules)
+                // Update UI on main thread
+                App.Current?.Dispatcher?.Invoke(() =>
                 {
-                    AddResult("RAM", $"Slot {module.Slot}", true, 
-                        $"{module.CapacityGB}GB {module.MemoryType} @ {module.SpeedMHz}MHz");
-                }
+                    // Update System Info
+                    SystemInfo = sysInfo;
+                    AddResult("System", "Detection", true, $"{sysInfo.Manufacturer} {sysInfo.Model}");
 
-                // Storage
-                StorageInfo = _storageDiagnostic.GetInfo();
-                var storageValidation = _storageDiagnostic.ValidateStorage(StorageInfo);
-                StorageStatus = storageValidation.Message;
-                
-                foreach (var device in StorageInfo.Devices)
-                {
-                    var deviceType = device.IsSsd ? "SSD" : "HDD";
-                    var health = device.HealthPercent.HasValue ? $" ({device.HealthPercent}% health)" : "";
-                    AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB{health}");
-                }
-                AddResult("Storage", "Total", storageValidation.IsHealthy, $"{StorageInfo.TotalCapacityGB:F0} GB");
+                    // Update CPU
+                    CpuInfo = cpuInfo;
+                    var cpuValidation = _cpuDiagnostic.ValidateCpu(cpuInfo);
+                    CpuStatus = cpuValidation.Message;
+                    AddResult("CPU", "Detection", cpuValidation.IsHealthy, cpuInfo.Name);
+                    AddResult("CPU", "Cores/Threads", true, $"{cpuInfo.Cores} cores / {cpuInfo.Threads} threads");
+                    AddResult("CPU", "Clock Speed", true, $"{cpuInfo.MaxClockSpeedMHz} MHz");
 
-                // Battery
-                BatteryInfo = _batteryDiagnostic.GetInfo();
-                var batteryValidation = _batteryDiagnostic.ValidateBattery(BatteryInfo);
-                BatteryStatus = batteryValidation.Message;
-                
-                if (BatteryInfo.IsPresent)
-                {
-                    AddResult("Battery", "Status", true, BatteryInfo.BatteryStatus);
-                    AddResult("Battery", "Charge", true, $"{BatteryInfo.EstimatedChargeRemaining}%");
+                    // Update RAM
+                    RamInfo = ramInfo;
+                    var ramValidation = _ramDiagnostic.ValidateRam(ramInfo);
+                    RamStatus = ramValidation.Message;
+                    AddResult("RAM", "Detection", ramValidation.IsHealthy, $"{ramInfo.TotalCapacityGB} GB Total");
                     
-                    if (BatteryInfo.HealthPercent.HasValue)
-                        AddResult("Battery", "Health", BatteryInfo.HealthPercent >= 60, $"{BatteryInfo.HealthPercent}%");
-                    
-                    if (BatteryInfo.WearLevelPercent.HasValue)
-                        AddResult("Battery", "Wear Level", BatteryInfo.WearLevelPercent <= 30, $"{BatteryInfo.WearLevelPercent}% worn");
-                    
-                    if (BatteryInfo.CycleCount > 0)
-                        AddResult("Battery", "Cycle Count", BatteryInfo.CycleCount < 500, $"{BatteryInfo.CycleCount} cycles");
-                }
-                else
-                {
-                    AddResult("Battery", "Status", true, "No battery (Desktop)");
-                }
-
-                // Devices (Keyboard, Trackpad, USB, Webcam, etc.)
-                DevicesInfo = _deviceDiagnostic.GetInfo();
-                var deviceValidation = _deviceDiagnostic.ValidateDevices(DevicesInfo);
-                DevicesStatus = deviceValidation.Message;
-                
-                // Input Devices
-                foreach (var input in DevicesInfo.InputDevices)
-                {
-                    var typeLabel = input.Type switch
+                    foreach (var module in ramInfo.Modules)
                     {
-                        InputDeviceType.Keyboard => "Keyboard",
-                        InputDeviceType.Trackpad => "Trackpad",
-                        InputDeviceType.Mouse => "Mouse",
-                        InputDeviceType.Touchscreen => "Touchscreen",
-                        _ => "Input"
-                    };
-                    AddResult("Devices", typeLabel, input.IsWorking, input.Name);
-                }
+                        AddResult("RAM", $"Slot {module.Slot}", true, 
+                            $"{module.CapacityGB}GB {module.MemoryType} @ {module.SpeedMHz}MHz");
+                    }
 
-                // USB Ports
-                var usb3Count = DevicesInfo.Usb3Ports;
-                var usb2Count = DevicesInfo.Usb2Ports;
-                AddResult("Devices", "USB Ports", DevicesInfo.TotalUsbPorts > 0, 
-                    $"{DevicesInfo.TotalUsbPorts} total ({usb3Count} USB 3.x, {usb2Count} USB 2.0)");
+                    // Update Storage
+                    StorageInfo = storageInfo;
+                    var storageValidation = _storageDiagnostic.ValidateStorage(storageInfo);
+                    StorageStatus = storageValidation.Message;
+                    
+                    foreach (var device in storageInfo.Devices)
+                    {
+                        var deviceType = device.IsSsd ? "SSD" : "HDD";
+                        var health = device.HealthPercent.HasValue ? $" ({device.HealthPercent}% health)" : "";
+                        AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB{health}");
+                    }
+                    AddResult("Storage", "Total", storageValidation.IsHealthy, $"{storageInfo.TotalCapacityGB:F0} GB");
 
-                // Connected USB devices
-                foreach (var usb in DevicesInfo.ConnectedUsbDevices.Take(5))
-                {
-                    AddResult("Devices", "USB Device", usb.IsConnected, usb.Name);
-                }
+                    // Update Battery
+                    BatteryInfo = batteryInfo;
+                    var batteryValidation = _batteryDiagnostic.ValidateBattery(batteryInfo);
+                    BatteryStatus = batteryValidation.Message;
+                    
+                    if (batteryInfo.IsPresent)
+                    {
+                        AddResult("Battery", "Status", true, batteryInfo.BatteryStatus);
+                        AddResult("Battery", "Charge", true, $"{batteryInfo.EstimatedChargeRemaining}%");
+                        
+                        if (batteryInfo.HealthPercent.HasValue)
+                            AddResult("Battery", "Health", batteryInfo.HealthPercent >= 60, $"{batteryInfo.HealthPercent}%");
+                        
+                        if (batteryInfo.WearLevelPercent.HasValue)
+                            AddResult("Battery", "Wear Level", batteryInfo.WearLevelPercent <= 30, $"{batteryInfo.WearLevelPercent}% worn");
+                        
+                        if (batteryInfo.CycleCount > 0)
+                            AddResult("Battery", "Cycle Count", batteryInfo.CycleCount < 500, $"{batteryInfo.CycleCount} cycles");
+                    }
+                    else
+                    {
+                        AddResult("Battery", "Status", true, "No battery (Desktop)");
+                    }
 
-                // Webcam
-                if (DevicesInfo.Camera != null)
-                {
-                    AddResult("Devices", "Webcam", DevicesInfo.Camera.IsWorking, DevicesInfo.Camera.Name);
-                }
-                else
-                {
-                    AddResult("Devices", "Webcam", false, "Not detected");
-                }
+                    // Update Devices
+                    DevicesInfo = devicesInfo;
+                    
+                    // Set primary GPU info
+                    if (devicesInfo.Gpus.Any())
+                    {
+                        // Prefer discrete GPU if available, otherwise first one
+                        GpuInfo = devicesInfo.Gpus.FirstOrDefault(g => g.Name.Contains("NVIDIA") || g.Name.Contains("Radeon") || g.Name.Contains("Arc")) 
+                                  ?? devicesInfo.Gpus.First();
+                    }
 
-                // Displays
-                foreach (var display in DevicesInfo.Displays)
-                {
-                    var resolution = display.ScreenWidth > 0 ? $" ({display.Resolution})" : "";
-                    AddResult("Devices", $"Display ({display.ConnectionType})", display.IsActive, $"{display.Name}{resolution}");
-                }
+                    var deviceValidation = _deviceDiagnostic.ValidateDevices(devicesInfo);
+                    DevicesStatus = deviceValidation.Message;
+                    
+                    // Input Devices
+                    foreach (var input in devicesInfo.InputDevices)
+                    {
+                        var typeLabel = input.Type switch
+                        {
+                            InputDeviceType.Keyboard => "Keyboard",
+                            InputDeviceType.Trackpad => "Trackpad",
+                            InputDeviceType.Mouse => "Mouse",
+                            InputDeviceType.Touchscreen => "Touchscreen",
+                            _ => "Input"
+                        };
+                        AddResult("Devices", typeLabel, input.IsWorking, input.Name);
+                    }
 
-                // Audio
-                foreach (var audio in DevicesInfo.AudioDevices)
-                {
-                    AddResult("Devices", "Audio", audio.IsWorking, audio.Name);
-                }
+                    // USB Ports
+                    var usb3Count = devicesInfo.Usb3Ports;
+                    var usb2Count = devicesInfo.Usb2Ports;
+                    AddResult("Devices", "USB Ports", devicesInfo.TotalUsbPorts > 0, 
+                        $"{devicesInfo.TotalUsbPorts} total ({usb3Count} USB 3.x, {usb2Count} USB 2.0)");
 
-                // Network
-                foreach (var net in DevicesInfo.NetworkDevices)
-                {
-                    var status = net.IsConnected ? "Connected" : "Disconnected";
-                    AddResult("Devices", net.AdapterType, net.IsConnected, $"{net.Name} - {status}");
-                }
+                    // Connected USB devices
+                    foreach (var usb in devicesInfo.ConnectedUsbDevices.Take(5))
+                    {
+                        AddResult("Devices", "USB Device", usb.IsConnected, usb.Name);
+                    }
+
+                    // Webcam
+                    if (devicesInfo.Camera != null)
+                    {
+                        AddResult("Devices", "Webcam", devicesInfo.Camera.IsWorking, devicesInfo.Camera.Name);
+                    }
+                    else
+                    {
+                        AddResult("Devices", "Webcam", false, "Not detected");
+                    }
+
+                    // Displays
+                    foreach (var display in devicesInfo.Displays)
+                    {
+                        var resolution = display.ScreenWidth > 0 ? $" ({display.Resolution})" : "";
+                        AddResult("Devices", $"Display ({display.ConnectionType})", display.IsActive, $"{display.Name}{resolution}");
+                    }
+
+                    // Audio
+                    foreach (var audio in devicesInfo.AudioDevices)
+                    {
+                        AddResult("Devices", "Audio", audio.IsWorking, audio.Name);
+                    }
+
+                    // Network
+                    foreach (var net in devicesInfo.NetworkDevices)
+                    {
+                        var status = net.IsConnected ? "Connected" : "Disconnected";
+                        AddResult("Devices", net.AdapterType, net.IsConnected, $"{net.Name} - {status}");
+                    }
+                    
+                    StatusMessage = "Scan complete!";
+                });
             });
-
-            StatusMessage = "Scan complete!";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
-            AddResult("Error", "Scan Failed", false, ex.Message);
+            App.Current?.Dispatcher?.Invoke(() =>
+            {
+                StatusMessage = $"Error: {ex.Message}";
+                AddResult("Error", "Scan Failed", false, ex.Message);
+            });
         }
         finally
         {
-            IsScanning = false;
+            App.Current?.Dispatcher?.Invoke(() =>
+            {
+                IsScanning = false;
+            });
         }
     }
 
@@ -432,16 +471,37 @@ public partial class MainViewModel : ObservableObject
 
     private void AddResult(string component, string test, bool passed, string details)
     {
-        App.Current.Dispatcher.Invoke(() =>
+        try
         {
-            Results.Add(new DiagnosticResult
+            if (App.Current?.Dispatcher == null)
             {
-                Component = component,
-                Test = test,
-                Passed = passed,
-                Details = details
+                // Fallback if dispatcher is not available
+                Results.Add(new DiagnosticResult
+                {
+                    Component = component ?? "",
+                    Test = test ?? "",
+                    Passed = passed,
+                    Details = details ?? ""
+                });
+                return;
+            }
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                Results.Add(new DiagnosticResult
+                {
+                    Component = component ?? "",
+                    Test = test ?? "",
+                    Passed = passed,
+                    Details = details ?? ""
+                });
             });
-        });
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash
+            System.Diagnostics.Debug.WriteLine($"Error adding result: {ex.Message}");
+        }
     }
 
     [RelayCommand]

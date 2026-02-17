@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
+import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -55,10 +56,19 @@ export default function DedicatedReportPage() {
             {/* Overall Status */}
             <div className="mb-8 flex items-center justify-between bg-gray-50 p-6 border border-gray-200 rounded-sm">
                 <div>
-                    <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold">Overall Condition</div>
-                    <div className={`text-5xl font-bold mt-2 ${data.overall_pass ? 'text-green-700' : 'text-red-700'}`}>
-                        {data.overall_pass ? 'PASSED' : 'FAILED'}
-                    </div>
+                    <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold">Device Grade</div>
+                    {data.overall_grade ? (
+                        <>
+                            <div className={`text-5xl font-bold mt-2 ${gradeHeroColor(data.overall_grade)}`}>
+                                {data.overall_grade}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">{gradeLabel(data.overall_grade)} — {data.overall_score}/100</div>
+                        </>
+                    ) : (
+                        <div className={`text-5xl font-bold mt-2 ${data.overall_pass ? 'text-green-700' : 'text-red-700'}`}>
+                            {data.overall_pass ? 'PASSED' : 'FAILED'}
+                        </div>
+                    )}
                 </div>
                 <div className="text-right">
                     <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Machine ID</div>
@@ -109,7 +119,7 @@ export default function DedicatedReportPage() {
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Storage</td>
                                     <td className="py-2 font-medium">
-                                        {data.storage_details_json.TotalCapacityGB?.toFixed(0)} GB
+                                        {data.storage_details_json.totalCapacityGB?.toFixed(0)} GB
                                     </td>
                                 </tr>
                             )}
@@ -117,7 +127,7 @@ export default function DedicatedReportPage() {
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Battery Health</td>
                                     <td className="py-2 font-medium">
-                                        Wear: {data.battery_details_json.WearLevelPercent}%
+                                        Wear: {data.battery_details_json.wearLevelPercent}%
                                     </td>
                                 </tr>
                             )}
@@ -133,29 +143,40 @@ export default function DedicatedReportPage() {
                     <thead>
                         <tr className="bg-gray-100 border-b border-gray-300">
                             <th className="py-2 px-3 font-semibold w-1/4">Test Component</th>
-                            <th className="py-2 px-3 font-semibold w-1/6 text-center">Result</th>
+                            <th className="py-2 px-3 font-semibold w-[80px] text-center">Grade</th>
+                            <th className="py-2 px-3 font-semibold w-[80px] text-center">Score</th>
                             <th className="py-2 px-3 font-semibold">Notes / Details</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {test_results.map((test: any, i: number) => (
-                            <tr key={test.id} className="border-b border-gray-200">
-                                <td className="py-3 px-3 font-medium">{test.test_type}</td>
-                                <td className="py-3 px-3 text-center">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${test.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {test.passed ? 'PASS' : 'FAIL'}
-                                    </span>
-                                </td>
-                                <td className="py-3 px-3 text-gray-600">
-                                    <div className="mb-1">{test.message}</div>
-                                    {test.details_json && Array.isArray(test.details_json) && (
-                                        <div className="text-xs text-slate-500">
-                                            {test.details_json.join(', ')}
-                                        </div>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                        {test_results.map((test: any, i: number) => {
+                            const s = getGradeStyle(test.grade);
+                            return (
+                                <tr key={test.id} className="border-b border-gray-200">
+                                    <td className="py-3 px-3 font-medium">{test.test_type}</td>
+                                    <td className="py-3 px-3 text-center">
+                                        {test.grade ? (
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${s.bg} ${s.text}`}>
+                                                {test.grade}
+                                            </span>
+                                        ) : (
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${test.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {test.passed ? 'PASS' : 'FAIL'}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="py-3 px-3 text-center font-medium">{test.score ?? '—'}</td>
+                                    <td className="py-3 px-3 text-gray-600">
+                                        <div className="mb-1">{test.message}</div>
+                                        {test.details_json && Array.isArray(test.details_json) && (
+                                            <div className="text-xs text-slate-500">
+                                                {test.details_json.join(', ')}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

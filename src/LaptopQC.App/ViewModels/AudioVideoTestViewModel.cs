@@ -1,12 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Diagnostics;
+using System.Windows.Threading;
 
 namespace LaptopQC.App.ViewModels;
 
 public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 {
     private readonly AudioVideoTestService _service;
+    private DispatcherTimer? _jackDetectionTimer;
 
     [ObservableProperty]
     private string _currentStepName = "Speaker Test";
@@ -19,6 +21,9 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _isMicTestActive;
+
+    [ObservableProperty]
+    private bool _isJackTestActive;
 
     [ObservableProperty]
     private bool _isCameraTestActive;
@@ -51,14 +56,29 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _rightSpeakerPassed;
 
+    // 3.5mm Jack detection states
+    [ObservableProperty]
+    private bool _jackDetected;
+
+    [ObservableProperty]
+    private string _jackDeviceName = "";
+
+    [ObservableProperty]
+    private string _jackDetectionStatus = "⏳ Waiting for headphones...";
+
     // Track results of each stage
     private bool _micPassed;
+    private bool _jackPassed;
     private bool _cameraPassed;
+
+    // Public accessors for the wizard to read jack result
+    public bool JackPassed => _jackPassed;
+    public bool JackTested { get; private set; }
 
     public AudioVideoTestViewModel()
     {
         _service = new AudioVideoTestService();
-        _currentStepName = "Speaker Test (1/3)";
+        _currentStepName = "Speaker Test (1/4)";
     }
 
     [RelayCommand]
@@ -126,7 +146,7 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
     {
         IsSpeakerTestActive = false;
         IsMicTestActive = true;
-        CurrentStepName = "Microphone Test (2/3)";
+        CurrentStepName = "Microphone Test (2/4)";
         Instructions = "Click 'Start Recording', speak into the mic, then 'Stop'. Play back to verify.";
     }
 
@@ -156,21 +176,97 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
     private void PassMicTest()
     {
         _micPassed = true;
-        StartCameraTest();
+        StartJackTest();
     }
 
     [RelayCommand]
     private void FailMicTest()
     {
         _micPassed = false;
+        StartJackTest();
+    }
+
+    // ─── 3.5mm Jack Test ────────────────────────────────────────────────
+
+    private void StartJackTest()
+    {
+        IsMicTestActive = false;
+        IsJackTestActive = true;
+        CurrentStepName = "3.5mm Jack Test (3/4)";
+        Instructions = "Plug headphones into the 3.5mm jack. We will detect the connection automatically.";
+        
+        // Check if already connected
+        CheckHeadphoneConnection();
+
+        // Start polling for headphone connection
+        _jackDetectionTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1.5)
+        };
+        _jackDetectionTimer.Tick += (s, e) => CheckHeadphoneConnection();
+        _jackDetectionTimer.Start();
+    }
+
+    private void CheckHeadphoneConnection()
+    {
+        var (isConnected, deviceName) = _service.GetHeadphoneStatus();
+        
+        JackDetected = isConnected;
+        JackDeviceName = deviceName;
+        
+        if (isConnected)
+        {
+            JackDetectionStatus = $"✓ Detected: {deviceName}";
+            Instructions = "Headphones detected! Click 'Play Test Sound' and verify you hear audio through the headphones.";
+        }
+        else
+        {
+            JackDetectionStatus = "⏳ Waiting for headphones...";
+        }
+    }
+
+    [RelayCommand]
+    private void PlayJackTestSound()
+    {
+        var success = _service.PlayTestSoundToHeadphones();
+        if (!success)
+        {
+            JackDetectionStatus = "⚠ Could not play to headphones. Check connection.";
+        }
+    }
+
+    [RelayCommand]
+    private void PassJackTest()
+    {
+        _jackPassed = true;
+        JackTested = true;
+        StopJackDetection();
         StartCameraTest();
     }
 
+    [RelayCommand]
+    private void FailJackTest()
+    {
+        _jackPassed = false;
+        JackTested = true;
+        StopJackDetection();
+        StartCameraTest();
+    }
+
+    private void StopJackDetection()
+    {
+        _jackDetectionTimer?.Stop();
+        _jackDetectionTimer = null;
+        _service.StopJackPlayback();
+    }
+
+    // ─── Camera Test ────────────────────────────────────────────────────
+
     private void StartCameraTest()
     {
-        IsMicTestActive = false;
+        IsJackTestActive = false;
         IsCameraTestActive = true;
-        CurrentStepName = "Camera Test (3/3)";
+        CurrentStepName = "Camera Test (4/4)";
         Instructions = "Click 'Open Camera App' and verify you can see the video feed.";
     }
 
@@ -203,6 +299,7 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
         if (!LeftSpeakerPassed) failures.Add("Left Speaker");
         if (!RightSpeakerPassed) failures.Add("Right Speaker");
         if (!_micPassed) failures.Add("Microphone");
+        if (!_jackPassed) failures.Add("3.5mm Jack");
         if (!_cameraPassed) failures.Add("Camera");
 
         if (failures.Count == 0)
@@ -219,6 +316,7 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        StopJackDetection();
         _service.Dispose();
     }
 }

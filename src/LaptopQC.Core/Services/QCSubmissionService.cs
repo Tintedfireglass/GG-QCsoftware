@@ -78,6 +78,8 @@ public class QCSubmissionService
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,
             OverallPass = report.OverallPass,
+            OverallScore = report.OverallScore,
+            OverallGrade = report.OverallGrade,
             TechnicianId = technicianId, // Include logged-in technician ID if available
             
             SystemInfo = new SystemInfoSnapshot
@@ -86,7 +88,9 @@ public class QCSubmissionService
                 Model = report.SystemInfo?.Model,
                 SerialNumber = report.SystemInfo?.SerialNumber,
                 MacAddress = report.MacAddress,
+                DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,
+
                 RamTotal = ramTotal > 0 ? ramTotal : 0
             },
             
@@ -107,6 +111,8 @@ public class QCSubmissionService
                 TestType = type,
                 Tested = result.Tested,
                 Passed = result.Passed,
+                Score = result.Score,
+                Grade = result.Grade,
                 Message = result.Message,
                 Details = result.Details,
                 Timestamp = result.Timestamp == default ? report.Timestamp : result.Timestamp
@@ -122,7 +128,9 @@ public class QCSubmissionService
         AddResult("Trackpad", report.TrackpadTest);
         AddResult("USB", report.UsbTest);
         AddResult("AudioVideo", report.AudioVideoTest);
+        AddResult("AudioJack", report.AudioJackTest);
         AddResult("GPU", report.GpuTest);
+        AddResult("Network", report.NetworkTest);
 
         return request;
     }

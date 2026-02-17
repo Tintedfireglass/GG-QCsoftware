@@ -22,6 +22,8 @@ public class QCWorkflowService
     private readonly BatteryDiagnostic _batteryDiagnostic;
     private readonly DeviceDiagnostic _deviceDiagnostic;
     private readonly SmartTestService _smartTestService;
+    private readonly DeviceIdService _deviceIdService;
+    private readonly GradingService _gradingService;
 
     public QCReport Report { get; private set; } = new();
     public QCWorkflowStep CurrentStep { get; private set; } = QCWorkflowStep.Preparation;
@@ -38,6 +40,8 @@ public class QCWorkflowService
         _batteryDiagnostic = new BatteryDiagnostic();
         _deviceDiagnostic = new DeviceDiagnostic();
         _smartTestService = new SmartTestService();
+        _deviceIdService = new DeviceIdService();
+        _gradingService = new GradingService();
     }
 
     public void StartNewSession(string refurbId, string notes)
@@ -65,6 +69,12 @@ public class QCWorkflowService
                 if (Report.SystemInfo != null)
                 {
                     Report.MacAddress = Report.SystemInfo.MacAddress;
+                    
+                    // Generate Unique Device ID
+                    if (!string.IsNullOrEmpty(Report.SystemInfo.SerialNumber))
+                    {
+                        Report.DeviceId = _deviceIdService.GetOrGenerateDeviceId(Report.SystemInfo.SerialNumber);
+                    }
                 }
             });
             
@@ -307,6 +317,32 @@ public class QCWorkflowService
         Report.AudioVideoTest.Passed = passed;
         Report.AudioVideoTest.Message = message;
         Report.AudioVideoTest.Timestamp = DateTime.Now;
+    }
+
+    public void RecordAudioJackResult(bool passed, string message)
+    {
+        Report.AudioJackTest.Tested = true;
+        Report.AudioJackTest.Passed = passed;
+        Report.AudioJackTest.Message = message;
+        Report.AudioJackTest.Timestamp = DateTime.Now;
+    }
+
+    public void RecordNetworkResult(bool passed, string message, List<string>? details = null)
+    {
+        Report.NetworkTest.Tested = true;
+        Report.NetworkTest.Passed = passed;
+        Report.NetworkTest.Message = message;
+        Report.NetworkTest.Timestamp = DateTime.Now;
+        if (details != null)
+            Report.NetworkTest.Details = details;
+    }
+
+    /// <summary>
+    /// Call after ALL tests (automated + interactive) to compute scores and grades.
+    /// </summary>
+    public void FinalizeGrades()
+    {
+        _gradingService.GradeReport(Report);
     }
 
     private void UpdateStatus(string status, int progress)

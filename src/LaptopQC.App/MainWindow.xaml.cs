@@ -59,8 +59,8 @@ public partial class MainWindow : Window
         {
             UserStatusIcon.Text = "👤";
             UserStatusText.Text = "Click to Login";
-            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a0a0a0"));
-            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0f3460"));
+            UserStatusText.Foreground = Brushes.White;
+            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22c55e"));
         }
     }
 }

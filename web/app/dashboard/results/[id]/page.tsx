@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Printer, Download } from "lucide-react"
 import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
+import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -35,18 +36,16 @@ export default function ResultDetailPage() {
 
     const { test_results = [] } = data
 
-    // Helper to get status color
-    const StatusBadge = ({ passed }: { passed: boolean }) => (
-        passed ? (
-            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">
-                PASS
+    // Helper to get grade badge
+    const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
+        if (!grade) return <span className="text-xs text-gray-400">—</span>;
+        const s = getGradeStyle(grade);
+        return (
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
+                {grade} — {score ?? 0}
             </span>
-        ) : (
-            <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">
-                FAIL
-            </span>
-        )
-    )
+        );
+    }
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-10">
@@ -82,11 +81,18 @@ export default function ResultDetailPage() {
                             </p>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-medium mb-1">Overall Status</div>
-                            {data.overall_pass ? (
-                                <div className="text-4xl font-bold text-green-600">PASS</div>
+                            <div className="text-lg font-medium mb-1">Device Grade</div>
+                            {data.overall_grade ? (
+                                <>
+                                    <div className={`text-5xl font-bold ${gradeHeroColor(data.overall_grade)}`}>{data.overall_grade}</div>
+                                    <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.overall_grade)} — {data.overall_score}/100</div>
+                                </>
                             ) : (
-                                <div className="text-4xl font-bold text-red-600">FAIL</div>
+                                data.overall_pass ? (
+                                    <div className="text-4xl font-bold text-green-600">PASS</div>
+                                ) : (
+                                    <div className="text-4xl font-bold text-red-600">FAIL</div>
+                                )
                             )}
                         </div>
                     </div>
@@ -132,7 +138,7 @@ export default function ResultDetailPage() {
                                     <div className="grid grid-cols-3">
                                         <dt className="font-medium text-slate-500">Storage</dt>
                                         <dd className="col-span-2">
-                                            {data.storage_details_json.TotalCapacityGB?.toFixed(0)} GB
+                                            {data.storage_details_json.totalCapacityGB?.toFixed(0)} GB
                                         </dd>
                                     </div>
                                 )}
@@ -141,7 +147,7 @@ export default function ResultDetailPage() {
                                     <div className="grid grid-cols-3">
                                         <dt className="font-medium text-slate-500">Battery Wear</dt>
                                         <dd className="col-span-2">
-                                            {data.battery_details_json.WearLevelPercent}%
+                                            {data.battery_details_json.wearLevelPercent}%
                                         </dd>
                                     </div>
                                 )}
@@ -162,28 +168,32 @@ export default function ResultDetailPage() {
             <h2 className="text-2xl font-bold pt-4">Test Details</h2>
 
             <div className="grid gap-4">
-                {test_results.map((test: any) => (
-                    <Card key={test.id} className={test.passed ? "border-l-4 border-l-green-500" : "border-l-4 border-l-red-500"}>
-                        <CardHeader className="py-4">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base font-semibold">{test.test_type}</CardTitle>
-                                <StatusBadge passed={test.passed} />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pb-4 pt-0">
-                            <p className="text-sm mb-2">{test.message}</p>
+                {test_results.map((test: any) => {
+                    const s = getGradeStyle(test.grade);
+                    const borderClass = test.grade ? s.border : (test.passed ? 'border-l-green-500' : 'border-l-red-500');
+                    return (
+                        <Card key={test.id} className={`border-l-4 ${borderClass}`}>
+                            <CardHeader className="py-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-semibold">{test.test_type}</CardTitle>
+                                    <GradeBadge grade={test.grade} score={test.score} />
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pb-4 pt-0">
+                                <p className="text-sm mb-2">{test.message}</p>
 
-                            {/* Render JSON details if available */}
-                            {test.details_json && Array.isArray(test.details_json) && test.details_json.length > 0 && (
-                                <ul className="list-disc pl-5 space-y-1 mt-2 bg-slate-50 p-2 rounded">
-                                    {test.details_json.map((detail: string, i: number) => (
-                                        <li key={i} className="text-xs text-slate-600">{detail}</li>
-                                    ))}
-                                </ul>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
+                                {/* Render JSON details if available */}
+                                {test.details_json && Array.isArray(test.details_json) && test.details_json.length > 0 && (
+                                    <ul className="list-disc pl-5 space-y-1 mt-2 bg-slate-50 p-2 rounded">
+                                        {test.details_json.map((detail: string, i: number) => (
+                                            <li key={i} className="text-xs text-slate-600">{detail}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
         </div>
     )

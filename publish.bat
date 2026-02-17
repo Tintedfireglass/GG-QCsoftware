@@ -66,4 +66,5 @@ echo   1. Install Inno Setup from: https://jrsoftware.org/isdl.php
 echo   2. Open installer\installer.iss in Inno Setup Compiler
 echo   3. Click Build ^> Compile to create the installer
 echo.
+if "%1"=="nopause" goto :eof
 pause

@@ -7,6 +7,7 @@ import { getMachines, getQCResults, getUsers } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { getGradeStyle } from "@/lib/grades"
 import {
     Activity,
     CheckCircle,
@@ -44,10 +45,10 @@ export default function DashboardPage() {
 
             const total = resultsData.pagination.total
 
-            // Calculate pass rate from recent tests
-            const passedTests = resultsData.results.filter((t: any) => t.overall_pass).length
-            const passRate = resultsData.results.length > 0
-                ? Math.round((passedTests / resultsData.results.length) * 100)
+            // Calculate average score from recent tests
+            const scoredTests = resultsData.results.filter((t: any) => t.overall_score > 0)
+            const avgScore = scoredTests.length > 0
+                ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.overall_score, 0) / scoredTests.length)
                 : 0
 
             let userStats = { totalUsers: 0, totalAdmins: 0, totalTechnicians: 0 }
@@ -66,7 +67,7 @@ export default function DashboardPage() {
 
             setStats({
                 totalTests: total,
-                passRate,
+                passRate: avgScore,
                 activeMachines: machinesData.machines.length,
                 ...userStats,
                 recentTests: resultsData.results
@@ -126,11 +127,11 @@ export default function DashboardPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pass Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.passRate}%</div>
+                        <div className="text-2xl font-bold">{stats.passRate}/100</div>
                         <p className="text-xs text-slate-500">From recent tests</p>
                     </CardContent>
                 </Card>
@@ -285,14 +286,23 @@ export default function DashboardPage() {
                                     <tr key={test.id} className="border-b transition-colors hover:bg-muted/50">
                                         <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                         <td className="p-4 align-middle">
-                                            {test.overall_pass ? (
-                                                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                                    PASS
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                                                    FAIL
-                                                </span>
+                                            {test.overall_grade ? (() => {
+                                                const s = getGradeStyle(test.overall_grade);
+                                                return (
+                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
+                                                        {test.overall_grade} — {test.overall_score}
+                                                    </span>
+                                                );
+                                            })() : (
+                                                test.overall_pass ? (
+                                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                                        PASS
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                                                        FAIL
+                                                    </span>
+                                                )
                                             )}
                                         </td>
 

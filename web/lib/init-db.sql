@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS qc_results (
     refurbish_id        VARCHAR(100),
     technician_notes    TEXT,
     overall_pass        BOOLEAN NOT NULL,
+    overall_score       INTEGER DEFAULT 0,
+    overall_grade       VARCHAR(2) DEFAULT '',
     
     -- System Info Snapshot
     system_manufacturer VARCHAR(100),
@@ -56,6 +58,8 @@ CREATE TABLE IF NOT EXISTS test_results (
     test_type       VARCHAR(50) NOT NULL,
     tested          BOOLEAN NOT NULL,
     passed          BOOLEAN NOT NULL,
+    score           INTEGER DEFAULT 0,
+    grade           VARCHAR(2) DEFAULT '',
     message         VARCHAR(500),
     details_json    JSONB,
     timestamp       TIMESTAMP

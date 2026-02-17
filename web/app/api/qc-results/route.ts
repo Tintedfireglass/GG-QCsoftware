@@ -247,10 +247,11 @@ export async function POST(request: NextRequest) {
         const qcResult = await query(
             `INSERT INTO qc_results (
         report_id, machine_id, timestamp, refurbish_id, technician_notes, overall_pass,
+        overall_score, overall_grade,
         system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
         system_info_json, cpu_details_json, ram_details_json, storage_details_json, 
         battery_details_json, device_details_json, technician_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING id`,
             [
                 body.reportId,
@@ -259,6 +260,8 @@ export async function POST(request: NextRequest) {
                 body.refurbishId || null,
                 body.technicianNotes || null,
                 body.overallPass,
+                body.overallScore || 0,
+                body.overallGrade || '',
                 body.systemInfo?.manufacturer || null,
                 body.systemInfo?.model || null,
                 body.systemInfo?.serialNumber || null,
@@ -281,13 +284,15 @@ export async function POST(request: NextRequest) {
         if (body.testResults && body.testResults.length > 0) {
             for (const test of body.testResults) {
                 await query(
-                    `INSERT INTO test_results (qc_result_id, test_type, tested, passed, message, details_json, timestamp)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    `INSERT INTO test_results (qc_result_id, test_type, tested, passed, score, grade, message, details_json, timestamp)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                     [
                         qcResultId,
                         test.testType,
                         test.tested,
                         test.passed,
+                        test.score || 0,
+                        test.grade || '',
                         test.message || null,
                         test.details ? JSON.stringify(test.details) : null,
                         test.timestamp || null,

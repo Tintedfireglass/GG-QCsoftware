@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
         Title="⌨️ Keyboard Test" 
-        Height="500" Width="1100"
+        Height="600" Width="1100"
         WindowStartupLocation="CenterOwner"
-        Background="#1a1a2e"
+        Background="#f5f5f5"
         ResizeMode="NoResize"
         KeyDown="Window_KeyDown"
         PreviewKeyDown="Window_PreviewKeyDown">
@@ -17,7 +17,7 @@
     <Window.Resources>
         <!-- Key button base style -->
         <Style x:Key="KeyButton" TargetType="Border">
-            <Setter Property="Background" Value="#16213e"/>
+            <Setter Property="Background" Value="#e5e7eb"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Margin" Value="2"/>
             <Setter Property="MinHeight" Value="40"/>
@@ -25,194 +25,201 @@
         
         <!-- Key label style -->
         <Style x:Key="KeyLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#808080"/>
+            <Setter Property="Foreground" Value="#6b7280"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </Window.Resources>
     
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="⌨️ Keyboard Test" 
-                       FontSize="24" FontWeight="Bold" 
-                       Foreground="#e94560" 
-                       HorizontalAlignment="Center"/>
+    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
+            Effect="{StaticResource CardShadow}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             
-            <CheckBox Content="Has Numpad" 
-                      IsChecked="{Binding ShowNumpad}"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Center"
-                      Foreground="#a0a0a0">
-                <CheckBox.Resources>
-                    <Style TargetType="CheckBox">
-                        <Setter Property="Background" Value="#16213e"/>
-                        <Setter Property="BorderBrush" Value="#00d9ff"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Background" Value="#00d9ff"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </CheckBox.Resources>
-            </CheckBox>
-        </Grid>
-        
-        <!-- Progress Bar -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <ProgressBar Value="{Binding ProgressPercent}" 
-                         Minimum="0" Maximum="100"
-                         Height="8" 
-                         Background="#0f3460"
-                         Foreground="#00d9ff"/>
-            <TextBlock Text="{Binding ProgressText}" 
-                       Foreground="#a0a0a0" 
-                       HorizontalAlignment="Center"
-                       FontSize="14"
-                       Margin="0,5,0,0"/>
-        </StackPanel>
-        
-        <!-- Keyboard Layout -->
-        <Border Grid.Row="2" Background="#0f3460" CornerRadius="12" Padding="15">
-            <ItemsControl ItemsSource="{Binding Keys}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas Height="280"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Canvas.Left">
-                            <Setter.Value>
-                                <MultiBinding Converter="{StaticResource KeyPositionConverter}" ConverterParameter="X">
-                                    <Binding Path="Column"/>
-                                    <Binding Path="Width"/>
-                                </MultiBinding>
-                            </Setter.Value>
-                        </Setter>
-                        <Setter Property="Canvas.Top">
-                            <Setter.Value>
-                                <Binding Path="Row" Converter="{StaticResource KeyPositionConverter}" ConverterParameter="Y"/>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border CornerRadius="6" Margin="1" 
-                                MinHeight="40"
-                                Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Background" Value="#16213e"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                            <Setter Property="Background" Value="#00d9ff"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <TextBlock Text="{Binding Label}" 
-                                       HorizontalAlignment="Center" 
-                                       VerticalAlignment="Center"
-                                       FontSize="11" 
-                                       FontWeight="SemiBold">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="#a0a0a0"/>
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="⌨️" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Keyboard Test" 
+                               FontSize="22" FontWeight="SemiBold" 
+                               Foreground="#22c55e" FontFamily="Segoe UI"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <CheckBox Content="Has Numpad" 
+                          IsChecked="{Binding ShowNumpad}"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Foreground="#6b7280"
+                          FontFamily="Segoe UI"/>
+            </Grid>
+            
+            <!-- Progress Bar -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                <ProgressBar Value="{Binding ProgressPercent}" 
+                             Minimum="0" Maximum="100"
+                             Height="8" 
+                             Background="#e5e7eb"
+                             Foreground="#22c55e"/>
+                <TextBlock Text="{Binding ProgressText}" 
+                           Foreground="#6b7280" 
+                           FontFamily="Segoe UI"
+                           HorizontalAlignment="Center"
+                           FontSize="14"
+                           Margin="0,6,0,0"/>
+            </StackPanel>
+            
+            <!-- Keyboard Layout -->
+            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="15">
+                <ItemsControl ItemsSource="{Binding Keys}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas Height="350"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left">
+                                <Setter.Value>
+                                    <MultiBinding Converter="{StaticResource KeyPositionConverter}" ConverterParameter="X">
+                                        <Binding Path="Column"/>
+                                        <Binding Path="Width"/>
+                                    </MultiBinding>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Canvas.Top">
+                                <Setter.Value>
+                                    <Binding Path="Row" Converter="{StaticResource KeyPositionConverter}" ConverterParameter="Y"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="6" Margin="1" 
+                                    MinHeight="40"
+                                    Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#e5e7eb"/>
+                                        <Setter Property="BorderBrush" Value="#d1d5db"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                                <Setter Property="Foreground" Value="#1a1a2e"/>
+                                                <Setter Property="Background" Value="#22c55e"/>
+                                                <Setter Property="BorderBrush" Value="#16a34a"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
-        
-        <!-- Instructions -->
-        <TextBlock Grid.Row="3" 
-                   Text="{Binding Instructions}" 
-                   Foreground="#a0a0a0" 
-                   FontSize="14"
-                   HorizontalAlignment="Center"
-                   Margin="0,15,0,0"/>
-        
-        <!-- Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-            <Button Content="Cancel" 
-                    Command="{Binding CancelTestCommand}"
-                    Width="120" Height="40"
-                    Margin="0,0,20,0">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#2d2d44"/>
-                        <Setter Property="Foreground" Value="#a0a0a0"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" 
-                                            CornerRadius="8"
-                                            Padding="20,10">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3d3d54"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
+                                </Border.Style>
+                                <TextBlock Text="{Binding Label}" 
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center"
+                                           FontSize="11" 
+                                           FontWeight="SemiBold"
+                                           FontFamily="Segoe UI">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#6b7280"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTested}" Value="True">
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
             
-            <Button Content="✓ Complete Test" 
-                    Command="{Binding CompleteTestCommand}"
-                    Width="150" Height="40">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#00d9ff"/>
-                        <Setter Property="Foreground" Value="#1a1a2e"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" 
-                                            CornerRadius="8"
-                                            Padding="20,10">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#33e6ff"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </StackPanel>
-    </Grid>
+            <!-- Instructions -->
+            <TextBlock Grid.Row="3" 
+                       Text="{Binding Instructions}" 
+                       Foreground="#6b7280" 
+                       FontFamily="Segoe UI"
+                       FontSize="14"
+                       HorizontalAlignment="Center"
+                       Margin="0,16,0,0"/>
+            
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button Content="Cancel" 
+                        Command="{Binding CancelTestCommand}"
+                        Width="120" Height="40"
+                        Margin="0,0,16,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#f3f4f6"/>
+                            <Setter Property="Foreground" Value="#6b7280"/>
+                            <Setter Property="FontFamily" Value="Segoe UI"/>
+                            <Setter Property="BorderBrush" Value="#d1d5db"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" 
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="6"
+                                                Padding="20,10">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#e5e7eb"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                
+                <Button Content="✓ Complete Test" 
+                        Command="{Binding CompleteTestCommand}"
+                        Width="150" Height="40">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontFamily" Value="Segoe UI"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" 
+                                                CornerRadius="6"
+                                                Padding="20,10">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#16a34a"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
 </Window>

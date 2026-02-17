@@ -20,6 +20,8 @@ export interface QCResult {
     refurbish_id?: string;
     technician_notes?: string;
     overall_pass: boolean;
+    overall_score?: number;
+    overall_grade?: string;
 
     // System Info Snapshot
     system_manufacturer?: string;
@@ -46,6 +48,8 @@ export interface TestResult {
     test_type: string;
     tested: boolean;
     passed: boolean;
+    score?: number;
+    grade?: string;
     message?: string;
     details_json?: any;
     timestamp?: Date;
@@ -112,6 +116,8 @@ export interface SubmitQCResultRequest {
     refurbishId?: string;
     technicianNotes?: string;
     overallPass: boolean;
+    overallScore?: number;
+    overallGrade?: string;
     technicianId?: number; // Optional: ID of logged-in technician
 
     systemInfo?: {
@@ -127,6 +133,8 @@ export interface SubmitQCResultRequest {
         testType: string;
         tested: boolean;
         passed: boolean;
+        score?: number;
+        grade?: string;
         message?: string;
         details?: any;
         timestamp?: string;

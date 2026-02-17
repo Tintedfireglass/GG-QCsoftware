@@ -23,6 +23,12 @@ public class SubmitQCResultRequest
     [JsonPropertyName("overallPass")]
     public bool OverallPass { get; set; }
     
+    [JsonPropertyName("overallScore")]
+    public int OverallScore { get; set; }
+    
+    [JsonPropertyName("overallGrade")]
+    public string OverallGrade { get; set; } = "";
+    
     [JsonPropertyName("technicianId")]
     public int? TechnicianId { get; set; }
     
@@ -62,8 +68,12 @@ public class SystemInfoSnapshot
     
     [JsonPropertyName("macAddress")]
     public string? MacAddress { get; set; }
+
+    [JsonPropertyName("deviceId")]
+    public int? DeviceId { get; set; }
     
     [JsonPropertyName("cpuModel")]
+
     public string? CpuModel { get; set; }
     
     [JsonPropertyName("ramTotal")]
@@ -80,6 +90,12 @@ public class ApiTestResult
     
     [JsonPropertyName("passed")]
     public bool Passed { get; set; }
+    
+    [JsonPropertyName("score")]
+    public int Score { get; set; }
+    
+    [JsonPropertyName("grade")]
+    public string Grade { get; set; } = "";
     
     [JsonPropertyName("message")]
     public string? Message { get; set; }

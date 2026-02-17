@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Search, ChevronLeft, ChevronRight, Printer, User } from "lucide-react"
+import { getGradeStyle } from "@/lib/grades"
 
 export default function ResultsPage() {
     const { isSuperAdmin, isAdmin, isUser } = useAuth()
@@ -79,7 +80,7 @@ export default function ResultsPage() {
                         <thead className="[&_tr]:border-b">
                             <tr className="border-b transition-colors hover:bg-muted/50 bg-slate-50">
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[100px]">Test ID</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[100px]">Status</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[100px]">Grade</th>
                                 {showTechnicianColumn && (
                                     <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Technician</th>
                                 )}
@@ -99,14 +100,23 @@ export default function ResultsPage() {
                                     <tr key={test.id} className="border-b transition-colors hover:bg-slate-50">
                                         <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                         <td className="p-4 align-middle">
-                                            {test.overall_pass ? (
-                                                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                                    PASS
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                                                    FAIL
-                                                </span>
+                                            {test.overall_grade ? (() => {
+                                                const s = getGradeStyle(test.overall_grade);
+                                                return (
+                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
+                                                        {test.overall_grade} — {test.overall_score}
+                                                    </span>
+                                                );
+                                            })() : (
+                                                test.overall_pass ? (
+                                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                                        PASS
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                                                        FAIL
+                                                    </span>
+                                                )
                                             )}
                                         </td>
                                         {showTechnicianColumn && (

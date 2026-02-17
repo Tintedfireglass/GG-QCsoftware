@@ -11,11 +11,11 @@
 ;
 ; ===================================================
 
-#define MyAppName "Laptop QC Tool"
+#define MyAppName "Pramana"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "GG Internship"
-#define MyAppExeName "LaptopQC.exe"
-#define MyAppURL "https://github.com/Tintedfireglass/GG-QCsoftware"
+#define MyAppPublisher "GadgetGuruz"
+#define MyAppExeName "Pramana.exe"
+#define MyAppURL "https://gg-qcsoftware.vercel.app/"
 
 [Setup]
 ; Application identity
@@ -30,14 +30,15 @@ AppUpdatesURL={#MyAppURL}
 
 ; Installation locations
 DefaultDirName={autopf}\{#MyAppPublisher}\{#MyAppName}
+UsePreviousAppDir=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 
 ; Output settings
 OutputDir=Output
-OutputBaseFilename=LaptopQC_Setup_{#MyAppVersion}
+OutputBaseFilename=Pramana_Setup_{#MyAppVersion}
 ; SetupIconFile - uncomment and set path if you have an icon file
-; SetupIconFile=..\src\LaptopQC.App\Resources\icon.ico
+SetupIconFile=..\src\LaptopQC.App\Resources\pramana_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 
@@ -68,7 +69,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Main application executable
-Source: "..\publish\LaptopQC.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\Pramana.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Tools folder (smartctl.exe for SMART diagnostics)
 Source: "..\publish\tools\*"; DestDir: "{app}\tools"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -80,10 +81,10 @@ Source: "..\publish\*.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourced
 
 [Icons]
 ; Start Menu shortcut
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "Laptop Quality Control Tool"
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "Pramana - Refurbished Laptop Diagnostic System"
 
 ; Desktop shortcut (optional)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "Laptop Quality Control Tool"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "Pramana - Refurbished Laptop Diagnostic System"
 
 [Run]
 ; Option to run after installation
@@ -95,6 +96,16 @@ function InitializeSetup(): Boolean;
 begin
   Result := True;
   // Could add pre-installation checks here if needed
+end;
+
+// Custom uninstall confirmation
+function InitializeUninstall(): Boolean;
+begin
+  Result := False;
+  if MsgBox('Do you want to uninstall the app? You''ll miss out on the features!', mbConfirmation, MB_YESNO) = IDYES then
+  begin
+    Result := True;
+  end;
 end;
 
 // Custom uninstall cleanup if needed

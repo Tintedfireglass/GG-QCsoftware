@@ -12,115 +12,343 @@ public class ReportGenerator
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html>");
         sb.AppendLine("<head>");
-        sb.AppendLine($"<title>QC Report - {report.RefurbishId}</title>");
+        sb.AppendLine($"<title>QC Certificate - {report.RefurbishId}</title>");
         sb.AppendLine("<style>");
-        sb.AppendLine("body { font-family: Segoe UI, sans-serif; margin: 20px; color: #333; }");
-        sb.AppendLine(".header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }");
-        sb.AppendLine(".info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }");
-        sb.AppendLine(".status-pass { color: green; font-weight: bold; }");
-        sb.AppendLine(".status-fail { color: red; font-weight: bold; }");
-        sb.AppendLine(".test-section { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; }");
-        sb.AppendLine(".test-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em; background-color: #f5f5f5; padding: 10px; margin: -15px -15px 10px -15px; border-bottom: 1px solid #ddd; }");
-        sb.AppendLine("ul { margin: 5px 0; padding-left: 20px; }");
+        sb.AppendLine(@"
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body { 
+                font-family: 'Segoe UI', -apple-system, sans-serif; 
+                margin: 0 auto;
+                padding: 32px;
+                color: #1f2937; 
+                background: white;
+                max-width: 210mm;
+                min-height: 100vh;
+                box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header { 
+                border-bottom: 2px solid #1f2937; 
+                padding-bottom: 16px; 
+                margin-bottom: 24px; 
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+            }
+            .header h1 {
+                font-size: 28px;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                margin: 0;
+            }
+            .header .subtitle {
+                font-size: 12px;
+                color: #6b7280;
+                margin-top: 4px;
+            }
+            .header-right {
+                text-align: right;
+            }
+            .header-right .test-id {
+                font-size: 16px;
+                font-weight: bold;
+            }
+            .header-right .date {
+                font-size: 12px;
+                color: #6b7280;
+            }
+            .overall-status {
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-radius: 4px;
+                padding: 24px;
+                margin-bottom: 32px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .overall-label {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #6b7280;
+                font-weight: 600;
+            }
+            .overall-grade {
+                font-weight: bold;
+                font-size: 48px;
+                margin-top: 4px;
+                line-height: 1;
+            }
+            .overall-sublabel {
+                font-size: 14px;
+                color: #374151;
+                margin-top: 4px;
+            }
+            .grade-S { color: #ca8a04; }
+            .grade-A { color: #15803d; }
+            .grade-B { color: #0d9488; }
+            .grade-C { color: #d97706; }
+            .grade-D { color: #ea580c; }
+            .grade-E { color: #dc2626; }
+            .grade-badge {
+                padding: 3px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+                display: inline-block;
+                min-width: 28px;
+                text-align: center;
+            }
+            .badge-S { background: #fef9c3; color: #ca8a04; }
+            .badge-A { background: #dcfce7; color: #15803d; }
+            .badge-B { background: #ccfbf1; color: #0d9488; }
+            .badge-C { background: #fef3c7; color: #d97706; }
+            .badge-D { background: #ffedd5; color: #ea580c; }
+            .badge-E { background: #fee2e2; color: #dc2626; }
+            .badge-none { background: #f3f4f6; color: #6b7280; }
+            .machine-id {
+                text-align: right;
+            }
+            .machine-id .label {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #6b7280;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            .machine-id .value {
+                font-family: monospace;
+                font-size: 18px;
+            }
+            .info-grid { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 48px; 
+                margin-bottom: 32px; 
+            }
+            .section-title {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                font-weight: bold;
+                border-bottom: 1px solid #d1d5db;
+                padding-bottom: 8px;
+                margin-bottom: 12px;
+            }
+            .info-table {
+                width: 100%;
+                font-size: 13px;
+            }
+            .info-table tr {
+                border-bottom: 1px dotted #d1d5db;
+            }
+            .info-table td {
+                padding: 8px 0;
+            }
+            .info-table .label {
+                color: #6b7280;
+                width: 35%;
+            }
+            .info-table .value {
+                font-weight: 500;
+            }
+            .info-table .mono {
+                font-family: monospace;
+            }
+            .test-results-title {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                font-weight: bold;
+                border-bottom: 2px solid #1f2937;
+                padding-bottom: 8px;
+                margin-bottom: 16px;
+            }
+            .test-table {
+                width: 100%;
+                font-size: 13px;
+                text-align: left;
+                border-collapse: collapse;
+            }
+            .test-table thead tr {
+                background: #f3f4f6;
+                border-bottom: 1px solid #d1d5db;
+            }
+            .test-table th {
+                padding: 8px 12px;
+                font-weight: 600;
+            }
+            .test-table td {
+                padding: 12px;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            .test-table .test-name {
+                font-weight: 500;
+            }
+            .test-table .details {
+                color: #6b7280;
+            }
+            .test-table .details-extra {
+                font-size: 11px;
+                color: #9ca3af;
+            }
+            .notes-section {
+                background: #f9fafb;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                padding: 16px;
+                margin-top: 24px;
+                page-break-inside: avoid;
+            }
+            .notes-section h3 {
+                font-size: 11px;
+                text-transform: uppercase;
+                color: #6b7280;
+                font-weight: bold;
+                margin: 0 0 8px 0;
+            }
+            .notes-section p {
+                font-size: 13px;
+                font-style: italic;
+                margin: 0;
+            }
+            .footer {
+                margin-top: 48px;
+                padding-top: 24px;
+                border-top: 1px solid #d1d5db;
+                font-size: 11px;
+                color: #6b7280;
+                display: flex;
+                justify-content: space-between;
+            }
+            @media print {
+                body {
+                    background: white;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+            }
+        ");
         sb.AppendLine("</style>");
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
         
         // Header
         sb.AppendLine("<div class='header'>");
-        sb.AppendLine($"<h1>Laptop QC Report: {report.RefurbishId}</h1>");
-        sb.AppendLine($"<p>Date: {report.Timestamp}</p>");
-        sb.AppendLine($"<p>Technician Notes: {report.TechnicianNotes}</p>");
+        sb.AppendLine("<div>");
+        sb.AppendLine("<h1>QC Certificate</h1>");
+        sb.AppendLine("<div class='subtitle'>Quality Control Report</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class='header-right'>");
+        sb.AppendLine($"<div class='test-id'>ID: {report.RefurbishId}</div>");
+        sb.AppendLine($"<div class='date'>{report.Timestamp:g}</div>");
+        sb.AppendLine("</div>");
         sb.AppendLine("</div>");
 
-        // System Info
-        sb.AppendLine("<h2>System Information</h2>");
+        // Overall Status - Grade Display
+        var gradeLabel = GradingService.GradeLabel(report.OverallGrade);
+        sb.AppendLine("<div class='overall-status'>");
+        sb.AppendLine("<div>");
+        sb.AppendLine("<div class='overall-label'>Device Grade</div>");
+        sb.AppendLine($"<div class='overall-grade grade-{report.OverallGrade}'>{report.OverallGrade}</div>");
+        sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} — {report.OverallScore}/100</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class='machine-id'>");
+        sb.AppendLine("<div class='label'>Machine ID</div>");
+        sb.AppendLine($"<div class='value'>{(report.DeviceId > 0 ? report.DeviceId.ToString() : "N/A")}</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</div>");
+
+        // System Info Grid
         sb.AppendLine("<div class='info-grid'>");
+        
+        // Left Column - System Specification
+        sb.AppendLine("<div>");
+        sb.AppendLine("<div class='section-title'>System Specification</div>");
+        sb.AppendLine("<table class='info-table'>");
+        sb.AppendLine("<tbody>");
         if (report.SystemInfo != null)
         {
-            sb.AppendLine($"<div><strong>Manufacturer:</strong> {report.SystemInfo.Manufacturer}</div>");
-            sb.AppendLine($"<div><strong>Model:</strong> {report.SystemInfo.Model}</div>");
-            sb.AppendLine($"<div><strong>Serial:</strong> {report.SystemInfo.SerialNumber}</div>");
-            sb.AppendLine($"<div><strong>MAC Address:</strong> {report.MacAddress}</div>");
+            sb.AppendLine($"<tr><td class='label'>Manufacturer</td><td class='value'>{report.SystemInfo.Manufacturer}</td></tr>");
+            sb.AppendLine($"<tr><td class='label'>Model</td><td class='value'>{report.SystemInfo.Model}</td></tr>");
+            sb.AppendLine($"<tr><td class='label'>Device ID</td><td class='value mono'>{(report.DeviceId > 0 ? report.DeviceId.ToString() : "N/A")}</td></tr>");
+            sb.AppendLine($"<tr><td class='label'>MAC Address</td><td class='value mono'>{MaskString(report.MacAddress)}</td></tr>");
         }
-        if (report.CpuDetails != null)
-             sb.AppendLine($"<div><strong>CPU:</strong> {report.CpuDetails.Name}</div>");
-        if (report.RamDetails != null)
-             sb.AppendLine($"<div><strong>RAM:</strong> {report.RamDetails.TotalCapacityGB} GB</div>");
-        sb.AppendLine("</div>");
-
-        // Detailed Specs
-        sb.AppendLine("<h2>Hardware Specifications</h2>");
-        sb.AppendLine("<div class='test-section'>");
-        sb.AppendLine("<table style='width:100%; border-collapse: collapse;'>");
-        
-        if (report.SystemInfo != null)
-        {
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>BIOS Version:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.SystemInfo.BiosVersion}</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>OS Version:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.SystemInfo.OsVersion}</td></tr>");
-        }
-
-        if (report.CpuDetails != null)
-        {
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>CPU:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.CpuDetails.Name}</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Cores/Threads:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.CpuDetails.Cores} / {report.CpuDetails.Threads}</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Base Clock:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.CpuDetails.MaxClockSpeedMHz} MHz</td></tr>");
-        }
-
-        if (report.DeviceDetails?.Gpus?.Any() == true)
-        {
-            foreach (var gpu in report.DeviceDetails.Gpus)
-            {
-                var mem = gpu.MemoryGB > 0 ? $"{gpu.MemoryGB:F1} GB" : "Unknown Memory";
-                var res = gpu.CurrentResX > 0 ? $"({gpu.CurrentResX}x{gpu.CurrentResY} @ {gpu.CurrentRefreshRate}Hz)" : "";
-                sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>GPU:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{gpu.Name} <br/><span style='font-size:0.9em;color:#666'>{mem} {res} - v{gpu.DriverVersion}</span></td></tr>");
-            }
-        }
-
-        if (report.RamDetails != null)
-        {
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Total RAM:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.RamDetails.TotalCapacityGB} GB</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Slots Used:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.RamDetails.UsedSlots} / {report.RamDetails.TotalSlots}</td></tr>");
-        }
-
-        if (report.StorageDetails != null)
-        {
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Storage Total:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.StorageDetails.TotalCapacityGB:F0} GB</td></tr>");
-            foreach(var drive in report.StorageDetails.Devices)
-            {
-                var health = drive.HealthPercent.HasValue ? $"{drive.HealthPercent}% Health" : "Smart Data N/A";
-                sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Drive:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{drive.Model} ({drive.SizeGB:F0} GB) - {drive.MediaType} - S/N: {drive.SerialNumber} <br/><span style='font-size:0.9em;color:#666'>{health}, {drive.PowerOnHours} hrs</span></td></tr>");
-            }
-        }
-
-        if (report.BatteryDetails != null && report.BatteryDetails.IsPresent)
-        {
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Battery:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.BatteryDetails.ManufactureName} {report.BatteryDetails.SerialNumber}</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Capacity:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.BatteryDetails.FullChargedCapacityMWh} / {report.BatteryDetails.DesignedCapacityMWh} mWh ({report.BatteryDetails.WearLevelPercent}% Wear)</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:5px; border-bottom:1px solid #eee;'><strong>Cycle Count:</strong></td><td style='padding:5px; border-bottom:1px solid #eee;'>{report.BatteryDetails.CycleCount}</td></tr>");
-        }
-        
+        sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
+        
+        // Right Column - Hardware Details
+        sb.AppendLine("<div>");
+        sb.AppendLine("<div class='section-title'>Hardware Details</div>");
+        sb.AppendLine("<table class='info-table'>");
+        sb.AppendLine("<tbody>");
+        if (report.CpuDetails != null)
+            sb.AppendLine($"<tr><td class='label'>Processor</td><td class='value'>{report.CpuDetails.Name}</td></tr>");
+        if (report.RamDetails != null)
+            sb.AppendLine($"<tr><td class='label'>RAM</td><td class='value'>{report.RamDetails.TotalCapacityGB} GB</td></tr>");
+        if (report.StorageDetails != null)
+            sb.AppendLine($"<tr><td class='label'>Storage</td><td class='value'>{report.StorageDetails.TotalCapacityGB:F0} GB</td></tr>");
+        if (report.BatteryDetails != null && report.BatteryDetails.IsPresent)
+            sb.AppendLine($"<tr><td class='label'>Battery Health</td><td class='value'>Wear: {report.BatteryDetails.WearLevelPercent}%</td></tr>");
+        sb.AppendLine("</tbody>");
+        sb.AppendLine("</table>");
+        sb.AppendLine("</div>");
+        
+        sb.AppendLine("</div>");
 
-        // Overall Status
-        var overallClass = report.OverallPass ? "status-pass" : "status-fail";
-        var overallText = report.OverallPass ? "PASS" : "FAIL";
-        sb.AppendLine($"<h2>Overall Status: <span class='{overallClass}'>{overallText}</span></h2>");
+        // Test Results Table
+        sb.AppendLine("<div class='test-results-title'>Diagnostic Results</div>");
+        sb.AppendLine("<table class='test-table'>");
+        sb.AppendLine("<thead>");
+        sb.AppendLine("<tr>");
+        sb.AppendLine("<th style='width:22%'>Test Component</th>");
+        sb.AppendLine("<th style='width:10%; text-align:center'>Grade</th>");
+        sb.AppendLine("<th style='width:10%; text-align:center'>Score</th>");
+        sb.AppendLine("<th>Notes / Details</th>");
+        sb.AppendLine("</tr>");
+        sb.AppendLine("</thead>");
+        sb.AppendLine("<tbody>");
         
-        // Test Results
-        sb.AppendLine("<h2>Test Details</h2>");
+        AppendTestRow(sb, "CPU", report.CpuTest);
+        AppendTestRow(sb, "RAM", report.RamTest);
+        AppendTestRow(sb, "Storage", report.StorageTest);
+        AppendTestRow(sb, "SMART Health", report.SmartTest);
+        AppendTestRow(sb, "Battery", report.BatteryTest);
+        AppendTestRow(sb, "Keyboard", report.KeyboardTest);
+        AppendTestRow(sb, "Trackpad", report.TrackpadTest);
+        AppendTestRow(sb, "USB Ports", report.UsbTest);
+        AppendTestRow(sb, "Audio / Video", report.AudioVideoTest);
+        AppendTestRow(sb, "3.5mm Audio Jack", report.AudioJackTest);
+        AppendTestRow(sb, "GPU Stress Test", report.GpuTest);
+        AppendTestRow(sb, "Network / WiFi", report.NetworkTest);
         
-        AppendTestSection(sb, "CPU", report.CpuTest);
-        AppendTestSection(sb, "RAM", report.RamTest);
-        AppendTestSection(sb, "Storage", report.StorageTest);
-        AppendTestSection(sb, "SMART Health", report.SmartTest);
-        AppendTestSection(sb, "Battery", report.BatteryTest);
-        AppendTestSection(sb, "Keyboard", report.KeyboardTest);
-        AppendTestSection(sb, "Trackpad", report.TrackpadTest);
-        AppendTestSection(sb, "USB Ports", report.UsbTest);
-        AppendTestSection(sb, "Audio / Video", report.AudioVideoTest);
-        AppendTestSection(sb, "GPU Stress Test", report.GpuTest);
+        sb.AppendLine("</tbody>");
+        sb.AppendLine("</table>");
+
+        // Technician Notes
+        if (!string.IsNullOrWhiteSpace(report.TechnicianNotes))
+        {
+            sb.AppendLine("<div class='notes-section'>");
+            sb.AppendLine("<h3>Technician Notes</h3>");
+            sb.AppendLine($"<p>{SafeHtmlEncode(report.TechnicianNotes)}</p>");
+            sb.AppendLine("</div>");
+        }
+
+        // Footer
+        sb.AppendLine("<div class='footer'>");
+        sb.AppendLine("<div>Generated by PRAMANA™</div>");
+        sb.AppendLine($"<div>ID: {report.RefurbishId}</div>");
+        sb.AppendLine($"<div>Date Printed: {DateTime.Now:d}</div>");
+        sb.AppendLine("</div>");
 
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
@@ -128,35 +356,49 @@ public class ReportGenerator
         return sb.ToString();
     }
 
-    private void AppendTestSection(StringBuilder sb, string name, TestResult result)
+    private string SafeHtmlEncode(string? text)
     {
-        var statusClass = result.Passed ? "status-pass" : "status-fail";
-        var statusText = result.Passed ? "PASS" : "FAIL";
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+        
+        return System.Security.SecurityElement.Escape(text) ?? string.Empty;
+    }
+
+    private string MaskString(string? input)
+    {
+        if (string.IsNullOrEmpty(input) || input == "N/A") return "N/A";
+        if (input.Length <= 4) return input;
+        return "****" + input.Substring(input.Length - 4);
+    }
+
+    private void AppendTestRow(StringBuilder sb, string name, TestResult result)
+    {
+        string badgeText, scoreText;
         if (!result.Tested)
         {
-            statusClass = "";
-            statusText = "NOT TESTED";
+            badgeText = "<span style='color:#6b7280; font-size:11px;'>—</span>";
+            scoreText = "<span style='color:#6b7280; font-size:11px;'>—</span>";
+        }
+        else
+        {
+            var grade = string.IsNullOrEmpty(result.Grade) || result.Grade == "–" ? "none" : result.Grade;
+            var badgeClass = $"grade-badge badge-{grade}";
+            badgeText = $"<span class='{badgeClass}'>{grade}</span>";
+            scoreText = $"<span style='font-weight:500;'>{result.Score}</span>";
         }
 
-        sb.AppendLine("<div class='test-section'>");
-        sb.AppendLine("<div class='test-header'>");
-        sb.AppendLine($"<span>{name}</span>");
-        sb.AppendLine($"<span class='{statusClass}'>{statusText}</span>");
-        sb.AppendLine("</div>");
-        
-        sb.AppendLine($"<p>{result.Message}</p>");
-        
+        sb.AppendLine("<tr>");
+        sb.AppendLine($"<td class='test-name'>{name}</td>");
+        sb.AppendLine($"<td style='text-align:center'>{badgeText}</td>");
+        sb.AppendLine($"<td style='text-align:center'>{scoreText}</td>");
+        sb.AppendLine("<td class='details'>");
+        sb.AppendLine($"<div>{SafeHtmlEncode(result.Message)}</div>");
         if (result.Details.Any())
         {
-            sb.AppendLine("<ul>");
-            foreach (var detail in result.Details)
-            {
-                sb.AppendLine($"<li>{detail}</li>");
-            }
-            sb.AppendLine("</ul>");
+            sb.AppendLine($"<div class='details-extra'>{string.Join(", ", result.Details.Select(d => SafeHtmlEncode(d)))}</div>");
         }
-        
-        sb.AppendLine("</div>");
+        sb.AppendLine("</td>");
+        sb.AppendLine("</tr>");
     }
 
     public string SaveReport(QCReport report)
