@@ -3,8 +3,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Hardware.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 using Pramaan.Avalonia.Views;
 
@@ -21,13 +23,13 @@ public partial class MainViewModel : ObservableObject
         return null;
     }
 
-    private readonly CpuDiagnostic _cpuDiagnostic;
-    private readonly RamDiagnostic _ramDiagnostic;
-    private readonly SystemDiagnostic _systemDiagnostic;
-    private readonly StorageDiagnostic _storageDiagnostic;
-    private readonly BatteryDiagnostic _batteryDiagnostic;
-    private readonly DeviceDiagnostic _deviceDiagnostic;
-    private readonly SmartTestService _smartTestService;
+    private readonly ICpuDiagnostic _cpuDiagnostic;
+    private readonly IRamDiagnostic _ramDiagnostic;
+    private readonly ISystemDiagnostic _systemDiagnostic;
+    private readonly IStorageDiagnostic _storageDiagnostic;
+    private readonly IBatteryDiagnostic _batteryDiagnostic;
+    private readonly IDeviceDiagnostic _deviceDiagnostic;
+    private readonly ISmartTestService _smartTestService;
 
     [ObservableProperty]
     private SystemInfo? _systemInfo;
@@ -87,13 +89,15 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        _cpuDiagnostic = new CpuDiagnostic();
-        _ramDiagnostic = new RamDiagnostic();
-        _systemDiagnostic = new SystemDiagnostic();
-        _storageDiagnostic = new StorageDiagnostic();
-        _batteryDiagnostic = new BatteryDiagnostic();
-        _deviceDiagnostic = new DeviceDiagnostic();
-        _smartTestService = new SmartTestService();
+        var sp = App.Current?.Services
+            ?? throw new InvalidOperationException("DI container not initialized");
+        _cpuDiagnostic = sp.GetRequiredService<ICpuDiagnostic>();
+        _ramDiagnostic = sp.GetRequiredService<IRamDiagnostic>();
+        _systemDiagnostic = sp.GetRequiredService<ISystemDiagnostic>();
+        _storageDiagnostic = sp.GetRequiredService<IStorageDiagnostic>();
+        _batteryDiagnostic = sp.GetRequiredService<IBatteryDiagnostic>();
+        _deviceDiagnostic = sp.GetRequiredService<IDeviceDiagnostic>();
+        _smartTestService = sp.GetRequiredService<ISmartTestService>();
         
         // Check if smartctl is available
         SmartctlAvailable = _smartTestService.IsAvailable;

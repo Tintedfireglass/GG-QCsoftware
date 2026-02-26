@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
 
@@ -6,7 +7,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides RAM detection and diagnostics
 /// </summary>
-public class RamDiagnostic
+public class RamDiagnostic : IRamDiagnostic
 {
     private readonly IWmiProvider _wmi;
 

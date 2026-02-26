@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
 
@@ -6,7 +7,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides system information detection
 /// </summary>
-public class SystemDiagnostic
+public class SystemDiagnostic : ISystemDiagnostic
 {
     private readonly IWmiProvider _wmi;
 

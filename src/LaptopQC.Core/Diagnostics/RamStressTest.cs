@@ -1,9 +1,11 @@
+using LaptopQC.Core.Abstractions;
+
 namespace LaptopQC.Core.Diagnostics;
 
 /// <summary>
 /// RAM stress test to verify memory stability and detect errors
 /// </summary>
-public class RamStressTest
+public class RamStressTest : IRamStressTest
 {
     private readonly int _testSizeMB;
     private readonly int _iterations;

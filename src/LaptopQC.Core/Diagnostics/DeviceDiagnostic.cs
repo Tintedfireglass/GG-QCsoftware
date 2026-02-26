@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
 using System.Text.RegularExpressions;
@@ -7,7 +8,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides detection of all connected devices and ports
 /// </summary>
-public class DeviceDiagnostic
+public class DeviceDiagnostic : IDeviceDiagnostic
 {
     private readonly IWmiProvider _wmi;
 

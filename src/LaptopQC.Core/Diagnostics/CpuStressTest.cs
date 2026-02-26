@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Diagnostics;
 using System.Management;
@@ -7,7 +8,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// CPU stress test with reliable thermal monitoring using dedicated threads
 /// </summary>
-public class CpuStressTest
+public class CpuStressTest : ICpuStressTest
 {
     private readonly int _durationSeconds;
     private readonly int _threadCount;

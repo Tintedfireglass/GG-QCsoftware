@@ -1,13 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Core.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Avalonia.Threading;
 
 namespace Pramaan.Avalonia.ViewModels;
 
 public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 {
-    private readonly AudioVideoTestService _service;
+    private readonly IAudioVideoTestService _service;
     private DispatcherTimer? _jackDetectionTimer;
 
     [ObservableProperty]
@@ -77,7 +79,8 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 
     public AudioVideoTestViewModel()
     {
-        _service = new AudioVideoTestService();
+        _service = App.Current?.Services?.GetRequiredService<IAudioVideoTestService>()
+            ?? throw new InvalidOperationException("DI container not initialized");
         _currentStepName = "Speaker Test (1/4)";
     }
 

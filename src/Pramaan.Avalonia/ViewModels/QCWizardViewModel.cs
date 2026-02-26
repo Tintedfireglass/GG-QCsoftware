@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Pramaan.Avalonia.Views;
 using System.Diagnostics;
 using System.IO;
@@ -101,7 +102,8 @@ public partial class QCWizardViewModel : ObservableObject
 
     public QCWizardViewModel()
     {
-        _workflowService = new QCWorkflowService();
+        _workflowService = App.Current?.Services?.GetRequiredService<QCWorkflowService>()
+            ?? throw new InvalidOperationException("DI container not initialized");
         _reportGenerator = new ReportGenerator();
         _submissionService = new QCSubmissionService();
 

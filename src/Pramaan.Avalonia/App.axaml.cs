@@ -1,8 +1,11 @@
 using System;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using LaptopQC.Core.Abstractions;
+using LaptopQC.Core.Diagnostics;
 using LaptopQC.Core.Services;
 using LaptopQC.Hardware.Providers;
 using System.Threading.Tasks;
@@ -67,10 +70,31 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         
-        // Register hardware providers
-        services.AddSingleton<IWmiProvider, WmiProvider>();
-        services.AddSingleton<ISensorProvider, SensorProvider>();
-        services.AddSingleton<ISmartctlProvider, SmartctlProvider>();
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // ── Windows implementations ──
+            services.AddSingleton<IWmiProvider, WmiProvider>();
+            services.AddSingleton<ISensorProvider, SensorProvider>();
+            services.AddSingleton<ISmartctlProvider, SmartctlProvider>();
+            
+            services.AddTransient<ISystemDiagnostic, SystemDiagnostic>();
+            services.AddTransient<ICpuDiagnostic, CpuDiagnostic>();
+            services.AddTransient<IRamDiagnostic, RamDiagnostic>();
+            services.AddTransient<IStorageDiagnostic, StorageDiagnostic>();
+            services.AddTransient<IBatteryDiagnostic, BatteryDiagnostic>();
+            services.AddTransient<IDeviceDiagnostic, DeviceDiagnostic>();
+            services.AddTransient<ISmartTestService, SmartTestService>();
+            services.AddTransient<IAudioVideoTestService, AudioVideoTestService>();
+        }
+        // Future: else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        // {
+        //     services.AddTransient<ISystemDiagnostic, MacSystemDiagnostic>();
+        //     services.AddTransient<ICpuDiagnostic, MacCpuDiagnostic>();
+        //     ... etc
+        // }
+        
+        // ── Platform-neutral services ──
+        services.AddTransient<QCWorkflowService>();
         
         return services.BuildServiceProvider();
     }

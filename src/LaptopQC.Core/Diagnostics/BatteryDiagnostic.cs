@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 
 namespace LaptopQC.Core.Diagnostics;
@@ -5,7 +6,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides battery detection and health diagnostics
 /// </summary>
-public class BatteryDiagnostic
+public class BatteryDiagnostic : IBatteryDiagnostic
 {
     private readonly IWmiProvider _wmi;
     private readonly ISensorProvider? _sensors;

@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
 
@@ -6,7 +7,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides CPU detection and diagnostics
 /// </summary>
-public class CpuDiagnostic
+public class CpuDiagnostic : ICpuDiagnostic
 {
     private readonly IWmiProvider _wmi;
 

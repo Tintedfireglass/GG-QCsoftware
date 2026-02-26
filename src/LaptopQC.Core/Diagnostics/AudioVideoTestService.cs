@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Speech.Synthesis;
@@ -11,7 +12,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Service for testing Microphone, Speakers (Stereo), Camera, and 3.5mm Audio Jack
 /// </summary>
-public class AudioVideoTestService : IDisposable
+public class AudioVideoTestService : IAudioVideoTestService
 {
     private readonly SpeechSynthesizer _synthesizer;
     private string _tempRecordingPath;

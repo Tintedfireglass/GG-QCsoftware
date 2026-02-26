@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Core.Models;
 using LaptopQC.Hardware.Models;
@@ -15,13 +16,13 @@ public enum QCWorkflowStep
 
 public class QCWorkflowService
 {
-    private readonly CpuDiagnostic _cpuDiagnostic;
-    private readonly RamDiagnostic _ramDiagnostic;
-    private readonly SystemDiagnostic _systemDiagnostic;
-    private readonly StorageDiagnostic _storageDiagnostic;
-    private readonly BatteryDiagnostic _batteryDiagnostic;
-    private readonly DeviceDiagnostic _deviceDiagnostic;
-    private readonly SmartTestService _smartTestService;
+    private readonly ICpuDiagnostic _cpuDiagnostic;
+    private readonly IRamDiagnostic _ramDiagnostic;
+    private readonly ISystemDiagnostic _systemDiagnostic;
+    private readonly IStorageDiagnostic _storageDiagnostic;
+    private readonly IBatteryDiagnostic _batteryDiagnostic;
+    private readonly IDeviceDiagnostic _deviceDiagnostic;
+    private readonly ISmartTestService _smartTestService;
     private readonly DeviceIdService _deviceIdService;
     private readonly GradingService _gradingService;
 
@@ -31,15 +32,22 @@ public class QCWorkflowService
     public event Action<string>? OnStatusUpdate;
     public event Action<int>? OnProgressUpdate;
 
-    public QCWorkflowService()
+    public QCWorkflowService(
+        ICpuDiagnostic cpuDiagnostic,
+        IRamDiagnostic ramDiagnostic,
+        ISystemDiagnostic systemDiagnostic,
+        IStorageDiagnostic storageDiagnostic,
+        IBatteryDiagnostic batteryDiagnostic,
+        IDeviceDiagnostic deviceDiagnostic,
+        ISmartTestService smartTestService)
     {
-        _cpuDiagnostic = new CpuDiagnostic();
-        _ramDiagnostic = new RamDiagnostic();
-        _systemDiagnostic = new SystemDiagnostic();
-        _storageDiagnostic = new StorageDiagnostic();
-        _batteryDiagnostic = new BatteryDiagnostic();
-        _deviceDiagnostic = new DeviceDiagnostic();
-        _smartTestService = new SmartTestService();
+        _cpuDiagnostic = cpuDiagnostic;
+        _ramDiagnostic = ramDiagnostic;
+        _systemDiagnostic = systemDiagnostic;
+        _storageDiagnostic = storageDiagnostic;
+        _batteryDiagnostic = batteryDiagnostic;
+        _deviceDiagnostic = deviceDiagnostic;
+        _smartTestService = smartTestService;
         _deviceIdService = new DeviceIdService();
         _gradingService = new GradingService();
     }

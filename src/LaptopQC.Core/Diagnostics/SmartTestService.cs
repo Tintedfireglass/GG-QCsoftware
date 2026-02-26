@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 
 namespace LaptopQC.Core.Diagnostics;
@@ -5,7 +6,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Service for running SMART self-tests on storage devices
 /// </summary>
-public class SmartTestService
+public class SmartTestService : ISmartTestService
 {
     private readonly ISmartctlProvider _smartctl;
     

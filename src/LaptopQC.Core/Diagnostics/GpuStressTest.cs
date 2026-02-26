@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Diagnostics;
 using SharpDX;
@@ -13,7 +14,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// GPU stress test with thermal monitoring for discrete GPUs (NVIDIA/AMD)
 /// Uses DirectX 11 to stress the GPU with heavy rendering workload
 /// </summary>
-public class GpuStressTest
+public class GpuStressTest : IGpuStressTest
 {
     private readonly int _durationSeconds;
     private volatile bool _isRunning;

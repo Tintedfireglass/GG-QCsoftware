@@ -1,3 +1,4 @@
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Management;
 
@@ -6,7 +7,7 @@ namespace LaptopQC.Core.Diagnostics;
 /// <summary>
 /// Provides storage device detection and SMART health diagnostics
 /// </summary>
-public class StorageDiagnostic
+public class StorageDiagnostic : IStorageDiagnostic
 {
     private readonly IWmiProvider _wmi;
     private readonly ISensorProvider? _sensors;
