@@ -39,6 +39,13 @@ export interface QCResult {
     battery_details_json?: any;
     device_details_json?: any;
 
+    // PRAMAAN scoring
+    pramaan_score?: number;
+    pramaan_grade?: string;
+    pramaan_category_scores?: PramaanCategoryScores;
+    pramaan_risk_flags?: PramaanRiskFlags;
+    pramaan_algorithm_version?: string;
+
     created_at: Date;
 }
 
@@ -146,6 +153,13 @@ export interface SubmitQCResultRequest {
     storageDetails?: any;
     batteryDetails?: any;
     deviceDetails?: any;
+
+    // PRAMAAN scoring
+    pramaanScore?: number;
+    pramaanGrade?: string;
+    pramaanCategoryScores?: PramaanCategoryScores;
+    pramaanRiskFlags?: PramaanRiskFlags;
+    pramaanAlgorithmVersion?: string;
 }
 
 export interface LoginRequest {
@@ -166,3 +180,45 @@ export interface ApiError {
     error: string;
     message: string;
 }
+
+// ── PRAMAAN Types ──
+
+export interface PramaanCategoryScores {
+    storage: number;
+    thermal: number;
+    battery: number;
+    cpu_ram: number;
+    physical_ports: number;
+    repair_modifier: number;
+    [key: string]: number;
+}
+
+export interface PramaanRiskFlags {
+    storage: boolean;
+    thermal: boolean;
+    battery: boolean;
+    cpu_ram: boolean;
+    physical_ports: boolean;
+    repair_modifier: boolean;
+    [key: string]: boolean;
+}
+
+export type PramaanGrade = 'A+' | 'A' | 'B' | 'C' | 'Reject';
+
+export const PramaanGradeLabels: Record<PramaanGrade, string> = {
+    'A+': 'Certified Premium',
+    'A': 'Certified',
+    'B': 'Good Condition',
+    'C': 'Acceptable',
+    'Reject': 'Not Certified',
+};
+
+export const PramaanCategoryLabels: Record<string, string> = {
+    storage: 'Storage Health',
+    thermal: 'Thermal Performance',
+    battery: 'Battery Health',
+    cpu_ram: 'CPU & RAM',
+    physical_ports: 'Physical Ports',
+    repair_modifier: 'Repair History',
+};
+

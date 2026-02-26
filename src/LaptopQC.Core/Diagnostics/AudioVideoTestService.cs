@@ -76,16 +76,20 @@ public class AudioVideoTestService : IDisposable
     }
 
     /// <summary>
-    /// Play back the recorded file
+    /// Play back the recorded file (runs on background thread to avoid blocking UI)
     /// </summary>
     public void PlaybackMicRecording()
     {
         if (File.Exists(_tempRecordingPath))
         {
-            mciSendString("close mysound", null, 0, IntPtr.Zero);
-            mciSendString($"open \"{_tempRecordingPath}\" type waveaudio alias mysound", null, 0, IntPtr.Zero);
-            mciSendString("play mysound wait", null, 0, IntPtr.Zero);
-            mciSendString("close mysound", null, 0, IntPtr.Zero);
+            var path = _tempRecordingPath;
+            Task.Run(() =>
+            {
+                mciSendString("close mysound", null, 0, IntPtr.Zero);
+                mciSendString($"open \"{path}\" type waveaudio alias mysound", null, 0, IntPtr.Zero);
+                mciSendString("play mysound wait", null, 0, IntPtr.Zero);
+                mciSendString("close mysound", null, 0, IntPtr.Zero);
+            });
         }
     }
 

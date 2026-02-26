@@ -137,12 +137,21 @@
 
                 <!-- WiFi / Network Test -->
                 <StackPanel Visibility="{Binding IsWifiNext, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Connect this machine to WiFi or plug in an Ethernet cable, then click the button below."
-                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,16" 
+                    <TextBlock Text="Connect this machine to WiFi and/or plug in an Ethernet cable."
+                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,8" 
                                Foreground="#6b7280" FontSize="13" FontFamily="Segoe UI"/>
+                    
+                    <!-- Live connection status -->
+                    <Border Background="#f0f9ff" BorderBrush="#bae6fd" BorderThickness="1" CornerRadius="8" 
+                            Padding="14,10" Margin="0,4,0,12">
+                        <TextBlock Text="{Binding NetworkLiveStatus}" 
+                                   HorizontalAlignment="Center" FontSize="14" FontFamily="Segoe UI"
+                                   Foreground="#0c4a6e"/>
+                    </Border>
+                    
                     <Button Command="{Binding RunWifiTestCommand}" Content="🌐 Test Network Connectivity" 
                             Style="{StaticResource PrimaryButton}"
-                            Height="50" Margin="0,8" FontSize="14"/>
+                            Height="50" Margin="0,4" FontSize="14"/>
                 </StackPanel>
                 
                 <!-- Network check status (shown while/after testing) -->

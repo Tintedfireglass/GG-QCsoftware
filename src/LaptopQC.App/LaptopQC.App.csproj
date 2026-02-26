@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -24,8 +25,8 @@
   </ItemGroup>
   <PropertyGroup>
     <!-- App Info -->
-    <AssemblyName>Pramana</AssemblyName>
-    <Product>PRAMANA™</Product>
+    <AssemblyName>Pramaan</AssemblyName>
+    <Product>PRAMAAN</Product>
     <Company>Gadget Guruz</Company>
     <Version>1.0.0</Version>
     

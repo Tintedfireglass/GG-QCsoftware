@@ -1,4 +1,4 @@
-# macOS Porting Report — PRAMANA™ QC Tool
+# macOS Porting Report — PRAMAAN QC Tool
 
 > **Prepared:** February 2026  
 > **Current Platform:** Windows (.NET 8 / WPF)  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The PRAMANA™ QC tool is a Windows desktop application built with **C# / .NET 8 / WPF**. Porting to macOS requires replacing the **UI framework** (WPF is Windows-only), swapping several **Windows-specific hardware APIs** (WMI, DirectX, winmm.dll, etc.), and adjusting the **build, packaging, and privilege escalation** pipeline. The core business logic and most service-layer code can be reused with minimal changes.
+The PRAMAAN QC tool is a Windows desktop application built with **C# / .NET 8 / WPF**. Porting to macOS requires replacing the **UI framework** (WPF is Windows-only), swapping several **Windows-specific hardware APIs** (WMI, DirectX, winmm.dll, etc.), and adjusting the **build, packaging, and privilege escalation** pipeline. The core business logic and most service-layer code can be reused with minimal changes.
 
 > [!IMPORTANT]
 > The two highest-effort items are the **UI rewrite** (WPF → cross-platform framework) and the **hardware provider replacements** (WMI → macOS system commands / IOKit).

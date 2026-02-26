@@ -5,7 +5,7 @@ namespace LaptopQC.Hardware.Providers;
 /// <summary>
 /// Provides WMI query functionality for hardware detection
 /// </summary>
-public class WmiProvider
+public class WmiProvider : IWmiProvider
 {
     /// <summary>
     /// Executes a WMI query and returns results

@@ -41,10 +41,14 @@ public class QCReport
     public int OverallScore { get; set; }
     public string OverallGrade { get; set; } = "–";
     
+    // PRAMAAN standardized scoring
+    public PramaanResult? PramaanResult { get; set; }
+    public string PramaanHealthId { get; set; } = "";
+    
     /// <summary>
-    /// Backward compatibility: a device with grade C or better (score >= 55) is considered sellable.
+    /// Backward compatibility: a device with grade D or better (score >= 50) is considered sellable.
     /// </summary>
-    public bool OverallPass => OverallScore >= 55;
+    public bool OverallPass => OverallScore >= 50;
 }
 
 public class TestResult

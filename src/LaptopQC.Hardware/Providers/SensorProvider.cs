@@ -4,7 +4,7 @@ using System.Management;
 
 namespace LaptopQC.Hardware.Providers;
 
-public class SensorProvider : IDisposable
+public class SensorProvider : ISensorProvider
 {
     private readonly Computer _computer;
     private bool _isInitialized;

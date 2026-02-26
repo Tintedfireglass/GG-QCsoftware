@@ -1,0 +1,200 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Pramaan.Avalonia.ViewModels"
+        xmlns:conv="using:Pramaan.Avalonia.Converters"
+        x:Class="Pramaan.Avalonia.Views.KeyboardTestWindow"
+        Title="Keyboard Test" 
+        Height="620" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        Background="#f5f5f5"
+        CanResize="False"
+        KeyDown="Window_KeyDown">
+    
+    <Window.DataContext>
+        <vm:KeyboardTestViewModel />
+    </Window.DataContext>
+    
+    <Window.Resources>
+        <conv:KeyPositionConverter x:Key="KeyPositionConverter"/>
+        <conv:KeyWidthConverter x:Key="KeyWidthConverter"/>
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Tested key background -->
+        <Style Selector="Border.tested">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="BorderBrush" Value="#16a34a"/>
+        </Style>
+        <Style Selector="TextBlock.tested_text">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <!-- Cancel button -->
+        <Style Selector="Button.cancelBtn">
+            <Setter Property="Background" Value="#f3f4f6"/>
+            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="BorderBrush" Value="#d1d5db"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.cancelBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#e5e7eb"/>
+            <Setter Property="Foreground" Value="#6b7280"/>
+        </Style>
+        <Style Selector="Button.cancelBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#6b7280"/>
+        </Style>
+        
+        <!-- Complete button -->
+        <Style Selector="Button.completeBtn">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.completeBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.completeBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </Window.Styles>
+    
+    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="12" Padding="16"
+            BoxShadow="0 4 6 0 #1A000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Header with Numpad checkbox -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="Keyboard Test" 
+                               FontSize="20" FontWeight="SemiBold" 
+                               Foreground="#22c55e" FontFamily="Segoe UI"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <CheckBox Grid.Column="1" 
+                          Content="Has Numpad" 
+                          IsChecked="{Binding ShowNumpad}"
+                          VerticalAlignment="Center"
+                          Foreground="#6b7280"
+                          FontFamily="Segoe UI"
+                          Margin="8,0,4,0"/>
+            </Grid>
+            
+            <!-- Progress Bar -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                <ProgressBar Value="{Binding ProgressPercent}" 
+                             Minimum="0" Maximum="100"
+                             Height="8" 
+                             Background="#e5e7eb"
+                             Foreground="#22c55e"/>
+                <TextBlock Text="{Binding ProgressText}" 
+                           Foreground="#6b7280" 
+                           FontFamily="Segoe UI"
+                           HorizontalAlignment="Center"
+                           FontSize="13"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+            
+            <!-- Keyboard Layout - with clipping -->
+            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" 
+                    Padding="10" ClipToBounds="True">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Keys}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Height="280" Width="1020"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.Styles>
+                            <Style Selector="ContentPresenter">
+                                <Setter Property="Canvas.Left">
+                                    <Setter.Value>
+                                        <MultiBinding Converter="{StaticResource KeyPositionConverter}" ConverterParameter="X">
+                                            <Binding Path="Column"/>
+                                            <Binding Path="Width"/>
+                                        </MultiBinding>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Canvas.Top">
+                                    <Setter.Value>
+                                        <Binding Path="Row" Converter="{StaticResource KeyPositionConverter}" ConverterParameter="Y"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ItemsControl.Styles>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="5" Margin="1" 
+                                        MinHeight="36"
+                                        Background="#e5e7eb"
+                                        BorderBrush="#d1d5db"
+                                        BorderThickness="1"
+                                        Classes.tested="{Binding IsTested}"
+                                        Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
+                                    <TextBlock Text="{Binding Label}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"
+                                               FontSize="10" 
+                                               Foreground="#6b7280"
+                                               FontWeight="SemiBold"
+                                               Classes.tested_text="{Binding IsTested}"
+                                               FontFamily="Segoe UI">
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+            
+            <!-- Instructions -->
+            <TextBlock Grid.Row="3" 
+                       Text="{Binding Instructions}" 
+                       Foreground="#6b7280" 
+                       FontFamily="Segoe UI"
+                       FontSize="13"
+                       HorizontalAlignment="Center"
+                       Margin="0,10,0,0"/>
+            
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Content="Cancel" 
+                        Command="{Binding CancelTestCommand}"
+                        Width="120" Height="38"
+                        Margin="0,0,16,0"
+                        Classes="cancelBtn"/>
+                
+                <Button Content="Complete Test" 
+                        Command="{Binding CompleteTestCommand}"
+                        Width="150" Height="38"
+                        Classes="completeBtn"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

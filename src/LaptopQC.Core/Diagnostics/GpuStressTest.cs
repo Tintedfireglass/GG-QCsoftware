@@ -29,9 +29,12 @@ public class GpuStressTest
 
     public event Action<GpuStressProgress>? OnProgress;
 
-    public GpuStressTest(int durationSeconds = 30)
+    private readonly ISensorProvider? _sensorProvider;
+
+    public GpuStressTest(int durationSeconds = 30, ISensorProvider? sensorProvider = null)
     {
         _durationSeconds = durationSeconds;
+        _sensorProvider = sensorProvider;
     }
 
     /// <summary>
@@ -40,13 +43,13 @@ public class GpuStressTest
     public async Task<GpuStressResult> RunAsync(CancellationToken cancellationToken = default)
     {
         // Initialize sensors on background thread
-        SensorProvider? sensors = null;
+        ISensorProvider? sensors = null;
         bool hasDiscreteGpu = false;
 
         await Task.Run(() =>
         {
-            sensors = new SensorProvider();
-            sensors.Initialize();
+            sensors = _sensorProvider ?? new SensorProvider();
+            if (_sensorProvider == null) sensors.Initialize();
             hasDiscreteGpu = sensors.HasDiscreteGpu();
             _gpuName = sensors.GetDiscreteGpuName();
         }, cancellationToken);
@@ -185,7 +188,7 @@ public class GpuStressTest
             ? $"PASSED: {result.GpuName} | Max {result.MaxTemp:F1}°C, Avg Load {result.AvgLoad:F0}%, Speed ~{result.AvgClock:F0}MHz"
             : $"FAILED: {string.Join("; ", failures)}";
 
-        sensors?.Dispose();
+        if (_sensorProvider == null) sensors?.Dispose();
         return result;
     }
 
@@ -344,7 +347,7 @@ public class GpuStressTest
         }
     }
 
-    private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, SensorProvider sensors)
+    private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, ISensorProvider sensors)
     {
         var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gpu_stress_debug.log");
 

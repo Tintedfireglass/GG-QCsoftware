@@ -100,6 +100,13 @@ public class QCSubmissionService
             BatteryDetails = report.BatteryDetails,
             DeviceDetails = report.DeviceDetails,
             
+            // PRAMAAN scoring data
+            PramaanScore = report.PramaanResult?.OverallHealthScore,
+            PramaanGrade = report.PramaanResult?.GradeBand,
+            PramaanCategoryScores = report.PramaanResult?.CategoryScores,
+            PramaanRiskFlags = report.PramaanResult?.RiskFlags,
+            PramaanAlgorithmVersion = report.PramaanResult?.AlgorithmVersion,
+            
             TestResults = new List<ApiTestResult>()
         };
 

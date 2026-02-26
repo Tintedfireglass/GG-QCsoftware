@@ -343,6 +343,19 @@ public class QCWorkflowService
     public void FinalizeGrades()
     {
         _gradingService.GradeReport(Report);
+        
+        // Record test completion timestamp for the reminder system
+        try
+        {
+            var appDataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Pramaan");
+            Directory.CreateDirectory(appDataDir);
+            File.WriteAllText(
+                Path.Combine(appDataDir, "last_qc_test.txt"),
+                DateTime.UtcNow.ToString("o"));
+        }
+        catch { /* Best-effort — don't fail the test if timestamp write fails */ }
     }
 
     private void UpdateStatus(string status, int progress)

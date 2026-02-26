@@ -8,12 +8,12 @@ namespace LaptopQC.Core.Services;
 /// </summary>
 public enum DeviceGrade
 {
-    S,  // 95-100: Superb, like-new
-    A,  // 85-94:  Excellent, minor wear
-    B,  // 70-84:  Good, normal wear
-    C,  // 55-69:  Fair, noticeable degradation
-    D,  // 40-54:  Poor, needs repair
-    E   // 0-39:   Failing, not recommended for resale
+    A,  // 90-100: Like-new condition
+    B,  // 80-89:  Good condition
+    C,  // 70-79:  Acceptable condition
+    D,  // 50-69:  Below average
+    E,  // 1-49:   Poor condition
+    F   // 0:      Non-functional
 }
 
 /// <summary>
@@ -76,8 +76,9 @@ public class GradingService
     /// <summary>
     /// Scores and grades every test, then calculates the overall device grade.
     /// Call after ALL tests (automated + interactive) are complete.
+    /// Also runs the PRAMAAN scoring engine (category-based, configurable).
     /// </summary>
-    public void GradeReport(QCReport report)
+    public void GradeReport(QCReport report, PramaanScoringConfig? pramaanConfig = null)
     {
         double totalWeightedScore = 0;
         double totalWeight = 0;
@@ -110,30 +111,34 @@ public class GradingService
         else
         {
             report.OverallScore = 0;
-            report.OverallGrade = DeviceGrade.E.ToString();
+            report.OverallGrade = DeviceGrade.F.ToString();
         }
+
+        // ── PRAMAAN scoring ──
+        var pramaanEngine = new PramaanScoringEngine(pramaanConfig);
+        report.PramaanResult = pramaanEngine.ScoreReport(report);
     }
 
     /// <summary>Maps a score (0-100) to a DeviceGrade</summary>
     public static DeviceGrade ScoreToGrade(int score) => score switch
     {
-        >= 95 => DeviceGrade.S,
-        >= 85 => DeviceGrade.A,
-        >= 70 => DeviceGrade.B,
-        >= 55 => DeviceGrade.C,
-        >= 40 => DeviceGrade.D,
-        _     => DeviceGrade.E
+        >= 90 => DeviceGrade.A,
+        >= 80 => DeviceGrade.B,
+        >= 70 => DeviceGrade.C,
+        >= 50 => DeviceGrade.D,
+        > 0   => DeviceGrade.E,
+        _     => DeviceGrade.F
     };
 
     /// <summary>Human-readable label for a grade letter</summary>
     public static string GradeLabel(string grade) => grade switch
     {
-        "S" => "Superb",
-        "A" => "Excellent",
-        "B" => "Good",
-        "C" => "Fair",
-        "D" => "Poor",
-        "E" => "Failing",
+        "A" => "Like-New Condition",
+        "B" => "Good Condition",
+        "C" => "Acceptable Condition",
+        "D" => "Below Average",
+        "E" => "Poor Condition",
+        "F" => "Non-Functional",
         _   => "Unknown"
     };
 

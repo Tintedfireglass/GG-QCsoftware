@@ -8,11 +8,11 @@ namespace LaptopQC.Core.Diagnostics;
 /// </summary>
 public class RamDiagnostic
 {
-    private readonly WmiProvider _wmi;
+    private readonly IWmiProvider _wmi;
 
-    public RamDiagnostic()
+    public RamDiagnostic(IWmiProvider? wmiProvider = null)
     {
-        _wmi = new WmiProvider();
+        _wmi = wmiProvider ?? new WmiProvider();
     }
 
     /// <summary>

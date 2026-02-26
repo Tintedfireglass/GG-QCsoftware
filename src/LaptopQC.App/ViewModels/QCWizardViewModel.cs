@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace LaptopQC.App.ViewModels;
 
@@ -13,6 +14,7 @@ public partial class QCWizardViewModel : ObservableObject
 {
     private readonly QCWorkflowService _workflowService;
     private readonly ReportGenerator _reportGenerator;
+    private DispatcherTimer? _networkPollTimer;
 
     [ObservableProperty]
     private bool _isPrepStep = true;
@@ -58,6 +60,9 @@ public partial class QCWizardViewModel : ObservableObject
 
     [ObservableProperty]
     private string _wifiStatus = "";
+
+    [ObservableProperty]
+    private string _networkLiveStatus = "";
 
     [ObservableProperty]
     private bool _isCheckingNetwork;
@@ -209,12 +214,69 @@ public partial class QCWizardViewModel : ObservableObject
             IsAvNext = false;
             IsWifiNext = true;
             UpdateInteractiveState();
+            StartNetworkPolling();
         }
+    }
+
+    private void StartNetworkPolling()
+    {
+        PollNetworkStatus(); // Check immediately
+        _networkPollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _networkPollTimer.Tick += (s, e) => PollNetworkStatus();
+        _networkPollTimer.Start();
+    }
+
+    private void PollNetworkStatus()
+    {
+        try
+        {
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up
+                         && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+            bool wifi = false, ethernet = false;
+            string wifiName = "", ethName = "";
+
+            foreach (var ni in interfaces)
+            {
+                var desc = (ni.Description ?? "").ToLowerInvariant();
+                var adapterName = (ni.Name ?? "").ToLowerInvariant();
+                bool isVirtual = desc.Contains("virtual") || desc.Contains("hyper-v") ||
+                                 desc.Contains("vmware") || desc.Contains("virtualbox") ||
+                                 desc.Contains("docker") || desc.Contains("vpn") ||
+                                 desc.Contains("tap-") || desc.Contains("tunnel") ||
+                                 adapterName.Contains("vethernet") || adapterName.Contains("wsl") ||
+                                 adapterName.Contains("docker") || adapterName.Contains("vmware");
+                if (isVirtual) continue;
+
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                    { wifi = true; wifiName = ni.Name; }
+                else if (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
+                         ni.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet)
+                    { ethernet = true; ethName = ni.Name; }
+            }
+
+            var parts = new List<string>();
+            parts.Add(wifi ? $"✓ WiFi: {wifiName}" : "✗ WiFi: Not connected");
+            parts.Add(ethernet ? $"✓ Ethernet: {ethName}" : "✗ Ethernet: Not connected");
+            NetworkLiveStatus = string.Join("   |   ", parts);
+        }
+        catch
+        {
+            NetworkLiveStatus = "⚠ Could not read adapters";
+        }
+    }
+
+    private void StopNetworkPolling()
+    {
+        _networkPollTimer?.Stop();
+        _networkPollTimer = null;
     }
 
     [RelayCommand]
     private async Task RunWifiTestAsync()
     {
+        StopNetworkPolling();
         IsWifiNext = false;
         InteractiveInstruction = "Testing Network Connectivity...";
         IsCheckingNetwork = true;

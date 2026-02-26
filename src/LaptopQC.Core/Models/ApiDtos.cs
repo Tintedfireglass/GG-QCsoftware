@@ -53,6 +53,22 @@ public class SubmitQCResultRequest
     
     [JsonPropertyName("deviceDetails")]
     public object? DeviceDetails { get; set; }
+    
+    // PRAMAAN scoring data
+    [JsonPropertyName("pramaanScore")]
+    public int? PramaanScore { get; set; }
+    
+    [JsonPropertyName("pramaanGrade")]
+    public string? PramaanGrade { get; set; }
+    
+    [JsonPropertyName("pramaanCategoryScores")]
+    public Dictionary<string, int>? PramaanCategoryScores { get; set; }
+    
+    [JsonPropertyName("pramaanRiskFlags")]
+    public Dictionary<string, bool>? PramaanRiskFlags { get; set; }
+    
+    [JsonPropertyName("pramaanAlgorithmVersion")]
+    public string? PramaanAlgorithmVersion { get; set; }
 }
 
 public class SystemInfoSnapshot

@@ -8,11 +8,13 @@ namespace LaptopQC.Core.Diagnostics;
 /// </summary>
 public class StorageDiagnostic
 {
-    private readonly WmiProvider _wmi;
+    private readonly IWmiProvider _wmi;
+    private readonly ISensorProvider? _sensors;
 
-    public StorageDiagnostic()
+    public StorageDiagnostic(IWmiProvider? wmiProvider = null, ISensorProvider? sensors = null)
     {
-        _wmi = new WmiProvider();
+        _wmi = wmiProvider ?? new WmiProvider();
+        _sensors = sensors;
     }
 
     /// <summary>
@@ -45,9 +47,16 @@ public class StorageDiagnostic
         // Get SMART data from LibreHardwareMonitor
         try
         {
-            using var sensors = new SensorProvider();
-            sensors.Initialize();
-            EnrichWithSmartData(info, sensors);
+            if (_sensors != null)
+            {
+                EnrichWithSmartData(info, _sensors);
+            }
+            else
+            {
+                using var sensors = new SensorProvider();
+                sensors.Initialize();
+                EnrichWithSmartData(info, sensors);
+            }
         }
         catch { /* Ignore SMART failures */ }
 
@@ -75,7 +84,7 @@ public class StorageDiagnostic
         return true;
     }
 
-    private void EnrichWithSmartData(StorageInfo info, SensorProvider sensors)
+    private void EnrichWithSmartData(StorageInfo info, ISensorProvider sensors)
     {
         // LibreHardwareMonitor populates storage SMART data
         // We access it through the sensor interface

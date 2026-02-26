@@ -7,7 +7,7 @@ namespace LaptopQC.Hardware.Providers;
 /// <summary>
 /// Wrapper for smartctl.exe (smartmontools) to read SMART data and run self-tests
 /// </summary>
-public class SmartctlProvider
+public class SmartctlProvider : ISmartctlProvider
 {
     private string? _smartctlPath;
     

@@ -9,11 +9,11 @@ namespace LaptopQC.Core.Diagnostics;
 /// </summary>
 public class DeviceDiagnostic
 {
-    private readonly WmiProvider _wmi;
+    private readonly IWmiProvider _wmi;
 
-    public DeviceDiagnostic()
+    public DeviceDiagnostic(IWmiProvider? wmiProvider = null)
     {
-        _wmi = new WmiProvider();
+        _wmi = wmiProvider ?? new WmiProvider();
     }
 
     /// <summary>

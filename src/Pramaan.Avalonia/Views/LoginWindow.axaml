@@ -1,0 +1,123 @@
+<Window x:Class="Pramaan.Avalonia.Views.LoginWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Login - PRAMAAN" Width="400"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#f5f5f5">
+    
+    <Window.Styles>
+        <Style Selector="Button.Primary">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.Primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.Primary:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Border Background="White" 
+                BorderBrush="#e5e7eb"
+                BorderThickness="1"
+                CornerRadius="12" 
+                Margin="20" 
+                Padding="30"
+                BoxShadow="0 4 6 0 #1A000000">
+            <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, *, Auto">
+
+                <!-- Header -->
+                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
+                    <Border Background="#dcfce7" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <TextBlock Text="🔐" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="PRAMAAN Login" FontSize="20" FontWeight="Bold" 
+                               HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI"/>
+                    <TextBlock Text="Login to associate results with your account" 
+                               FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI"
+                               HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                </StackPanel>
+
+                <!-- Username -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                    <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                    <TextBox Name="UsernameBox" 
+                             Padding="12,10" 
+                             FontSize="14"
+                             FontFamily="Segoe UI"
+                             Background="#f9fafb"
+                             BorderBrush="#d1d5db"
+                             BorderThickness="1"/>
+                </StackPanel>
+
+                <!-- Password -->
+                <StackPanel Grid.Row="2" Margin="0,0,0,16">
+                    <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                    <TextBox Name="PasswordBox" 
+                             PasswordChar="●"
+                             Padding="12,10" 
+                             FontSize="14"
+                             FontFamily="Segoe UI"
+                             Background="#f9fafb"
+                             BorderBrush="#d1d5db"
+                             BorderThickness="1"
+                             KeyDown="PasswordBox_KeyDown"/>
+                </StackPanel>
+
+                <!-- Error Message -->
+                <TextBlock Name="ErrorMessage" 
+                           Grid.Row="3" 
+                           Foreground="#dc2626" 
+                           FontFamily="Segoe UI"
+                           TextWrapping="Wrap"
+                           IsVisible="False"
+                           Margin="0,0,0,12"/>
+
+                <!-- Login Button -->
+                <Button Name="LoginButton"
+                        Grid.Row="4" 
+                        Content="Login" 
+                        Click="LoginButton_Click"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        FontFamily="Segoe UI"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Classes="Primary"/>
+
+
+                <!-- Loading indicator -->
+                <TextBlock Name="LoadingText" 
+                           Grid.Row="5" 
+                           Text="Logging in..." 
+                           HorizontalAlignment="Center"
+                           Foreground="#6b7280"
+                           FontFamily="Segoe UI"
+                           IsVisible="False"
+                           Margin="0,12,0,0"/>
+
+                <!-- Skip link -->
+                <Button Grid.Row="7" 
+                        Content="Skip - Work Offline" 
+                        Click="SkipButton_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#6b7280"
+                        Cursor="Hand"
+                        FontSize="12"
+                        FontFamily="Segoe UI"
+                        HorizontalAlignment="Center"
+                        Margin="0,16,0,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

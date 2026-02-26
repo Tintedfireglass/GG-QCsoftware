@@ -7,11 +7,13 @@ namespace LaptopQC.Core.Diagnostics;
 /// </summary>
 public class BatteryDiagnostic
 {
-    private readonly WmiProvider _wmi;
+    private readonly IWmiProvider _wmi;
+    private readonly ISensorProvider? _sensors;
 
-    public BatteryDiagnostic()
+    public BatteryDiagnostic(IWmiProvider? wmiProvider = null, ISensorProvider? sensors = null)
     {
-        _wmi = new WmiProvider();
+        _wmi = wmiProvider ?? new WmiProvider();
+        _sensors = sensors;
     }
 
     /// <summary>
@@ -68,9 +70,17 @@ public class BatteryDiagnostic
         // Try LibreHardwareMonitor for additional data
         try
         {
-            using var sensors = new SensorProvider();
-            sensors.Initialize();
-            var batteryData = sensors.GetBatteryData();
+            BatteryData? batteryData = null;
+            if (_sensors != null)
+            {
+                batteryData = _sensors.GetBatteryData();
+            }
+            else
+            {
+                using var sensors = new SensorProvider();
+                sensors.Initialize();
+                batteryData = sensors.GetBatteryData();
+            }
             if (batteryData != null)
             {
                 if (info.DesignedCapacityMWh == 0)

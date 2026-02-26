@@ -1,0 +1,266 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Pramaan.Avalonia.ViewModels"
+        xmlns:v="using:Pramaan.Avalonia.Views"
+        xmlns:conv="using:Pramaan.Avalonia.Converters"
+        x:Class="Pramaan.Avalonia.Views.AudioVideoTestWindow"
+        Title="Audio &amp; Video Test" 
+        Height="580" Width="720"
+        WindowStartupLocation="CenterOwner"
+        Background="#f5f5f5"
+        CanResize="False">
+
+    <Window.DataContext>
+        <vm:AudioVideoTestViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <v:BoolToPassFailStringConverter x:Key="BoolToPassFailConverter"/>
+        <v:BoolToResultColorConverter x:Key="BoolToColorConverter"/>
+        <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Button.defaultBtn">
+            <Setter Property="Background" Value="#f3f4f6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderBrush" Value="#d1d5db"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.defaultBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#e5e7eb"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+        <Style Selector="Button.defaultBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+        <Style Selector="Button.defaultBtn:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+
+        <Style Selector="Button.passBtn">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.passBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.passBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="Button.failBtn">
+            <Setter Property="Background" Value="#ef4444"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.failBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#dc2626"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.failBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#b91c1c"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="TextBlock.mainText">
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+    </Window.Styles>
+
+    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="24"
+            BoxShadow="0 4 6 0 #1A000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <TextBlock Text="🔊" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="Audio &amp; Video Diagnostics" 
+                           FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" 
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Progress/Step -->
+            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,16">
+                <TextBlock Text="{Binding CurrentStepName}" 
+                           FontSize="16" FontWeight="SemiBold" Foreground="#0891b2" 
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding Instructions}" 
+                           FontSize="13" Foreground="#6b7280" 
+                           HorizontalAlignment="Center" Margin="0,6,0,0"/>
+            </StackPanel>
+
+            <!-- Content Area -->
+            <Grid Grid.Row="2" Margin="0,8">
+                
+                <!-- Speaker Test -->
+                <StackPanel IsVisible="{Binding IsSpeakerTestActive}">
+                    
+                    <!-- Left Speaker Section -->
+                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="🔊 Left Speaker" FontWeight="SemiBold" FontSize="15" Classes="mainText"/>
+                                <Button Content="▶ Play Test Sound" Command="{Binding TestLeftSpeakerCommand}" 
+                                        Classes="defaultBtn"
+                                        Width="160" Height="36" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="✓ Pass" Command="{Binding PassLeftSpeakerCommand}" 
+                                        Classes="defaultBtn passBtn" Width="80" Height="36"
+                                        IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <Button Content="✗ Fail" Command="{Binding FailLeftSpeakerCommand}" 
+                                        Classes="defaultBtn failBtn" Width="80" Height="36"
+                                        IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <TextBlock Text="{Binding LeftSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
+                                           FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"
+                                           Foreground="{Binding LeftSpeakerPassed, Converter={StaticResource BoolToColorConverter}}"
+                                           IsVisible="{Binding LeftSpeakerTested}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Right Speaker Section -->
+                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="🔊 Right Speaker" FontWeight="SemiBold" FontSize="15" Classes="mainText"/>
+                                <Button Content="▶ Play Test Sound" Command="{Binding TestRightSpeakerCommand}" 
+                                        Classes="defaultBtn"
+                                        Width="160" Height="36" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="✓ Pass" Command="{Binding PassRightSpeakerCommand}" 
+                                        Classes="defaultBtn passBtn" Width="80" Height="36"
+                                        IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <Button Content="✗ Fail" Command="{Binding FailRightSpeakerCommand}" 
+                                        Classes="defaultBtn failBtn" Width="80" Height="36"
+                                        IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <TextBlock Text="{Binding RightSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
+                                           FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"
+                                           Foreground="{Binding RightSpeakerPassed, Converter={StaticResource BoolToColorConverter}}"
+                                           IsVisible="{Binding RightSpeakerTested}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                </StackPanel>
+
+                <!-- Mic Test -->
+                <StackPanel IsVisible="{Binding IsMicTestActive}">
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16">
+                        <Button Content="🔴 Start Recording" Command="{Binding StartRecordingCommand}" 
+                                Classes="defaultBtn"
+                                IsVisible="{Binding IsRecording, Converter={StaticResource InverseBoolConverter}}"
+                                Width="160"/>
+                        <Button Content="⏹ Stop Recording" Command="{Binding StopRecordingCommand}" 
+                                IsVisible="{Binding IsRecording}"
+                                Classes="defaultBtn failBtn" Width="160"/>
+                        
+                        <Button Content="▶ Playback" Command="{Binding PlaybackRecordingCommand}" 
+                                Classes="defaultBtn"
+                                IsEnabled="{Binding CanPlayback}"
+                                Margin="20,5,5,5" Width="160"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Did you clearly hear your voice in the playback?" Classes="mainText" HorizontalAlignment="Center" Margin="0,24,0,12"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Yes (Pass)" Command="{Binding PassMicTestCommand}" Classes="defaultBtn passBtn" Width="110"/>
+                        <Button Content="No (Fail)" Command="{Binding FailMicTestCommand}" Classes="defaultBtn failBtn" Width="110"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 3.5mm Jack Test -->
+                <StackPanel IsVisible="{Binding IsJackTestActive}">
+                    
+                    <!-- Detection Status -->
+                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,8">
+                        <StackPanel>
+                            <TextBlock Text="🎧 Headphone Detection" FontWeight="SemiBold" FontSize="15" Classes="mainText"/>
+                            <TextBlock Text="{Binding JackDetectionStatus}" 
+                                       FontSize="14" Margin="0,8,0,0"
+                                       Foreground="{Binding JackDetected, Converter={StaticResource BoolToColorConverter}}"/>
+                            <TextBlock Text="{Binding JackDeviceName}" 
+                                       FontSize="12" Foreground="#6b7280" Margin="0,4,0,0"
+                                       IsVisible="{Binding JackDetected}"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Play + Pass/Fail -->
+                    <Button Content="🔊 Play Test Sound (through headphones)" 
+                            Command="{Binding PlayJackTestSoundCommand}" 
+                            Classes="defaultBtn"
+                            IsEnabled="{Binding JackDetected}"
+                            HorizontalAlignment="Center" Width="300" Height="44" FontSize="14" Margin="0,12"/>
+
+                    <TextBlock Text="Did you clearly hear the test tone through the headphones?" 
+                               Classes="mainText" HorizontalAlignment="Center" Margin="0,16,0,12"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Yes (Pass)" Command="{Binding PassJackTestCommand}" Classes="defaultBtn passBtn" Width="110"/>
+                        <Button Content="No (Fail)" Command="{Binding FailJackTestCommand}" Classes="defaultBtn failBtn" Width="110"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Camera Test -->
+                <StackPanel IsVisible="{Binding IsCameraTestActive}">
+                    <Button Content="📷 Open Camera App" Command="{Binding OpenCameraCommand}" 
+                            Classes="defaultBtn"
+                            HorizontalAlignment="Center" Width="220" Height="60" FontSize="16" Margin="0,20"/>
+                    
+                    <TextBlock Text="Did the camera open and show the video feed correctly?" Classes="mainText" HorizontalAlignment="Center" Margin="0,24,0,12"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Yes (Pass)" Command="{Binding PassCameraTestCommand}" Classes="defaultBtn passBtn" Width="110"/>
+                        <Button Content="No (Fail)" Command="{Binding FailCameraTestCommand}" Classes="defaultBtn failBtn" Width="110"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Complete -->
+                <StackPanel IsVisible="{Binding IsComplete}">
+                    <TextBlock Text="{Binding ResultMessage}" 
+                               FontSize="18" FontWeight="SemiBold" 
+                               Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}}"
+                               HorizontalAlignment="Center" Margin="0,30"/>
+                    
+                    <Button Content="Close" Click="CloseButton_Click" 
+                            Classes="defaultBtn"
+                            HorizontalAlignment="Center" Width="130" Margin="0,20"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

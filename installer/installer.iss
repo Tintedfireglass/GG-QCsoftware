@@ -11,10 +11,10 @@
 ;
 ; ===================================================
 
-#define MyAppName "Pramana"
+#define MyAppName "Pramaan"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "GadgetGuruz"
-#define MyAppExeName "Pramana.exe"
+#define MyAppExeName "Pramaan.exe"
 #define MyAppURL "https://gg-qcsoftware.vercel.app/"
 
 [Setup]
@@ -36,7 +36,7 @@ DisableProgramGroupPage=yes
 
 ; Output settings
 OutputDir=Output
-OutputBaseFilename=Pramana_Setup_{#MyAppVersion}
+OutputBaseFilename=Pramaan_Setup_{#MyAppVersion}
 ; SetupIconFile - uncomment and set path if you have an icon file
 SetupIconFile=..\src\LaptopQC.App\Resources\pramana_icon.ico
 Compression=lzma2/ultra64
@@ -69,7 +69,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Main application executable
-Source: "..\publish\Pramana.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\publish\Pramaan.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Tools folder (smartctl.exe for SMART diagnostics)
 Source: "..\publish\tools\*"; DestDir: "{app}\tools"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -81,10 +81,10 @@ Source: "..\publish\*.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourced
 
 [Icons]
 ; Start Menu shortcut
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "Pramana - Refurbished Laptop Diagnostic System"
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "Pramaan - Refurbished Laptop Diagnostic System"
 
 ; Desktop shortcut (optional)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "Pramana - Refurbished Laptop Diagnostic System"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "Pramaan - Refurbished Laptop Diagnostic System"
 
 [Run]
 ; Option to run after installation

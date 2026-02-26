@@ -164,6 +164,85 @@ export default function ResultDetailPage() {
                 </CardContent>
             </Card>
 
+            {/* PRAMAAN Scoring Section */}
+            {data.pramaan_score != null && (
+                <Card className="border-t-4 border-t-emerald-600">
+                    <CardContent className="p-8">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold mb-1">PRAMAAN Health Score</h2>
+                                <p className="text-sm text-slate-500">
+                                    {data.pramaan_algorithm_version || 'Scoring Engine v1.0.0'}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <div className={`text-5xl font-bold ${gradeHeroColor(data.pramaan_grade)}`}>{data.pramaan_grade}</div>
+                                <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.pramaan_grade)} — {data.pramaan_score}/100</div>
+                            </div>
+                        </div>
+
+                        {/* Category Sub-Scores */}
+                        {data.pramaan_category_scores && (
+                            <div className="mt-6 pt-6 border-t">
+                                <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
+                                <div className="grid gap-3">
+                                    {Object.entries(data.pramaan_category_scores as Record<string, number>).map(([key, score]) => {
+                                        const labels: Record<string, string> = {
+                                            storage: 'Storage Health',
+                                            thermal: 'Thermal Performance',
+                                            battery: 'Battery Health',
+                                            cpu_ram: 'CPU & RAM',
+                                            physical_ports: 'Physical Ports',
+                                            repair_modifier: 'Repair History',
+                                        };
+                                        const isRisk = data.pramaan_risk_flags?.[key] === true;
+                                        const barColor = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : score >= 40 ? 'bg-orange-500' : 'bg-red-500';
+                                        return (
+                                            <div key={key} className="flex items-center gap-4">
+                                                <div className="w-40 text-sm font-medium flex items-center gap-2">
+                                                    {labels[key] || key}
+                                                    {isRisk && (
+                                                        <span className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                                            RISK
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${score}%` }} />
+                                                </div>
+                                                <div className="w-10 text-right text-sm font-mono font-semibold">{score}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Risk Summary */}
+                        {data.pramaan_risk_flags && Object.values(data.pramaan_risk_flags as Record<string, boolean>).some(v => v) && (
+                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm font-semibold text-red-700">
+                                    ⚠ Risk flags raised in: {Object.entries(data.pramaan_risk_flags as Record<string, boolean>)
+                                        .filter(([, v]) => v)
+                                        .map(([k]) => {
+                                            const labels: Record<string, string> = {
+                                                storage: 'Storage',
+                                                thermal: 'Thermal',
+                                                battery: 'Battery',
+                                                cpu_ram: 'CPU/RAM',
+                                                physical_ports: 'Ports',
+                                                repair_modifier: 'Repair',
+                                            };
+                                            return labels[k] || k;
+                                        })
+                                        .join(', ')}
+                                </p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Test Results List */}
             <h2 className="text-2xl font-bold pt-4">Test Details</h2>
 

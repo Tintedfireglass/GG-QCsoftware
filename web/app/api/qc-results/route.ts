@@ -243,15 +243,16 @@ export async function POST(request: NextRequest) {
             machineDbId = newMachine[0].id;
         }
 
-        // Insert QC result with optional technician_id
+        // Insert QC result with optional technician_id and PRAMAAN data
         const qcResult = await query(
             `INSERT INTO qc_results (
         report_id, machine_id, timestamp, refurbish_id, technician_notes, overall_pass,
         overall_score, overall_grade,
         system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
         system_info_json, cpu_details_json, ram_details_json, storage_details_json, 
-        battery_details_json, device_details_json, technician_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        battery_details_json, device_details_json, technician_id,
+        pramaan_score, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING id`,
             [
                 body.reportId,
@@ -274,7 +275,12 @@ export async function POST(request: NextRequest) {
                 body.storageDetails ? JSON.stringify(body.storageDetails) : null,
                 body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
                 body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
-                body.technicianId || null, // Optional: link to logged-in technician
+                body.technicianId || null,
+                body.pramaanScore ?? null,
+                body.pramaanGrade || null,
+                body.pramaanCategoryScores ? JSON.stringify(body.pramaanCategoryScores) : null,
+                body.pramaanRiskFlags ? JSON.stringify(body.pramaanRiskFlags) : null,
+                body.pramaanAlgorithmVersion || null,
             ]
         );
 

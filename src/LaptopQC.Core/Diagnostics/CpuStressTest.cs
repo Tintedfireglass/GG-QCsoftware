@@ -23,18 +23,21 @@ public class CpuStressTest
 
     public event Action<StressTestProgress>? OnProgress;
 
-    public CpuStressTest(int durationSeconds = 30, int? threadCount = null)
+    private readonly ISensorProvider? _sensorProvider;
+
+    public CpuStressTest(int durationSeconds = 30, int? threadCount = null, ISensorProvider? sensorProvider = null)
     {
         _durationSeconds = durationSeconds;
         // Use slightly fewer threads to leave room for monitoring
         _threadCount = threadCount ?? Math.Max(1, Environment.ProcessorCount - 1);
+        _sensorProvider = sensorProvider;
     }
 
     public async Task<CpuStressResult> RunAsync(CancellationToken cancellationToken = default)
     {
         // Run slow initialization on background thread to prevent UI freeze
         int baseClockMHz = 0;
-        SensorProvider? sensors = null;
+        ISensorProvider? sensors = null;
         
         await Task.Run(() =>
         {
@@ -42,8 +45,8 @@ public class CpuStressTest
             baseClockMHz = GetBaseClockFromWmi();
             
             // Initialize sensors (this takes time due to WMI/LibreHardwareMonitor)
-            sensors = new SensorProvider();
-            sensors.Initialize();
+            sensors = _sensorProvider ?? new SensorProvider();
+            if (_sensorProvider == null) sensors.Initialize();
         }, cancellationToken);
         
         _throttleDetector = new ThermalThrottleDetector(baseClockMHz);
@@ -169,7 +172,7 @@ public class CpuStressTest
         return result;
     }
 
-    private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, SensorProvider sensors)
+    private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, ISensorProvider sensors)
     {
         var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "stress_debug.log");
         
@@ -223,7 +226,7 @@ public class CpuStressTest
             }
             
             log.WriteLine("DEBUG: MonitorLoop exiting");
-            sensors?.Dispose();
+            if (_sensorProvider == null) sensors?.Dispose();
         }
         catch (Exception ex)
         {

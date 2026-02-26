@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Pramaan.Avalonia.Views.TermsWindow"
+        Title="PRAMAAN" 
+        Height="280" Width="460"
+        WindowStartupLocation="CenterScreen"
+        Background="Transparent"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent">
+
+    <Window.Styles>
+        <Style Selector="Button.Link">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#0891b2"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.Link:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+        </Style>
+        <Style Selector="Button.Link:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#0e7490"/>
+        </Style>
+
+        <Style Selector="Button.Secondary">
+            <Setter Property="Background" Value="#f3f4f6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#d1d5db"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.Secondary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#e5e7eb"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+        <Style Selector="Button.Secondary:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+
+        <Style Selector="Button.Primary">
+            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.Primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.Primary:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#166534"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.Primary:disabled /template/ ContentPresenter">
+            <Setter Property="Opacity" Value="0.45"/>
+        </Style>
+    </Window.Styles>
+
+    <Border Background="White" BorderBrush="#d1d5db" BorderThickness="1" CornerRadius="14" BoxShadow="0 4 24 0 #26000000">
+        <StackPanel Margin="32,28,32,24" VerticalAlignment="Center">
+
+            <!-- Header -->
+            <TextBlock Text="Welcome to PRAMAAN" FontSize="20" FontWeight="Bold" 
+                       Foreground="#111827" HorizontalAlignment="Center" FontFamily="Segoe UI"/>
+            <TextBlock Text="Before you continue, please review and accept:" FontSize="13" 
+                       Foreground="#6b7280" HorizontalAlignment="Center" Margin="0,8,0,20" FontFamily="Segoe UI"/>
+
+            <!-- Links -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <Button Classes="Link" Content="Terms &amp; Conditions" Click="Link_Click" Tag="https://gadgetguruz.com"/>
+                <TextBlock Text="  •  " Foreground="#9ca3af" VerticalAlignment="Center"/>
+                <Button Classes="Link" Content="Privacy Policy" Click="Link_Click" Tag="https://gadgetguruz.com"/>
+            </StackPanel>
+
+            <!-- Checkbox -->
+            <CheckBox Name="AcceptCheckbox" HorizontalAlignment="Center" Margin="0,0,0,20" 
+                      FontFamily="Segoe UI" FontSize="13">
+                <TextBlock Text="I agree to the Terms &amp; Conditions and Privacy Policy" TextWrapping="Wrap"/>
+            </CheckBox>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Decline" Click="Decline_Click" Classes="Secondary"
+                        Width="100" Height="38" FontSize="13" FontFamily="Segoe UI"
+                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        
+                <Button Content="Continue" Click="Accept_Click" Classes="Primary"
+                        IsEnabled="{Binding #AcceptCheckbox.IsChecked}"
+                        Width="120" Height="38" FontSize="13" FontFamily="Segoe UI" FontWeight="SemiBold"
+                        Margin="12,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

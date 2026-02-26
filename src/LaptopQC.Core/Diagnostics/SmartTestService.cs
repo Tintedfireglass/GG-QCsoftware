@@ -7,11 +7,11 @@ namespace LaptopQC.Core.Diagnostics;
 /// </summary>
 public class SmartTestService
 {
-    private readonly SmartctlProvider _smartctl;
+    private readonly ISmartctlProvider _smartctl;
     
-    public SmartTestService()
+    public SmartTestService(ISmartctlProvider? smartctl = null)
     {
-        _smartctl = new SmartctlProvider();
+        _smartctl = smartctl ?? new SmartctlProvider();
     }
     
     /// <summary>
