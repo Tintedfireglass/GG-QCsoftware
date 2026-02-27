@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
 
 export default function VerificationPage() {
     const { id } = useParams()
@@ -77,25 +76,30 @@ export default function VerificationPage() {
 
                 {/* Score Section */}
                 <div className="px-8 py-10 text-center border-b border-gray-100">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Overall Score & Grade</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">PRAMAAN Health Score</p>
                     <div className="flex justify-center items-end space-x-4">
-                        <div className={`text-7xl font-black tracking-tighter ${gradeHeroColor(data.grade)}`}>
-                            {data.grade}
+                        <div className={`text-7xl font-black tracking-tighter ${data.grade === 'A+' ? 'text-green-600' :
+                                data.grade === 'A' ? 'text-green-500' :
+                                    data.grade === 'B' ? 'text-yellow-500' :
+                                        data.grade === 'C' ? 'text-orange-500' :
+                                            'text-red-600'
+                            }`}>
+                            {data.grade || "N/A"}
                         </div>
                         <div className="text-4xl font-bold text-gray-800 mb-1">
-                            {data.score}
+                            {data.score !== null && data.score !== undefined ? data.score : "N/A"}
                             <span className="text-2xl text-gray-400 font-normal">/100</span>
                         </div>
                     </div>
                     <div className="mt-4 inline-block px-4 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-sm">
-                        {data.gradeLabel}
+                        {data.gradeLabel || "Unknown"}
                     </div>
                 </div>
 
                 {/* Details Grid */}
                 <div className="px-8 py-8 bg-gray-50 grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Device Model</p>
+                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Machine Verification</p>
                         <p className="font-semibold text-gray-900">{data.device?.manufacturer} {data.device?.model || "Unknown"}</p>
                     </div>
                     <div>

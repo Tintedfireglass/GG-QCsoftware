@@ -254,12 +254,15 @@ public class ReportGenerator
         sb.AppendLine("</div>");
 
         // Overall Status - Grade Display
-        var gradeLabel = GradingService.GradeLabel(report.OverallGrade);
+        var pramaanGrade = report.PramaanResult?.GradeBand ?? "N/A";
+        var pramaanScore = report.PramaanResult?.OverallHealthScore ?? 0;
+        var gradeLabel = report.PramaanResult?.GradeBand != null ? GradingService.GradeLabel(report.PramaanResult.GradeBand) : "Unknown";
+
         sb.AppendLine("<div class='overall-status'>");
         sb.AppendLine("<div>");
-        sb.AppendLine("<div class='overall-label'>Device Grade</div>");
-        sb.AppendLine($"<div class='overall-grade grade-{report.OverallGrade}'>{report.OverallGrade}</div>");
-        sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} — {report.OverallScore}/100</div>");
+        sb.AppendLine("<div class='overall-label'>PRAMAAN Health Score</div>");
+        sb.AppendLine($"<div class='overall-grade grade-{pramaanGrade}'>{pramaanGrade}</div>");
+        sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} — {pramaanScore}/100</div>");
         sb.AppendLine("</div>");
         sb.AppendLine("<div class='machine-id'>");
         sb.AppendLine("<div class='label'>Machine ID</div>");

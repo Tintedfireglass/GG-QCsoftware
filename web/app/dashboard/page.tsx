@@ -46,9 +46,9 @@ export default function DashboardPage() {
             const total = resultsData.pagination.total
 
             // Calculate average score from recent tests
-            const scoredTests = resultsData.results.filter((t: any) => t.overall_score > 0)
+            const scoredTests = resultsData.results.filter((t: any) => t.pramaan_score > 0)
             const avgScore = scoredTests.length > 0
-                ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.overall_score, 0) / scoredTests.length)
+                ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.pramaan_score, 0) / scoredTests.length)
                 : 0
 
             let userStats = { totalUsers: 0, totalAdmins: 0, totalTechnicians: 0 }
@@ -286,11 +286,11 @@ export default function DashboardPage() {
                                     <tr key={test.id} className="border-b transition-colors hover:bg-muted/50">
                                         <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                         <td className="p-4 align-middle">
-                                            {test.overall_grade ? (() => {
-                                                const s = getGradeStyle(test.overall_grade);
+                                            {test.pramaan_grade ? (() => {
+                                                const s = getGradeStyle(test.pramaan_grade);
                                                 return (
                                                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
-                                                        {test.overall_grade} — {test.overall_score}
+                                                        {test.pramaan_grade} — {test.pramaan_score}
                                                     </span>
                                                 );
                                             })() : (

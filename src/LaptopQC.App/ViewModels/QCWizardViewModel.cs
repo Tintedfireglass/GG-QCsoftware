@@ -402,10 +402,10 @@ public partial class QCWizardViewModel : ObservableObject
         
         ReportPath = _reportGenerator.SaveReport(report);
         
-        OverallGrade = report.OverallGrade;
-        OverallScore = report.OverallScore;
-        var label = LaptopQC.Core.Services.GradingService.GradeLabel(report.OverallGrade);
-        CompletionMessage = $"Grade: {report.OverallGrade} — {label} ({report.OverallScore}/100)";
+        OverallGrade = report.PramaanResult?.GradeBand ?? "N/A";
+        OverallScore = report.PramaanResult?.OverallHealthScore ?? 0;
+        var label = report.PramaanResult?.GradeBand != null ? LaptopQC.Core.Services.GradingService.GradeLabel(report.PramaanResult.GradeBand) : "Unknown";
+        CompletionMessage = $"PRAMAAN Score: {OverallGrade} — {label} ({OverallScore}/100)";
 
         // Check if logged in - prompt login for cloud submission
         if (!App.IsLoggedIn)

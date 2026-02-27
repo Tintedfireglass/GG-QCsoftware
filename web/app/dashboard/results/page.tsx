@@ -100,11 +100,11 @@ export default function ResultsPage() {
                                     <tr key={test.id} className="border-b transition-colors hover:bg-slate-50">
                                         <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
                                         <td className="p-4 align-middle">
-                                            {test.overall_grade ? (() => {
-                                                const s = getGradeStyle(test.overall_grade);
+                                            {test.pramaan_grade ? (() => {
+                                                const s = getGradeStyle(test.pramaan_grade);
                                                 return (
                                                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
-                                                        {test.overall_grade} — {test.overall_score}
+                                                        {test.pramaan_grade} — {test.pramaan_score}
                                                     </span>
                                                 );
                                             })() : (

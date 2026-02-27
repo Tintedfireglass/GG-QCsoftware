@@ -81,11 +81,11 @@ export default function ResultDetailPage() {
                             </p>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-medium mb-1">Device Grade</div>
-                            {data.overall_grade ? (
+                            <div className="text-lg font-medium mb-1">PRAMAAN Score</div>
+                            {data.pramaan_grade ? (
                                 <>
-                                    <div className={`text-5xl font-bold ${gradeHeroColor(data.overall_grade)}`}>{data.overall_grade}</div>
-                                    <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.overall_grade)} — {data.overall_score}/100</div>
+                                    <div className={`text-5xl font-bold ${gradeHeroColor(data.pramaan_grade)}`}>{data.pramaan_grade}</div>
+                                    <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.pramaan_grade)} — {data.pramaan_score}/100</div>
                                 </>
                             ) : (
                                 data.overall_pass ? (
