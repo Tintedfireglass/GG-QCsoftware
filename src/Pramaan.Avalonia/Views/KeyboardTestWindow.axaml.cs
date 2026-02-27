@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Pramaan.Avalonia.ViewModels;
 
 namespace Pramaan.Avalonia.Views;
@@ -11,6 +12,11 @@ public partial class KeyboardTestWindow : Window
     public KeyboardTestWindow()
     {
         InitializeComponent();
+        
+        // Use tunnel routing so Window intercepts keys BEFORE any focused child
+        // (e.g. CheckBox) can handle them. Without this, Enter toggles the CheckBox
+        // instead of being registered as a key press.
+        this.AddHandler(KeyDownEvent, Window_KeyDown, RoutingStrategies.Tunnel);
         
         // Subscribe to completion
         ViewModel.PropertyChanged += (s, e) =>
@@ -43,25 +49,8 @@ public partial class KeyboardTestWindow : Window
         {
             e.Handled = true;
         }
-
-        // Also check modifier keys directly since they may not trigger as main key
-        CheckModifierKeys(e.KeyModifiers);
     }
     
-    private void CheckModifierKeys(KeyModifiers modifiers)
-    {
-        // Generic modifier codes for LEFT side keys (matches ViewModel)
-        // VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12
-        
-        if (modifiers.HasFlag(KeyModifiers.Shift))
-            ViewModel.RegisterKeyPress(0x10);
-            
-        if (modifiers.HasFlag(KeyModifiers.Control))
-            ViewModel.RegisterKeyPress(0x11);
-            
-        if (modifiers.HasFlag(KeyModifiers.Alt))
-            ViewModel.RegisterKeyPress(0x12);
-    }
 
     private int GetVirtualKey(Key key)
     {
@@ -73,9 +62,9 @@ public partial class KeyboardTestWindow : Window
         return key switch {
             Key.Escape => 0x1B,
             Key.Back => 0x08, Key.Tab => 0x09, Key.Enter => 0x0D, Key.Space => 0x20,
-            Key.LeftShift => 0x10, Key.RightShift => 0x10,
-            Key.LeftCtrl => 0x11, Key.RightCtrl => 0xA3,
-            Key.LeftAlt => 0x12, Key.RightAlt => 0xA5,
+            Key.LeftShift => 0xA0, Key.RightShift => 0xA1,
+            Key.LeftCtrl => 0xA2, Key.RightCtrl => 0xA3,
+            Key.LeftAlt => 0xA4, Key.RightAlt => 0xA5,
             Key.LWin => 0x5B, Key.RWin => 0x5C,
             Key.Left => 0x25, Key.Up => 0x26, Key.Right => 0x27, Key.Down => 0x28,
             Key.OemTilde => 0xC0, Key.OemMinus => 0xBD, Key.OemPlus => 0xBB,

@@ -59,6 +59,13 @@ public partial class KeyboardTestViewModel : ObservableObject
         _testState.ResetExpectedKeys(value);
         InitializeKeyboard();
         
+        // Restore previously-tested key states — InitializeKeyboard resets all to false
+        foreach (var vk in _testState.TestedKeys)
+        {
+            if (_keyLookup.TryGetValue(vk, out var key))
+                key.IsTested = true;
+        }
+        
         // Refresh progress based on new total key count
         ProgressPercent = _testState.PercentComplete;
         var tested = _testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count();
@@ -137,7 +144,7 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0x0D, "Enter", 3, 12.75, 2.25);
 
         // Row 4: ZXCV row
-        AddKey(0x10, "Shift", 4, 0, 2.25);  // Left Shift
+        AddKey(0xA0, "Shift", 4, 0, 2.25);  // Left Shift
         AddKey(0x5A, "Z", 4, 2.25);
         AddKey(0x58, "X", 4, 3.25);
         AddKey(0x43, "C", 4, 4.25);
@@ -148,21 +155,21 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0xBC, ",", 4, 9.25);
         AddKey(0xBE, ".", 4, 10.25);
         AddKey(0xBF, "/", 4, 11.25);
-        // Right shift would be 4, 12.25, 2.75 but we only track one Shift
+        AddKey(0xA1, "Shift", 4, 12.25, 2.75); // Right Shift
 
         // Row 5: Bottom row (Note: Fn key cannot be detected - it's hardware-level)
-        AddKey(0x11, "Ctrl", 5, 0, 1.25);  // Left Ctrl
+        AddKey(0xA2, "Ctrl", 5, 0, 1.25);  // Left Ctrl
         AddKey(0x5B, "Win", 5, 1.25, 1.25);
-        AddKey(0x12, "Alt", 5, 2.5, 1.25);  // Left Alt
+        AddKey(0xA4, "Alt", 5, 2.5, 1.25);  // Left Alt
         AddKey(0x20, "Space", 5, 3.75, 6);  // Spacebar
         AddKey(0xA5, "Alt", 5, 9.75, 1.25);  // Right Alt (VK_RMENU)
         AddKey(0xA3, "Ctrl", 5, 11, 1.25);  // Right Ctrl (VK_RCONTROL)
 
         // Arrow keys
-        AddKey(0x25, "â†", 5, 12.25);
-        AddKey(0x26, "â†‘", 5, 13.25);
-        AddKey(0x28, "â†“", 5, 14.25);
-        AddKey(0x27, "â†’", 5, 15.25);
+        AddKey(0x25, "Left", 5, 12.25);
+        AddKey(0x26, "Up", 5, 13.25);
+        AddKey(0x28, "Down", 5, 14.25);
+        AddKey(0x27, "Right", 5, 15.25);
 
         if (ShowNumpad)
         {

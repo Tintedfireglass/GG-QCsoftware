@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 using LaptopQC.Core.Models;
 
 namespace LaptopQC.Core.Services;
@@ -73,6 +75,7 @@ public class QCSubmissionService
         var request = new SubmitQCResultRequest
         {
             ReportId = report.ReportId,
+            HealthId = report.HealthId,
             MachineId = _config.StationId,
             Timestamp = report.Timestamp,
             RefurbishId = report.RefurbishId,
@@ -109,6 +112,23 @@ public class QCSubmissionService
             
             TestResults = new List<ApiTestResult>()
         };
+
+        // Generate tamper-proof hash using the complete report JSON
+        try 
+        {
+            string jsonReport = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = false });
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(jsonReport));
+                request.PramaanHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                report.DiagnosticHash = request.PramaanHash; // Store it back on the report for reference
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to generate diagnostic hash: {ex.Message}");
+            request.PramaanHash = "";
+        }
 
         // Helper to add test result
         void AddResult(string type, TestResult result)

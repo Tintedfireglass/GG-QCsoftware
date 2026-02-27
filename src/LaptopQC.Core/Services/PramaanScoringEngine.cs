@@ -25,6 +25,17 @@ public class PramaanScoringEngine
     }
 
     /// <summary>
+    /// Creates a scoring engine initialized with the live configuration from the web API.
+    /// Falls back to defaults if the API is unreachable.
+    /// </summary>
+    public static async Task<PramaanScoringEngine> CreateAsync()
+    {
+        var configService = new PramaanConfigService();
+        var liveConfig = await configService.GetActiveConfigAsync();
+        return new PramaanScoringEngine(liveConfig);
+    }
+
+    /// <summary>
     /// Score a QCReport and produce a full PramaanResult.
     /// </summary>
     public PramaanResult ScoreReport(QCReport report)

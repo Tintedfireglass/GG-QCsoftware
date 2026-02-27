@@ -7,6 +7,9 @@ using System.IO;
 using System.Net.NetworkInformation;
 using System.Windows;
 using System.Windows.Threading;
+using System.Windows.Media.Imaging;
+using Microsoft.Extensions.DependencyInjection;
+using QRCoder;
 
 namespace LaptopQC.App.ViewModels;
 
@@ -85,11 +88,17 @@ public partial class QCWizardViewModel : ObservableObject
     [ObservableProperty]
     private string _submissionStatus = "";
 
+    [ObservableProperty]
+    private BitmapImage? _qrCodeImage;
+
+    [ObservableProperty]
+    private bool _hasQrCode;
+
     private readonly QCSubmissionService _submissionService;
 
     public QCWizardViewModel()
     {
-        _workflowService = new QCWorkflowService();
+        _workflowService = App.Current.Services.GetRequiredService<QCWorkflowService>();
         _reportGenerator = new ReportGenerator();
         _submissionService = new QCSubmissionService();
 
@@ -448,10 +457,44 @@ public partial class QCWizardViewModel : ObservableObject
         if (success)
         {
             SubmissionStatus = $"✓ Submitted (by {App.UserDisplayName})";
+            GenerateQrCode(report.HealthId);
         }
         else
         {
             SubmissionStatus = "✗ Failed to Submit (Saved Locally)";
+        }
+    }
+
+    private void GenerateQrCode(string healthId)
+    {
+        try
+        {
+            // Use the dev URL
+            string verificationUrl = $"https://gg-qcsoftware.vercel.app/verify/{healthId}";
+            
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCodeGenerator.ECCLevel.M);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            
+            byte[] qrBytes = qrCode.GetGraphic(20);
+
+            using var stream = new MemoryStream(qrBytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze(); // Needed since it's created on a background/worker thread potentially
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                QrCodeImage = bitmap;
+                HasQrCode = true;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to generate QR Code: {ex.Message}");
         }
     }
 

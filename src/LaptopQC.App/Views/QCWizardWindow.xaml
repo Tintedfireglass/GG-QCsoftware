@@ -175,6 +175,13 @@
                            HorizontalAlignment="Center" Margin="0,0,0,8" FontFamily="Segoe UI"
                            Foreground="{Binding OverallGrade, Converter={StaticResource GradeToColorConverter}}"/>
                 
+                <StackPanel Visibility="{Binding HasQrCode, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,12,0,16" HorizontalAlignment="Center">
+                    <TextBlock Text="PRAMAAN Certification Verification" HorizontalAlignment="Center" FontSize="12" Foreground="#6b7280" Margin="0,0,0,4"/>
+                    <Border BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="4" Padding="6" Background="White">
+                        <Image Source="{Binding QrCodeImage}" Width="110" Height="110" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+                </StackPanel>
+
                 <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
                 
                 <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold" 

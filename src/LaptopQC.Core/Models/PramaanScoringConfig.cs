@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LaptopQC.Core.Models;
 
 /// <summary>
@@ -7,12 +9,14 @@ namespace LaptopQC.Core.Models;
 public class PramaanScoringConfig
 {
     /// <summary>Current config version. Stored with every score for audit trail.</summary>
+    [JsonPropertyName("version")]
     public string Version { get; set; } = "1.0.0";
 
     /// <summary>
     /// Category weights (must sum to 1.0).
     /// Keys: storage, thermal, battery, cpu_ram, physical_ports, repair_modifier
     /// </summary>
+    [JsonPropertyName("weights")]
     public Dictionary<string, double> Weights { get; set; } = new()
     {
         ["storage"]         = 0.25,
@@ -27,6 +31,7 @@ public class PramaanScoringConfig
     /// Grade band thresholds. Score >= threshold gets that grade.
     /// Evaluated top-down: first match wins.
     /// </summary>
+    [JsonPropertyName("gradeBands")]
     public List<GradeBand> GradeBands { get; set; } = new()
     {
         new() { Grade = "A+",     MinScore = 90 },
@@ -40,6 +45,7 @@ public class PramaanScoringConfig
     /// Risk flag thresholds per category.
     /// If a category score falls below this value, the risk flag is raised.
     /// </summary>
+    [JsonPropertyName("riskThresholds")]
     public Dictionary<string, int> RiskThresholds { get; set; } = new()
     {
         ["storage"]         = 40,
@@ -51,9 +57,11 @@ public class PramaanScoringConfig
     };
 
     /// <summary>Default repair modifier score when no Saarthi data is available (0–100).</summary>
+    [JsonPropertyName("defaultRepairModifierScore")]
     public int DefaultRepairModifierScore { get; set; } = 100;
 
     /// <summary>Certification validity in days (used by future phases).</summary>
+    [JsonPropertyName("certificationValidityDays")]
     public int CertificationValidityDays { get; set; } = 180;
 
     /// <summary>Resolve grade band from a 0–100 score.</summary>
@@ -71,6 +79,9 @@ public class PramaanScoringConfig
 /// <summary>A single grade band entry.</summary>
 public class GradeBand
 {
+    [JsonPropertyName("grade")]
     public string Grade { get; set; } = "";
+    
+    [JsonPropertyName("minScore")]
     public int MinScore { get; set; }
 }

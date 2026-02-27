@@ -54,12 +54,13 @@ public class InputTestService
             0xBA, 0xDE, 0x0D, // Semicolon, Quote, Enter
             
             // ZXCV row
-            0x10, // Shift
+            0xA0, // Left Shift
             0x5A, 0x58, 0x43, 0x56, 0x42, 0x4E, 0x4D, // Z-M
             0xBC, 0xBE, 0xBF, // Comma, Period, Slash
+            0xA1, // Right Shift
             
             // Bottom row
-            0x11, 0x5B, 0x12, 0x20, // Ctrl, Win, Alt, Space
+            0xA2, 0x5B, 0xA4, 0x20, 0xA5, 0xA3, // LCtrl, LWin, LAlt, Space, RAlt, RCtrl
             0x25, 0x26, 0x27, 0x28 // Arrow keys
         };
 

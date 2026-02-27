@@ -2,6 +2,8 @@
 using System.Data;
 using System.Windows;
 using LaptopQC.Core.Services;
+using LaptopQC.Core.Diagnostics;
+using LaptopQC.Core.Abstractions;
 using LaptopQC.App.Views;
 using Microsoft.Extensions.DependencyInjection;
 using LaptopQC.Hardware.Providers;
@@ -36,6 +38,17 @@ public partial class App : Application
         services.AddSingleton<IWmiProvider, WmiProvider>();
         services.AddSingleton<ISensorProvider, SensorProvider>();
         services.AddSingleton<ISmartctlProvider, SmartctlProvider>();
+        
+        // Register core diagnostics needed by QCWorkflowService
+        services.AddTransient<ISystemDiagnostic, SystemDiagnostic>();
+        services.AddTransient<ICpuDiagnostic, CpuDiagnostic>();
+        services.AddTransient<IRamDiagnostic, RamDiagnostic>();
+        services.AddTransient<IStorageDiagnostic, StorageDiagnostic>();
+        services.AddTransient<IBatteryDiagnostic, BatteryDiagnostic>();
+        services.AddTransient<IDeviceDiagnostic, DeviceDiagnostic>();
+        services.AddTransient<ISmartTestService, SmartTestService>();
+        
+        services.AddTransient<QCWorkflowService>();
         
         // As we move to Avalonia, we will register ViewModels and Core Services here and resolve them
         

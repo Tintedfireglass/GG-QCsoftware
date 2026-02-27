@@ -41,6 +41,8 @@ export interface QCResult {
 
     // PRAMAAN scoring
     pramaan_score?: number;
+    health_id?: string;
+    pramaan_hash?: string;
     pramaan_grade?: string;
     pramaan_category_scores?: PramaanCategoryScores;
     pramaan_risk_flags?: PramaanRiskFlags;
@@ -156,6 +158,8 @@ export interface SubmitQCResultRequest {
 
     // PRAMAAN scoring
     pramaanScore?: number;
+    healthId?: string;
+    pramaanHash?: string;
     pramaanGrade?: string;
     pramaanCategoryScores?: PramaanCategoryScores;
     pramaanRiskFlags?: PramaanRiskFlags;

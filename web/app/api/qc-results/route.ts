@@ -251,8 +251,8 @@ export async function POST(request: NextRequest) {
         system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
         system_info_json, cpu_details_json, ram_details_json, storage_details_json, 
         battery_details_json, device_details_json, technician_id,
-        pramaan_score, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+        pramaan_score, health_id, pramaan_hash, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
       RETURNING id`,
             [
                 body.reportId,
@@ -277,6 +277,8 @@ export async function POST(request: NextRequest) {
                 body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
                 body.technicianId || null,
                 body.pramaanScore ?? null,
+                body.healthId || null,
+                body.pramaanHash || null,
                 body.pramaanGrade || null,
                 body.pramaanCategoryScores ? JSON.stringify(body.pramaanCategoryScores) : null,
                 body.pramaanRiskFlags ? JSON.stringify(body.pramaanRiskFlags) : null,

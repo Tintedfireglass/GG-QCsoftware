@@ -43,7 +43,12 @@ public class QCReport
     
     // PRAMAAN standardized scoring
     public PramaanResult? PramaanResult { get; set; }
-    public string PramaanHealthId { get; set; } = "";
+    
+    /// <summary>Unique, tamper-proof ID for the specific QC run and certification</summary>
+    public string HealthId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>SHA-256 hash of the full QC Report to prevent tampering with records</summary>
+    public string DiagnosticHash { get; set; } = string.Empty;
     
     /// <summary>
     /// Backward compatibility: a device with grade D or better (score >= 50) is considered sellable.

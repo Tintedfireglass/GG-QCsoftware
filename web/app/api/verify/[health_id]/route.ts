@@ -17,10 +17,12 @@ export async function GET(
             );
         }
 
-        // Look up by report_id (which maps to health_id in PRAMAAN)
+        // Look up by health_id
         const results = await query(
             `SELECT 
                 report_id,
+                health_id,
+                pramaan_hash,
                 pramaan_score,
                 pramaan_grade,
                 pramaan_algorithm_version,
@@ -28,7 +30,7 @@ export async function GET(
                 system_model,
                 system_manufacturer
             FROM qc_results 
-            WHERE report_id = $1 AND pramaan_score IS NOT NULL`,
+            WHERE health_id = $1 AND pramaan_score IS NOT NULL`,
             [health_id]
         );
 
@@ -53,7 +55,9 @@ export async function GET(
 
         return NextResponse.json({
             verified: true,
-            healthId: result.report_id,
+            healthId: result.health_id,
+            algorithmHash: result.pramaan_hash,
+            reportId: result.report_id,
             score: result.pramaan_score,
             grade: result.pramaan_grade,
             gradeLabel: getGradeLabel(result.pramaan_grade),

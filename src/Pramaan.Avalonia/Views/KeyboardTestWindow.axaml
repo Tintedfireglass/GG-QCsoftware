@@ -7,8 +7,7 @@
         Height="620" Width="1100"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
-        CanResize="False"
-        KeyDown="Window_KeyDown">
+        CanResize="False">
     
     <Window.DataContext>
         <vm:KeyboardTestViewModel />
@@ -20,16 +19,23 @@
     </Window.Resources>
 
     <Window.Styles>
+        <!-- Base key border style -->
+        <Style Selector="Border.key_border">
+            <Setter Property="Background" Value="#e5e7eb"/>
+            <Setter Property="BorderBrush" Value="#d1d5db"/>
+        </Style>
         <!-- Tested key background -->
         <Style Selector="Border.tested">
             <Setter Property="Background" Value="#22c55e"/>
             <Setter Property="BorderBrush" Value="#16a34a"/>
         </Style>
+        <Style Selector="TextBlock.key_label">
+            <Setter Property="Foreground" Value="#6b7280"/>
+        </Style>
         <Style Selector="TextBlock.tested_text">
             <Setter Property="Foreground" Value="White"/>
         </Style>
-        
-        <!-- Cancel button -->
+
         <Style Selector="Button.cancelBtn">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#6b7280"/>
@@ -97,13 +103,21 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
-                <CheckBox Grid.Column="1" 
-                          Content="Has Numpad" 
-                          IsChecked="{Binding ShowNumpad}"
-                          VerticalAlignment="Center"
-                          Foreground="#6b7280"
-                          FontFamily="Segoe UI"
-                          Margin="8,0,4,0"/>
+                <Border Grid.Column="1" Background="#e5e7eb" CornerRadius="8" Padding="12,6" Margin="8,0,4,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Has Numpad" 
+                                   VerticalAlignment="Center" 
+                                   Foreground="#4b5563" 
+                                   FontWeight="SemiBold"
+                                   FontFamily="Segoe UI" 
+                                   Margin="0,0,12,0"/>
+                        <ToggleSwitch IsChecked="{Binding ShowNumpad}"
+                                      Focusable="False"
+                                      OnContent="" OffContent=""
+                                      VerticalAlignment="Center"
+                                      Margin="0"/>
+                    </StackPanel>
+                </Border>
             </Grid>
             
             <!-- Progress Bar -->
@@ -152,19 +166,18 @@
                             <DataTemplate>
                                 <Border CornerRadius="5" Margin="1" 
                                         MinHeight="36"
-                                        Background="#e5e7eb"
-                                        BorderBrush="#d1d5db"
+                                        Classes="key_border"
                                         BorderThickness="1"
                                         Classes.tested="{Binding IsTested}"
                                         Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
-                                    <TextBlock Text="{Binding Label}" 
-                                               HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center"
-                                               FontSize="10" 
-                                               Foreground="#6b7280"
-                                               FontWeight="SemiBold"
-                                               Classes.tested_text="{Binding IsTested}"
-                                               FontFamily="Segoe UI">
+                                     <TextBlock Text="{Binding Label}" 
+                                                HorizontalAlignment="Center" 
+                                                VerticalAlignment="Center"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                Classes="key_label"
+                                                Classes.tested_text="{Binding IsTested}"
+                                                FontFamily="Segoe UI">
                                     </TextBlock>
                                 </Border>
                             </DataTemplate>

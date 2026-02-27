@@ -58,6 +58,12 @@ public class SubmitQCResultRequest
     [JsonPropertyName("pramaanScore")]
     public int? PramaanScore { get; set; }
     
+    [JsonPropertyName("healthId")]
+    public string HealthId { get; set; } = "";
+    
+    [JsonPropertyName("pramaanHash")]
+    public string PramaanHash { get; set; } = "";
+    
     [JsonPropertyName("pramaanGrade")]
     public string? PramaanGrade { get; set; }
     
