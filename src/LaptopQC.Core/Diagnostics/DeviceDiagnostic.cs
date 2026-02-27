@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
@@ -555,3 +556,4 @@ public class DeviceDiagnostic : IDeviceDiagnostic
         return (true, $"All devices OK - {info.InputDevices.Count} input, {info.TotalUsbPorts} USB ports, {info.Displays.Count} display(s)");
     }
 }
+#endif

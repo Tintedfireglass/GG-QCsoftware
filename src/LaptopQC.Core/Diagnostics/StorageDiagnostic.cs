@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Management;
@@ -122,27 +123,5 @@ public class StorageDiagnostic : IStorageDiagnostic
         return (true, $"{info.Devices.Count} drive(s) healthy");
     }
 }
+#endif
 
-public class StorageInfo
-{
-    public List<StorageDevice> Devices { get; set; } = new();
-    public double TotalCapacityGB => Devices.Sum(d => d.SizeGB);
-}
-
-public class StorageDevice
-{
-    public string Model { get; set; } = "";
-    public string SerialNumber { get; set; } = "";
-    public string InterfaceType { get; set; } = "";
-    public string MediaType { get; set; } = "";
-    public string DeviceId { get; set; } = "";
-    public ulong SizeBytes { get; set; }
-    public double SizeGB { get; set; }
-    public bool IsSsd { get; set; }
-    
-    // SMART data
-    public int? HealthPercent { get; set; }
-    public int? Temperature { get; set; }
-    public int? PowerOnHours { get; set; }
-    public long? TotalBytesWritten { get; set; }
-}

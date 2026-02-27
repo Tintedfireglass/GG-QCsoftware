@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 
@@ -177,58 +178,5 @@ public class SmartTestService : ISmartTestService
         return result;
     }
 }
+#endif
 
-#region Models
-
-public class SmartDriveInfo
-{
-    public string DevicePath { get; set; } = "";
-    public string Model { get; set; } = "";
-    public string SerialNumber { get; set; } = "";
-    public int HealthScore { get; set; }
-    public bool HealthPassed { get; set; }
-    public int? Temperature { get; set; }
-    public int? PowerOnHours { get; set; }
-    public List<string> Warnings { get; set; } = new();
-    public SmartData? SmartData { get; set; }
-    
-    public string HealthStatus => HealthScore switch
-    {
-        >= 90 => "Excellent",
-        >= 70 => "Good",
-        >= 50 => "Fair",
-        >= 25 => "Poor",
-        _ => "Critical"
-    };
-}
-
-public class SmartTestProgress
-{
-    public string DevicePath { get; set; } = "";
-    public string Status { get; set; } = "";
-    public int PercentComplete { get; set; }
-    public bool IsRunning { get; set; }
-}
-
-public class SmartTestResultInfo
-{
-    public string DevicePath { get; set; } = "";
-    public string TestType { get; set; } = "";
-    public bool Success { get; set; }
-    public string Message { get; set; } = "";
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public TimeSpan Duration => EndTime - StartTime;
-    public SmartData? PostTestData { get; set; }
-}
-
-public class SmartHealthCheckResult
-{
-    public DateTime CheckTime { get; set; }
-    public bool SmartctlAvailable { get; set; }
-    public bool OverallHealthy { get; set; }
-    public string Message { get; set; } = "";
-    public List<SmartDriveInfo> Devices { get; set; } = new();
-}
-
-#endregion

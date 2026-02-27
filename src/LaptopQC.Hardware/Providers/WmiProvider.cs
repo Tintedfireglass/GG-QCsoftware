@@ -1,3 +1,4 @@
+#if WINDOWS
 using System.Management;
 
 namespace LaptopQC.Hardware.Providers;
@@ -72,3 +73,4 @@ public class WmiProvider : IWmiProvider
         }
     }
 }
+#endif

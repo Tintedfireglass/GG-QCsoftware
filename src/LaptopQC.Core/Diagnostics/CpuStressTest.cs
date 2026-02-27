@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Diagnostics;
@@ -333,3 +334,4 @@ public class StressTestProgress
     public double CurrentTemp { get; set; }
     public double CurrentClock { get; set; }
 }
+#endif

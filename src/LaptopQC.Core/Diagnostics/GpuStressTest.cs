@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Diagnostics;
@@ -466,3 +467,4 @@ public class GpuStressProgress
     public double CurrentClock { get; set; }
     public string GpuName { get; set; } = "";
 }
+#endif

@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 
@@ -141,26 +142,5 @@ public class BatteryDiagnostic : IBatteryDiagnostic
         return (true, "Battery present");
     }
 }
+#endif
 
-public class BatteryInfo
-{
-    public bool IsPresent { get; set; }
-    public string Name { get; set; } = "";
-    public string Status { get; set; } = "";
-    public string BatteryStatus { get; set; } = "";
-    public int EstimatedChargeRemaining { get; set; }
-    
-    // Capacity info (in mWh)
-    public uint DesignedCapacityMWh { get; set; }
-    public uint FullChargedCapacityMWh { get; set; }
-    
-    // Manufacturer info
-    public string ManufactureName { get; set; } = "";
-    public string SerialNumber { get; set; } = "";
-    public string Chemistry { get; set; } = "";
-    
-    // Health metrics
-    public int? WearLevelPercent { get; set; }
-    public int? HealthPercent { get; set; }
-    public uint CycleCount { get; set; }
-}

@@ -1,3 +1,4 @@
+#if WINDOWS
 using LibreHardwareMonitor.Hardware;
 using System.Diagnostics;
 using System.Management;
@@ -522,3 +523,4 @@ public class BatteryData
     public uint FullChargedCapacity { get; set; }
     public int DegradationLevel { get; set; }
 }
+#endif

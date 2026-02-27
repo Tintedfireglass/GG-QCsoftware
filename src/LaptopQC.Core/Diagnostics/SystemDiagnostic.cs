@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Models;
 using LaptopQC.Hardware.Providers;
@@ -58,3 +59,4 @@ public class SystemDiagnostic : ISystemDiagnostic
         return systemInfo;
     }
 }
+#endif

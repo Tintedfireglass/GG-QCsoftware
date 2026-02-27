@@ -1,3 +1,4 @@
+#if WINDOWS
 using LaptopQC.Core.Abstractions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -361,3 +362,4 @@ public class AudioVideoTestService : IAudioVideoTestService
         UnknownFormFactor = 10
     }
 }
+#endif

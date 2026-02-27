@@ -1,3 +1,4 @@
+#if WINDOWS
 using LibreHardwareMonitor.Hardware;
 
 class Program
@@ -48,3 +49,4 @@ class Program
         w.WriteLine(msg);
     }
 }
+#endif

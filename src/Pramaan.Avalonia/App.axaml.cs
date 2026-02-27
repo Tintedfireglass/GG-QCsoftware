@@ -9,6 +9,7 @@ using LaptopQC.Core.Diagnostics;
 using LaptopQC.Core.Services;
 using LaptopQC.Hardware.Providers;
 using System.Threading.Tasks;
+using MacOSDiag = LaptopQC.Core.Diagnostics.macOS;
 
 namespace Pramaan.Avalonia;
 
@@ -86,12 +87,18 @@ public partial class App : Application
             services.AddTransient<ISmartTestService, SmartTestService>();
             services.AddTransient<IAudioVideoTestService, AudioVideoTestService>();
         }
-        // Future: else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        // {
-        //     services.AddTransient<ISystemDiagnostic, MacSystemDiagnostic>();
-        //     services.AddTransient<ICpuDiagnostic, MacCpuDiagnostic>();
-        //     ... etc
-        // }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // ── macOS implementations ──
+            services.AddTransient<ISystemDiagnostic, MacOSDiag.MacSystemDiagnostic>();
+            services.AddTransient<ICpuDiagnostic, MacOSDiag.MacCpuDiagnostic>();
+            services.AddTransient<IRamDiagnostic, MacOSDiag.MacRamDiagnostic>();
+            services.AddTransient<IStorageDiagnostic, MacOSDiag.MacStorageDiagnostic>();
+            services.AddTransient<IBatteryDiagnostic, MacOSDiag.MacBatteryDiagnostic>();
+            services.AddTransient<IDeviceDiagnostic, MacOSDiag.MacDeviceDiagnostic>();
+            services.AddTransient<ISmartTestService, MacOSDiag.MacSmartTestService>();
+            services.AddTransient<IAudioVideoTestService, MacOSDiag.MacAudioVideoTestService>();
+        }
         
         // ── Platform-neutral services ──
         services.AddTransient<QCWorkflowService>();
