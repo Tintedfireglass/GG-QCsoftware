@@ -39,29 +39,56 @@
                                HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
-                <!-- Username -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                    <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                    <TextBox x:Name="UsernameBox" 
-                             Padding="12,10" 
-                             FontSize="14"
-                             FontFamily="Segoe UI"
-                             Background="#f9fafb"
-                             BorderBrush="#d1d5db"
-                             BorderThickness="1"/>
+                <!-- Login Type Toggle -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                    <RadioButton x:Name="RadioLoginUser" Content="User Account" IsChecked="True" Checked="LoginType_Changed" FontFamily="Segoe UI" Margin="0,0,16,0" Cursor="Hand"/>
+                    <RadioButton x:Name="RadioLoginLicense" Content="License Key" Checked="LoginType_Changed" FontFamily="Segoe UI" Cursor="Hand"/>
                 </StackPanel>
 
-                <!-- Password -->
-                <StackPanel Grid.Row="2" Margin="0,0,0,16">
-                    <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                    <PasswordBox x:Name="PasswordBox" 
+                <!-- Username/Password Stack -->
+                <StackPanel x:Name="UserLoginPanel" Grid.Row="2" Visibility="Visible">
+                    <!-- Username -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                        <TextBox x:Name="UsernameBox" 
+                                 Padding="12,10" 
+                                 FontSize="14"
+                                 FontFamily="Segoe UI"
+                                 Background="#f9fafb"
+                                 BorderBrush="#d1d5db"
+                                 BorderThickness="1"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                        <PasswordBox x:Name="PasswordBox" 
+                                     Padding="12,10" 
+                                     FontSize="14"
+                                     FontFamily="Segoe UI"
+                                     Background="#f9fafb"
+                                     BorderBrush="#d1d5db"
+                                     BorderThickness="1"
+                                     KeyDown="PasswordBox_KeyDown"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- License Key Stack -->
+                <StackPanel x:Name="LicenseLoginPanel" Grid.Row="2" Visibility="Collapsed">
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="16-Digit License Key" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                        <TextBox x:Name="LicenseBox" 
                                  Padding="12,10" 
                                  FontSize="14"
                                  FontFamily="Segoe UI"
                                  Background="#f9fafb"
                                  BorderBrush="#d1d5db"
                                  BorderThickness="1"
-                                 KeyDown="PasswordBox_KeyDown"/>
+                                 MaxLength="19"
+                                 TextAlignment="Center"
+                                 CharacterCasing="Upper"
+                                 KeyDown="LicenseBox_KeyDown"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Error Message -->
