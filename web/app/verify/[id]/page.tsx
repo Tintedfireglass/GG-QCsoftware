@@ -55,21 +55,16 @@ export default function VerificationPage() {
         );
     }
 
-    const isExpired = data.status === 'expired';
-
     return (
-        <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
 
                 {/* Header Banner */}
-                <div className={`${isExpired ? 'bg-red-600' : 'bg-green-600'} px-6 py-8 text-center text-white`}>
-                    <div className="text-4xl mb-3">
-                        {isExpired ? '❌' : '✅'}
-                    </div>
-                    <h1 className="text-3xl font-extrabold tracking-tight uppercase">
-                        {isExpired ? 'Certificate Expired' : 'Verified Authentic'}
+                <div className="bg-slate-900 px-6 py-8 text-center text-white border-b-4 border-emerald-500">
+                    <h1 className="text-3xl font-bold tracking-tight uppercase">
+                        Verified Authentic
                     </h1>
-                    <p className="mt-2 text-green-100 font-medium tracking-wide">
+                    <p className="mt-2 text-slate-300 font-medium tracking-wide">
                         PRAMAAN Device Certification
                     </p>
                 </div>
@@ -79,10 +74,10 @@ export default function VerificationPage() {
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">PRAMAAN Health Score</p>
                     <div className="flex justify-center items-end space-x-4">
                         <div className={`text-7xl font-black tracking-tighter ${data.grade === 'A+' ? 'text-green-600' :
-                                data.grade === 'A' ? 'text-green-500' :
-                                    data.grade === 'B' ? 'text-yellow-500' :
-                                        data.grade === 'C' ? 'text-orange-500' :
-                                            'text-red-600'
+                            data.grade === 'A' ? 'text-green-500' :
+                                data.grade === 'B' ? 'text-yellow-500' :
+                                    data.grade === 'C' ? 'text-orange-500' :
+                                        'text-red-600'
                             }`}>
                             {data.grade || "N/A"}
                         </div>
@@ -104,34 +99,18 @@ export default function VerificationPage() {
                     </div>
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Status</p>
-                        {isExpired ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Expired
-                            </span>
-                        ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Active & Valid
-                            </span>
-                        )}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            Active & Valid
+                        </span>
                     </div>
-                    <div>
+                    <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Date Issued</p>
-                        <p className="text-gray-900">{new Date(data.certificationDate).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Valid Until</p>
-                        <p className="text-gray-900">{new Date(data.validUntil).toLocaleDateString()}</p>
+                        <p className="text-gray-900">{new Date(data.certificationDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Health ID (UUID)</p>
-                        <p className="text-sm font-mono text-gray-600 bg-white border border-gray-200 p-2 rounded break-all">
+                        <p className="text-sm font-mono text-gray-600 bg-gray-50 border border-gray-200 p-3 rounded break-all tracking-tight">
                             {data.healthId}
-                        </p>
-                    </div>
-                    <div className="sm:col-span-2">
-                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Blockchain / Algorithm Hash</p>
-                        <p className="text-xs font-mono text-gray-500 truncate" title={data.algorithmHash}>
-                            {data.algorithmHash || "Not recorded in this version"}
                         </p>
                     </div>
                 </div>

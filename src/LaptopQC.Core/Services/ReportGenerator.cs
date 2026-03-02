@@ -1,5 +1,6 @@
 using LaptopQC.Core.Models;
 using System.Text;
+using QRCoder;
 
 namespace LaptopQC.Core.Services;
 
@@ -258,15 +259,38 @@ public class ReportGenerator
         var pramaanScore = report.PramaanResult?.OverallHealthScore ?? 0;
         var gradeLabel = report.PramaanResult?.GradeBand != null ? GradingService.GradeLabel(report.PramaanResult.GradeBand) : "Unknown";
 
+        // QR Code Generation
+        string qrImgTag = "";
+        if (!string.IsNullOrEmpty(report.HealthId))
+        {
+            try
+            {
+                var verificationUrl = $"https://gg-qcsoftware.vercel.app/verify/{report.HealthId}";
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCodeGenerator.ECCLevel.M);
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                byte[] qrBytes = qrCode.GetGraphic(5);
+                string base64 = Convert.ToBase64String(qrBytes);
+                qrImgTag = $"<div class='qr-code' style='background:white; padding:8px; border:1px solid #e5e7eb; border-radius:4px;'><img src='data:image/png;base64,{base64}' alt='Verification QR Code' width='80' height='80' /></div>";
+            }
+            catch { /* Ignore */ }
+        }
+
         sb.AppendLine("<div class='overall-status'>");
         sb.AppendLine("<div>");
         sb.AppendLine("<div class='overall-label'>PRAMAAN Health Score</div>");
         sb.AppendLine($"<div class='overall-grade grade-{pramaanGrade}'>{pramaanGrade}</div>");
         sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} — {pramaanScore}/100</div>");
         sb.AppendLine("</div>");
+        sb.AppendLine("<div style='display:flex; align-items:center; gap:24px;'>");
         sb.AppendLine("<div class='machine-id'>");
         sb.AppendLine("<div class='label'>Machine ID</div>");
         sb.AppendLine($"<div class='value'>{(report.DeviceId > 0 ? report.DeviceId.ToString() : "N/A")}</div>");
+        sb.AppendLine("</div>");
+        if (!string.IsNullOrEmpty(qrImgTag))
+        {
+            sb.AppendLine(qrImgTag);
+        }
         sb.AppendLine("</div>");
         sb.AppendLine("</div>");
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
+import { QRCodeSVG } from "qrcode.react"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -70,9 +71,19 @@ export default function DedicatedReportPage() {
                         </div>
                     )}
                 </div>
-                <div className="text-right">
-                    <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Machine ID</div>
-                    <div className="font-mono text-xl">{data.machine_identifier}</div>
+                <div className="text-right flex items-center gap-6">
+                    <div>
+                        <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Machine ID</div>
+                        <div className="font-mono text-xl">{data.machine_identifier}</div>
+                    </div>
+                    {data.health_id && (
+                        <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
+                            <QRCodeSVG
+                                value={`https://gg-qcsoftware.vercel.app/verify/${data.health_id}`}
+                                size={80}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
