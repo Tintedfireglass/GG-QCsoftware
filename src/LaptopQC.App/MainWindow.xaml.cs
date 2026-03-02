@@ -20,18 +20,8 @@ public partial class MainWindow : Window
     {
         if (App.IsLoggedIn)
         {
-            // Already logged in - offer to logout
-            var result = MessageBox.Show(
-                $"Activated by: {App.UserDisplayName}\n({App.AuthService.CurrentUser?.RoleDisplay})\n\nDo you want to deactivate?",
-                "License Session",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-            
-            if (result == MessageBoxResult.Yes)
-            {
-                App.AuthService.Logout();
-                UpdateUserStatusDisplay();
-            }
+            // Already activated - do nothing. App stays activated.
+            return;
         }
         else
         {
@@ -52,15 +42,17 @@ public partial class MainWindow : Window
         {
             UserStatusIcon.Text = "✓";
             UserStatusText.Text = "Activated";
-            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00d9ff"));
-            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1e3a5f"));
+            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803d"));
+            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#dcfce7"));
+            UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#bbf7d0"));
         }
         else
         {
             UserStatusIcon.Text = "🔑";
             UserStatusText.Text = "Click to Activate";
-            UserStatusText.Foreground = Brushes.White;
-            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22c55e"));
+            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6b7280"));
+            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f3f4f6"));
+            UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e5e7eb"));
         }
     }
 }
