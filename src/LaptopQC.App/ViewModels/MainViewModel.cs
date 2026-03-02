@@ -70,6 +70,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _smartctlAvailable;
 
+    public bool IsLoggedIn => App.IsLoggedIn;
+
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
 
     public MainViewModel()
@@ -89,6 +91,25 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void StartFullQc()
     {
+        if (!App.IsLoggedIn)
+        {
+            // Show activation dialog instead
+            var loginWindow = new Views.LoginWindow(App.AuthService)
+            {
+                Owner = App.Current.MainWindow
+            };
+            
+            var result = loginWindow.ShowDialog();
+            
+            // Re-evaluate Auth State for the UI
+            OnPropertyChanged(nameof(IsLoggedIn));
+            
+            if (result != true)
+            {
+                return;
+            }
+        }
+
         var wizard = new Views.QCWizardWindow
         {
             Owner = App.Current.MainWindow

@@ -22,8 +22,8 @@ public partial class MainWindow : Window
         {
             // Already logged in - offer to logout
             var result = MessageBox.Show(
-                $"Logged in as: {App.UserDisplayName}\n({App.AuthService.CurrentUser?.RoleDisplay})\n\nDo you want to logout?",
-                "User Session",
+                $"Activated by: {App.UserDisplayName}\n({App.AuthService.CurrentUser?.RoleDisplay})\n\nDo you want to deactivate?",
+                "License Session",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
             
@@ -35,7 +35,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Show login dialog
+            // Show activation dialog
             var loginWindow = new LoginWindow(App.AuthService)
             {
                 Owner = this
@@ -51,14 +51,14 @@ public partial class MainWindow : Window
         if (App.IsLoggedIn)
         {
             UserStatusIcon.Text = "✓";
-            UserStatusText.Text = App.UserDisplayName;
+            UserStatusText.Text = "Activated";
             UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00d9ff"));
             UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1e3a5f"));
         }
         else
         {
-            UserStatusIcon.Text = "👤";
-            UserStatusText.Text = "Click to Login";
+            UserStatusIcon.Text = "🔑";
+            UserStatusText.Text = "Click to Activate";
             UserStatusText.Foreground = Brushes.White;
             UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22c55e"));
         }

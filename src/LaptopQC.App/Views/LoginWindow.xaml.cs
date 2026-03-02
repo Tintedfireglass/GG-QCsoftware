@@ -17,20 +17,12 @@ public partial class LoginWindow : Window
     {
         InitializeComponent();
         _authService = authService;
-        UsernameBox.Focus();
+        LicenseBox.Focus();
     }
 
     private async void LoginButton_Click(object sender, RoutedEventArgs e)
     {
         await DoLogin();
-    }
-
-    private async void PasswordBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            await DoLogin();
-        }
     }
 
     private async void LicenseBox_KeyDown(object sender, KeyEventArgs e)
@@ -41,48 +33,13 @@ public partial class LoginWindow : Window
         }
     }
 
-    private void LoginType_Changed(object sender, RoutedEventArgs e)
-    {
-        if (UserLoginPanel == null || LicenseLoginPanel == null) return;
-
-        if (RadioLoginUser.IsChecked == true)
-        {
-            UserLoginPanel.Visibility = Visibility.Visible;
-            LicenseLoginPanel.Visibility = Visibility.Collapsed;
-            UsernameBox.Focus();
-        }
-        else
-        {
-            UserLoginPanel.Visibility = Visibility.Collapsed;
-            LicenseLoginPanel.Visibility = Visibility.Visible;
-            LicenseBox.Focus();
-        }
-    }
-
     private async Task DoLogin()
     {
-        // Check which login type is selected
-        bool isLicenseLogin = RadioLoginLicense.IsChecked == true;
-
-        if (!isLicenseLogin)
+        var license = LicenseBox.Text.Trim();
+        if (string.IsNullOrEmpty(license))
         {
-            var username = UsernameBox.Text.Trim();
-            var password = PasswordBox.Password;
-
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-            {
-                ShowError("Please enter username and password");
-                return;
-            }
-        }
-        else
-        {
-            var license = LicenseBox.Text.Trim();
-            if (string.IsNullOrEmpty(license))
-            {
-                ShowError("Please enter your 16-digit license key");
-                return;
-            }
+            ShowError("Please enter your 16-digit license key");
+            return;
         }
 
         // Show loading state
@@ -92,21 +49,14 @@ public partial class LoginWindow : Window
 
         try
         {
-            LoginResult result;
-            if (!isLicenseLogin)
+            string machineSerial = GetMachineSerialNumber();
+            if (string.IsNullOrEmpty(machineSerial))
             {
-                result = await _authService.LoginAsync(UsernameBox.Text.Trim(), PasswordBox.Password);
+                ShowError("Error: Could not retrieve machine serial number. Required for node-locking.");
+                return;
             }
-            else
-            {
-                string machineSerial = GetMachineSerialNumber();
-                if (string.IsNullOrEmpty(machineSerial))
-                {
-                    ShowError("Error: Could not retrieve machine serial number. Required for node-locking.");
-                    return;
-                }
-                result = await _authService.LoginWithLicenseAsync(LicenseBox.Text.Trim(), machineSerial);
-            }
+            
+            LoginResult result = await _authService.LoginWithLicenseAsync(license, machineSerial);
 
             if (result.Success)
             {

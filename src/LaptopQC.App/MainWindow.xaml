@@ -222,9 +222,9 @@
                         MouseLeftButtonDown="UserStatus_Click"
                         Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="UserStatusIcon" Text="👤" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="UserStatusIcon" Text="🔑" FontSize="14" VerticalAlignment="Center"/>
                         <TextBlock x:Name="UserStatusText" 
-                                   Text="Click to Login" 
+                                   Text="Click to Activate" 
                                    Foreground="#6b7280" 
                                    FontSize="12" 
                                    FontFamily="Segoe UI"
@@ -272,12 +272,6 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Stress Test - Outline style with red text -->
-                    <Button Content="Stress Test" 
-                            Command="{Binding RunStressTestsCommand}"
-                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
-                            Style="{StaticResource OutlineButton}"
-                            Margin="0,0,10,0"/>
                     
                     <!-- Full QC - Outline style with cyan text -->
                     <Button Content="Full QC" 
@@ -292,7 +286,7 @@
                     </Button>
 
                     <!-- Run Diagnostics - Outline style with green text -->
-                    <Button Content="Run Diagnostics" 
+                    <Button Content="Basic QC" 
                             Command="{Binding RunDiagnosticsCommand}"
                             IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}">
                         <Button.Style>
@@ -479,7 +473,7 @@
                 </Border>
                 
                 <!-- Battery Card (labeled as Storage in mockup but showing battery data) -->
-                <Border Grid.Column="1" Style="{StaticResource CardPanel}">
+                <Border Grid.Column="1" Style="{StaticResource CardPanel}" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <TextBlock Text="🔋" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -526,7 +520,7 @@
             </Grid>
             
             <!-- Devices Card -->
-            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,0,5,0">
+            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,0,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -646,7 +640,7 @@
             </Border>
             
             <!-- Test Results List -->
-            <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,5,5,0">
+            <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,5,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

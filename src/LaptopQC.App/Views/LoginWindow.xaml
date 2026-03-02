@@ -1,7 +1,7 @@
 <Window x:Class="LaptopQC.App.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Login - PRAMAAN" Width="400"
+        Title="Activation - PRAMAAN" Width="400"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -30,51 +30,17 @@
                 <!-- Header -->
                 <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
                     <Border Background="#dcfce7" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
-                        <TextBlock Text="🔐" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="🔑" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="PRAMAAN Login" FontSize="20" FontWeight="Bold" 
+                    <TextBlock Text="Activate PRAMAAN" FontSize="20" FontWeight="Bold" 
                                HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI"/>
-                    <TextBlock Text="Login to associate results with your account" 
+                    <TextBlock Text="Enter your 16-digit license key to unlock features" 
                                FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI"
                                HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
-                <!-- Login Type Toggle -->
-                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
-                    <RadioButton x:Name="RadioLoginUser" Content="User Account" IsChecked="True" Checked="LoginType_Changed" FontFamily="Segoe UI" Margin="0,0,16,0" Cursor="Hand"/>
-                    <RadioButton x:Name="RadioLoginLicense" Content="License Key" Checked="LoginType_Changed" FontFamily="Segoe UI" Cursor="Hand"/>
-                </StackPanel>
-
-                <!-- Username/Password Stack -->
-                <StackPanel x:Name="UserLoginPanel" Grid.Row="2" Visibility="Visible">
-                    <!-- Username -->
-                    <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                        <TextBox x:Name="UsernameBox" 
-                                 Padding="12,10" 
-                                 FontSize="14"
-                                 FontFamily="Segoe UI"
-                                 Background="#f9fafb"
-                                 BorderBrush="#d1d5db"
-                                 BorderThickness="1"/>
-                    </StackPanel>
-
-                    <!-- Password -->
-                    <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                        <PasswordBox x:Name="PasswordBox" 
-                                     Padding="12,10" 
-                                     FontSize="14"
-                                     FontFamily="Segoe UI"
-                                     Background="#f9fafb"
-                                     BorderBrush="#d1d5db"
-                                     BorderThickness="1"
-                                     KeyDown="PasswordBox_KeyDown"/>
-                    </StackPanel>
-                </StackPanel>
-
                 <!-- License Key Stack -->
-                <StackPanel x:Name="LicenseLoginPanel" Grid.Row="2" Visibility="Collapsed">
+                <StackPanel x:Name="LicenseLoginPanel" Grid.Row="2" Visibility="Visible">
                     <StackPanel Margin="0,0,0,16">
                         <TextBlock Text="16-Digit License Key" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
                         <TextBox x:Name="LicenseBox" 
@@ -103,7 +69,7 @@
                 <!-- Login Button -->
                 <Button x:Name="LoginButton"
                         Grid.Row="4" 
-                        Content="Login" 
+                        Content="Activate" 
                         Click="LoginButton_Click"
                         Padding="12,12"
                         FontSize="14"
@@ -139,7 +105,7 @@
                 <!-- Loading indicator -->
                 <TextBlock x:Name="LoadingText" 
                            Grid.Row="5" 
-                           Text="Logging in..." 
+                           Text="Activating..." 
                            HorizontalAlignment="Center"
                            Foreground="#6b7280"
                            FontFamily="Segoe UI"
