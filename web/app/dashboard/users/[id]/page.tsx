@@ -34,7 +34,8 @@ export default function EditUserPage() {
         role: "User" as UserRole,
         is_active: true,
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        license_credits: 0
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -56,7 +57,8 @@ export default function EditUserPage() {
                 role: data.user.role,
                 is_active: data.user.is_active,
                 password: "",
-                confirmPassword: ""
+                confirmPassword: "",
+                license_credits: data.user.license_credits || 0
             })
         } catch (err) {
             console.error("Failed to load user:", err)
@@ -92,9 +94,12 @@ export default function EditUserPage() {
                 is_active: formData.is_active
             }
 
-            // Only SuperAdmin can change roles
-            if (isSuperAdmin() && formData.role !== userData?.role) {
-                updateData.role = formData.role
+            // Only SuperAdmin can change roles and license credits
+            if (isSuperAdmin()) {
+                if (formData.role !== userData?.role) {
+                    updateData.role = formData.role
+                }
+                updateData.license_credits = formData.license_credits
             }
 
             // Include password if provided
@@ -179,7 +184,7 @@ export default function EditUserPage() {
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${userData.role === 'SuperAdmin' ? 'bg-purple-500' :
-                                userData.role === 'Admin' ? 'bg-blue-500' : 'bg-green-500'
+                            userData.role === 'Admin' ? 'bg-blue-500' : 'bg-green-500'
                             }`}>
                             {userData.username.charAt(0).toUpperCase()}
                         </div>
@@ -283,8 +288,8 @@ export default function EditUserPage() {
                                         <label
                                             key={role}
                                             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.role === role
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-slate-200 hover:border-slate-300'
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                         >
                                             <input
@@ -298,7 +303,7 @@ export default function EditUserPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <Shield className={`h-4 w-4 ${role === 'SuperAdmin' ? 'text-purple-500' :
-                                                            role === 'Admin' ? 'text-blue-500' : 'text-green-500'
+                                                        role === 'Admin' ? 'text-blue-500' : 'text-green-500'
                                                         }`} />
                                                     <span className="font-medium">{UserRoleDisplayNames[role]}</span>
                                                 </div>
@@ -342,6 +347,25 @@ export default function EditUserPage() {
                                         <span>Inactive</span>
                                     </label>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* License Credits (SuperAdmin only, typically for Admins) */}
+                        {isSuperAdmin() && formData.role === 'Admin' && (
+                            <div className="pt-4 border-t">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    License Credits
+                                </label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    value={formData.license_credits}
+                                    onChange={(e) => setFormData({ ...formData, license_credits: parseInt(e.target.value) || 0 })}
+                                    placeholder="Enter number of credits"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Number of machine activations this Admin is allowed to generate.
+                                </p>
                             </div>
                         )}
 

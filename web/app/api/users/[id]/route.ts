@@ -40,6 +40,7 @@ export async function GET(
                 u.role, 
                 u.created_by,
                 u.is_active, 
+                u.license_credits,
                 u.created_at,
                 creator.username as creator_username,
                 (SELECT COUNT(*) FROM users WHERE created_by = u.id) as team_size
@@ -133,7 +134,7 @@ export async function PUT(
         }
 
         const body: UpdateUserRequest = await request.json();
-        const { email, display_name, role, is_active, password } = body;
+        const { email, display_name, role, is_active, password, license_credits } = body;
 
         // Build update query dynamically
         const updates: string[] = [];
@@ -183,6 +184,11 @@ export async function PUT(
             values.push(passwordHash);
         }
 
+        if (license_credits !== undefined && authUser.role === 'SuperAdmin') {
+            updates.push(`license_credits = $${paramIndex++}`);
+            values.push(license_credits);
+        }
+
         if (updates.length === 0) {
             return NextResponse.json(
                 { error: 'Validation Error', message: 'No fields to update' } as ApiError,
@@ -196,7 +202,7 @@ export async function PUT(
             `UPDATE users 
              SET ${updates.join(', ')}
              WHERE id = $${paramIndex}
-             RETURNING id, username, email, display_name, role, created_by, is_active, created_at`,
+             RETURNING id, username, email, display_name, role, created_by, is_active, license_credits, created_at`,
             values
         );
 

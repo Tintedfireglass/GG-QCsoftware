@@ -90,6 +90,7 @@ export interface User {
     display_name?: string;
     created_by?: number;
     is_active: boolean;
+    license_credits?: number;
     created_at: Date;
 }
 
@@ -106,6 +107,7 @@ export interface CreateUserRequest {
     email?: string;
     display_name?: string;
     role: UserRole;
+    license_credits?: number;
 }
 
 // User update request
@@ -114,6 +116,7 @@ export interface UpdateUserRequest {
     display_name?: string;
     role?: UserRole;
     is_active?: boolean;
+    license_credits?: number;
     password?: string; // Optional: only if changing password
 }
 
