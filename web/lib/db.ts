@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 
 // Helper to clean connection string of sslmode and ensure we control SSL
 const getConnectionString = () => {
@@ -44,4 +44,20 @@ export async function query<T = any>(text: string, params?: any[]): Promise<T[]>
 export async function queryOne<T = any>(text: string, params?: any[]): Promise<T | null> {
     const rows = await query<T>(text, params);
     return rows.length > 0 ? rows[0] : null;
+}
+
+// Helper to wrap queries in a transaction
+export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const result = await callback(client);
+        await client.query('COMMIT');
+        return result;
+    } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+    } finally {
+        client.release();
+    }
 }

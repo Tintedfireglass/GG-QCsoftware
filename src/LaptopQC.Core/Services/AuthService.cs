@@ -75,6 +75,55 @@ public class AuthService
     }
 
     /// <summary>
+    /// Attempt to login with a 16-digit license key and lock it to this machine's serial number.
+    /// </summary>
+    public async Task<LoginResult> LoginWithLicenseAsync(string licenseKey, string machineSerial)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/auth/license", new
+            {
+                licenseKey = licenseKey,
+                machineSerial = machineSerial
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result != null)
+                {
+                    CurrentUser = result.User;
+                    Token = result.Token;
+                    return new LoginResult { Success = true, Message = "License Login successful" };
+                }
+            }
+            
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
+            return new LoginResult { Success = false, Message = error?.Message ?? "License Login failed" };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new LoginResult 
+            { 
+                Success = false, 
+                Message = $"Cannot connect to server to validate license.\nError: {ex.Message}" 
+            };
+        }
+        catch (TaskCanceledException)
+        {
+            return new LoginResult 
+            { 
+                Success = false, 
+                Message = "Connection timed out verifying license. Check your internet connection." 
+            };
+        }
+        catch (Exception ex)
+        {
+            return new LoginResult { Success = false, Message = ex.Message };
+        }
+    }
+
+    /// <summary>
     /// Logout and clear session.
     /// </summary>
     public void Logout()
@@ -131,4 +180,13 @@ public class UserInfo
         "User" => "Technician",
         _ => Role
     };
+}
+
+public class ApiErrorResponse
+{
+    [JsonPropertyName("error")]
+    public string Error { get; set; } = "";
+    
+    [JsonPropertyName("message")]
+    public string Message { get; set; } = "";
 }

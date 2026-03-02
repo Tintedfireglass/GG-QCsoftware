@@ -12,7 +12,8 @@ import {
     Laptop,
     Users,
     UserPlus,
-    Shield
+    Shield,
+    Key
 } from "lucide-react"
 import { UserRoleDisplayNames } from "@/lib/types"
 
@@ -49,6 +50,12 @@ export function Sidebar() {
             href: "/dashboard/users",
             label: "User Management",
             icon: Users,
+            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+        },
+        {
+            href: "/dashboard/licenses",
+            label: "Licenses",
+            icon: Key,
             roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
         },
     ]
