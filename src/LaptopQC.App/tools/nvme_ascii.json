@@ -1,0 +1,229 @@
+{
+    "nsid":  -1,
+    "current_self_test_operation":  {
+                                        "value":  0,
+                                        "string":  "No self-test in progress"
+                                    },
+    "table":  [
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7803
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7797
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7797
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7797
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7796
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7751
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7737
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7736
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7716
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7713
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7712
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7712
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7709
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7701
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7678
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7675
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7608
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7599
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7599
+                  },
+                  {
+                      "self_test_code":  {
+                                             "value":  1,
+                                             "string":  "Short"
+                                         },
+                      "self_test_result":  {
+                                               "value":  0,
+                                               "string":  "Completed without error"
+                                           },
+                      "power_on_hours":  7597
+                  }
+              ]
+}

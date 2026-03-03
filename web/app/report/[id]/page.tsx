@@ -5,6 +5,7 @@ import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
 import { QRCodeSVG } from "qrcode.react"
+import { formatDbDateTime } from "@/lib/utils"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -50,7 +51,7 @@ export default function DedicatedReportPage() {
                 </div>
                 <div className="text-right">
                     <div className="text-lg font-bold">Test ID: #{data.id}</div>
-                    <div className="text-sm text-gray-600">{new Date(data.timestamp).toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">{formatDbDateTime(data.timestamp)}</div>
                 </div>
             </header>
 

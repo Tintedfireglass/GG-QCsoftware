@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { extractToken, verifyToken } from '@/lib/auth';
+import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
+
+type SqlParam = string | number | boolean | null;
 
 export async function GET(
     request: NextRequest,
@@ -10,20 +12,28 @@ export async function GET(
     try {
         const { id } = await params;
 
-        // Verify JWT token
-        const authHeader = request.headers.get('authorization');
-        const token = extractToken(authHeader);
-
-        if (!token || !verifyToken(token)) {
+        const { user: authUser, error: authError } = await authenticateRequest(request);
+        if (authError) return authError;
+        if (!authUser) {
             return NextResponse.json(
-                { error: 'Authentication Error', message: 'Invalid or missing token' } as ApiError,
+                { error: 'Authentication Error', message: 'Not authenticated' } as ApiError,
                 { status: 401 }
             );
         }
 
-        // Fetch QC result with machine info
+        const queryParams: SqlParam[] = [id];
+        let roleClause = '';
+
+        if (authUser.role === 'User') {
+            roleClause = ' AND qr.technician_id = $2';
+            queryParams.push(authUser.id);
+        } else if (authUser.role === 'Admin') {
+            roleClause = ' AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))';
+            queryParams.push(authUser.id);
+        }
+
         const results = await query(
-            `SELECT 
+            `SELECT
         qr.*,
         m.machine_id as machine_identifier,
         m.location as machine_location,
@@ -31,8 +41,8 @@ export async function GET(
         m.model as machine_model
       FROM qc_results qr
       LEFT JOIN machines m ON qr.machine_id = m.id
-      WHERE qr.id = $1`,
-            [id]
+      WHERE qr.id = $1${roleClause}`,
+            queryParams
         );
 
         if (results.length === 0) {
@@ -43,11 +53,9 @@ export async function GET(
         }
 
         const qcResult = results[0];
-
-        // Fetch test results
         const testResults = await query(
             'SELECT * FROM test_results WHERE qc_result_id = $1 ORDER BY test_type',
-            [id]
+            [qcResult.id]
         );
 
         return NextResponse.json({

@@ -76,7 +76,7 @@ public class QCSubmissionService
         {
             ReportId = report.ReportId,
             HealthId = report.HealthId,
-            MachineId = _config.StationId,
+            MachineId = report.DeviceId > 0 ? report.DeviceId.ToString() : _config.StationId,
             Timestamp = report.Timestamp,
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,

@@ -146,7 +146,8 @@ public class SmartctlProvider : ISmartctlProvider
         if (path == null)
             return new SmartTestStatus { IsRunning = false, Message = "smartctl.exe not found" };
         
-        var result = RunCommand(path, $"-c --json \"{devicePath}\"");
+        // Use both -c and -l selftest so we can parse ATA status AND NVMe status in one go
+        var result = RunCommand(path, $"-c -l selftest --json \"{devicePath}\"");
         if (string.IsNullOrWhiteSpace(result.Output))
             return new SmartTestStatus { IsRunning = false, Message = "Failed to get status" };
         
@@ -167,6 +168,18 @@ public class SmartctlProvider : ISmartctlProvider
                         status.Message = testStatus.TryGetProperty("string", out var str)
                             ? str.GetString() ?? "" : "";
                     }
+                }
+            }
+            else if (json.RootElement.TryGetProperty("nvme_self_test_log", out var nvmeData))
+            {
+                if (nvmeData.TryGetProperty("current_self_test_operation", out var operation))
+                {
+                    status.IsRunning = operation.TryGetProperty("value", out var val) && val.GetInt32() != 0;
+                    status.Message = operation.TryGetProperty("string", out var str) ? str.GetString() ?? "" : "";
+                    
+                    // NVMe doesn't typically provide remaining_percent cleanly via current_self_test_operation
+                    // but we know short test takes ~2 minutes.
+                    status.PercentRemaining = status.IsRunning ? 50 : 0;
                 }
             }
             
@@ -218,29 +231,45 @@ public class SmartctlProvider : ISmartctlProvider
                 }
             }
             
-            // Try NVMe format
-            if (json.RootElement.TryGetProperty("nvme_self_test_log", out var nvmeTestLog))
+            // Try NVMe format.
+            // smartctl can return NVMe self-test logs in two shapes:
+            // 1) As a top-level "nvme_self_test_log" property when using --all --json
+            // 2) As the root object itself when using: smartctl -l selftest --json
+            JsonElement nvmeTestLog;
+            bool hasNvmeWrapper = json.RootElement.TryGetProperty("nvme_self_test_log", out var wrappedNvme);
+
+            if (hasNvmeWrapper)
             {
-                if (nvmeTestLog.TryGetProperty("table", out var table))
+                nvmeTestLog = wrappedNvme;
+            }
+            else
+            {
+                // If there's no wrapper but the root looks like an NVMe self-test log
+                // (has "table" with self_test_code / self_test_result), treat root as the log.
+                nvmeTestLog = json.RootElement;
+            }
+
+            if (nvmeTestLog.ValueKind == JsonValueKind.Object &&
+                nvmeTestLog.TryGetProperty("table", out var nvmeTable) &&
+                nvmeTable.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var entry in nvmeTable.EnumerateArray())
                 {
-                    foreach (var entry in table.EnumerateArray())
+                    var statusStr = entry.TryGetProperty("self_test_result", out var res)
+                        ? res.TryGetProperty("string", out var s) ? s.GetString() ?? "" : "" : "";
+                    
+                    // NVMe uses "Completed without error" for passed tests
+                    bool passed = statusStr.Contains("without error", StringComparison.OrdinalIgnoreCase) ||
+                                  statusStr.Contains("success", StringComparison.OrdinalIgnoreCase);
+                    
+                    log.Add(new SmartTestLogEntry
                     {
-                        var statusStr = entry.TryGetProperty("self_test_result", out var res)
-                            ? res.TryGetProperty("string", out var s) ? s.GetString() ?? "" : "" : "";
-                        
-                        // NVMe uses "Completed without error" for passed tests
-                        bool passed = statusStr.Contains("without error", StringComparison.OrdinalIgnoreCase) ||
-                                      statusStr.Contains("success", StringComparison.OrdinalIgnoreCase);
-                        
-                        log.Add(new SmartTestLogEntry
-                        {
-                            Type = entry.TryGetProperty("self_test_code", out var code)
-                                ? code.TryGetProperty("string", out var cs) ? cs.GetString() ?? "Short" : "Short" : "Short",
-                            Status = statusStr,
-                            LifetimeHours = entry.TryGetProperty("power_on_hours", out var h) ? h.GetInt32() : 0,
-                            Passed = passed
-                        });
-                    }
+                        Type = entry.TryGetProperty("self_test_code", out var code)
+                            ? code.TryGetProperty("string", out var cs) ? cs.GetString() ?? "Short" : "Short" : "Short",
+                        Status = statusStr,
+                        LifetimeHours = entry.TryGetProperty("power_on_hours", out var h) ? h.GetInt32() : 0,
+                        Passed = passed
+                    });
                 }
             }
         }

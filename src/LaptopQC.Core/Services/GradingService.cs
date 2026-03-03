@@ -187,7 +187,7 @@ public class GradingService
         int score = scores.Count > 0 ? (int)scores.Average() : (result.Passed ? 80 : 30);
 
         // Self-test failure caps the score
-        if (result.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase)))
+        if (result.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
             score = Math.Min(score, 30);
 
         return Math.Clamp(score, 0, 100);

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Search, ChevronLeft, ChevronRight, Printer, User } from "lucide-react"
 import { getGradeStyle } from "@/lib/grades"
+import { formatDbDateTime } from "@/lib/utils"
 
 export default function ResultsPage() {
     const { isSuperAdmin, isAdmin, isUser } = useAuth()
@@ -21,11 +22,11 @@ export default function ResultsPage() {
     // Show technician column for admins/superadmins
     const showTechnicianColumn = isSuperAdmin() || isAdmin()
 
-    async function loadData() {
+    async function loadData(pageToLoad = page, searchTerm = search) {
         setLoading(true)
         try {
-            const filters = search ? { refurbishId: search } : {}
-            const data = await getQCResults(page, limit, filters)
+            const filters = searchTerm ? { search: searchTerm } : {}
+            const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
         } catch (error) {
@@ -36,13 +37,14 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-        loadData()
+        loadData(page, search)
     }, [page]) // Reload when page changes
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
+        const term = search.trim()
         setPage(1)
-        loadData()
+        loadData(1, term)
     }
 
     const totalPages = Math.ceil(total / limit)
@@ -62,7 +64,7 @@ export default function ResultsPage() {
                 </div>
                 <form onSubmit={handleSearch} className="flex gap-2">
                     <Input
-                        placeholder="Search Refurb ID..."
+                        placeholder="Search"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-[300px]"
@@ -98,7 +100,7 @@ export default function ResultsPage() {
                             ) : (
                                 results.map((test) => (
                                     <tr key={test.id} className="border-b transition-colors hover:bg-slate-50">
-                                        <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
+                                        <td className="p-4 align-middle font-medium text-slate-500">#{test.scoped_test_id ?? test.id}</td>
                                         <td className="p-4 align-middle">
                                             {test.pramaan_grade ? (() => {
                                                 const s = getGradeStyle(test.pramaan_grade);
@@ -133,9 +135,7 @@ export default function ResultsPage() {
                                         )}
                                         <td className="p-4 align-middle dark:text-slate-400">{test.system_manufacturer} {test.system_model}</td>
                                         <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
-                                        <td className="p-4 align-middle text-slate-500">
-                                            {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </td>
+                                        <td className="p-4 align-middle text-slate-500">{formatDbDateTime(test.timestamp)}</td>
                                         <td className="p-4 align-middle text-right space-x-2">
                                             <Link href={`/report/${test.id}`} target="_blank">
                                                 <Button variant="outline" size="sm">

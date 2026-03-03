@@ -8,6 +8,7 @@ import { ArrowLeft, Printer, Download } from "lucide-react"
 import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
+import { formatDbDateTime } from "@/lib/utils"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -74,7 +75,7 @@ export default function ResultDetailPage() {
                         <div>
                             <h1 className="text-3xl font-bold mb-2">QC Report: #{data.id}</h1>
                             <p className="text-slate-500">
-                                Date: {new Date(data.timestamp).toLocaleString()}
+                                Date: {formatDbDateTime(data.timestamp)}
                             </p>
                             <p className="text-slate-500">
                                 Machine: {data.machine_identifier}

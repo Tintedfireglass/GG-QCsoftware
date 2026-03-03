@@ -5,8 +5,12 @@ namespace LaptopQC.Core.Services;
 public class DeviceIdService
 {
     private static readonly object _lock = new();
-    private const string RegistryFileName = "device_registry.json";
-    private const int StartId = 30000001;
+    private const int StartId = 3000001;
+    private static readonly string RegistryPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "Pramaan",
+        "device_registry.json"
+    );
 
     private Dictionary<string, int> _registry;
 
@@ -19,13 +23,12 @@ public class DeviceIdService
     {
         if (string.IsNullOrWhiteSpace(serialNumber))
             return 0;
+        
+        var identityKey = serialNumber.Trim().ToUpperInvariant();
 
         lock (_lock)
         {
-            // Reload in case another instance changed it (though unlikely in this app)
-            // For now, in-memory cache is fine as we are likely the only process.
-            
-            if (_registry.TryGetValue(serialNumber, out int id))
+            if (_registry.TryGetValue(identityKey, out int id))
             {
                 return id;
             }
@@ -39,7 +42,7 @@ public class DeviceIdService
                 if (nextId < StartId) nextId = StartId;
             }
 
-            _registry[serialNumber] = nextId;
+            _registry[identityKey] = nextId;
             SaveRegistry();
             
             return nextId;
@@ -50,10 +53,9 @@ public class DeviceIdService
     {
         try
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, RegistryFileName);
-            if (File.Exists(path))
+            if (File.Exists(RegistryPath))
             {
-                var json = File.ReadAllText(path);
+                var json = File.ReadAllText(RegistryPath);
                 return JsonSerializer.Deserialize<Dictionary<string, int>>(json) ?? new Dictionary<string, int>();
             }
         }
@@ -68,9 +70,14 @@ public class DeviceIdService
     {
         try
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, RegistryFileName);
+            var directory = Path.GetDirectoryName(RegistryPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
             var json = JsonSerializer.Serialize(_registry, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(path, json);
+            File.WriteAllText(RegistryPath, json);
         }
         catch (Exception)
         {

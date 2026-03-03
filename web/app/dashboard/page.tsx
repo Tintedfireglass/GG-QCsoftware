@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getGradeStyle } from "@/lib/grades"
+import { formatDbDateTime } from "@/lib/utils"
 import {
     Activity,
     CheckCircle,
@@ -284,7 +285,7 @@ export default function DashboardPage() {
                             <tbody className="[&_tr:last-child]:border-0">
                                 {stats.recentTests.map((test) => (
                                     <tr key={test.id} className="border-b transition-colors hover:bg-muted/50">
-                                        <td className="p-4 align-middle font-medium text-slate-500">#{test.id}</td>
+                                        <td className="p-4 align-middle font-medium text-slate-500">#{test.scoped_test_id ?? test.id}</td>
                                         <td className="p-4 align-middle">
                                             {test.pramaan_grade ? (() => {
                                                 const s = getGradeStyle(test.pramaan_grade);
@@ -308,9 +309,7 @@ export default function DashboardPage() {
 
                                         <td className="p-4 align-middle">{test.system_model}</td>
                                         <td className="p-4 align-middle">{test.system_serial}</td>
-                                        <td className="p-4 align-middle text-slate-500">
-                                            {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString()}
-                                        </td>
+                                        <td className="p-4 align-middle text-slate-500">{formatDbDateTime(test.timestamp)}</td>
                                         <td className="p-4 align-middle">
                                             <Link href={`/dashboard/results/${test.id}`}>
                                                 <Button variant="ghost" size="sm">View</Button>

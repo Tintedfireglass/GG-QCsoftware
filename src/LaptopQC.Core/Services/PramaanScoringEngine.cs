@@ -370,7 +370,7 @@ public class PramaanScoringEngine
 
         // Self-test failure
         if (smartResult.Details.Any(d =>
-                d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase)))
+                d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
             return 25;
 
         return smartResult.Passed ? 80 : 30;

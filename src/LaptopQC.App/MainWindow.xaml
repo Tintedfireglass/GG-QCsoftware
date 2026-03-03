@@ -411,26 +411,12 @@
                 </Grid.ColumnDefinitions>
                 
                 <!-- Storage Card -->
-                <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                <Border Grid.Column="0" Style="{StaticResource CardPanel}" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
                     <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Storage" Style="{StaticResource SectionTitle}"/>
-                            </StackPanel>
-                            
-                            <!-- SMART Test Button -->
-                            <Button Grid.Column="1" Content="📊 Smart test" 
-                                    Command="{Binding RunSmartTestCommand}"
-                                    IsEnabled="{Binding IsSmartTestRunning, Converter={StaticResource InverseBoolConverter}}"
-                                    Style="{StaticResource SmallTestButton}"
-                                    ToolTip="Run SMART self-test on all drives (~2 min per drive)"/>
-                        </Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Storage" Style="{StaticResource SectionTitle}"/>
+                        </StackPanel>
                         
                         <StackPanel Margin="0,12,0,0">
                             <TextBlock Text="Total" Style="{StaticResource InfoLabel}"/>
@@ -568,18 +554,10 @@
                                         ToolTip="Test trackpad movement, clicks, and scroll"/>
                             </StackPanel>
                             
-                            <!-- Mouse (placeholder) -->
-                            <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
-                                <TextBlock Text="Mouse" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
-                                <Button Content="Test" 
-                                        Style="{StaticResource SmallTestButton}"
-                                        Margin="10,0,0,0"
-                                        IsEnabled="False"/>
-                            </StackPanel>
                         </Grid>
                         
                         <!-- Camera / Display Row -->
-                        <TextBlock Text="Camera/Display" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
+                        <TextBlock Text="Camera" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -596,16 +574,6 @@
                                         ToolTip="Test Speakers, Microphone, and Camera"/>
                             </StackPanel>
                             
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                                <TextBlock Style="{StaticResource ValueText}" VerticalAlignment="Center">
-                                    <Run Text="Display "/>
-                                    <Run Text="{Binding DevicesInfo.Displays.Count, Mode=OneWay, FallbackValue='0'}"/>
-                                </TextBlock>
-                                <Button Content="Test" 
-                                        Style="{StaticResource SmallTestButton}"
-                                        Margin="10,0,0,0"
-                                        IsEnabled="False"/>
-                            </StackPanel>
                         </Grid>
                         
                         <!-- USB Controllers -->
@@ -631,11 +599,6 @@
                         </Border>
                     </StackPanel>
                     
-                    <!-- Smart test button on right -->
-                    <Button Grid.Column="1" Content="📊 Smart test" 
-                            Style="{StaticResource SmallTestButton}"
-                            VerticalAlignment="Top"
-                            IsEnabled="False"/>
                 </Grid>
             </Border>
             

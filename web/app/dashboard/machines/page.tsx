@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Monitor, Calendar, CheckCircle, XCircle } from "lucide-react"
+import { formatDbDate } from "@/lib/utils"
 
 export default function MachinesPage() {
     const [machines, setMachines] = useState<any[]>([])
@@ -57,7 +58,7 @@ export default function MachinesPage() {
                                 <div className="flex justify-between">
                                     <span>Last Seen:</span>
                                     <span className="font-medium text-slate-900">
-                                        {new Date(machine.last_seen).toLocaleDateString()}
+                                        {formatDbDate(machine.last_seen)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">

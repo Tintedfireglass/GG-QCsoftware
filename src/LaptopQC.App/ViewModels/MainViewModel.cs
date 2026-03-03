@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LaptopQC.App;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Hardware.Models;
 using System.Collections.ObjectModel;
@@ -72,6 +73,11 @@ public partial class MainViewModel : ObservableObject
 
     public bool IsLoggedIn => App.IsLoggedIn;
 
+    public void RefreshLoginState()
+    {
+        OnPropertyChanged(nameof(IsLoggedIn));
+    }
+
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
 
     public MainViewModel()
@@ -101,8 +107,15 @@ public partial class MainViewModel : ObservableObject
             
             var result = loginWindow.ShowDialog();
             
-            // Re-evaluate Auth State for the UI
-            OnPropertyChanged(nameof(IsLoggedIn));
+            // Re-evaluate Auth State for both XAML-bound sections and top activation badge.
+            if (App.Current.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.RefreshActivationUi();
+            }
+            else
+            {
+                RefreshLoginState();
+            }
             
             if (result != true)
             {

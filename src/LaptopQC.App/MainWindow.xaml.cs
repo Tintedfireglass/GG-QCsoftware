@@ -1,6 +1,7 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using LaptopQC.App.ViewModels;
 using LaptopQC.App.Views;
 
 namespace LaptopQC.App;
@@ -13,7 +14,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        UpdateUserStatusDisplay();
+        RefreshActivationUi();
     }
 
     private void UserStatus_Click(object sender, MouseButtonEventArgs e)
@@ -30,9 +31,19 @@ public partial class MainWindow : Window
             {
                 Owner = this
             };
-            
+
             var result = loginWindow.ShowDialog();
-            UpdateUserStatusDisplay();
+            RefreshActivationUi();
+        }
+    }
+
+    public void RefreshActivationUi()
+    {
+        UpdateUserStatusDisplay();
+
+        if (DataContext is MainViewModel vm)
+        {
+            vm.RefreshLoginState();
         }
     }
 

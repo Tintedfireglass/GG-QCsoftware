@@ -31,7 +31,10 @@
     <Company>Gadget Guruz</Company>
     <Version>1.0.0</Version>
     
-    <!-- Require admin privileges -->
+  </PropertyGroup>
+
+  <!-- SMART NVMe self-tests require admin rights (IOCTL_STORAGE_PROTOCOL_COMMAND). -->
+  <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -53,5 +56,11 @@
     </None>
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
+  </ItemGroup>
 </Project>
+
+
 
