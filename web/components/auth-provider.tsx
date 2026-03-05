@@ -47,39 +47,33 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null)
-    const [token, setToken] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [user, setUser] = useState<User | null>(() => {
+        if (typeof window === "undefined") return null
+        const storedUser = localStorage.getItem("qc_user")
+        return storedUser ? (JSON.parse(storedUser) as User) : null
+    })
+    const [token, setToken] = useState<string | null>(() => {
+        if (typeof window === "undefined") return null
+        return localStorage.getItem("qc_token")
+    })
     const router = useRouter()
     const pathname = usePathname()
 
     useEffect(() => {
-        // Check local storage on mount
-        const storedToken = localStorage.getItem("qc_token")
-        const storedUser = localStorage.getItem("qc_user")
-
-        if (storedToken && storedUser) {
-            setToken(storedToken)
-            setUser(JSON.parse(storedUser))
-        }
-
-        setIsLoading(false)
-    }, [])
-
-    useEffect(() => {
         // Redirect logic
-        if (!isLoading) {
-            const isPublicRoute = pathname.startsWith("/login") || pathname.startsWith("/report")
+        const isPublicRoute =
+            pathname.startsWith("/login") ||
+            pathname.startsWith("/report") ||
+            pathname.startsWith("/customer")
 
-            if (!token && !isPublicRoute) {
-                router.push("/login")
-            } else if (token && pathname === "/login") {
-                router.push("/dashboard")
-            } else if (token && pathname === "/") {
-                router.push("/dashboard")
-            }
+        if (!token && !isPublicRoute) {
+            router.push("/login")
+        } else if (token && pathname === "/login") {
+            router.push("/dashboard")
+        } else if (token && pathname === "/") {
+            router.push("/dashboard")
         }
-    }, [token, isLoading, pathname, router])
+    }, [token, pathname, router])
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem("qc_token", newToken)
@@ -118,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             token,
             login,
             logout,
-            isLoading,
+            isLoading: false,
             isSuperAdmin,
             isAdmin,
             isUser,

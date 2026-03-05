@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Laptop } from "lucide-react"
+import Link from "next/link"
 
 export default function LoginPage() {
     const [username, setUsername] = useState("")
@@ -33,8 +34,8 @@ export default function LoginPage() {
             }
 
             login(data.token, data.user)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Login failed")
         } finally {
             setLoading(false)
         }
@@ -78,9 +79,14 @@ export default function LoginPage() {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" type="submit" disabled={loading}>
-                            {loading ? "Signing in..." : "Sign In"}
-                        </Button>
+                        <div className="w-full space-y-3">
+                            <Button className="w-full" type="submit" disabled={loading}>
+                                {loading ? "Signing in..." : "Sign In"}
+                            </Button>
+                            <p className="text-xs text-center text-slate-500">
+                                Individual user? <Link href="/customer" className="text-blue-600 hover:underline">Go to customer plans</Link>
+                            </p>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>
