@@ -15,13 +15,13 @@ import {
     Shield,
     Key
 } from "lucide-react"
-import { UserRoleDisplayNames } from "@/lib/types"
+import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
 interface NavLink {
     href: string
     label: string
     icon: React.ComponentType<{ className?: string }>
-    roles?: ('SuperAdmin' | 'Admin' | 'User')[] // If undefined, visible to all
+    roles?: UserRole[] // If undefined, visible to all
 }
 
 export function Sidebar() {

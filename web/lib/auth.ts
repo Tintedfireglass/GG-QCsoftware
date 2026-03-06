@@ -8,6 +8,8 @@ export interface JwtPayload {
     userId: number;
     username: string;
     role: string;
+    scope?: 'user' | 'license_device';
+    customerUserId?: number;
 }
 
 // Hash a password

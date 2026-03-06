@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         let paramCount = 1;
 
         // Role-based visibility
-        if (authUser.role === 'User') {
+        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
             baseWhereClauses.push(`qr.technician_id = $${paramCount}`);
             params.push(authUser.id);
             paramCount++;

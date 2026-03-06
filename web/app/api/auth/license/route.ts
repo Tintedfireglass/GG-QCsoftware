@@ -66,6 +66,37 @@ export async function POST(request: NextRequest) {
                 );
             }
 
+            // 3. For customer-owned (B2C) keys, issue a restricted device token
+            if (license.customer_user_id) {
+                const customerRes = await client.query(
+                    'SELECT id, email, is_active FROM customer_users WHERE id = $1',
+                    [license.customer_user_id]
+                );
+
+                if (customerRes.rows.length === 0 || customerRes.rows[0].is_active !== true) {
+                    throw new Error('Customer account not found or inactive for this license key');
+                }
+
+                const customer = customerRes.rows[0];
+                const deviceToken = generateToken({
+                    userId: -Math.abs(customer.id), // Keep out of users-table id space
+                    username: customer.email,
+                    role: 'B2CDevice',
+                    scope: 'license_device',
+                    customerUserId: customer.id,
+                });
+
+                loginResponse = {
+                    token: deviceToken,
+                    user: {
+                        id: -Math.abs(customer.id),
+                        username: customer.email,
+                        role: 'B2CDevice',
+                    }
+                };
+                return;
+            }
+
             // 3. Login successful. Get the creator of the key to issue a token on their behalf
             const creatorRes = await client.query(
                 'SELECT id, username, role FROM users WHERE id = $1',

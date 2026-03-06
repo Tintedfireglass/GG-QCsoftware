@@ -41,6 +41,27 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
         };
     }
 
+    if (payload.scope === 'license_device') {
+        if (payload.role !== 'B2CDevice' || !payload.customerUserId) {
+            return {
+                user: null,
+                error: NextResponse.json(
+                    { error: 'Authentication Error', message: 'Invalid license token payload' } as ApiError,
+                    { status: 401 }
+                ),
+            };
+        }
+
+        return {
+            user: {
+                id: payload.userId,
+                username: payload.username,
+                role: 'B2CDevice',
+            },
+            error: null,
+        };
+    }
+
     // Get full user info from database
     const users = await query(
         'SELECT id, username, role, created_by FROM users WHERE id = $1 AND is_active = true',

@@ -24,7 +24,7 @@ export async function GET(
         const queryParams: SqlParam[] = [id];
         let roleClause = '';
 
-        if (authUser.role === 'User') {
+        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
             roleClause = ' AND qr.technician_id = $2';
             queryParams.push(authUser.id);
         } else if (authUser.role === 'Admin') {

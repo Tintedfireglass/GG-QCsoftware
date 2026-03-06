@@ -65,13 +65,14 @@ export interface TestResult {
 }
 
 // User role types for role-based access control
-export type UserRole = 'SuperAdmin' | 'Admin' | 'User';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'User' | 'B2CDevice';
 
 // Role display names for UI
 export const UserRoleDisplayNames: Record<UserRole, string> = {
     SuperAdmin: 'Gadget Guruz',
     Admin: 'Refurbisher',
     User: 'Technician',
+    B2CDevice: 'B2C Device',
 };
 
 // Role descriptions
@@ -79,6 +80,7 @@ export const UserRoleDescriptions: Record<UserRole, string> = {
     SuperAdmin: 'Full system access, can manage Admins and Users',
     Admin: 'Can manage Technicians in their team',
     User: 'QC Technician, can perform and view own QC tests',
+    B2CDevice: 'Restricted device session for B2C license activation',
 };
 
 export interface User {
