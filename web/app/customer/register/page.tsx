@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function CustomerRegisterPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+            <CustomerRegisterContent />
+        </Suspense>
+    )
+}
+
+function CustomerRegisterContent() {
     const searchParams = useSearchParams()
     const selectedPlan = useMemo(() => searchParams.get("plan") || "yearly", [searchParams])
 

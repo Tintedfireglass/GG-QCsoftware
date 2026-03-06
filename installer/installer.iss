@@ -12,10 +12,11 @@
 ; ===================================================
 
 #define MyAppName "Pramaan"
-#define MyAppVersion "1.0.0"
 #define MyAppPublisher "GadgetGuruz"
 #define MyAppExeName "Pramaan.exe"
 #define MyAppURL "https://gg-qcsoftware.vercel.app/"
+#define MyAppExePath "..\publish\" + MyAppExeName
+#define MyAppVersion GetVersionNumbersString(MyAppExePath)
 
 [Setup]
 ; Application identity
@@ -68,16 +69,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; Main application executable
-Source: "..\publish\Pramaan.exe"; DestDir: "{app}"; Flags: ignoreversion
-
-; Tools folder (smartctl.exe for SMART diagnostics)
-Source: "..\publish\tools\*"; DestDir: "{app}\tools"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-; Any additional files from publish folder (runtime files, DLLs, etc.)
-Source: "..\publish\*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\publish\*.json"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\publish\*.pdb"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+; Package full publish output from the current build.
+; Exclude transient logs and local reports.
+Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "Reports\*;*.log;*.txt"
 
 [Icons]
 ; Start Menu shortcut
