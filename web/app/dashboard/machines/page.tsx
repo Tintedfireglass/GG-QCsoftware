@@ -12,6 +12,7 @@ export default function MachinesPage() {
     const router = useRouter()
     const [machines, setMachines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [navigating, setNavigating] = useState<number | null>(null)
 
     useEffect(() => {
         async function load() {
@@ -67,10 +68,27 @@ export default function MachinesPage() {
                                 <Button
                                     variant="outline"
                                     className="rounded-full px-5 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
-                                    onClick={() => router.push(`/dashboard/machines/${machine.id}`)}
+                                    disabled={navigating === machine.id || Number(machine.test_count) === 0}
+                                    onClick={async () => {
+                                        setNavigating(machine.id)
+                                        try {
+                                            const token = localStorage.getItem("qc_token")
+                                            const res = await fetch(`/api/machines/${machine.id}`, {
+                                                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                            })
+                                            const data = await res.json()
+                                            if (data.test_history?.length > 0) {
+                                                router.push(`/dashboard/results/${data.test_history[0].id}`)
+                                            }
+                                        } catch (err) {
+                                            console.error(err)
+                                        } finally {
+                                            setNavigating(null)
+                                        }
+                                    }}
                                 >
-                                    View Latest Report
-                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                                    {navigating === machine.id ? "Loading..." : "View Latest Report"}
+                                    {navigating !== machine.id && <ExternalLink className="ml-1.5 h-3.5 w-3.5" />}
                                 </Button>
                             </div>
                         </CardContent>
