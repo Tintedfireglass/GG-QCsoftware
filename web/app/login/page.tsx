@@ -44,19 +44,14 @@ export default function LoginPage() {
     return (
         <div className="flex min-h-screen w-full bg-white">
             {/* Left Section - Hero */}
-            <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-slate-50 border-r border-slate-100">
-
-                <div className="flex-1 relative flex items-center justify-center -mt-8">
-                    <div className="relative w-full max-w-[500px] aspect-[4/3]">
-                        <Image
-                            src="/loginImg.png"
-                            alt="Laptop QC Testing Illustration"
-                            fill
-                            className="object-contain"
-                            priority
-                        />
-                    </div>
-                </div>
+            <div className="hidden lg:block w-1/2 relative bg-slate-50 border-r border-slate-100">
+                <Image
+                    src="/loginImg.png"
+                    alt="Laptop QC Testing Illustration"
+                    fill
+                    className="object-cover"
+                    priority
+                />
             </div>
 
             {/* Right Section - Login Form */}
