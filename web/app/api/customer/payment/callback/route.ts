@@ -7,7 +7,7 @@ import { generateRandomLicenseKey, getPlanExpiry } from '@/lib/license-key';
 type CheckoutPayload = {
     orderId: number;
     customerId: number;
-    plan: 'monthly' | 'yearly' | 'lifetime';
+    plan: 'one_time';
     scope: 'customer_checkout';
 };
 
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
             }
 
             const licenseKey = await generateUniqueKey(client);
-            const expiry = getPlanExpiry(payload.plan);
+            const expiry = getPlanExpiry();
 
             const keyInsert = await client.query(
                 `INSERT INTO license_keys

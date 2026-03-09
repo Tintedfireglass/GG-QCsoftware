@@ -6,11 +6,17 @@ public class DeviceIdService
 {
     private static readonly object _lock = new();
     private const int StartId = 3000001;
-    private static readonly string RegistryPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "Pramaan",
-        "device_registry.json"
-    );
+    private static readonly string[] RegistryPaths =
+    {
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Pramaan",
+            "device_registry.json"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Pramaan",
+            "device_registry.json")
+    };
 
     private Dictionary<string, int> _registry;
 
@@ -21,9 +27,6 @@ public class DeviceIdService
 
     public int GetOrGenerateDeviceId(string serialNumber)
     {
-        if (string.IsNullOrWhiteSpace(serialNumber))
-            return 0;
-        
         var identityKey = serialNumber.Trim().ToUpperInvariant();
 
         lock (_lock)
@@ -51,37 +54,49 @@ public class DeviceIdService
 
     private Dictionary<string, int> LoadRegistry()
     {
-        try
+        foreach (var path in RegistryPaths)
         {
-            if (File.Exists(RegistryPath))
+            try
             {
-                var json = File.ReadAllText(RegistryPath);
-                return JsonSerializer.Deserialize<Dictionary<string, int>>(json) ?? new Dictionary<string, int>();
+                if (File.Exists(path))
+                {
+                    var json = File.ReadAllText(path);
+                    var registry = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+                    if (registry != null && registry.Count > 0)
+                    {
+                        return registry;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Try next path
             }
         }
-        catch (Exception)
-        {
-            // Log error or ignore
-        }
+
         return new Dictionary<string, int>();
     }
 
     private void SaveRegistry()
     {
-        try
+        var json = JsonSerializer.Serialize(_registry, new JsonSerializerOptions { WriteIndented = true });
+        foreach (var path in RegistryPaths)
         {
-            var directory = Path.GetDirectoryName(RegistryPath);
-            if (!string.IsNullOrWhiteSpace(directory))
+            try
             {
-                Directory.CreateDirectory(directory);
-            }
+                var directory = Path.GetDirectoryName(path);
+                if (!string.IsNullOrWhiteSpace(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
 
-            var json = JsonSerializer.Serialize(_registry, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(RegistryPath, json);
-        }
-        catch (Exception)
-        {
-            // Log error
+                File.WriteAllText(path, json);
+                return;
+            }
+            catch (Exception)
+            {
+                // Try next path
+            }
         }
     }
 }

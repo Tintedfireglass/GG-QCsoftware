@@ -21,8 +21,6 @@ type License = {
     payment_reference: string | null
 }
 
-const plans: Array<"monthly" | "yearly" | "lifetime"> = ["monthly", "yearly", "lifetime"]
-
 export default function CustomerAccountPage() {
     return (
         <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
@@ -40,7 +38,7 @@ function CustomerAccountContent() {
     const [user, setUser] = useState<CustomerUser | null>(null)
     const [licenses, setLicenses] = useState<License[]>([])
     const [loading, setLoading] = useState(true)
-    const [busyPlan, setBusyPlan] = useState<string | null>(null)
+    const [buying, setBuying] = useState(false)
     const [error, setError] = useState("")
 
     useEffect(() => {
@@ -70,14 +68,14 @@ function CustomerAccountContent() {
         loadLicenses()
     }, [router])
 
-    async function startCheckout(plan: "monthly" | "yearly" | "lifetime") {
+    async function startCheckout() {
         const token = localStorage.getItem("qc_customer_token")
         if (!token) {
             router.push("/customer/login")
             return
         }
 
-        setBusyPlan(plan)
+        setBuying(true)
         setError("")
         try {
             const res = await fetch("/api/customer/checkout", {
@@ -86,14 +84,14 @@ function CustomerAccountContent() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ plan }),
+                body: JSON.stringify({}),
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.message || "Unable to start checkout")
             window.location.href = data.redirectUrl
         } catch (err) {
             setError(err instanceof Error ? err.message : "Unable to start checkout")
-            setBusyPlan(null)
+            setBuying(false)
         }
     }
 
@@ -132,24 +130,19 @@ function CustomerAccountContent() {
                     </Card>
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    {plans.map((plan) => (
-                        <Card key={plan}>
-                            <CardHeader>
-                                <CardTitle className="capitalize">{plan} Plan</CardTitle>
-                                <CardDescription>Buy a new personal key</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button
-                                    className="w-full"
-                                    onClick={() => startCheckout(plan)}
-                                    disabled={busyPlan !== null}
-                                >
-                                    {busyPlan === plan ? "Redirecting..." : "Buy Now"}
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
+                <div className="grid gap-4 md:grid-cols-1">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>One-Time Personal License</CardTitle>
+                            <CardDescription>Single purchase, no subscription renewal.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-semibold text-slate-900 mb-4">Rs.199</div>
+                            <Button className="w-full md:w-auto" onClick={startCheckout} disabled={buying}>
+                                {buying ? "Redirecting..." : "Buy Now"}
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Card>
@@ -168,7 +161,7 @@ function CustomerAccountContent() {
                                     <div key={license.id} className="rounded border border-slate-200 p-3">
                                         <div className="font-mono text-lg tracking-wide">{license.key}</div>
                                         <div className="text-sm text-slate-600 mt-1">
-                                            Plan: <span className="capitalize">{license.plan || "N/A"}</span>
+                                            Plan: <span className="capitalize">{(license.plan || "N/A").replace("_", "-")}</span>
                                             {" | "}
                                             Status: {license.is_active ? "Active" : "Inactive"}
                                             {" | "}

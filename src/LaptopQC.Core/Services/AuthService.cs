@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace LaptopQC.Core.Services;
@@ -11,10 +12,12 @@ public class AuthService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiUrl;
+    private readonly string _sessionFilePath;
     
     public bool IsLoggedIn => CurrentUser != null;
     public UserInfo? CurrentUser { get; private set; }
     public string? Token { get; private set; }
+    public string? LicenseKey { get; private set; }
 
     public AuthService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
     {
@@ -23,6 +26,12 @@ public class AuthService
         {
             Timeout = TimeSpan.FromSeconds(15)
         };
+        _sessionFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Pramaan",
+            "auth_session.json");
+
+        LoadSession();
     }
 
     /// <summary>
@@ -45,6 +54,8 @@ public class AuthService
                 {
                     CurrentUser = result.User;
                     Token = result.Token;
+                    LicenseKey = null;
+                    SaveSession();
                     return new LoginResult { Success = true, Message = "Login successful" };
                 }
             }
@@ -94,6 +105,8 @@ public class AuthService
                 {
                     CurrentUser = result.User;
                     Token = result.Token;
+                    LicenseKey = licenseKey;
+                    SaveSession();
                     return new LoginResult { Success = true, Message = "License Login successful" };
                 }
             }
@@ -130,6 +143,8 @@ public class AuthService
     {
         CurrentUser = null;
         Token = null;
+        LicenseKey = null;
+        ClearSession();
     }
 
     /// <summary>
@@ -137,6 +152,81 @@ public class AuthService
     /// Returns null if not logged in.
     /// </summary>
     public int? GetTechnicianId() => CurrentUser?.Id;
+
+    private void SaveSession()
+    {
+        try
+        {
+            if (CurrentUser == null || string.IsNullOrWhiteSpace(Token))
+                return;
+
+            var directory = Path.GetDirectoryName(_sessionFilePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var payload = new AuthSessionRecord
+            {
+                Token = Token!,
+                User = CurrentUser,
+                LicenseKey = LicenseKey
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            File.WriteAllText(_sessionFilePath, json);
+        }
+        catch
+        {
+            // Best-effort persistence; don't block login flow.
+        }
+    }
+
+    private void LoadSession()
+    {
+        try
+        {
+            if (!File.Exists(_sessionFilePath))
+                return;
+
+            var json = File.ReadAllText(_sessionFilePath);
+            var payload = JsonSerializer.Deserialize<AuthSessionRecord>(json);
+            if (payload?.User == null || string.IsNullOrWhiteSpace(payload.Token))
+                return;
+
+            CurrentUser = payload.User;
+            Token = payload.Token;
+            LicenseKey = payload.LicenseKey;
+        }
+        catch
+        {
+            CurrentUser = null;
+            Token = null;
+            LicenseKey = null;
+        }
+    }
+
+    private void ClearSession()
+    {
+        try
+        {
+            if (File.Exists(_sessionFilePath))
+            {
+                File.Delete(_sessionFilePath);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup failures.
+        }
+    }
+}
+
+internal sealed class AuthSessionRecord
+{
+    public string Token { get; set; } = "";
+    public UserInfo User { get; set; } = new();
+    public string? LicenseKey { get; set; }
 }
 
 public class LoginResult

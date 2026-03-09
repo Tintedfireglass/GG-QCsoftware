@@ -24,46 +24,52 @@ export default function MachinesPage() {
         load()
     }, [])
 
-    if (loading) return <div className="p-8 text-center">Loading machines...</div>
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading machines...</div>
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight">Registered Machines</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Registered Machines</h1>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {machines.map((machine) => (
-                    <Card key={machine.id}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                {machine.machine_id}
-                            </CardTitle>
-                            <Monitor className="h-4 w-4 text-slate-500" />
-                        </CardHeader>
-                        <CardContent className="mt-4">
-                            <div className="text-2xl font-bold mb-1">
-                                {machine.test_count} <span className="text-sm font-normal text-slate-500">Tests</span>
+                    <Card key={machine.id} className="shadow-none border border-slate-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                                    <Monitor className="h-5 w-5 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base font-semibold text-slate-900">
+                                        {machine.machine_id}
+                                    </CardTitle>
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                        Last seen: {formatDbDate(machine.last_seen)}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex gap-4 text-xs mt-2 mb-4">
-                                <div className="flex items-center text-green-600">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    {machine.passed_count} Pass
-                                </div>
-                                <div className="flex items-center text-red-600">
-                                    <XCircle className="h-3 w-3 mr-1" />
-                                    {machine.failed_count} Fail
-                                </div>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm text-slate-500">Serial no.</div>
+                                <div className="text-sm font-medium text-slate-900">{machine.serial_number || "N/A"}</div>
                             </div>
 
-                            <div className="space-y-1 pt-4 border-t text-xs text-slate-500">
-                                <div className="flex justify-between">
-                                    <span>Last Seen:</span>
-                                    <span className="font-medium text-slate-900">
-                                        {formatDbDate(machine.last_seen)}
-                                    </span>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="text-2xl font-bold text-slate-900 leading-none">
+                                        {machine.test_count}
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-1">Total Tests</div>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span>Serial:</span>
-                                    <span className="font-mono">{machine.serial_number || "N/A"}</span>
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium">
+                                        <CheckCircle className="h-4 w-4" />
+                                        {machine.passed_count}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 text-sm font-medium">
+                                        <XCircle className="h-4 w-4" />
+                                        {machine.failed_count}
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>

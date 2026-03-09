@@ -4,7 +4,7 @@ import { query } from '@/lib/db';
 import { extractBearerToken, verifyCustomerToken } from '@/lib/customer-auth';
 import { getPlanPriceCents } from '@/lib/license-key';
 
-type Plan = 'monthly' | 'yearly' | 'lifetime';
+type Plan = 'one_time';
 const CHECKOUT_SECRET = process.env.CUSTOMER_CHECKOUT_SECRET || process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET || 'checkout-secret-change-in-production';
 
 export async function POST(request: NextRequest) {
@@ -19,14 +19,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Authentication Error', message: 'Invalid token' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const plan = String(body?.plan || '') as Plan;
-        const validPlans: Plan[] = ['monthly', 'yearly', 'lifetime'];
-        if (!validPlans.includes(plan)) {
-            return NextResponse.json({ error: 'Validation Error', message: 'Invalid plan' }, { status: 400 });
-        }
+        const plan: Plan = 'one_time';
 
-        const amountCents = getPlanPriceCents(plan);
+        const amountCents = getPlanPriceCents();
         const currency = String(process.env.B2C_CURRENCY || 'INR').toUpperCase();
 
         const inserted = await query<{ id: number }>(

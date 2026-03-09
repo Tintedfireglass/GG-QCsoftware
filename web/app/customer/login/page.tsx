@@ -44,7 +44,7 @@ export default function CustomerLoginPage() {
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle>Customer Login</CardTitle>
-                    <CardDescription>Sign in to view your licenses and subscriptions.</CardDescription>
+                    <CardDescription>Sign in to view your license purchases.</CardDescription>
                 </CardHeader>
                 <form onSubmit={onSubmit}>
                     <CardContent className="space-y-3">

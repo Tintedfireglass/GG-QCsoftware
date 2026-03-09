@@ -89,7 +89,9 @@ public class QCSubmissionService
             {
                 Manufacturer = report.SystemInfo?.Manufacturer,
                 Model = report.SystemInfo?.Model,
-                SerialNumber = report.SystemInfo?.SerialNumber,
+                SerialNumber = MachineIdentityService.IsUsableHardwareSerial(report.SystemInfo?.SerialNumber)
+                    ? report.SystemInfo?.SerialNumber
+                    : MachineIdentityService.BuildFallbackSerial(report.SystemInfo?.MacAddress ?? report.MacAddress, report.SystemInfo?.ComputerName),
                 MacAddress = report.MacAddress,
                 DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,

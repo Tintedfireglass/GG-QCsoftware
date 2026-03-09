@@ -26,7 +26,18 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Show activation dialog
+            // Show WiFi test popup first
+            var wifiTest = new WifiTestWindow
+            {
+                Owner = this
+            };
+            var wifiResult = wifiTest.ShowDialog();
+
+            // If internet not connected, don't proceed to activation
+            if (wifiResult != true)
+                return;
+
+            // Then show activation dialog
             var loginWindow = new LoginWindow(App.AuthService)
             {
                 Owner = this

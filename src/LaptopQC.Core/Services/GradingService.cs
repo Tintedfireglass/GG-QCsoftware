@@ -204,9 +204,19 @@ public class GradingService
         if (msg.Contains("CRITICAL"))  return 10;
         if (msg.Contains("FAIL"))      return 30;
         if (msg.Contains("WARNING"))   return 55;
-        if (msg.Contains("PASS"))      return 85;
 
-        return result.Passed ? 80 : 25;
+        // If stress pass details include almost no clock drop, treat as top-tier CPU behavior.
+        var smallestDrop = result.Details
+            .Select(d => Regex.Match(d, @"\((\d+)% drop\)"))
+            .Where(m => m.Success)
+            .Select(m => int.TryParse(m.Groups[1].Value, out int drop) ? drop : 100)
+            .DefaultIfEmpty(100)
+            .Min();
+
+        if (result.Passed && smallestDrop <= 5) return 100;
+        if (msg.Contains("PASS"))      return 90;
+
+        return result.Passed ? 90 : 25;
     }
 
     /// <summary>GPU: scored by temp/throttle. Null if no discrete GPU.</summary>

@@ -9,11 +9,11 @@ import {
     ClipboardList,
     Monitor,
     LogOut,
-    Laptop,
     Users,
     UserPlus,
     Shield,
-    Key
+    Key,
+    Check
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -82,14 +82,15 @@ export function Sidebar() {
     }
 
     return (
-        <div className="flex h-screen w-64 flex-col border-r bg-slate-900 text-white">
-            <div className="flex h-16 items-center px-6 border-b border-slate-800">
-                <Laptop className="h-6 w-6 mr-2 text-blue-400" />
-                <span className="font-bold text-lg">LaptopQC</span>
+        <div className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white text-slate-700">
+            <div className="flex h-20 items-center px-6 border-b border-transparent">
+                <div className="flex items-center gap-1 font-bold text-xl tracking-wider text-slate-900">
+                    P R A M <span className="text-[var(--brand-purple)] flex items-center"><Check strokeWidth={4} className="h-5 w-5 -mr-1" /> A A N</span>
+                </div>
             </div>
 
             <div className="flex-1 py-4">
-                <nav className="space-y-1 px-2">
+                <nav className="space-y-2 px-4">
                     {visibleLinks.map((link) => {
                         const Icon = link.icon
                         const isActive = pathname === link.href ||
@@ -101,11 +102,11 @@ export function Sidebar() {
                                 className={cn(
                                     "flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",
                                     isActive
-                                        ? "bg-blue-600 text-white"
-                                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                        ? "bg-[var(--brand-purple)] text-white shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                 )}
                             >
-                                <Icon className="mr-3 h-5 w-5" />
+                                <Icon className={cn("mr-3 h-5 w-5", isActive ? "text-white" : "text-slate-400")} />
                                 {link.label}
                             </Link>
                         )
@@ -113,31 +114,30 @@ export function Sidebar() {
                 </nav>
             </div>
 
-            <div className="border-t border-slate-800 p-4">
+            <div className="p-4 border-t border-slate-100">
                 <div className="flex items-center mb-4 px-2">
                     <div className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold",
+                        "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold text-white",
                         getRoleBadgeColor()
                     )}>
                         {user?.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="ml-3 flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{user?.display_name || user?.username}</p>
+                        <p className="text-sm font-medium text-slate-900 truncate">{user?.display_name || user?.username}</p>
                         <div className="flex items-center gap-1">
                             <Shield className="h-3 w-3 text-slate-400" />
-                            <p className="text-xs text-slate-400">{getRoleDisplayName()}</p>
+                            <p className="text-xs text-slate-500">{getRoleDisplayName()}</p>
                         </div>
                     </div>
                 </div>
                 <button
                     onClick={logout}
-                    className="flex w-full items-center px-2 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-md transition-colors"
+                    className="flex w-full items-center px-2 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 rounded-md transition-colors"
                 >
-                    <LogOut className="mr-3 h-5 w-5" />
+                    <LogOut className="mr-3 h-5 w-5 text-slate-400" />
                     Sign Out
                 </button>
             </div>
         </div>
     )
 }
-

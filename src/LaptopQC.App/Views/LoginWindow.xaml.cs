@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Management;
 using LaptopQC.Core.Services;
+using System.Net.NetworkInformation;
 
 namespace LaptopQC.App.Views;
 
@@ -93,15 +94,31 @@ public partial class LoginWindow : Window
             foreach (ManagementBaseObject obj in searcher.Get())
             {
                 var serial = obj["SerialNumber"]?.ToString()?.Trim();
-                if (!string.IsNullOrEmpty(serial) && serial != "Default string")
+                if (MachineIdentityService.IsUsableHardwareSerial(serial))
                 {
-                    return serial;
+                    return serial!;
                 }
             }
         }
         catch { /* Ignore WMI errors */ }
-        
-        return "UNKNOWN_SERIAL_" + Environment.MachineName;
+
+        try
+        {
+            var networkMac = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .Select(n => n.GetPhysicalAddress()?.ToString())
+                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+
+            var fallback = MachineIdentityService.BuildFallbackSerial(networkMac, Environment.MachineName);
+            if (!string.IsNullOrWhiteSpace(fallback))
+            {
+                return fallback;
+            }
+        }
+        catch { /* Ignore adapter access failures */ }
+
+        return MachineIdentityService.BuildFallbackSerial(string.Empty, Environment.MachineName);
     }
 
     private void SkipButton_Click(object sender, RoutedEventArgs e)

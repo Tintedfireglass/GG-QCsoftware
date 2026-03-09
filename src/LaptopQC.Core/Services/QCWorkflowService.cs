@@ -77,13 +77,18 @@ public class QCWorkflowService
                 if (Report.SystemInfo != null)
                 {
                     Report.MacAddress = Report.SystemInfo.MacAddress;
+                    var identitySource = MachineIdentityService.GetBestIdentityKey(
+                        Report.SystemInfo.SerialNumber,
+                        Report.SystemInfo.MacAddress,
+                        Report.SystemInfo.ComputerName);
 
-                    // Prefer BIOS serial as stable identity; fallback to machine name/mac for edge cases.
-                    var identitySource = !string.IsNullOrWhiteSpace(Report.SystemInfo.SerialNumber)
-                        ? Report.SystemInfo.SerialNumber
-                        : !string.IsNullOrWhiteSpace(Report.SystemInfo.ComputerName)
-                            ? Report.SystemInfo.ComputerName
-                            : Report.SystemInfo.MacAddress;
+                    // Keep serial stable in reports even for desktops that expose placeholder BIOS serials.
+                    if (!MachineIdentityService.IsUsableHardwareSerial(Report.SystemInfo.SerialNumber))
+                    {
+                        Report.SystemInfo.SerialNumber = MachineIdentityService.BuildFallbackSerial(
+                            Report.SystemInfo.MacAddress,
+                            Report.SystemInfo.ComputerName);
+                    }
 
                     Report.DeviceId = _deviceIdService.GetOrGenerateDeviceId(identitySource);
                 }

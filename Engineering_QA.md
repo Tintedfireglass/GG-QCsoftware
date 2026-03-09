@@ -51,29 +51,8 @@ The `GradingService` uses `TestDefinitions` (a registry of `ScoreFunc` delegates
 
 Two parallel scoring systems run simultaneously (`GradingService.GradeReport()`):
 
-#### System 1 — QC Grade (GradingService)
-12 weighted tests → weighted average → overall score → grade letter (A–F).
 
-| Test | Weight |
-|---|---|
-| Battery | 25% |
-| SMART (storage) | 20% |
-| CPU | 15% |
-| GPU | 10% |
-| Keyboard | 10% |
-| RAM | 5% |
-| Trackpad | 5% |
-| Storage | 4% |
-| USB | 4% |
-| Audio/Video | 4% |
-| Network | 3% |
-| Audio Jack | 2% |
-
-Formula: `OverallScore = Σ(score_i × weight_i) / Σ(weight_i)`
-
-Grade bands: A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 50, E > 0, F = 0.
-
-#### System 2 — PRAMAAN Health Score (PramaanScoringEngine)
+#### System — PRAMAAN Health Score (PramaanScoringEngine)
 6 categories → configurable weighted average → GradeBand (A+/A/B/C/Reject).
 
 | Category | Default Weight |
@@ -199,10 +178,8 @@ True **digital signatures** (e.g., RSA/ECDSA with a certificate authority) are n
 ### 4. Can reports be exported in standard formats?
 
 **HTML is the current format.** Reports are saved as fully self-contained HTML files (A4 print layout, embedded CSS, base64-encoded QR code). This means:
-- ✅ **HTML** — supported natively
-- ✅ **PDF** — supported indirectly via browser print-to-PDF (the report has `@page { size: A4; }` CSS)
-- ❌ **PDF (programmatic)** — not implemented; would require a headless browser (e.g., Puppeteer) or a library like `itext7` or `QuestPDF`
-- ❌ **JSON/CSV/XML** — not implemented; the `SubmitQCResultRequest` DTO is JSON-serializable and could serve as the basis for a JSON export
+- **HTML** — supported natively
+- **PDF** — supported indirectly via browser print-to-PDF (the report has `@page { size: A4; }` CSS)
 
 ---
 

@@ -1,7 +1,6 @@
 "use client"
 
-import { Suspense, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,9 +15,6 @@ export default function CustomerRegisterPage() {
 }
 
 function CustomerRegisterContent() {
-    const searchParams = useSearchParams()
-    const selectedPlan = useMemo(() => searchParams.get("plan") || "yearly", [searchParams])
-
     const [fullName, setFullName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -48,7 +44,7 @@ function CustomerRegisterContent() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${registerData.token}`,
                 },
-                body: JSON.stringify({ plan: selectedPlan }),
+                body: JSON.stringify({}),
             })
             const checkoutData = await checkoutRes.json()
             if (!checkoutRes.ok) throw new Error(checkoutData.message || "Unable to start checkout")
@@ -65,7 +61,7 @@ function CustomerRegisterContent() {
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle>Create Customer Account</CardTitle>
-                    <CardDescription>Selected plan: <span className="font-medium capitalize">{selectedPlan}</span></CardDescription>
+                    <CardDescription>One-time license purchase: Rs.199</CardDescription>
                 </CardHeader>
                 <form onSubmit={onSubmit}>
                     <CardContent className="space-y-3">

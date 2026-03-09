@@ -99,28 +99,33 @@ public partial class MainViewModel : ObservableObject
     {
         if (!App.IsLoggedIn)
         {
-            // Show activation dialog instead
+            // Show WiFi test popup first
+            var wifiTest = new Views.WifiTestWindow
+            {
+                Owner = App.Current.MainWindow
+            };
+            var wifiResult = wifiTest.ShowDialog();
+
+            // If internet not connected, don't proceed to activation
+            if (wifiResult != true)
+                return;
+
+            // Then show activation popup
             var loginWindow = new Views.LoginWindow(App.AuthService)
             {
                 Owner = App.Current.MainWindow
             };
-            
-            var result = loginWindow.ShowDialog();
-            
-            // Re-evaluate Auth State for both XAML-bound sections and top activation badge.
-            if (App.Current.MainWindow is MainWindow mainWindow)
+            loginWindow.ShowDialog();
+
+            // Refresh activation UI on the main window
+            if (App.Current.MainWindow is MainWindow mainWin)
             {
-                mainWindow.RefreshActivationUi();
+                mainWin.RefreshActivationUi();
             }
-            else
-            {
-                RefreshLoginState();
-            }
-            
-            if (result != true)
-            {
+
+            // If still not activated after login attempt, don't open QC wizard
+            if (!App.IsLoggedIn)
                 return;
-            }
         }
 
         var wizard = new Views.QCWizardWindow
