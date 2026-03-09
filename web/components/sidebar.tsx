@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
@@ -12,8 +13,7 @@ import {
     Users,
     UserPlus,
     Shield,
-    Key,
-    Check
+    Key
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -84,9 +84,7 @@ export function Sidebar() {
     return (
         <div className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white text-slate-700">
             <div className="flex h-20 items-center px-6 border-b border-transparent">
-                <div className="flex items-center gap-1 font-bold text-xl tracking-wider text-slate-900">
-                    P R A M <span className="text-[var(--brand-purple)] flex items-center"><Check strokeWidth={4} className="h-5 w-5 -mr-1" /> A A N</span>
-                </div>
+                <Image src="/Pramaan_logo_F1.png" alt="PRAMAAN Logo" width={160} height={36} className="w-auto h-8 object-contain" />
             </div>
 
             <div className="flex-1 py-4">

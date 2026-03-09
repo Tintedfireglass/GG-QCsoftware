@@ -23,7 +23,6 @@ public class QCWorkflowService
     private readonly IBatteryDiagnostic _batteryDiagnostic;
     private readonly IDeviceDiagnostic _deviceDiagnostic;
     private readonly ISmartTestService _smartTestService;
-    private readonly DeviceIdService _deviceIdService;
     private readonly GradingService _gradingService;
 
     public QCReport Report { get; private set; } = new();
@@ -48,7 +47,6 @@ public class QCWorkflowService
         _batteryDiagnostic = batteryDiagnostic;
         _deviceDiagnostic = deviceDiagnostic;
         _smartTestService = smartTestService;
-        _deviceIdService = new DeviceIdService();
         _gradingService = new GradingService();
     }
 
@@ -90,7 +88,8 @@ public class QCWorkflowService
                             Report.SystemInfo.ComputerName);
                     }
 
-                    Report.DeviceId = _deviceIdService.GetOrGenerateDeviceId(identitySource);
+                    // DeviceId is now allocated server-side during license activation.
+                    // It will be set by the caller (MainWindow) from AuthService.MachineId.
                 }
             });
             

@@ -75,6 +75,11 @@ public partial class App : Application
     /// Check if a user is logged in
     /// </summary>
     public static bool IsLoggedIn => AuthService.IsLoggedIn;
+    
+    /// <summary>
+    /// Server-allocated Machine ID (null if not activated via license)
+    /// </summary>
+    public static int? MachineId => AuthService.MachineId;
 
     protected override void OnStartup(StartupEventArgs e)
     {

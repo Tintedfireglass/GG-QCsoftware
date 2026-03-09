@@ -451,7 +451,13 @@ public partial class QCWizardViewModel : ObservableObject
         // Now logged in - submit to API
         var technicianId = App.TechnicianId;
         SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
-        
+
+        // Set the server-allocated Machine ID on the report before submission
+        if (App.MachineId.HasValue)
+        {
+            report.DeviceId = App.MachineId.Value;
+        }
+
         var success = await _submissionService.SubmitReportAsync(report, technicianId);
         
         if (success)

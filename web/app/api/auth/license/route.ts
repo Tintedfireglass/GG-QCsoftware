@@ -4,10 +4,73 @@ import { PoolClient } from 'pg';
 import { generateToken } from '@/lib/auth';
 import { ApiError, LoginResponse } from '@/lib/types';
 
+/**
+ * Build a deterministic hardware fingerprint from serial + MAC + hostname.
+ * Used to uniquely identify a physical machine across activations.
+ */
+function buildFingerprint(serial: string, mac?: string, hostname?: string): string {
+    const parts: string[] = [serial.trim().toUpperCase()];
+    if (mac) parts.push(mac.replace(/[^a-zA-Z0-9]/g, '').toUpperCase());
+    if (hostname) parts.push(hostname.trim().toUpperCase());
+    return parts.join('|');
+}
+
+/**
+ * Find or create a machine row in the DB. Returns the machine's numeric ID.
+ * Machine IDs start at 3000001 (configured via DB sequence).
+ */
+async function findOrCreateMachine(
+    client: PoolClient,
+    fingerprint: string,
+    serial: string,
+    macAddress?: string,
+    computerName?: string
+): Promise<number> {
+    // Try to find existing machine by fingerprint
+    const existing = await client.query(
+        'SELECT id FROM machines WHERE hardware_fingerprint = $1',
+        [fingerprint]
+    );
+
+    if (existing.rows.length > 0) {
+        // Update last_seen
+        await client.query(
+            'UPDATE machines SET last_seen = NOW() WHERE id = $1',
+            [existing.rows[0].id]
+        );
+        return existing.rows[0].id;
+    }
+
+    // Also check by machine_id field (legacy: might have been created by old QC submission)
+    const legacyMatch = await client.query(
+        'SELECT id FROM machines WHERE machine_id = $1 AND hardware_fingerprint IS NULL',
+        [serial]
+    );
+
+    if (legacyMatch.rows.length > 0) {
+        // Backfill fingerprint on legacy row
+        await client.query(
+            'UPDATE machines SET hardware_fingerprint = $1, computer_name = $2, last_seen = NOW() WHERE id = $3',
+            [fingerprint, computerName || null, legacyMatch.rows[0].id]
+        );
+        return legacyMatch.rows[0].id;
+    }
+
+    // Create new machine — the DB sequence starts at 3000001
+    const insertRes = await client.query(
+        `INSERT INTO machines (machine_id, serial_number, mac_address, computer_name, hardware_fingerprint, last_seen)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         RETURNING id`,
+        [serial, serial, macAddress || null, computerName || null, fingerprint]
+    );
+
+    return insertRes.rows[0].id;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { licenseKey, machineSerial } = body;
+        const { licenseKey, machineSerial, macAddress, computerName } = body;
 
         if (!licenseKey || !machineSerial) {
             return NextResponse.json(
@@ -16,7 +79,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        let loginResponse: LoginResponse | null = null;
+        const fingerprint = buildFingerprint(machineSerial, macAddress, computerName);
+
+        let loginResponse: (LoginResponse & { machineId?: number }) | null = null;
 
         await transaction(async (client: PoolClient) => {
             // 1. Fetch the license key
@@ -48,25 +113,27 @@ export async function POST(request: NextRequest) {
             const isAlreadyActivated = activationRes.rows.length > 0;
 
             if (!isAlreadyActivated) {
-                // Must activate. Check if there are uses remaining
                 if (license.current_uses >= license.max_uses) {
                     throw new Error('This license key has reached its maximum machine activation limit');
                 }
 
-                // Insert activation
                 await client.query(
                     'INSERT INTO license_key_activations (license_key_id, machine_serial) VALUES ($1, $2)',
                     [license.id, machineSerial]
                 );
 
-                // Increment current_uses
                 await client.query(
                     'UPDATE license_keys SET current_uses = current_uses + 1 WHERE id = $1',
                     [license.id]
                 );
             }
 
-            // 3. For customer-owned (B2C) keys, issue a restricted device token
+            // 3. Find or create machine → allocate server-side Machine ID
+            const machineId = await findOrCreateMachine(
+                client, fingerprint, machineSerial, macAddress, computerName
+            );
+
+            // 4. For customer-owned (B2C) keys, issue a restricted device token
             if (license.customer_user_id) {
                 const customerRes = await client.query(
                     'SELECT id, email, is_active FROM customer_users WHERE id = $1',
@@ -79,7 +146,7 @@ export async function POST(request: NextRequest) {
 
                 const customer = customerRes.rows[0];
                 const deviceToken = generateToken({
-                    userId: -Math.abs(customer.id), // Keep out of users-table id space
+                    userId: -Math.abs(customer.id),
                     username: customer.email,
                     role: 'B2CDevice',
                     scope: 'license_device',
@@ -92,12 +159,13 @@ export async function POST(request: NextRequest) {
                         id: -Math.abs(customer.id),
                         username: customer.email,
                         role: 'B2CDevice',
-                    }
+                    },
+                    machineId,
                 };
                 return;
             }
 
-            // 3. Login successful. Get the creator of the key to issue a token on their behalf
+            // 5. Login successful — issue token for the license key creator
             const creatorRes = await client.query(
                 'SELECT id, username, role FROM users WHERE id = $1',
                 [license.created_by]
@@ -109,7 +177,6 @@ export async function POST(request: NextRequest) {
 
             const creator = creatorRes.rows[0];
 
-            // Generate token representing the creator
             const token = generateToken({
                 userId: creator.id,
                 username: creator.username,
@@ -122,7 +189,8 @@ export async function POST(request: NextRequest) {
                     id: creator.id,
                     username: creator.username,
                     role: creator.role,
-                }
+                },
+                machineId,
             };
         });
 

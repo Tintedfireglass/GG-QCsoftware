@@ -18,6 +18,7 @@ public class AuthService
     public UserInfo? CurrentUser { get; private set; }
     public string? Token { get; private set; }
     public string? LicenseKey { get; private set; }
+    public int? MachineId { get; private set; }
 
     public AuthService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
     {
@@ -86,16 +87,19 @@ public class AuthService
     }
 
     /// <summary>
-    /// Attempt to login with a 16-digit license key and lock it to this machine's serial number.
+    /// Attempt to login with a 16-digit license key and lock it to this machine's hardware fingerprint.
+    /// The server allocates a unique Machine ID and returns it.
     /// </summary>
-    public async Task<LoginResult> LoginWithLicenseAsync(string licenseKey, string machineSerial)
+    public async Task<LoginResult> LoginWithLicenseAsync(string licenseKey, string machineSerial, string? macAddress = null, string? computerName = null)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/auth/license", new
             {
                 licenseKey = licenseKey,
-                machineSerial = machineSerial
+                machineSerial = machineSerial,
+                macAddress = macAddress,
+                computerName = computerName
             });
 
             if (response.IsSuccessStatusCode)
@@ -106,6 +110,7 @@ public class AuthService
                     CurrentUser = result.User;
                     Token = result.Token;
                     LicenseKey = licenseKey;
+                    MachineId = result.MachineId;
                     SaveSession();
                     return new LoginResult { Success = true, Message = "License Login successful" };
                 }
@@ -144,6 +149,7 @@ public class AuthService
         CurrentUser = null;
         Token = null;
         LicenseKey = null;
+        MachineId = null;
         ClearSession();
     }
 
@@ -170,7 +176,8 @@ public class AuthService
             {
                 Token = Token!,
                 User = CurrentUser,
-                LicenseKey = LicenseKey
+                LicenseKey = LicenseKey,
+                MachineId = MachineId
             };
 
             var json = JsonSerializer.Serialize(payload);
@@ -197,12 +204,14 @@ public class AuthService
             CurrentUser = payload.User;
             Token = payload.Token;
             LicenseKey = payload.LicenseKey;
+            MachineId = payload.MachineId;
         }
         catch
         {
             CurrentUser = null;
             Token = null;
             LicenseKey = null;
+            MachineId = null;
         }
     }
 
@@ -227,6 +236,7 @@ internal sealed class AuthSessionRecord
     public string Token { get; set; } = "";
     public UserInfo User { get; set; } = new();
     public string? LicenseKey { get; set; }
+    public int? MachineId { get; set; }
 }
 
 public class LoginResult
@@ -242,6 +252,9 @@ public class LoginResponse
     
     [JsonPropertyName("user")]
     public UserInfo User { get; set; } = new();
+
+    [JsonPropertyName("machineId")]
+    public int? MachineId { get; set; }
 }
 
 public class UserInfo

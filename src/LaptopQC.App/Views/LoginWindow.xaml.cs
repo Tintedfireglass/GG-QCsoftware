@@ -13,6 +13,7 @@ public partial class LoginWindow : Window
     public bool IsLoggedIn => _authService.IsLoggedIn;
     public UserInfo? LoggedInUser => _authService.CurrentUser;
     public int? TechnicianId => _authService.GetTechnicianId();
+    public int? MachineId => _authService.MachineId;
 
     public LoginWindow(AuthService authService)
     {
@@ -56,8 +57,22 @@ public partial class LoginWindow : Window
                 ShowError("Error: Could not retrieve machine serial number. Required for node-locking.");
                 return;
             }
-            
-            LoginResult result = await _authService.LoginWithLicenseAsync(license, machineSerial);
+
+            // Collect MAC address and computer name for server-side Machine ID allocation
+            string? macAddress = null;
+            try
+            {
+                macAddress = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                                n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                    .Select(n => n.GetPhysicalAddress()?.ToString())
+                    .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+            }
+            catch { /* Ignore MAC retrieval failures */ }
+
+            string computerName = Environment.MachineName;
+
+            LoginResult result = await _authService.LoginWithLicenseAsync(license, machineSerial, macAddress, computerName);
 
             if (result.Success)
             {
