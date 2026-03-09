@@ -1,230 +1,318 @@
-'use client';
+"use client"
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/components/auth-provider';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react"
+import { useAuth } from "@/components/auth-provider"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Wand2, Search, CheckCircle2, Copy, X } from "lucide-react"
 
 interface LicenseKey {
-    id: number;
-    key: string;
-    type: string;
-    max_uses: number;
-    current_uses: number;
-    is_active: boolean;
-    expires_at: string | null;
-    created_at: string;
-    activations_count: string;
+    id: number
+    key: string
+    type: string
+    max_uses: number
+    current_uses: number
+    is_active: boolean
+    expires_at: string | null
+    created_at: string
+    activations_count: string
 }
 
 export default function LicensesPage() {
-    const { user, token } = useAuth();
-    const router = useRouter();
+    const { user, token } = useAuth()
+    const router = useRouter()
 
-    const [keys, setKeys] = useState<LicenseKey[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [successMsg, setSuccessMsg] = useState('');
+    const [keys, setKeys] = useState<LicenseKey[]>([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState("")
 
-    // Form states
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [newType, setNewType] = useState('single_use');
-    const [newMaxUses, setNewMaxUses] = useState(1);
+    // Modal States
+    const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+
+    // Generation Form States
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [newType, setNewType] = useState("single_use")
+    const [newMaxUses, setNewMaxUses] = useState("1")
+    const [generatedKeyString, setGeneratedKeyString] = useState("")
+    const [generateError, setGenerateError] = useState("")
 
     useEffect(() => {
         if (!user) {
-            router.push('/login');
-            return;
+            router.push("/login")
+            return
         }
-        if (user.role !== 'Admin' && user.role !== 'SuperAdmin') {
-            router.push('/dashboard');
-            return;
+        if (user.role !== "Admin" && user.role !== "SuperAdmin") {
+            router.push("/dashboard")
+            return
         }
-        fetchKeys();
-    }, [user, router]);
+        fetchKeys()
+    }, [user, router])
 
     const fetchKeys = async () => {
         try {
-            setLoading(true);
-            const res = await fetch('/api/licenses', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            setLoading(true)
+            const res = await fetch("/api/licenses", {
+                headers: { Authorization: `Bearer ${token}` }
+            })
             if (res.ok) {
-                const data = await res.json();
-                setKeys(data.keys);
-            } else {
-                setError('Failed to fetch license keys.');
+                const data = await res.json()
+                setKeys(data.keys)
             }
         } catch (err) {
-            setError('Error connecting to the server.');
+            console.error("Error connecting to the server.", err)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
-    const handleGenerate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setSuccessMsg('');
-        setIsGenerating(true);
+    const handleGenerate = async () => {
+        setGenerateError("")
+        setIsGenerating(true)
 
         try {
-            const res = await fetch('/api/licenses', {
-                method: 'POST',
+            const res = await fetch("/api/licenses", {
+                method: "POST",
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     type: newType,
-                    max_uses: newMaxUses
+                    max_uses: parseInt(newMaxUses)
                 })
-            });
+            })
 
-            const data = await res.json();
+            const data = await res.json()
 
             if (res.ok) {
-                setSuccessMsg('License key generated successfully!');
-                fetchKeys(); // Refresh list
+                setGeneratedKeyString(data.key.key)
+                setIsGenerateModalOpen(false)     // Close generation modal
+                setIsSuccessModalOpen(true)       // Open success modal
+                fetchKeys()                       // Refresh list immediately
             } else {
-                setError(data.message || data.error || 'Failed to generate key.');
+                setGenerateError(data.message || data.error || "Failed to generate key.")
             }
         } catch (err) {
-            setError('Server error while generating key.');
+            setGenerateError("Server error while generating key.")
         } finally {
-            setIsGenerating(false);
+            setIsGenerating(false)
         }
-    };
+    }
 
     const handleCopy = (keyString: string) => {
-        navigator.clipboard.writeText(keyString);
-        alert('Copied to clipboard!');
-    };
+        navigator.clipboard.writeText(keyString)
+        alert("Copied to clipboard!")
+    }
 
-    if (loading) return <div className="p-8">Loading licenses...</div>;
+    // Filter keys
+    const filteredKeys = keys.filter(k => k.key.toLowerCase().includes(search.toLowerCase()))
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading licenses...</div>
 
     return (
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900">License Management</h1>
-                </div>
+        <div className="space-y-6 max-w-[1200px]">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">License management</h1>
+                <p className="text-slate-500 text-sm mt-1">View all the registered machines and their details</p>
+            </div>
 
-                {error && <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6"><p className="text-sm text-red-700">{error}</p></div>}
-                {successMsg && <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6"><p className="text-sm text-green-700">{successMsg}</p></div>}
+            <div className="pt-2">
+                <Button
+                    className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white px-6 h-11 rounded-lg font-medium shadow-sm transition-colors"
+                    onClick={() => {
+                        setNewType("single_use")
+                        setNewMaxUses("1")
+                        setGenerateError("")
+                        setIsGenerateModalOpen(true)
+                    }}
+                >
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Generate License Key
+                </Button>
+            </div>
 
-                {/* Generation Form */}
-                <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-8">
-                    <div className="md:grid md:grid-cols-3 md:gap-6">
-                        <div className="md:col-span-1">
-                            <h3 className="text-lg font-medium leading-6 text-gray-900">Generate New License Key</h3>
-                            <p className="mt-1 text-sm text-gray-500">Create a 16-digit code for Desktop Application login.</p>
+            <div className="bg-white rounded-xl border border-slate-200 mt-8">
+                <div className="p-6 flex items-center justify-between border-b border-slate-100">
+                    <h2 className="text-xl font-bold text-slate-900">Active License Keys</h2>
 
-                            {user?.role === 'Admin' && (
-                                <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-200">
-                                    <span className="font-semibold">Note:</span> Generating bulk keys will subtract credits from your account capacity.
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-5 md:mt-0 md:col-span-2">
-                            <form onSubmit={handleGenerate}>
-                                <div className="grid grid-cols-6 gap-6">
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">License Type</label>
-                                        <select
-                                            id="type"
-                                            value={newType}
-                                            onChange={(e) => {
-                                                setNewType(e.target.value);
-                                                if (e.target.value === 'single_use') setNewMaxUses(1);
-                                            }}
-                                            className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                        >
-                                            <option value="single_use">Single Use (1 Device)</option>
-                                            <option value="bulk">Bulk (Multiple Devices)</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="col-span-6 sm:col-span-3">
-                                        <label htmlFor="max_uses" className="block text-sm font-medium text-gray-700">Max Device Activations</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            id="max_uses"
-                                            disabled={newType === 'single_use'}
-                                            value={newMaxUses}
-                                            onChange={(e) => setNewMaxUses(parseInt(e.target.value) || 1)}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        type="submit"
-                                        disabled={isGenerating}
-                                        className="bg-indigo-600 border border-transparent rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                                    >
-                                        {isGenerating ? 'Generating...' : 'Generate License Key'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                            placeholder="Search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-9 w-[250px] bg-white border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                        />
                     </div>
                 </div>
 
-                {/* Keys List */}
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">Active License Keys</h3>
-                    </div>
-                    {keys.length === 0 ? (
-                        <div className="p-6 text-center text-gray-500">No license keys found. Generate one above.</div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License Key</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activations (Uses / Max)</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <div className="relative w-full overflow-auto">
+                    <table className="w-full caption-bottom text-sm text-left">
+                        <thead className="[&_tr]:border-b border-slate-200 bg-white">
+                            <tr className="border-b transition-colors hover:bg-slate-50/50">
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900">License Key</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px]">Type</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px]">Activation (Uses /Max)</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px]">Status</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="[&_tr:last-child]:border-0">
+                            {filteredKeys.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="p-8 text-center text-slate-500">
+                                        No license keys found. Generate one above.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredKeys.map((k) => (
+                                    <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
+                                        <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
+                                            {k.key}
+                                        </td>
+                                        <td className="p-6 align-middle text-center">
+                                            <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
+                                                {k.type === "bulk" ? "Bulk" : "Single use"}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 align-middle text-center text-slate-600">
+                                            {k.current_uses}/{k.max_uses}
+                                        </td>
+                                        <td className="p-6 align-middle text-center">
+                                            {k.is_active ? (
+                                                k.current_uses >= k.max_uses ? (
+                                                    <span className="text-rose-500 text-sm font-medium">Exhausted</span>
+                                                ) : (
+                                                    <span className="text-emerald-500 text-sm font-medium">Active</span>
+                                                )
+                                            ) : (
+                                                <span className="text-rose-500 text-sm font-medium">Revoked</span>
+                                            )}
+                                        </td>
+                                        <td className="p-6 align-middle text-right">
+                                            <Button
+                                                variant="outline"
+                                                className="rounded-full px-6 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9"
+                                                onClick={() => handleCopy(k.key)}
+                                            >
+                                                Copy
+                                            </Button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {keys.map((k) => (
-                                        <tr key={k.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-mono text-gray-900 font-bold tracking-wider">{k.key}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${k.type === 'bulk' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                                                    {k.type === 'bulk' ? 'Bulk' : 'Single Use'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {k.current_uses} / {k.max_uses}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {k.is_active ?
-                                                    (k.current_uses >= k.max_uses ?
-                                                        <span className="text-red-600 font-semibold text-sm">Exhausted</span> :
-                                                        <span className="text-green-600 font-semibold text-sm">Active</span>)
-                                                    : <span className="text-red-600 font-semibold text-sm">Revoked</span>
-                                                }
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button onClick={() => handleCopy(k.key)} className="text-indigo-600 hover:text-indigo-900 mr-4">
-                                                    Copy
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+
+            {/* GENERATE MODAL */}
+            {isGenerateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-[500px] p-8 rounded-2xl shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setIsGenerateModalOpen(false)}
+                            className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Generate new License Key</h2>
+                            <p className="text-slate-500 text-base mt-2">
+                                Create a 16-digit code for Desktop Application Login
+                            </p>
+                        </div>
+
+                        {generateError && (
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm">
+                                {generateError}
+                            </div>
+                        )}
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                    License Type
+                                </label>
+                                <select
+                                    value={newType}
+                                    onChange={(e) => {
+                                        setNewType(e.target.value)
+                                        if (e.target.value === "single_use") setNewMaxUses("1")
+                                    }}
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer"
+                                >
+                                    <option value="single_use">Single Use (1 Device)</option>
+                                    <option value="bulk">Bulk Use (Multi Device)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                    Max Device Activations
+                                </label>
+                                <select
+                                    value={newMaxUses}
+                                    onChange={(e) => setNewMaxUses(e.target.value)}
+                                    disabled={newType === "single_use"}
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                    {[1, 5, 10, 25, 50, 100].map(num => (
+                                        <option key={num} value={num.toString()}>
+                                            {num}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <Button
+                                className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
+                                onClick={handleGenerate}
+                                disabled={isGenerating}
+                            >
+                                {isGenerating ? "Generating..." : "Generate License Key"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SUCCESS MODAL */}
+            {isSuccessModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-[450px] p-8 pt-10 rounded-2xl shadow-xl text-center flex flex-col items-center relative animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setIsSuccessModalOpen(false)}
+                            className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <div className="mb-6 rounded-full bg-emerald-500 p-3 shadow-lg shadow-emerald-500/20">
+                            <CheckCircle2 className="h-10 w-10 text-white" strokeWidth={2.5} />
+                        </div>
+
+                        <h2 className="text-2xl font-bold text-slate-900 mb-6">
+                            License Key Generated
+                        </h2>
+
+                        <div className="w-full flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-4 shadow-sm relative group overflow-hidden">
+                            <div className="font-medium text-slate-600 tracking-wider text-lg">
+                                {generatedKeyString}
+                            </div>
+                            <button
+                                onClick={() => handleCopy(generatedKeyString)}
+                                className="text-slate-400 hover:text-[var(--brand-purple)] transition-colors p-2"
+                            >
+                                <Copy className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-    );
+    )
 }

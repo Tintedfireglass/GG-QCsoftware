@@ -137,7 +137,7 @@ function CustomerAccountContent() {
                             <CardDescription>Single purchase, no subscription renewal.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-semibold text-slate-900 mb-4">Rs.199</div>
+                            <div className="text-2xl font-semibold text-slate-900 mb-4">Rs.99</div>
                             <Button className="w-full md:w-auto" onClick={startCheckout} disabled={buying}>
                                 {buying ? "Redirecting..." : "Buy Now"}
                             </Button>

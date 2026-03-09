@@ -11,7 +11,7 @@ export default function CustomerLandingPage() {
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold tracking-tight text-slate-900">PRAMAAN for Individuals</h1>
                     <p className="mt-3 text-slate-600">
-                        One-time purchase. Pay Rs.199, receive your license key, and activate the desktop QC tool.
+                        One-time purchase. Pay Rs.99, receive your license key, and activate the desktop QC tool.
                     </p>
                     <div className="mt-6 flex justify-center gap-3">
                         <Link href="/customer/register"><Button>Create Account</Button></Link>
@@ -26,7 +26,7 @@ export default function CustomerLandingPage() {
                             <CardDescription>Single purchase, no renewal.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-semibold text-slate-900 mb-4">Rs.199 one-time</div>
+                            <div className="text-2xl font-semibold text-slate-900 mb-4">Rs.99 one-time</div>
                             <Link href="/customer/register">
                                 <Button className="w-full">Get Started</Button>
                             </Link>

@@ -9,7 +9,7 @@ export function generateRandomLicenseKey(): string {
 }
 
 export function getPlanPriceCents(): number {
-    return parseInt(process.env.B2C_ONE_TIME_CENTS || '19900', 10);
+    return parseInt(process.env.B2C_ONE_TIME_CENTS || '9900', 10);
 }
 
 export function getPlanExpiry(): Date | null {

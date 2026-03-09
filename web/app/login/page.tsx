@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 export default function LoginPage() {
     const [username, setUsername] = useState("")
@@ -44,24 +45,6 @@ export default function LoginPage() {
         <div className="flex min-h-screen w-full bg-white">
             {/* Left Section - Hero */}
             <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-slate-50 border-r border-slate-100">
-                <div className="max-w-xl">
-                    <h1 className="text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-8">
-                        Smart <span className="text-[var(--brand-purple)]">device health testing</span>
-                        <br />for reliable performance
-                    </h1>
-
-                    <div className="flex gap-4 mb-16">
-                        <div className="px-6 py-4 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] text-[var(--brand-purple)] font-medium text-sm flex-1 text-center border border-slate-100">
-                            Full QC
-                        </div>
-                        <div className="px-6 py-4 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] text-[var(--brand-purple)] font-medium text-sm flex-1 text-center border border-slate-100">
-                            Basic QC
-                        </div>
-                        <div className="px-6 py-4 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] text-[var(--brand-purple)] font-medium text-sm flex-1 text-center border border-slate-100">
-                            Stress Test
-                        </div>
-                    </div>
-                </div>
 
                 <div className="flex-1 relative flex items-center justify-center -mt-8">
                     <div className="relative w-full max-w-[500px] aspect-[4/3]">
@@ -81,9 +64,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-[400px]">
                     {/* Logo Area */}
                     <div className="mb-16">
-                        <div className="flex items-center gap-1 font-bold text-2xl tracking-wider text-slate-900">
-                            P R A M <span className="text-[var(--brand-purple)] flex items-center"><Check strokeWidth={4} className="h-6 w-6 -mr-1" /> A A N</span>
-                        </div>
+                        <Image src="/Pramaan_logo_F1.png" alt="PRAMAAN Logo" width={180} height={40} className="w-auto h-8 lg:h-10 object-contain" />
                     </div>
 
                     <div className="mb-8">
@@ -134,6 +115,15 @@ export default function LoginPage() {
                                 {loading ? "Signing in..." : "Next"}
                                 {!loading && <span className="ml-2 font-black text-lg">›</span>}
                             </Button>
+                        </div>
+
+                        <div className="pt-6 text-center">
+                            <p className="text-sm text-slate-500">
+                                Individual user?{" "}
+                                <Link href="/customer/login" className="text-[var(--brand-purple)] font-medium hover:underline">
+                                    Go to customer login
+                                </Link>
+                            </p>
                         </div>
                     </form>
                 </div>

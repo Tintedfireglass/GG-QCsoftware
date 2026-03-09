@@ -1,12 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Monitor, Calendar, CheckCircle, XCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Monitor, ExternalLink } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
 
 export default function MachinesPage() {
+    const router = useRouter()
     const [machines, setMachines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -61,16 +64,14 @@ export default function MachinesPage() {
                                     </div>
                                     <div className="text-xs text-slate-500 mt-1">Total Tests</div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium">
-                                        <CheckCircle className="h-4 w-4" />
-                                        {machine.passed_count}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 text-sm font-medium">
-                                        <XCircle className="h-4 w-4" />
-                                        {machine.failed_count}
-                                    </div>
-                                </div>
+                                <Button
+                                    variant="outline"
+                                    className="rounded-full px-5 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                    onClick={() => router.push(`/dashboard/machines/${machine.id}`)}
+                                >
+                                    View Latest Report
+                                    <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
