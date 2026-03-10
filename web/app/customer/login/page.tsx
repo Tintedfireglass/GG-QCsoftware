@@ -77,7 +77,7 @@ export default function CustomerLoginPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     disabled={loading}
                                     required
-                                    className="h-12 border-slate-300 rounded-lg focus-visible:ring-[var(--brand-purple)] text-base relative z-0"
+                                    className="h-12 border-slate-300 rounded-lg focus-visible:ring-[var(--brand-purple)] text-base text-slate-800 relative z-0"
                                 />
                             </div>
 
@@ -87,12 +87,11 @@ export default function CustomerLoginPage() {
                                 </label>
                                 <Input
                                     type="password"
-                                    placeholder="••••••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     disabled={loading}
                                     required
-                                    className="h-12 border-slate-300 rounded-lg focus-visible:ring-[var(--brand-purple)] text-base placeholder:text-slate-600 relative z-0 tracking-widest pt-2"
+                                    className="h-12 border-slate-300 rounded-lg focus-visible:ring-[var(--brand-purple)] text-base text-slate-800 relative z-0 tracking-widest pt-2"
                                 />
                             </div>
                         </div>
