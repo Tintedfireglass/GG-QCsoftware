@@ -44,18 +44,20 @@ export default function MachinesPage() {
                                 </div>
                                 <div>
                                     <CardTitle className="text-base font-semibold text-slate-900">
-                                        {machine.machine_id}
+                                        Device ID: {machine.id}
                                     </CardTitle>
-                                    <div className="text-xs text-slate-500 mt-0.5">
-                                        Last seen: {formatDbDate(machine.last_seen)}
+                                    <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={machine.computer_name || ""}>
+                                        {machine.computer_name ? `${machine.computer_name} • ` : ''}Seen {formatDbDate(machine.last_seen)}
                                     </div>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="pt-4">
                             <div className="flex items-center justify-between mb-4">
-                                <div className="text-sm text-slate-500">Serial no.</div>
-                                <div className="text-sm font-medium text-slate-900">{machine.serial_number || "N/A"}</div>
+                                <div className="text-sm text-slate-500">Hardware ID</div>
+                                <div className="text-sm font-medium text-slate-900 truncate max-w-[150px]" title={machine.serial_number || "N/A"}>
+                                    {machine.serial_number || "N/A"}
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between">
