@@ -59,7 +59,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-[400px]">
                     {/* Logo Area */}
                     <div className="mb-16">
-                        <Image src="/Pramaan_logo_F1.png" alt="PRAMAAN Logo" width={180} height={40} className="w-auto h-8 lg:h-10 object-contain" />
+                        <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={180} height={40} className="w-auto h-8 lg:h-10 object-contain" />
                     </div>
 
                     <div className="mb-8">

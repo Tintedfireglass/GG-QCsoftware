@@ -84,7 +84,7 @@ export function Sidebar() {
     return (
         <div className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white text-slate-700">
             <div className="flex h-20 items-center px-6 border-b border-transparent">
-                <Image src="/Pramaan_logo_F1.png" alt="PRAMAAN Logo" width={160} height={36} className="w-auto h-8 object-contain" />
+                <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={160} height={36} className="w-auto h-8 object-contain" />
             </div>
 
             <div className="flex-1 py-4">
