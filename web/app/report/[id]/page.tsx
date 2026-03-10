@@ -78,7 +78,13 @@ export default function DedicatedReportPage() {
                         <div className="font-mono text-xl">{data.machine_identifier}</div>
                     </div>
                     {data.health_id && (
-                        <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
+                        <div className="text-right">
+                            <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Health ID</div>
+                            <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{data.health_id}</div>
+                        </div>
+                    )}
+                    {data.health_id && (
+                        <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex flex-col items-center">
                             <QRCodeSVG
                                 value={`https://gg-qcsoftware.vercel.app/verify/${data.health_id}`}
                                 size={80}

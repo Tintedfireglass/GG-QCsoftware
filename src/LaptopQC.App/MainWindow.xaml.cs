@@ -63,7 +63,8 @@ public partial class MainWindow : Window
         if (App.IsLoggedIn)
         {
             UserStatusIcon.Text = "✓";
-            UserStatusText.Text = "Activated";
+            UserStatusText.Text = $"Device ID: {App.MachineId}";
+            UserStatusText.FontWeight = FontWeights.Bold;
             UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803d"));
             UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#dcfce7"));
             UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#bbf7d0"));

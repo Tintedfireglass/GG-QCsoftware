@@ -82,7 +82,9 @@ export default function ResultsPage() {
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Test ID</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[120px]">Health ID</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Status</th>
+
                                 {showTechnicianColumn && (
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Technician</th>
                                 )}
@@ -106,6 +108,13 @@ export default function ResultsPage() {
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                             <td className="p-4 align-middle font-medium text-slate-900">#{test.id}</td>
+                                            <td className="p-4 align-middle font-mono text-xs text-slate-500">
+                                                {test.health_id ? (
+                                                    <span title={test.health_id}>{test.health_id.split('-')[0]}&hellip;</span>
+                                                ) : (
+                                                    <span className="text-slate-300">—</span>
+                                                )}
+                                            </td>
                                             <td className="p-4 align-middle">
                                                 {test.pramaan_grade ? (() => {
                                                     const s = getGradeStyle(test.pramaan_grade);

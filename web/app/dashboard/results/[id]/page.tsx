@@ -80,6 +80,14 @@ export default function ResultDetailPage() {
                             <p className="text-slate-500">
                                 Machine: {data.machine_identifier}
                             </p>
+                            {data.health_id && (
+                                <p className="text-slate-500 flex items-center gap-2 mt-1">
+                                    Health ID: <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700">{data.health_id}</span>
+                                    <Link href={`/verify/${data.health_id}`} target="_blank" className="text-[var(--brand-purple)] hover:underline text-xs font-semibold">
+                                        Verify
+                                    </Link>
+                                </p>
+                            )}
                         </div>
                         <div className="text-right">
                             <div className="text-lg font-medium mb-1">PRAMAAN Score</div>

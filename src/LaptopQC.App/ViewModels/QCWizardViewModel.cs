@@ -456,6 +456,8 @@ public partial class QCWizardViewModel : ObservableObject
         if (App.MachineId.HasValue)
         {
             report.DeviceId = App.MachineId.Value;
+            // Regenerate report so local certificate reflects the server-allocated Machine ID.
+            ReportPath = _reportGenerator.SaveReport(report);
         }
 
         var success = await _submissionService.SubmitReportAsync(report, technicianId);
