@@ -4,6 +4,10 @@ using System.Windows.Media;
 using LaptopQC.App.ViewModels;
 using LaptopQC.App.Views;
 
+using System.Management;
+using System.Net.NetworkInformation;
+using LaptopQC.Core.Services;
+
 namespace LaptopQC.App;
 
 /// <summary>
@@ -17,11 +21,28 @@ public partial class MainWindow : Window
         RefreshActivationUi();
     }
 
-    private void UserStatus_Click(object sender, MouseButtonEventArgs e)
+    private async void UserStatus_Click(object sender, MouseButtonEventArgs e)
     {
         if (App.IsLoggedIn)
         {
-            // Already activated - do nothing. App stays activated.
+            // If already activated but missing the Device ID (legacy session), fetch it now
+            if (App.MachineId == null && !string.IsNullOrEmpty(App.AuthService.LicenseKey))
+            {
+                UserStatusText.Text = "Fetching ID...";
+                UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6b7280"));
+                
+                try
+                {
+                    string machineSerial = GetMachineSerialNumber();
+                    string? macAddress = GetMacAddress();
+                    string computerName = Environment.MachineName;
+
+                    await App.AuthService.LoginWithLicenseAsync(App.AuthService.LicenseKey, machineSerial, macAddress, computerName);
+                }
+                catch { /* Ignore fetch errors */ }
+                
+                RefreshActivationUi();
+            }
             return;
         }
         else
@@ -77,5 +98,48 @@ public partial class MainWindow : Window
             UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f3f4f6"));
             UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e5e7eb"));
         }
+    }
+
+    private string GetMachineSerialNumber()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS");
+            foreach (ManagementBaseObject obj in searcher.Get())
+            {
+                var serial = obj["SerialNumber"]?.ToString()?.Trim();
+                if (MachineIdentityService.IsUsableHardwareSerial(serial))
+                {
+                    return serial!;
+                }
+            }
+        }
+        catch { /* Ignore WMI errors */ }
+
+        try
+        {
+            var networkMac = GetMacAddress();
+            var fallback = MachineIdentityService.BuildFallbackSerial(networkMac, Environment.MachineName);
+            if (!string.IsNullOrWhiteSpace(fallback))
+            {
+                return fallback;
+            }
+        }
+        catch { /* Ignore adapter access failures */ }
+
+        return MachineIdentityService.BuildFallbackSerial(string.Empty, Environment.MachineName);
+    }
+
+    private string? GetMacAddress()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .Select(n => n.GetPhysicalAddress()?.ToString())
+                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+        }
+        catch { return null; }
     }
 }
