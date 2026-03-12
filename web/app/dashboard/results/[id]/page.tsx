@@ -78,7 +78,7 @@ export default function ResultDetailPage() {
                                 Date: {formatDbDateTime(data.timestamp)}
                             </p>
                             <p className="text-slate-500">
-                                Device ID: {data.machine_id}
+                                Device ID: {data.machine_identifier ?? data.machine_id}
                             </p>
                             {data.health_id && (
                                 <p className="text-slate-500 flex items-center gap-2 mt-1">
