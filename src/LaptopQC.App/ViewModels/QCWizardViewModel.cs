@@ -452,6 +452,9 @@ public partial class QCWizardViewModel : ObservableObject
         var technicianId = App.TechnicianId;
         SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
 
+        // Refresh server-allocated Machine ID for this hardware (if license-based)
+        await RefreshMachineIdAsync(report);
+
         // Set the server-allocated Machine ID on the report before submission
         if (App.MachineId.HasValue)
         {
@@ -503,6 +506,36 @@ public partial class QCWizardViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to generate QR Code: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshMachineIdAsync(LaptopQC.Core.Models.QCReport report)
+    {
+        try
+        {
+            var licenseKey = App.AuthService.LicenseKey;
+            if (string.IsNullOrWhiteSpace(licenseKey))
+                return;
+
+            var serial = report.SystemInfo?.SerialNumber ?? "";
+            if (!MachineIdentityService.IsUsableHardwareSerial(serial))
+            {
+                serial = MachineIdentityService.BuildFallbackSerial(
+                    report.SystemInfo?.MacAddress ?? report.MacAddress,
+                    report.SystemInfo?.ComputerName);
+            }
+
+            if (string.IsNullOrWhiteSpace(serial))
+                serial = MachineIdentityService.BuildFallbackSerial(string.Empty, Environment.MachineName);
+
+            var mac = report.SystemInfo?.MacAddress ?? report.MacAddress;
+            var computerName = report.SystemInfo?.ComputerName ?? Environment.MachineName;
+
+            await App.AuthService.LoginWithLicenseAsync(licenseKey, serial, mac, computerName);
+        }
+        catch
+        {
+            // Best-effort refresh; keep existing MachineId if refresh fails.
         }
     }
 
