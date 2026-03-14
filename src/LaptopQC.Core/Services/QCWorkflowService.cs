@@ -186,6 +186,10 @@ public class QCWorkflowService
                 Report.SmartTest.Tested = true;
                 Report.SmartTest.Passed = healthCheck.OverallHealthy;
                 Report.SmartTest.Message = healthCheck.Message;
+
+                int selfTestPassedCount = 0;
+                int selfTestFailedCount = 0;
+                int selfTestInconclusiveCount = 0;
                 
                 foreach (var device in healthCheck.Devices)
                 {
@@ -209,18 +213,56 @@ public class QCWorkflowService
                     if (device.HealthPassed)
                     {
                         UpdateStatus($"Running Short Self-Test on {device.Model}...", 40);
-                        var testResult = await _smartTestService.RunShortTestAsync(device.DevicePath);
+                        var testResult = await _smartTestService.RunShortTestAsync(
+                            device.DevicePath,
+                            deviceType: device.DeviceType);
                         if (!testResult.Success)
                         {
-                            // Some NVMe drives don't support short self-tests or require elevation.
-                            // We shouldn't fail the entire drive's SMART status just because the test couldn't run.
-                            Report.SmartTest.Details.Add($"Self-Test Skipped/Failed: {device.Model} ({testResult.Message})");
+                            var detailMessage = $"{device.Model} ({testResult.Message})";
+                            if (IsInconclusiveSmartTestMessage(testResult.Message))
+                            {
+                                selfTestInconclusiveCount++;
+                                Report.SmartTest.Details.Add($"Self-Test Inconclusive: {detailMessage}");
+                            }
+                            else
+                            {
+                                selfTestFailedCount++;
+                                Report.SmartTest.Details.Add($"Self-Test Failed: {detailMessage}");
+                            }
                         }
                         else
                         {
+                            selfTestPassedCount++;
                             Report.SmartTest.Details.Add($"Self-Test Passed: {device.Model}");
                         }
                     }
+                }
+
+                if (selfTestPassedCount + selfTestFailedCount + selfTestInconclusiveCount > 0)
+                {
+                    Report.SmartTest.Details.Add(
+                        $"Self-Test Summary: {selfTestPassedCount} passed, {selfTestFailedCount} failed, {selfTestInconclusiveCount} inconclusive");
+                }
+
+                if (!healthCheck.OverallHealthy)
+                {
+                    Report.SmartTest.Passed = false;
+                    Report.SmartTest.Message = healthCheck.Message;
+                }
+                else if (selfTestFailedCount > 0)
+                {
+                    Report.SmartTest.Passed = false;
+                    Report.SmartTest.Message = "SMART self-test failed on one or more drives";
+                }
+                else if (selfTestInconclusiveCount > 0)
+                {
+                    Report.SmartTest.Passed = false;
+                    Report.SmartTest.Message = "SMART self-test inconclusive on one or more drives";
+                }
+                else
+                {
+                    Report.SmartTest.Passed = true;
+                    Report.SmartTest.Message = "SMART health and self-test passed on all drives";
                 }
             }
             else
@@ -378,5 +420,28 @@ public class QCWorkflowService
     {
         OnStatusUpdate?.Invoke(status);
         OnProgressUpdate?.Invoke(progress);
+    }
+
+    private static bool IsInconclusiveSmartTestMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return true;
+
+        string[] inconclusiveMarkers =
+        {
+            "not supported",
+            "unknown usb bridge",
+            "ioctl_storage",
+            "ioctl",
+            "input/output error",
+            "read nvme identify",
+            "requires admin",
+            "timed out",
+            "host reset",
+            "interrupted",
+            "failed to start test"
+        };
+
+        return inconclusiveMarkers.Any(m =>
+            message.Contains(m, StringComparison.OrdinalIgnoreCase));
     }
 }

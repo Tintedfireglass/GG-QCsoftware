@@ -68,6 +68,7 @@ public class BatteryInfo
 public class SmartDriveInfo
 {
     public string DevicePath { get; set; } = "";
+    public string DeviceType { get; set; } = "";
     public string Model { get; set; } = "";
     public string SerialNumber { get; set; } = "";
     public string Serial { get; set; } = "";

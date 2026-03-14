@@ -40,8 +40,8 @@ OutputDir=Output
 OutputBaseFilename=Pramaan_Setup_{#MyAppVersion}
 ; SetupIconFile - uncomment and set path if you have an icon file
 SetupIconFile=..\src\LaptopQC.App\Resources\pramana_icon.ico
-Compression=lzma2/ultra64
-SolidCompression=yes
+Compression=lzma2/normal
+SolidCompression=no
 
 ; Installer UI
 WizardStyle=modern

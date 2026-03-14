@@ -71,7 +71,7 @@ public interface ISmartTestService
     bool IsAvailable { get; }
     List<Diagnostics.SmartDriveInfo> GetTestableDevices();
     Diagnostics.SmartDriveInfo? GetDeviceInfo(string devicePath);
-    Task<Diagnostics.SmartTestResultInfo> RunShortTestAsync(string devicePath, IProgress<Diagnostics.SmartTestProgress>? progress = null);
+    Task<Diagnostics.SmartTestResultInfo> RunShortTestAsync(string devicePath, IProgress<Diagnostics.SmartTestProgress>? progress = null, string? deviceType = null);
     Diagnostics.SmartHealthCheckResult QuickHealthCheck();
 }
 

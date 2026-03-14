@@ -95,12 +95,13 @@ public class SmartctlProvider : ISmartctlProvider
     /// <summary>
     /// Gets full SMART data for a device
     /// </summary>
-    public SmartData? GetSmartData(string devicePath)
+    public SmartData? GetSmartData(string devicePath, string? deviceType = null)
     {
         var path = FindSmartctlPath();
         if (path == null) return null;
         
-        var result = RunCommand(path, $"--all --json \"{devicePath}\"");
+        var deviceArg = BuildDeviceTypeArg(deviceType);
+        var result = RunCommand(path, $"--all --json{deviceArg} \"{devicePath}\"");
         if (string.IsNullOrWhiteSpace(result.Output)) return null;
         
         try
@@ -120,13 +121,14 @@ public class SmartctlProvider : ISmartctlProvider
     /// <summary>
     /// Starts a short self-test (~2 minutes)
     /// </summary>
-    public SmartTestResult StartShortTest(string devicePath)
+    public SmartTestResult StartShortTest(string devicePath, string? deviceType = null)
     {
         var path = FindSmartctlPath();
         if (path == null)
             return new SmartTestResult { Success = false, Message = "smartctl.exe not found" };
         
-        var result = RunCommand(path, $"-t short \"{devicePath}\"");
+        var deviceArg = BuildDeviceTypeArg(deviceType);
+        var result = RunCommand(path, $"-t short{deviceArg} \"{devicePath}\"");
         
         return new SmartTestResult
         {
@@ -140,14 +142,15 @@ public class SmartctlProvider : ISmartctlProvider
     /// <summary>
     /// Gets the status of any running or completed self-tests
     /// </summary>
-    public SmartTestStatus GetTestStatus(string devicePath)
+    public SmartTestStatus GetTestStatus(string devicePath, string? deviceType = null)
     {
         var path = FindSmartctlPath();
         if (path == null)
             return new SmartTestStatus { IsRunning = false, Message = "smartctl.exe not found" };
         
         // Use both -c and -l selftest so we can parse ATA status AND NVMe status in one go
-        var result = RunCommand(path, $"-c -l selftest --json \"{devicePath}\"");
+        var deviceArg = BuildDeviceTypeArg(deviceType);
+        var result = RunCommand(path, $"-c -l selftest --json{deviceArg} \"{devicePath}\"");
         if (string.IsNullOrWhiteSpace(result.Output))
             return new SmartTestStatus { IsRunning = false, Message = "Failed to get status" };
         
@@ -194,13 +197,14 @@ public class SmartctlProvider : ISmartctlProvider
     /// <summary>
     /// Gets the self-test log (history of tests)
     /// </summary>
-    public List<SmartTestLogEntry> GetTestLog(string devicePath)
+    public List<SmartTestLogEntry> GetTestLog(string devicePath, string? deviceType = null)
     {
         var log = new List<SmartTestLogEntry>();
         var path = FindSmartctlPath();
         if (path == null) return log;
         
-        var result = RunCommand(path, $"-l selftest --json \"{devicePath}\"");
+        var deviceArg = BuildDeviceTypeArg(deviceType);
+        var result = RunCommand(path, $"-l selftest --json{deviceArg} \"{devicePath}\"");
         if (string.IsNullOrWhiteSpace(result.Output)) return log;
         
         try
@@ -407,6 +411,16 @@ public class SmartctlProvider : ISmartctlProvider
         {
             return (-1, ex.Message);
         }
+    }
+
+    private static string BuildDeviceTypeArg(string? deviceType)
+    {
+        if (string.IsNullOrWhiteSpace(deviceType))
+            return "";
+        if (deviceType.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            return "";
+
+        return $" -d {deviceType}";
     }
 }
 

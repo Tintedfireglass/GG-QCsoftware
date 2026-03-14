@@ -581,7 +581,7 @@ public class MacSmartTestService : ISmartTestService
         catch { return null; }
     }
 
-    public async Task<SmartTestResultInfo> RunShortTestAsync(string devicePath, IProgress<SmartTestProgress>? progress = null)
+    public async Task<SmartTestResultInfo> RunShortTestAsync(string devicePath, IProgress<SmartTestProgress>? progress = null, string? deviceType = null)
     {
         try
         {

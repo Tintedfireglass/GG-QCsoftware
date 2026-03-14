@@ -24,6 +24,13 @@
     <Resource Include="Resources\pramana_logo.png" />
     <Resource Include="Resources\pramana_icon.ico" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\scripts\legal.txt">
+      <Link>legal.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <PropertyGroup>
     <!-- App Info -->
     <AssemblyName>Pramaan</AssemblyName>

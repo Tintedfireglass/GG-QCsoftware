@@ -26,8 +26,8 @@ dotnet publish "%SRC_DIR%\LaptopQC.App.csproj" ^
     -c Release ^
     -r win-x64 ^
     --self-contained true ^
-    -p:PublishSingleFile=true ^
-    -p:IncludeNativeLibrariesForSelfExtract=true ^
+    -p:PublishSingleFile=false ^
+    -p:PublishReadyToRun=true ^
     -o "%PUBLISH_DIR%"
 
 if %ERRORLEVEL% neq 0 (
