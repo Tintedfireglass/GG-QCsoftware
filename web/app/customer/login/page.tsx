@@ -113,9 +113,12 @@ export default function CustomerLoginPage() {
                         <div className="pt-6 text-center">
                             <p className="text-sm text-slate-500">
                                 No account?{" "}
-                                <Link href="/customer/register" className="text-[var(--brand-purple)] font-medium hover:underline">
+                                <a
+                                    href="https://pramaan.gadgetguruz.com"
+                                    className="text-[var(--brand-purple)] font-medium hover:underline"
+                                >
                                     Register
-                                </Link>
+                                </a>
                             </p>
                             <p className="text-sm text-slate-500 mt-2">
                                 Business user?{" "}
