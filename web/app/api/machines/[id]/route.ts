@@ -65,8 +65,14 @@ export async function GET(
         if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             historyClause = ' AND technician_id = $2';
             historyParams.push(authUser.id);
-        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
+        } else if (authUser.role === 'Refurbisher') {
             historyClause = ' AND (technician_id = $2 OR technician_id IN (SELECT id FROM users WHERE created_by = $2))';
+            historyParams.push(authUser.id);
+        } else if (authUser.role === 'Enterprise') {
+            historyClause = ` AND (
+                (technician_id = $2 OR technician_id IN (SELECT id FROM users WHERE created_by = $2))
+                OR machine_id IN (SELECT id FROM machines WHERE owner_user_id = $2)
+            )`;
             historyParams.push(authUser.id);
         }
 

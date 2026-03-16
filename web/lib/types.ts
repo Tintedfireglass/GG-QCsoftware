@@ -91,6 +91,7 @@ export interface User {
     password_hash: string;
     role: UserRole;
     email?: string;
+    company_name?: string;
     display_name?: string;
     created_by?: number;
     is_active: boolean;
@@ -109,6 +110,7 @@ export interface CreateUserRequest {
     username: string;
     password: string;
     email?: string;
+    company_name?: string;
     display_name?: string;
     role: UserRole;
     license_credits?: number;
@@ -117,6 +119,7 @@ export interface CreateUserRequest {
 // User update request
 export interface UpdateUserRequest {
     email?: string;
+    company_name?: string;
     display_name?: string;
     role?: UserRole;
     is_active?: boolean;

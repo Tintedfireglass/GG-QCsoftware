@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         if (roleError) return roleError;
 
         const body: CreateUserRequest = await request.json();
-        const { username, password, email, display_name, role } = body;
+        const { username, password, email, company_name, display_name, role } = body;
 
         // Validate input
         if (!username || !password) {
@@ -36,6 +36,13 @@ export async function POST(request: NextRequest) {
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json(
                 { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Refurbisher, Technician, or Enterprise)' } as ApiError,
+                { status: 400 }
+            );
+        }
+
+        if ((role === 'Enterprise' || role === 'Refurbisher') && !company_name?.trim()) {
+            return NextResponse.json(
+                { error: 'Validation Error', message: 'Company name is required for Enterprise and Refurbisher users' } as ApiError,
                 { status: 400 }
             );
         }
@@ -70,10 +77,18 @@ export async function POST(request: NextRequest) {
 
         // Insert user with created_by reference
         const result = await query(
-            `INSERT INTO users (username, password_hash, email, display_name, role, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id, username, email, display_name, role, created_by, is_active, created_at`,
-            [username, passwordHash, email || null, display_name || username, role, authUser.id]
+            `INSERT INTO users (username, password_hash, email, company_name, display_name, role, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING id, username, email, company_name, display_name, role, created_by, is_active, created_at`,
+            [
+                username,
+                passwordHash,
+                email || null,
+                company_name?.trim() || null,
+                display_name || username,
+                role,
+                authUser.id
+            ]
         );
 
         return NextResponse.json(

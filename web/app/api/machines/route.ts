@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
 
         const params: SqlParam[] = [];
         let joinCondition = 'm.id = qr.machine_id';
+        let whereClause = '';
         let havingClause = '';
 
         if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
@@ -29,10 +30,15 @@ export async function GET(request: NextRequest) {
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';
         } else if (authUser.role === 'Enterprise') {
-            // Enterprise sees machines they own OR that their team tested
-            joinCondition += ' AND (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))';
+            // Enterprise sees machines they own or that their team tested
+            whereClause = `WHERE (
+                m.owner_user_id = $1 OR EXISTS (
+                    SELECT 1 FROM qc_results qr2
+                    WHERE qr2.machine_id = m.id
+                      AND (qr2.technician_id = $1 OR qr2.technician_id IN (SELECT id FROM users WHERE created_by = $1))
+                )
+            )`;
             params.push(authUser.id);
-            // Also include machines the Enterprise owns (even if not yet tested)
         }
 
         const machines = await query(
@@ -44,6 +50,7 @@ export async function GET(request: NextRequest) {
         SUM(CASE WHEN qr.overall_pass = false THEN 1 ELSE 0 END) as failed_count
       FROM machines m
       LEFT JOIN qc_results qr ON ${joinCondition}
+      ${whereClause}
       GROUP BY m.id
       ${havingClause}
       ORDER BY m.last_seen DESC NULLS LAST`,

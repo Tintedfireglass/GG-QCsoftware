@@ -4,20 +4,24 @@
 -- Adds fleet/lifecycle tables for Enterprise users
 
 -- ═══════════════════════════════════════════════════════════════
--- Step 1: Migrate existing role values
+-- Step 1: Drop old role constraint so we can migrate values safely
+-- ═══════════════════════════════════════════════════════════════
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Step 2: Migrate existing role values
 -- ═══════════════════════════════════════════════════════════════
 UPDATE users SET role = 'Refurbisher' WHERE role = 'Admin';
 UPDATE users SET role = 'Technician' WHERE role = 'User';
 
--- ═══════════════════════════════════════════════════════════════
--- Step 2: Update role constraint
--- ═══════════════════════════════════════════════════════════════
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- ════════════════════════════════════════════════════════════════════════════════
+-- Step 3: Update role constraint
+-- ════════════════════════════════════════════════════════════════════════════════
 ALTER TABLE users ADD CONSTRAINT users_role_check
   CHECK (role IN ('SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'));
 
 -- ═══════════════════════════════════════════════════════════════
--- Step 3: Add asset_tag to machines (Enterprise fleet labelling)
+-- Step 4: Add asset_tag to machines (Enterprise fleet labelling)
 -- ═══════════════════════════════════════════════════════════════
 ALTER TABLE machines
   ADD COLUMN IF NOT EXISTS asset_tag VARCHAR(100) NULL;
@@ -29,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_machines_owner ON machines(owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_machines_asset_tag ON machines(asset_tag);
 
 -- ═══════════════════════════════════════════════════════════════
--- Step 4: Machine groups (Enterprise fleet organisation)
+-- Step 5: Machine groups (Enterprise fleet organisation)
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS machine_groups (
     id SERIAL PRIMARY KEY,
@@ -48,7 +52,7 @@ ALTER TABLE machines
 CREATE INDEX IF NOT EXISTS idx_machines_group ON machines(group_id);
 
 -- ═══════════════════════════════════════════════════════════════
--- Step 5: Machine lifecycle events (Enterprise tracking)
+-- Step 6: Machine lifecycle events (Enterprise tracking)
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS machine_lifecycle_events (
     id SERIAL PRIMARY KEY,

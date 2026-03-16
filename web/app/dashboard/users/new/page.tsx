@@ -25,6 +25,7 @@ export default function NewUserPage() {
         username: "",
         password: "",
         email: "",
+        company_name: "",
         display_name: "",
         role: "Technician" as UserRole
     })
@@ -59,6 +60,11 @@ export default function NewUserPage() {
             return
         }
 
+        if ((formData.role === "Enterprise" || formData.role === "Refurbisher") && !formData.company_name.trim()) {
+            setError("Company name is required for Enterprise and Refurbisher users")
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -66,6 +72,7 @@ export default function NewUserPage() {
                 username: formData.username,
                 password: formData.password,
                 email: formData.email || undefined,
+                company_name: formData.company_name.trim() || undefined,
                 display_name: formData.display_name || undefined,
                 role: formData.role
             })
@@ -159,6 +166,23 @@ export default function NewUserPage() {
                                     className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-[var(--brand-purple)] focus-visible:bg-white"
                                 />
                             </div>
+                            <div className="hidden md:block"></div> {/* Empty spacer */}
+
+                            {/* Company Name Row */}
+                            {(formData.role === "Enterprise" || formData.role === "Refurbisher" || formData.role === "Technician") && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Company name {(formData.role === "Enterprise" || formData.role === "Refurbisher") && <span className="text-rose-500">*</span>}
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        value={formData.company_name}
+                                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                                        placeholder="Gadget Guruz"
+                                        className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-[var(--brand-purple)] focus-visible:bg-white"
+                                    />
+                                </div>
+                            )}
                             <div className="hidden md:block"></div> {/* Empty spacer */}
 
                             {/* Password Row */}
