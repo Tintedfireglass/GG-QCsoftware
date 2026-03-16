@@ -58,6 +58,38 @@ export async function getMachine(id: string) {
     return res.json();
 }
 
+export async function getFleet(params: { search?: string; groupId?: string } = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.search) searchParams.append("search", params.search);
+    if (params.groupId) searchParams.append("group_id", params.groupId);
+    const query = searchParams.toString();
+    const res = await fetchWithAuth(`/api/fleet${query ? `?${query}` : ""}`);
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch fleet");
+    }
+    return res.json();
+}
+
+export async function enrollFleetMachine(data: {
+    machine_id: string;
+    asset_tag?: string;
+    group_id?: number | null;
+    serial_number?: string;
+    manufacturer?: string;
+    model?: string;
+}) {
+    const res = await fetchWithAuth("/api/fleet", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to enroll machine");
+    }
+    return res.json();
+}
+
 export async function getDashboardStats() {
     // Can be optimized into a single API call later
     // For now we calculate some stats from the list endpoints or add a stats endpoint

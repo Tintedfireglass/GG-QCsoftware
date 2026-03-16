@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { Monitor, ExternalLink } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
 
@@ -67,31 +68,41 @@ export default function MachinesPage() {
                                     </div>
                                     <div className="text-xs text-slate-500 mt-1">Total Tests</div>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    className="rounded-full px-5 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
-                                    disabled={navigating === machine.id || Number(machine.test_count) === 0}
-                                    onClick={async () => {
-                                        setNavigating(machine.id)
-                                        try {
-                                            const token = localStorage.getItem("qc_token")
-                                            const res = await fetch(`/api/machines/${machine.id}`, {
-                                                headers: token ? { Authorization: `Bearer ${token}` } : {},
-                                            })
-                                            const data = await res.json()
-                                            if (data.test_history?.length > 0) {
-                                                router.push(`/dashboard/results/${data.test_history[0].id}`)
+                                <div className="flex items-center gap-2">
+                                    <Link href={`/dashboard/machines/${machine.id}`}>
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                        >
+                                            View History
+                                        </Button>
+                                    </Link>
+                                    <Button
+                                        variant="outline"
+                                        className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                        disabled={navigating === machine.id || Number(machine.test_count) === 0}
+                                        onClick={async () => {
+                                            setNavigating(machine.id)
+                                            try {
+                                                const token = localStorage.getItem("qc_token")
+                                                const res = await fetch(`/api/machines/${machine.id}`, {
+                                                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                                })
+                                                const data = await res.json()
+                                                if (data.test_history?.length > 0) {
+                                                    router.push(`/dashboard/results/${data.test_history[0].id}`)
+                                                }
+                                            } catch (err) {
+                                                console.error(err)
+                                            } finally {
+                                                setNavigating(null)
                                             }
-                                        } catch (err) {
-                                            console.error(err)
-                                        } finally {
-                                            setNavigating(null)
-                                        }
-                                    }}
-                                >
-                                    {navigating === machine.id ? "Loading..." : "View Latest Report"}
-                                    {navigating !== machine.id && <ExternalLink className="ml-1.5 h-3.5 w-3.5" />}
-                                </Button>
+                                        }}
+                                    >
+                                        {navigating === machine.id ? "Loading..." : "Latest Report"}
+                                        {navigating !== machine.id && <ExternalLink className="ml-1.5 h-3.5 w-3.5" />}
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
