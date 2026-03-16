@@ -20,14 +20,19 @@ export async function GET(request: NextRequest) {
         let joinCondition = 'm.id = qr.machine_id';
         let havingClause = '';
 
-        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             joinCondition += ' AND qr.technician_id = $1';
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';
-        } else if (authUser.role === 'Admin') {
+        } else if (authUser.role === 'Refurbisher') {
             joinCondition += ' AND (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))';
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';
+        } else if (authUser.role === 'Enterprise') {
+            // Enterprise sees machines they own OR that their team tested
+            joinCondition += ' AND (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))';
+            params.push(authUser.id);
+            // Also include machines the Enterprise owns (even if not yet tested)
         }
 
         const machines = await query(

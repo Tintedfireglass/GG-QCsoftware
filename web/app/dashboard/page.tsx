@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const { user, isSuperAdmin, isAdmin, isUser, getRoleDisplayName } = useAuth()
+    const { user, isSuperAdmin, isRefurbisher, isTechnician, isEnterprise, isAdmin, isUser, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
@@ -59,8 +59,8 @@ export default function DashboardPage() {
                 try {
                     const usersData = await getUsers(1, 100)
                     userStats.totalUsers = usersData.pagination.total
-                    userStats.totalAdmins = usersData.users.filter((u: any) => u.role === 'Admin').length
-                    userStats.totalTechnicians = usersData.users.filter((u: any) => u.role === 'User').length
+                    userStats.totalAdmins = usersData.users.filter((u: any) => u.role === 'Refurbisher' || u.role === 'Enterprise').length
+                    userStats.totalTechnicians = usersData.users.filter((u: any) => u.role === 'Technician').length
                 } catch (err) {
                     console.error("Failed to load user stats", err)
                 }
@@ -97,7 +97,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isAdmin() ? "Team management access" : "QC Technician access"}
+                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isRefurbisher() ? "Team management access" : "QC Technician access"}
                     </p>
                 </div>
             </div>

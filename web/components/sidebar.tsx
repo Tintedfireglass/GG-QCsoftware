@@ -13,7 +13,8 @@ import {
     Users,
     UserPlus,
     Shield,
-    Key
+    Key,
+    Server
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -26,7 +27,7 @@ interface NavLink {
 
 export function Sidebar() {
     const pathname = usePathname()
-    const { logout, user, canManageUsers, canViewMachines, getRoleDisplayName } = useAuth()
+    const { logout, user, canManageUsers, canViewMachines, canManageFleet, getRoleDisplayName } = useAuth()
 
     // Define navigation links with role-based visibility
     const links: NavLink[] = [
@@ -41,22 +42,28 @@ export function Sidebar() {
             icon: ClipboardList
         },
         {
+            href: "/dashboard/fleet",
+            label: "Fleet",
+            icon: Server,
+            roles: ['Enterprise'] // Only visible to Enterprise
+        },
+        {
             href: "/dashboard/machines",
             label: "Machines",
             icon: Monitor,
-            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+            roles: ['SuperAdmin', 'Enterprise'] // Visible to SuperAdmin and Enterprise
         },
         {
             href: "/dashboard/users",
             label: "User Management",
             icon: Users,
-            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise'] // Visible to user managers
         },
         {
             href: "/dashboard/licenses",
             label: "Licenses",
             icon: Key,
-            roles: ['SuperAdmin', 'Admin'] // Only visible to SuperAdmin and Admin
+            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise'] // Visible to user managers
         },
     ]
 
@@ -72,9 +79,11 @@ export function Sidebar() {
         switch (user?.role) {
             case 'SuperAdmin':
                 return 'bg-purple-500'
-            case 'Admin':
+            case 'Refurbisher':
                 return 'bg-blue-500'
-            case 'User':
+            case 'Enterprise':
+                return 'bg-amber-500'
+            case 'Technician':
                 return 'bg-green-500'
             default:
                 return 'bg-slate-500'

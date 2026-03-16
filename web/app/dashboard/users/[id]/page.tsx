@@ -25,13 +25,13 @@ export default function EditUserPage() {
     const router = useRouter()
     const params = useParams()
     const userId = parseInt(params.id as string)
-    const { user: authUser, isSuperAdmin, isAdmin, canManageUsers } = useAuth()
+    const { user: authUser, isSuperAdmin, isAdmin, isRefurbisher, isEnterprise, canManageUsers } = useAuth()
 
     const [userData, setUserData] = useState<UserWithCreator | null>(null)
     const [formData, setFormData] = useState({
         display_name: "",
         email: "",
-        role: "User" as UserRole,
+        role: "Technician" as UserRole,
         is_active: true,
         password: "",
         confirmPassword: "",
@@ -184,7 +184,8 @@ export default function EditUserPage() {
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${userData.role === 'SuperAdmin' ? 'bg-purple-500' :
-                            userData.role === 'Admin' ? 'bg-blue-500' : 'bg-green-500'
+                            userData.role === 'Refurbisher' ? 'bg-blue-500' :
+                                userData.role === 'Enterprise' ? 'bg-amber-500' : 'bg-green-500'
                             }`}>
                             {userData.username.charAt(0).toUpperCase()}
                         </div>
@@ -199,7 +200,7 @@ export default function EditUserPage() {
                                     <Calendar className="h-3 w-3" />
                                     Joined {new Date(userData.created_at).toLocaleDateString()}
                                 </span>
-                                {userData.role === 'Admin' && (
+                                {(userData.role === 'Refurbisher' || userData.role === 'Enterprise') && (
                                     <span className="flex items-center gap-1">
                                         <Users className="h-3 w-3" />
                                         {userData.team_size || 0} team members
@@ -284,7 +285,7 @@ export default function EditUserPage() {
                                     Role
                                 </label>
                                 <div className="space-y-2">
-                                    {(['SuperAdmin', 'Admin', 'User'] as UserRole[]).map((role) => (
+                                    {(['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'] as UserRole[]).map((role) => (
                                         <label
                                             key={role}
                                             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.role === role
@@ -303,7 +304,8 @@ export default function EditUserPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <Shield className={`h-4 w-4 ${role === 'SuperAdmin' ? 'text-purple-500' :
-                                                        role === 'Admin' ? 'text-blue-500' : 'text-green-500'
+                                                        role === 'Refurbisher' ? 'text-blue-500' :
+                                                            role === 'Enterprise' ? 'text-amber-500' : 'text-green-500'
                                                         }`} />
                                                     <span className="font-medium">{UserRoleDisplayNames[role]}</span>
                                                 </div>
@@ -350,8 +352,8 @@ export default function EditUserPage() {
                             </div>
                         )}
 
-                        {/* License Credits (SuperAdmin only, typically for Admins) */}
-                        {isSuperAdmin() && formData.role === 'Admin' && (
+                        {/* License Credits (SuperAdmin only, for Refurbisher/Enterprise) */}
+                        {isSuperAdmin() && (formData.role === 'Refurbisher' || formData.role === 'Enterprise') && (
                             <div className="pt-4 border-t">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     License Credits
@@ -364,7 +366,7 @@ export default function EditUserPage() {
                                     placeholder="Enter number of credits"
                                 />
                                 <p className="text-xs text-slate-500 mt-1">
-                                    Number of machine activations this Admin is allowed to generate.
+                                    Number of machine activations this user is allowed to generate.
                                 </p>
                             </div>
                         )}

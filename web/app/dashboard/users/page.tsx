@@ -89,19 +89,20 @@ export default function UsersPage() {
         switch (role) {
             case 'SuperAdmin':
                 return 'bg-purple-100 text-purple-800'
-            case 'Admin':
+            case 'Refurbisher':
                 return 'bg-blue-100 text-blue-800'
-            case 'User':
+            case 'Enterprise':
+                return 'bg-amber-100 text-amber-800'
+            case 'Technician':
                 return 'bg-green-100 text-green-800'
             default:
                 return 'bg-slate-100 text-slate-800'
         }
     }
 
-    // Check if current user can create users
     const getCreatableRoles = (): UserRole[] => {
-        if (isSuperAdmin()) return ['Admin', 'User']
-        return ['User']
+        if (isSuperAdmin()) return ['Refurbisher', 'Technician', 'Enterprise']
+        return ['Technician']
     }
 
     if (!canManageUsers()) {
@@ -195,8 +196,9 @@ export default function UsersPage() {
                             >
                                 <option value="">All Roles</option>
                                 {isSuperAdmin() && <option value="SuperAdmin">Super Admin</option>}
-                                <option value="Admin">Admin</option>
-                                <option value="User">Technician</option>
+                                <option value="Refurbisher">Refurbisher</option>
+                                <option value="Technician">Technician</option>
+                                <option value="Enterprise">Enterprise</option>
                             </select>
                             <Button size="icon" onClick={() => loadUsers(1)}>
                                 <Search className="h-4 w-4" />
@@ -233,7 +235,8 @@ export default function UsersPage() {
                                                 <td className="p-4 align-middle">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
-                                                                userItem.role === 'Admin' ? 'bg-blue-500' : 'bg-green-500'
+                                                            userItem.role === 'Refurbisher' ? 'bg-blue-500' :
+                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' : 'bg-green-500'
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
                                                         </div>
@@ -264,7 +267,7 @@ export default function UsersPage() {
                                                     )}
                                                 </td>
                                                 <td className="p-4 align-middle text-slate-500">
-                                                    {userItem.role === 'Admin' ? userItem.team_size || 0 : '-'}
+                                                    {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise') ? userItem.team_size || 0 : '-'}
                                                 </td>
                                                 <td className="p-4 align-middle text-right">
                                                     <div className="flex items-center justify-end gap-2">

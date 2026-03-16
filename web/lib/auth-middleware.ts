@@ -96,12 +96,12 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
         return true;
     }
 
-    // Admin can only manage users they created
-    if (manager.role === 'Admin') {
+    // Refurbisher and Enterprise can manage users they created
+    if (manager.role === 'Refurbisher' || manager.role === 'Enterprise') {
         return targetCreatedBy === manager.id;
     }
 
-    // Regular users cannot manage anyone
+    // Technicians cannot manage anyone
     return false;
 }
 
@@ -109,11 +109,13 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
 export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
-            return ['Admin', 'User']; // SuperAdmin can create both Admin and User
-        case 'Admin':
-            return ['User']; // Admin can only create Users (Technicians)
+            return ['Refurbisher', 'Technician', 'Enterprise'];
+        case 'Refurbisher':
+            return ['Technician']; // Refurbisher can create their own technicians
+        case 'Enterprise':
+            return ['Technician']; // Enterprise can create their own IT technicians
         default:
-            return []; // Regular users cannot create anyone
+            return []; // Technicians cannot create anyone
     }
 }
 
@@ -134,15 +136,15 @@ export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]
         // SuperAdmin can see all users
         const users = await query('SELECT id FROM users');
         return users.map((u: any) => u.id);
-    } else if (user.role === 'Admin') {
-        // Admin can see users they created + themselves
+    } else if (user.role === 'Refurbisher' || user.role === 'Enterprise') {
+        // Refurbisher/Enterprise can see users they created + themselves
         const users = await query(
             'SELECT id FROM users WHERE created_by = $1 OR id = $1',
             [user.id]
         );
         return users.map((u: any) => u.id);
     } else {
-        // Regular users can only see themselves
+        // Technicians can only see themselves
         return [user.id];
     }
 }

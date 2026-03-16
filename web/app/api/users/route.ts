@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Only SuperAdmin and Admin can list users
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Admin']);
+        // Only SuperAdmin, Refurbisher, and Enterprise can list users
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
         if (roleError) return roleError;
 
         // Get query parameters
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
         const params: any[] = [];
         let paramIndex = 1;
 
-        // SuperAdmin sees all users, Admin sees only their created users
-        if (authUser.role === 'Admin') {
+        // SuperAdmin sees all users, Refurbisher/Enterprise see only their created users
+        if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
             whereClause += ` AND (u.created_by = $${paramIndex} OR u.id = $${paramIndex})`;
             params.push(authUser.id);
             paramIndex++;
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Add role filter
-        if (roleFilter && ['SuperAdmin', 'Admin', 'User'].includes(roleFilter)) {
+        if (roleFilter && ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'].includes(roleFilter)) {
             whereClause += ` AND u.role = $${paramIndex}`;
             params.push(roleFilter);
             paramIndex++;

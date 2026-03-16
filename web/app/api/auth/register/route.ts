@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Only SuperAdmin and Admin can create users
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Admin']);
+        // Only SuperAdmin, Refurbisher, and Enterprise can create users
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
         if (roleError) return roleError;
 
         const body: CreateUserRequest = await request.json();
@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate role
-        const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'User'];
+        const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'];
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Admin, or User)' } as ApiError,
+                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Refurbisher, Technician, or Enterprise)' } as ApiError,
                 { status: 400 }
             );
         }

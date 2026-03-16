@@ -60,14 +60,14 @@ export async function GET(
         const targetUser = users[0];
 
         // Check if the authenticated user can view this user
-        if (authUser.role === 'User' && authUser.id !== userId) {
+        if (authUser.role === 'Technician' && authUser.id !== userId) {
             return NextResponse.json(
                 { error: 'Authorization Error', message: 'You can only view your own profile' } as ApiError,
                 { status: 403 }
             );
         }
 
-        if (authUser.role === 'Admin' && !canManageUser(authUser, userId, targetUser.created_by)) {
+        if ((authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') && !canManageUser(authUser, userId, targetUser.created_by)) {
             return NextResponse.json(
                 { error: 'Authorization Error', message: 'You can only view users in your team' } as ApiError,
                 { status: 403 }
@@ -161,7 +161,7 @@ export async function PUT(
             }
 
             // Validate the role
-            const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'User'];
+            const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'];
             if (!validRoles.includes(role)) {
                 return NextResponse.json(
                     { error: 'Validation Error', message: 'Invalid role' } as ApiError,

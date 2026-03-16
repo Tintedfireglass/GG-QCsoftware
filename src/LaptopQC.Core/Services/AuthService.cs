@@ -279,8 +279,10 @@ public class UserInfo
     public string RoleDisplay => Role switch
     {
         "SuperAdmin" => "Gadget Guruz",
-        "Admin" => "Refurbisher",
-        "User" => "Technician",
+        "Refurbisher" => "Refurbisher",
+        "Technician" => "Technician",
+        "Enterprise" => "Enterprise",
+        "B2CDevice" => "B2C Device",
         _ => Role
     };
 }

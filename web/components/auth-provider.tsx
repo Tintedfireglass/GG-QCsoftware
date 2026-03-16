@@ -19,11 +19,18 @@ interface AuthContextType {
     isLoading: boolean
     // Role-based helpers
     isSuperAdmin: () => boolean
+    isRefurbisher: () => boolean
+    isTechnician: () => boolean
+    isEnterprise: () => boolean
+    // Legacy aliases (backward compat during transition)
     isAdmin: () => boolean
     isUser: () => boolean
+    // Permission checks
     canManageUsers: () => boolean
     canViewAllResults: () => boolean
     canViewMachines: () => boolean
+    canManageFleet: () => boolean
+    canExportBulk: () => boolean
     getRoleDisplayName: () => string
 }
 
@@ -34,11 +41,16 @@ const AuthContext = createContext<AuthContextType>({
     logout: () => { },
     isLoading: true,
     isSuperAdmin: () => false,
+    isRefurbisher: () => false,
+    isTechnician: () => false,
+    isEnterprise: () => false,
     isAdmin: () => false,
     isUser: () => false,
     canManageUsers: () => false,
     canViewAllResults: () => false,
     canViewMachines: () => false,
+    canManageFleet: () => false,
+    canExportBulk: () => false,
     getRoleDisplayName: () => "",
 })
 
@@ -93,13 +105,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Role-based helper functions
     const isSuperAdmin = () => user?.role === "SuperAdmin"
-    const isAdmin = () => user?.role === "Admin"
-    const isUser = () => user?.role === "User"
+    const isRefurbisher = () => user?.role === "Refurbisher"
+    const isTechnician = () => user?.role === "Technician"
+    const isEnterprise = () => user?.role === "Enterprise"
+
+    // Legacy aliases — point to new names for backward compat
+    const isAdmin = () => isRefurbisher()
+    const isUser = () => isTechnician()
 
     // Permission checks
-    const canManageUsers = () => user?.role === "SuperAdmin" || user?.role === "Admin"
-    const canViewAllResults = () => user?.role === "SuperAdmin" || user?.role === "Admin"
-    const canViewMachines = () => user?.role === "SuperAdmin" || user?.role === "Admin"
+    const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise()
+    const canViewAllResults = () => isSuperAdmin() || isRefurbisher() || isEnterprise()
+    const canViewMachines = () => isSuperAdmin() || isEnterprise()  // Only Enterprise + SA manage fleet
+    const canManageFleet = () => isEnterprise()
+    const canExportBulk = () => isSuperAdmin() || isRefurbisher() || isEnterprise()
 
     const getRoleDisplayName = () => {
         if (!user) return ""
@@ -114,15 +133,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout,
             isLoading: false,
             isSuperAdmin,
+            isRefurbisher,
+            isTechnician,
+            isEnterprise,
             isAdmin,
             isUser,
             canManageUsers,
             canViewAllResults,
             canViewMachines,
+            canManageFleet,
+            canExportBulk,
             getRoleDisplayName,
         }}>
             {children}
         </AuthContext.Provider>
     )
 }
-

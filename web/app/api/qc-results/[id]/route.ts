@@ -24,10 +24,10 @@ export async function GET(
         const queryParams: SqlParam[] = [id];
         let roleClause = '';
 
-        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             roleClause = ' AND qr.technician_id = $2';
             queryParams.push(authUser.id);
-        } else if (authUser.role === 'Admin') {
+        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
             roleClause = ' AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))';
             queryParams.push(authUser.id);
         }

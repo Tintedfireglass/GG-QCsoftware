@@ -31,11 +31,11 @@ export async function GET(request: NextRequest) {
         let paramCount = 1;
 
         // Role-based visibility
-        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             baseWhereClauses.push(`qr.technician_id = $${paramCount}`);
             params.push(authUser.id);
             paramCount++;
-        } else if (authUser.role === 'Admin') {
+        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
             baseWhereClauses.push(`(qr.technician_id = $${paramCount} OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $${paramCount}))`);
             params.push(authUser.id);
             paramCount++;

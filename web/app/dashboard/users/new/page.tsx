@@ -26,19 +26,20 @@ export default function NewUserPage() {
         password: "",
         email: "",
         display_name: "",
-        role: "User" as UserRole
+        role: "Technician" as UserRole
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     // Get roles that current user can create
-    const creatableRoles: UserRole[] = isSuperAdmin() ? ['Admin', 'User'] : ['User']
+    const creatableRoles: UserRole[] = isSuperAdmin() ? ['Refurbisher', 'Technician', 'Enterprise'] : ['Technician']
 
     // Custom role mapping for the UI
     const customRoleDisplay: Record<UserRole, { title: string, description: string }> = {
         SuperAdmin: { title: "Super Admin", description: "Full system access" },
-        Admin: { title: "Refurbisher (Admin)", description: "Can manage team, see machines, and view all QC results" },
-        User: { title: "Technicians (User)", description: "Can perform QC tests on diagnostic app" },
+        Refurbisher: { title: "Refurbisher", description: "Bulk reseller, manages technician team and grading" },
+        Technician: { title: "Technician", description: "QC Technician, performs certifications on laptops" },
+        Enterprise: { title: "Enterprise", description: "IT fleet manager, tracks company machines over time" },
         B2CDevice: { title: "B2C Device", description: "Consumer devices initiated via B2C plans" }
     }
 

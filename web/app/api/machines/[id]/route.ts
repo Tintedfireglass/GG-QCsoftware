@@ -24,18 +24,25 @@ export async function GET(
         const machineParams: SqlParam[] = [id];
         let accessClause = '';
 
-        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             accessClause = ` AND EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id AND qr.technician_id = $2
             )`;
             machineParams.push(authUser.id);
-        } else if (authUser.role === 'Admin') {
+        } else if (authUser.role === 'Refurbisher') {
             accessClause = ` AND EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id
                   AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))
             )`;
+            machineParams.push(authUser.id);
+        } else if (authUser.role === 'Enterprise') {
+            accessClause = ` AND (m.owner_user_id = $2 OR EXISTS (
+                SELECT 1 FROM qc_results qr
+                WHERE qr.machine_id = m.id
+                  AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))
+            ))`;
             machineParams.push(authUser.id);
         }
 
@@ -55,10 +62,10 @@ export async function GET(
         const historyParams: SqlParam[] = [id];
         let historyClause = '';
 
-        if (authUser.role === 'User' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
             historyClause = ' AND technician_id = $2';
             historyParams.push(authUser.id);
-        } else if (authUser.role === 'Admin') {
+        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
             historyClause = ' AND (technician_id = $2 OR technician_id IN (SELECT id FROM users WHERE created_by = $2))';
             historyParams.push(authUser.id);
         }

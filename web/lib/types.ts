@@ -65,21 +65,23 @@ export interface TestResult {
 }
 
 // User role types for role-based access control
-export type UserRole = 'SuperAdmin' | 'Admin' | 'User' | 'B2CDevice';
+export type UserRole = 'SuperAdmin' | 'Refurbisher' | 'Technician' | 'Enterprise' | 'B2CDevice';
 
 // Role display names for UI
 export const UserRoleDisplayNames: Record<UserRole, string> = {
     SuperAdmin: 'Gadget Guruz',
-    Admin: 'Refurbisher',
-    User: 'Technician',
+    Refurbisher: 'Refurbisher',
+    Technician: 'Technician',
+    Enterprise: 'Enterprise',
     B2CDevice: 'B2C Device',
 };
 
 // Role descriptions
 export const UserRoleDescriptions: Record<UserRole, string> = {
-    SuperAdmin: 'Full system access, can manage Admins and Users',
-    Admin: 'Can manage Technicians in their team',
-    User: 'QC Technician, can perform and view own QC tests',
+    SuperAdmin: 'Full system access, can manage all user types',
+    Refurbisher: 'Bulk refurbisher/reseller, manages technician team and grading',
+    Technician: 'QC Technician, performs certifications on client laptops',
+    Enterprise: 'IT fleet manager, tracks company machines and health over time',
     B2CDevice: 'Restricted device session for B2C license activation',
 };
 
@@ -230,4 +232,38 @@ export const PramaanCategoryLabels: Record<string, string> = {
     physical_ports: 'Physical Ports',
     repair_modifier: 'Repair History',
 };
+
+// ── Fleet Types (Enterprise) ──
+
+export interface MachineGroup {
+    id: number;
+    name: string;
+    description?: string;
+    enterprise_user_id: number;
+    created_at: Date;
+    machine_count?: number;
+}
+
+export type LifecycleEventType = 'enrolled' | 'tested' | 'retired' | 'repaired' | 'transferred' | 'decommissioned';
+
+export interface MachineLifecycleEvent {
+    id: number;
+    machine_id: number;
+    event_type: LifecycleEventType;
+    notes?: string;
+    recorded_by?: number;
+    recorded_by_username?: string;
+    created_at: Date;
+}
+
+export interface MachineWithFleetInfo extends Machine {
+    asset_tag?: string;
+    owner_user_id?: number;
+    group_id?: number;
+    group_name?: string;
+    latest_score?: number;
+    latest_grade?: string;
+    latest_test_date?: Date;
+    lifecycle_event_count?: number;
+}
 
