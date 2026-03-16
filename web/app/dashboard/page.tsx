@@ -165,7 +165,7 @@ export default function DashboardPage() {
                                 <div className="text-2xl font-bold text-slate-900">{stats.totalUsers}</div>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                                     {isSuperAdmin()
-                                        ? `${stats.totalAdmins} admins, ${stats.totalTechnicians} tech`
+                                        ? `${stats.totalAdmins} refurb/enterprise, ${stats.totalTechnicians} technicians`
                                         : "Technicians in your team"
                                     }
                                 </p>
