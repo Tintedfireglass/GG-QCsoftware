@@ -86,9 +86,9 @@ public partial class MainWindow : Window
             UserStatusIcon.Text = "✓";
             UserStatusText.Text = $"Device ID: {App.MachineId}";
             UserStatusText.FontWeight = FontWeights.Bold;
-            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803d"));
-            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#dcfce7"));
-            UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#bbf7d0"));
+            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B3D88"));
+            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f4e7f3"));
+            UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#d8b4d6"));
         }
         else
         {

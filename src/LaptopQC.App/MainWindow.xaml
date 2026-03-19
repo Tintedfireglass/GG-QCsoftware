@@ -13,14 +13,14 @@
     <Window.Resources>
         <!-- Light theme with green accent styles -->
         <Style x:Key="HeaderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="22"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         
         <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -48,7 +48,7 @@
         
         <!-- Primary Green Button -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -69,7 +69,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#16a34a"/>
+                    <Setter Property="Background" Value="#7A3376"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Background" Value="#d1d5db"/>
@@ -87,7 +87,7 @@
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#22c55e"/>
+            <Setter Property="BorderBrush" Value="#8B3D88"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -115,7 +115,7 @@
         
         <!-- Small Test Button -->
         <Style x:Key="SmallTestButton" TargetType="Button">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Medium"/>
@@ -137,7 +137,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#16a34a"/>
+                    <Setter Property="Background" Value="#7A3376"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Background" Value="#d1d5db"/>
@@ -291,7 +291,7 @@
                             IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-                                <Setter Property="Foreground" Value="#22c55e"/>
+                                <Setter Property="Foreground" Value="#8B3D88"/>
                             </Style>
                         </Button.Style>
                     </Button>
@@ -447,7 +447,7 @@
                                          Minimum="0" Maximum="100"
                                          Height="4" 
                                          Background="#e5e7eb"
-                                         Foreground="#22c55e"
+                                         Foreground="#8B3D88"
                                          Margin="0,8,0,4"/>
                             <TextBlock Text="{Binding SmartTestStatus}" Foreground="#6b7280" FontSize="10"/>
                         </StackPanel>
@@ -474,7 +474,7 @@
                             
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Charge" Style="{StaticResource InfoLabel}"/>
-                                <TextBlock Foreground="#22c55e" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI">
+                                <TextBlock Foreground="#8B3D88" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI">
                                     <Run Text="{Binding BatteryInfo.EstimatedChargeRemaining, FallbackValue='-'}"/>
                                     <Run Text=" %" FontSize="16"/>
                                 </TextBlock>
@@ -492,9 +492,9 @@
                         <Border Style="{StaticResource DeviceItemBox}" Margin="0,12,0,0">
                             <TextBlock Style="{StaticResource InfoLabel}">
                                 <Run Text="Wear: "/>
-                                <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-'}" Foreground="#22c55e"/>
+                                <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-'}" Foreground="#8B3D88"/>
                                 <Run Text="%  |  Cycles: "/>
-                                <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-'}" Foreground="#22c55e"/>
+                                <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-'}" Foreground="#8B3D88"/>
                             </TextBlock>
                         </Border>
                         
@@ -625,7 +625,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#22c55e" FontWeight="Medium" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                                            <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#8B3D88" FontWeight="Medium" VerticalAlignment="Center" FontFamily="Segoe UI"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#1f2937" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="Segoe UI"/>
                                             
@@ -672,7 +672,7 @@
                 <ProgressBar IsIndeterminate="{Binding IsScanning}" 
                              Height="3" 
                              Background="Transparent"
-                             Foreground="#22c55e"
+                             Foreground="#8B3D88"
                              VerticalAlignment="Bottom"
                              Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </Grid>

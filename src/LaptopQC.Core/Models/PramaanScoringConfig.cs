@@ -10,7 +10,7 @@ public class PramaanScoringConfig
 {
     /// <summary>Current config version. Stored with every score for audit trail.</summary>
     [JsonPropertyName("version")]
-    public string Version { get; set; } = "1.0.0";
+    public string Version { get; set; } = "1.0.1";
 
     /// <summary>
     /// Category weights (must sum to 1.0).

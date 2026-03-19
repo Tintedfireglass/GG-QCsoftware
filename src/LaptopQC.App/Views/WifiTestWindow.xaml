@@ -31,7 +31,7 @@
                 <!-- Loading indicator -->
                 <StackPanel x:Name="LoadingPanel" HorizontalAlignment="Center" Margin="0,0,0,16">
                     <ProgressBar IsIndeterminate="True" Width="200" Height="4" 
-                                 Background="#e5e7eb" Foreground="#22c55e"/>
+                                 Background="#e5e7eb" Foreground="#8B3D88"/>
                     <TextBlock x:Name="LoadingText" Text="Scanning network adapters..." 
                                HorizontalAlignment="Center" Foreground="#6b7280" FontFamily="Segoe UI"
                                FontSize="12" Margin="0,8,0,0"/>
@@ -96,7 +96,7 @@
                         Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Background" Value="#8B3D88"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
@@ -110,7 +110,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#16a34a"/>
+                                    <Setter Property="Background" Value="#7A3376"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Background" Value="#d1d5db"/>

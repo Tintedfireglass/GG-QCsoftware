@@ -29,7 +29,7 @@
                 <TextBlock Text="🔌" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="USB Port Test" 
                            FontSize="22" FontWeight="SemiBold" 
-                           Foreground="#22c55e" FontFamily="Segoe UI"
+                           Foreground="#8B3D88" FontFamily="Segoe UI"
                            VerticalAlignment="Center"/>
             </StackPanel>
             
@@ -117,7 +117,7 @@
                              Minimum="0" Maximum="100"
                              Height="8" 
                              Background="#e5e7eb"
-                             Foreground="#22c55e"/>
+                             Foreground="#8B3D88"/>
                 <TextBlock Text="{Binding ProgressText}" 
                            Foreground="#6b7280" FontFamily="Segoe UI"
                            HorizontalAlignment="Center"
@@ -134,7 +134,7 @@
                     </Grid.RowDefinitions>
                     
                     <TextBlock Grid.Row="0" Text="Detected Insertions" 
-                               Foreground="#22c55e" FontWeight="SemiBold" FontFamily="Segoe UI"
+                               Foreground="#8B3D88" FontWeight="SemiBold" FontFamily="Segoe UI"
                                Margin="0,0,0,10"/>
                     
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -150,7 +150,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <Border Grid.Column="0" Background="#22c55e" CornerRadius="10" 
+                                            <Border Grid.Column="0" Background="#8B3D88" CornerRadius="10" 
                                                     Width="22" Height="22" Margin="0,0,8,0">
                                                 <TextBlock Text="{Binding PortNumber}" 
                                                            Foreground="White" FontWeight="Bold" FontSize="11" FontFamily="Segoe UI"
@@ -263,7 +263,7 @@
                 <Button Width="150" Height="40" Margin="0,0,10,0">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Background" Value="#8B3D88"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
                             <Setter Property="Content" Value="▶ Start Watching"/>
@@ -281,7 +281,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#16a34a"/>
+                                    <Setter Property="Background" Value="#7A3376"/>
                                 </Trigger>
                                 <DataTrigger Binding="{Binding IsWatching}" Value="True">
                                     <Setter Property="Background" Value="#ef4444"/>
@@ -298,7 +298,7 @@
                         Width="120" Height="40">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Background" Value="#8B3D88"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -315,7 +315,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#16a34a"/>
+                                    <Setter Property="Background" Value="#7A3376"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

@@ -72,6 +72,11 @@ export default function LicensesPage() {
         setIsGenerating(true)
 
         try {
+            const maxUsesValue = parseInt(newMaxUses, 10)
+            if (Number.isNaN(maxUsesValue) || maxUsesValue < 1) {
+                setGenerateError("Max device activations must be a number of 1 or more.")
+                return
+            }
             const res = await fetch("/api/licenses", {
                 method: "POST",
                 headers: {
@@ -80,7 +85,7 @@ export default function LicensesPage() {
                 },
                 body: JSON.stringify({
                     type: newType,
-                    max_uses: parseInt(newMaxUses)
+                    max_uses: maxUsesValue
                 })
             })
 
@@ -254,18 +259,19 @@ export default function LicensesPage() {
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">
                                     Max Device Activations
                                 </label>
-                                <select
+                                <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={1}
+                                    step={1}
                                     value={newMaxUses}
                                     onChange={(e) => setNewMaxUses(e.target.value)}
                                     disabled={newType === "single_use"}
-                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                                >
-                                    {[1, 5, 10, 25, 50, 100].map(num => (
-                                        <option key={num} value={num.toString()}>
-                                            {num}
-                                        </option>
-                                    ))}
-                                </select>
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                                />
+                                <p className="mt-2 text-xs text-slate-500">
+                                    Enter any number of activations you need (for example: 37 or 1000).
+                                </p>
                             </div>
 
                             <Button

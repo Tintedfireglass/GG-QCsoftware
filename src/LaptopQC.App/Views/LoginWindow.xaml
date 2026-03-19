@@ -80,7 +80,7 @@
                         Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Background" Value="#8B3D88"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
@@ -94,7 +94,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#16a34a"/>
+                                    <Setter Property="Background" Value="#7A3376"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

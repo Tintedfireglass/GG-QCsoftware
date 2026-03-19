@@ -51,7 +51,7 @@
                     <TextBlock Text="⌨️" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Keyboard Test" 
                                FontSize="22" FontWeight="SemiBold" 
-                               Foreground="#22c55e" FontFamily="Segoe UI"
+                               Foreground="#8B3D88" FontFamily="Segoe UI"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
@@ -69,7 +69,7 @@
                              Minimum="0" Maximum="100"
                              Height="8" 
                              Background="#e5e7eb"
-                             Foreground="#22c55e"/>
+                             Foreground="#8B3D88"/>
                 <TextBlock Text="{Binding ProgressText}" 
                            Foreground="#6b7280" 
                            FontFamily="Segoe UI"
@@ -115,8 +115,8 @@
                                         <Setter Property="BorderThickness" Value="1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                                <Setter Property="Background" Value="#22c55e"/>
-                                                <Setter Property="BorderBrush" Value="#16a34a"/>
+                                                <Setter Property="Background" Value="#8B3D88"/>
+                                                <Setter Property="BorderBrush" Value="#7A3376"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -194,7 +194,7 @@
                         Width="150" Height="40">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#22c55e"/>
+                            <Setter Property="Background" Value="#8B3D88"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -213,7 +213,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#16a34a"/>
+                                    <Setter Property="Background" Value="#7A3376"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
