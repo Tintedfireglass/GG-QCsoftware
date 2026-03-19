@@ -37,6 +37,7 @@ export default function LicensesPage() {
     const [newMaxUses, setNewMaxUses] = useState("1")
     const [generatedKeyString, setGeneratedKeyString] = useState("")
     const [generateError, setGenerateError] = useState("")
+    const [togglingId, setTogglingId] = useState<number | null>(null)
 
     useEffect(() => {
         if (!user) {
@@ -109,6 +110,41 @@ export default function LicensesPage() {
     const handleCopy = (keyString: string) => {
         navigator.clipboard.writeText(keyString)
         alert("Copied to clipboard!")
+    }
+
+    const handleToggleActive = async (licenseKey: LicenseKey) => {
+        const nextActive = !licenseKey.is_active
+        if (!nextActive) {
+            const confirmed = confirm("Disable this license key? It will stop working immediately.")
+            if (!confirmed) return
+        }
+
+        try {
+            setTogglingId(licenseKey.id)
+            const res = await fetch("/api/licenses", {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    id: licenseKey.id,
+                    is_active: nextActive
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                alert(data.message || data.error || "Failed to update license key.")
+                return
+            }
+
+            await fetchKeys()
+        } catch (err) {
+            alert("Server error while updating license key.")
+        } finally {
+            setTogglingId(null)
+        }
     }
 
     // Filter keys
@@ -188,22 +224,42 @@ export default function LicensesPage() {
                                         <td className="p-6 align-middle text-center">
                                             {k.is_active ? (
                                                 k.current_uses >= k.max_uses ? (
-                                                    <span className="text-rose-500 text-sm font-medium">Exhausted</span>
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
+                                                        Exhausted
+                                                    </span>
                                                 ) : (
-                                                    <span className="text-emerald-500 text-sm font-medium">Active</span>
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
+                                                        Active
+                                                    </span>
                                                 )
                                             ) : (
-                                                <span className="text-rose-500 text-sm font-medium">Revoked</span>
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full border border-rose-200 bg-rose-50 text-rose-700 text-xs font-medium">
+                                                    Revoked
+                                                </span>
                                             )}
                                         </td>
                                         <td className="p-6 align-middle text-right">
-                                            <Button
-                                                variant="outline"
-                                                className="rounded-full px-6 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9"
-                                                onClick={() => handleCopy(k.key)}
-                                            >
-                                                Copy
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="rounded-full px-6 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9"
+                                                    onClick={() => handleCopy(k.key)}
+                                                >
+                                                    Copy
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className={
+                                                        k.is_active
+                                                            ? "rounded-full px-6 border-rose-200 text-rose-600 hover:text-rose-700 hover:border-rose-300 bg-white shadow-sm h-9"
+                                                            : "rounded-full px-6 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 bg-white shadow-sm h-9"
+                                                    }
+                                                    onClick={() => handleToggleActive(k)}
+                                                    disabled={togglingId === k.id}
+                                                >
+                                                    {togglingId === k.id ? "Updating..." : k.is_active ? "Disable" : "Enable"}
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

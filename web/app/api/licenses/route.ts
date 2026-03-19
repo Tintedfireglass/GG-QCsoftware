@@ -112,3 +112,80 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Server Error' }, { status: 500 });
     }
 }
+
+// PATCH /api/licenses - Toggle license key active status
+export async function PATCH(request: NextRequest) {
+    try {
+        const { user: authUser, error: authError } = await authenticateRequest(request);
+        if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
+        if (roleError) return roleError;
+
+        const body = await request.json();
+        const { id, is_active } = body;
+
+        if (!id || typeof is_active !== 'boolean') {
+            return NextResponse.json({ error: 'Invalid input parameters' }, { status: 400 });
+        }
+
+        let updatedKey: any = null;
+
+        await transaction(async (client: PoolClient) => {
+            const params: any[] = [is_active, id];
+            let ownershipClause = '';
+            if (authUser.role !== 'SuperAdmin') {
+                ownershipClause = ' AND created_by = $3';
+                params.push(authUser.id);
+            }
+
+            const updateSql = `
+                WITH target AS (
+                    SELECT id, is_active
+                    FROM license_keys
+                    WHERE id = $2${ownershipClause}
+                    FOR UPDATE
+                ),
+                updated AS (
+                    UPDATE license_keys
+                    SET is_active = $1
+                    WHERE id IN (SELECT id FROM target)
+                    RETURNING *
+                ),
+                audit AS (
+                    INSERT INTO license_key_audits (
+                        license_key_id,
+                        action,
+                        previous_is_active,
+                        new_is_active,
+                        performed_by
+                    )
+                    SELECT
+                        target.id,
+                        CASE WHEN $1 = true THEN 'enable' ELSE 'disable' END,
+                        target.is_active,
+                        updated.is_active,
+                        $${params.length + 1}
+                    FROM target, updated
+                    RETURNING 1
+                )
+                SELECT * FROM updated
+            `;
+
+            const result = await client.query(updateSql, [...params, authUser.id]);
+            if (result.rows.length === 0) {
+                throw new Error('NOT_FOUND');
+            }
+
+            updatedKey = result.rows[0];
+        });
+
+        return NextResponse.json({ message: 'License key updated', key: updatedKey });
+    } catch (error) {
+        if (error instanceof Error && error.message === 'NOT_FOUND') {
+            return NextResponse.json({ error: 'Not Found', message: 'License key not found or not permitted' }, { status: 404 });
+        }
+        console.error('Update license error:', error);
+        return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+    }
+}
