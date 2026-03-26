@@ -1,0 +1,533 @@
+{
+  "info": {
+    "name": "Pramaan API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "jwtToken", "value": "" },
+    { "key": "apiKey", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "machineId", "value": "3000001" },
+    { "key": "machineDbId", "value": "1" },
+    { "key": "userId", "value": "1" },
+    { "key": "qcResultId", "value": "1" },
+    { "key": "healthId", "value": "" },
+    { "key": "checkoutState", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tech1\",\n  \"password\": \"password\",\n  \"email\": \"tech1@example.com\",\n  \"company_name\": \"Gadget Guruz\",\n  \"display_name\": \"Tech One\",\n  \"role\": \"Technician\"\n}"
+            }
+          }
+        },
+        {
+          "name": "License Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/license",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "license"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseKey\": \"ABCD-EFGH-IJKL-MNOP\",\n  \"machineSerial\": \"SERIAL123\",\n  \"macAddress\": \"00-11-22-33-44-55\",\n  \"computerName\": \"PRAMAAN-PC\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "QC Results",
+      "item": [
+        {
+          "name": "List QC Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/qc-results?limit=50&offset=0&machineId={{machineId}}&refurbishId=&overallPass=&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qc-results"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" },
+                { "key": "machineId", "value": "{{machineId}}" },
+                { "key": "refurbishId", "value": "" },
+                { "key": "overallPass", "value": "" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get QC Result By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/qc-results/{{qcResultId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qc-results", "{{qcResultId}}"]
+            }
+          }
+        },
+        {
+          "name": "Submit QC Result (API Key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-api-key", "value": "{{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/qc-results",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "qc-results"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"RPT-001\",\n  \"machineId\": \"{{machineId}}\",\n  \"timestamp\": \"2026-03-26T10:00:00Z\",\n  \"refurbishId\": \"REF-123\",\n  \"technicianNotes\": \"All tests passed\",\n  \"overallPass\": true,\n  \"overallScore\": 92,\n  \"overallGrade\": \"A\",\n  \"technicianId\": 1,\n  \"systemInfo\": {\n    \"manufacturer\": \"Dell\",\n    \"model\": \"Latitude\",\n    \"serialNumber\": \"SERIAL123\",\n    \"macAddress\": \"00-11-22-33-44-55\",\n    \"cpuModel\": \"Intel i5\",\n    \"ramTotal\": 16\n  },\n  \"testResults\": [\n    {\n      \"testType\": \"CPU\",\n      \"tested\": true,\n      \"passed\": true,\n      \"score\": 90,\n      \"grade\": \"A\",\n      \"message\": \"CPU OK\",\n      \"details\": { \"temp\": 65 }\n    }\n  ],\n  \"pramaanScore\": 92,\n  \"healthId\": \"HEALTH-001\",\n  \"pramaanHash\": \"HASH\",\n  \"pramaanGrade\": \"A\",\n  \"pramaanCategoryScores\": {\n    \"storage\": 95,\n    \"thermal\": 90,\n    \"battery\": 88,\n    \"cpu_ram\": 93,\n    \"physical_ports\": 90,\n    \"repair_modifier\": 100\n  },\n  \"pramaanRiskFlags\": {\n    \"storage\": false,\n    \"thermal\": false,\n    \"battery\": false,\n    \"cpu_ram\": false,\n    \"physical_ports\": false,\n    \"repair_modifier\": false\n  },\n  \"pramaanAlgorithmVersion\": \"1.0\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Machines",
+      "item": [
+        {
+          "name": "List Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/machines",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "machines"]
+            }
+          }
+        },
+        {
+          "name": "Get Machine By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/machines/{{machineDbId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "machines", "{{machineDbId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Licenses",
+      "item": [
+        {
+          "name": "List Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/licenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "licenses"]
+            }
+          }
+        },
+        {
+          "name": "Create License",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/licenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "licenses"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"single_use\",\n  \"max_uses\": 1,\n  \"expires_at\": \"2026-12-31T00:00:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle License Active",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/licenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "licenses"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"is_active\": true\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fleet",
+      "item": [
+        {
+          "name": "List Fleet",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/fleet?group_id=&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fleet"],
+              "query": [
+                { "key": "group_id", "value": "" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Enroll Machine",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/fleet",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fleet"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"machine_id\": \"{{machineId}}\",\n  \"asset_tag\": \"TAG-001\",\n  \"group_id\": 1,\n  \"serial_number\": \"SERIAL123\",\n  \"manufacturer\": \"Dell\",\n  \"model\": \"Latitude\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Lifecycle Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/fleet/{{machineDbId}}/lifecycle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fleet", "{{machineDbId}}", "lifecycle"]
+            }
+          }
+        },
+        {
+          "name": "Add Lifecycle Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/fleet/{{machineDbId}}/lifecycle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fleet", "{{machineDbId}}", "lifecycle"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"tested\",\n  \"notes\": \"QC passed\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?page=1&limit=20&search=&role=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "" },
+                { "key": "role", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tech1@example.com\",\n  \"display_name\": \"Tech One\",\n  \"role\": \"Technician\",\n  \"is_active\": true,\n  \"password\": \"newpassword\",\n  \"license_credits\": 10\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer",
+      "item": [
+        {
+          "name": "Customer Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"password\",\n  \"fullName\": \"Customer One\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Customer Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Customer Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "me"]
+            }
+          }
+        },
+        {
+          "name": "Customer Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/licenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "licenses"]
+            }
+          }
+        },
+        {
+          "name": "Customer Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "checkout"]
+            }
+          }
+        },
+        {
+          "name": "Customer Payment Callback (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payment/callback?state={{checkoutState}}&status=success&payment_ref=PAY123&gateway_ref=GW456",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payment", "callback"],
+              "query": [
+                { "key": "state", "value": "{{checkoutState}}" },
+                { "key": "status", "value": "success" },
+                { "key": "payment_ref", "value": "PAY123" },
+                { "key": "gateway_ref", "value": "GW456" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Customer Payment Callback (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payment/callback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payment", "callback"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"{{checkoutState}}\",\n  \"status\": \"success\",\n  \"payment_ref\": \"PAY123\",\n  \"gateway_ref\": \"GW456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api"]
+            }
+          }
+        },
+        {
+          "name": "PRAMAAN Config",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pramaan/config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pramaan", "config"]
+            }
+          }
+        },
+        {
+          "name": "Verify Health ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/verify/{{healthId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify", "{{healthId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

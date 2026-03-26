@@ -16,6 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly BatteryDiagnostic _batteryDiagnostic;
     private readonly DeviceDiagnostic _deviceDiagnostic;
     private readonly SmartTestService _smartTestService;
+    private readonly SecurityDiagnostic _securityDiagnostic;
 
     [ObservableProperty]
     private SystemInfo? _systemInfo;
@@ -71,6 +72,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _smartctlAvailable;
 
+    [ObservableProperty]
+    private string _windowsActivationStatus = "Not scanned";
+
+    [ObservableProperty]
+    private string _antivirusStatus = "Not scanned";
+
+    [ObservableProperty]
+    private bool _isSecurityChecking;
+
     public bool IsLoggedIn => App.IsLoggedIn;
 
     public void RefreshLoginState()
@@ -89,6 +99,7 @@ public partial class MainViewModel : ObservableObject
         _batteryDiagnostic = new BatteryDiagnostic();
         _deviceDiagnostic = new DeviceDiagnostic();
         _smartTestService = new SmartTestService();
+        _securityDiagnostic = new SecurityDiagnostic();
         
         // Check if smartctl is available
         SmartctlAvailable = _smartTestService.IsAvailable;
@@ -262,6 +273,8 @@ public partial class MainViewModel : ObservableObject
                 var storageInfo = _storageDiagnostic.GetInfo();
                 var batteryInfo = _batteryDiagnostic.GetInfo();
                 var devicesInfo = _deviceDiagnostic.GetInfo();
+                var activationStatus = _securityDiagnostic.GetWindowsActivationStatus();
+                var antivirusStatus = _securityDiagnostic.GetAntivirusStatus();
 
                 // Update UI on main thread
                 App.Current?.Dispatcher?.Invoke(() =>
@@ -396,6 +409,20 @@ public partial class MainViewModel : ObservableObject
                         var status = net.IsConnected ? "Connected" : "Disconnected";
                         AddResult("Devices", net.AdapterType, net.IsConnected, $"{net.Name} - {status}");
                     }
+
+                    // Security Status
+                    AddResult("Security", "Windows Activation", activationStatus.IsActivated, activationStatus.Summary);
+                    AddResult("Security", "Antivirus", antivirusStatus.IsHealthy, antivirusStatus.Summary);
+                    foreach (var product in antivirusStatus.Products)
+                    {
+                        var details = string.IsNullOrWhiteSpace(product.ProductStateHex)
+                            ? product.Name
+                            : $"{product.Name} ({product.ProductStateHex})";
+                        AddResult("Security", "AV Product", antivirusStatus.IsHealthy, details);
+                    }
+
+                    WindowsActivationStatus = activationStatus.Summary;
+                    AntivirusStatus = antivirusStatus.Summary;
                     
                     StatusMessage = "Scan complete!";
                 });
@@ -505,6 +532,52 @@ public partial class MainViewModel : ObservableObject
         finally
         {
             IsScanning = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task RefreshSecurityAsync()
+    {
+        if (IsSecurityChecking)
+            return;
+
+        IsSecurityChecking = true;
+        StatusMessage = "Checking security status...";
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                var activationStatus = _securityDiagnostic.GetWindowsActivationStatus();
+                var antivirusStatus = _securityDiagnostic.GetAntivirusStatus();
+
+                App.Current?.Dispatcher?.Invoke(() =>
+                {
+                    AddResult("Security", "Windows Activation", activationStatus.IsActivated, activationStatus.Summary);
+                    AddResult("Security", "Antivirus", antivirusStatus.IsHealthy, antivirusStatus.Summary);
+                    foreach (var product in antivirusStatus.Products)
+                    {
+                        var details = string.IsNullOrWhiteSpace(product.ProductStateHex)
+                            ? product.Name
+                            : $"{product.Name} ({product.ProductStateHex})";
+                        AddResult("Security", "AV Product", antivirusStatus.IsHealthy, details);
+                    }
+
+                    WindowsActivationStatus = activationStatus.Summary;
+                    AntivirusStatus = antivirusStatus.Summary;
+                });
+            });
+
+            StatusMessage = "Security check complete!";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Security check error: {ex.Message}";
+            AddResult("Security", "Security Check", false, ex.Message);
+        }
+        finally
+        {
+            IsSecurityChecking = false;
         }
     }
 

@@ -1,6 +1,7 @@
 #if WINDOWS
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
+using System.Management;
 
 namespace LaptopQC.Core.Diagnostics;
 
@@ -28,10 +29,21 @@ public class SmartTestService : ISmartTestService
     {
         var devices = new List<SmartDriveInfo>();
         var drives = _smartctl.ScanDrives();
+        var usbRemovable = GetUsbRemovableInfo();
         
         foreach (var drive in drives)
         {
+            if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(drive.DevicePath)))
+                continue;
+
             var smartData = _smartctl.GetSmartData(drive.DevicePath, drive.Type);
+            if (smartData != null)
+            {
+                var key = BuildModelSerialKey(smartData.Model, smartData.SerialNumber);
+                if (usbRemovable.ModelSerials.Contains(key))
+                    continue;
+            }
+
             var model = smartData?.Model;
             if (string.IsNullOrWhiteSpace(model))
                 model = drive.DevicePath;
@@ -89,6 +101,15 @@ public class SmartTestService : ISmartTestService
             TestType = "Short",
             StartTime = DateTime.Now
         };
+
+        var usbRemovable = GetUsbRemovableInfo();
+        if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(devicePath)))
+        {
+            result.Success = false;
+            result.Message = "Skipped: USB removable drive";
+            result.EndTime = DateTime.Now;
+            return result;
+        }
         
         // Start the test
         var startResult = _smartctl.StartShortTest(devicePath, deviceType);
@@ -190,6 +211,77 @@ public class SmartTestService : ISmartTestService
             result.Message = $"All {devices.Count} drive(s) healthy";
         
         return result;
+    }
+
+    private const long UsbFlashMaxBytes = 64L * 1024 * 1024 * 1024; // 64 GB
+
+    private static UsbRemovableInfo GetUsbRemovableInfo()
+    {
+        var info = new UsbRemovableInfo();
+
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                "SELECT DeviceID, Model, SerialNumber, MediaType, InterfaceType, RemovableMedia, Size FROM Win32_DiskDrive");
+
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                var interfaceType = obj["InterfaceType"]?.ToString() ?? "";
+                if (!interfaceType.Equals("USB", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var removableMedia = obj["RemovableMedia"] as bool?;
+                var mediaType = obj["MediaType"]?.ToString() ?? "";
+                var isRemovable = (removableMedia == true) ||
+                                  mediaType.Contains("Removable", StringComparison.OrdinalIgnoreCase);
+
+                long sizeBytes = 0;
+                try
+                {
+                    if (obj["Size"] != null)
+                        sizeBytes = Convert.ToInt64(obj["Size"]);
+                }
+                catch { }
+
+                var isSmallUsb = sizeBytes > 0 && sizeBytes <= UsbFlashMaxBytes;
+
+                if (!isRemovable && !isSmallUsb)
+                    continue;
+
+                var deviceId = obj["DeviceID"]?.ToString() ?? "";
+                if (!string.IsNullOrWhiteSpace(deviceId))
+                    info.DeviceIds.Add(NormalizeDevicePath(deviceId));
+
+                var model = obj["Model"]?.ToString() ?? "";
+                var serial = obj["SerialNumber"]?.ToString() ?? "";
+                if (!string.IsNullOrWhiteSpace(model) && !string.IsNullOrWhiteSpace(serial))
+                    info.ModelSerials.Add(BuildModelSerialKey(model, serial));
+            }
+        }
+        catch
+        {
+            // Best-effort only. If WMI fails, we won't skip by removable info.
+        }
+
+        return info;
+    }
+
+    private static string NormalizeDevicePath(string? path)
+    {
+        return (path ?? "").Trim().ToUpperInvariant();
+    }
+
+    private static string BuildModelSerialKey(string? model, string? serial)
+    {
+        var m = (model ?? "").Trim().ToUpperInvariant();
+        var s = (serial ?? "").Trim().ToUpperInvariant();
+        return $"{m}|{s}";
+    }
+
+    private sealed class UsbRemovableInfo
+    {
+        public HashSet<string> DeviceIds { get; } = new();
+        public HashSet<string> ModelSerials { get; } = new();
     }
 }
 #endif

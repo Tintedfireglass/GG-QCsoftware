@@ -505,102 +505,150 @@
                 </Border>
             </Grid>
             
-            <!-- Devices Card -->
-            <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,0,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Grid.Column="0">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <TextBlock Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="Devices" Style="{StaticResource SectionTitle}"/>
+            <!-- Devices + Security Row -->
+            <Grid Grid.Row="2" Margin="5,0,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Devices Card -->
+                <Border Grid.Column="0" Style="{StaticResource CardPanel}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Devices" Style="{StaticResource SectionTitle}"/>
+                            </StackPanel>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Row 1: Input Devices -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="Input Devices" Style="{StaticResource InfoLabel}" Margin="0,0,0,6"/>
+                                
+                                <!-- Keyboard -->
+                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="Keyboard" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
+                                    <Button Content="Test" 
+                                            Command="{Binding OpenKeyboardTestCommand}"
+                                            Style="{StaticResource SmallTestButton}"
+                                            Margin="10,0,0,0"
+                                            ToolTip="Test all keyboard keys"/>
+                                </StackPanel>
+                                
+                                <!-- Trackpad -->
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="Trackpad" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
+                                    <Button Content="Test" 
+                                            Command="{Binding OpenTrackpadTestCommand}"
+                                            Style="{StaticResource SmallTestButton}"
+                                            Margin="10,0,0,0"
+                                            ToolTip="Test trackpad movement, clicks, and scroll"/>
+                                </StackPanel>
+                                
+                            </Grid>
+                            
+                            <!-- Camera / Display Row -->
+                            <TextBlock Text="Camera" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="Webcam" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
+                                    <Button Content="Test A/V" 
+                                            Command="{Binding OpenAudioVideoTestCommand}"
+                                            Style="{StaticResource SmallTestButton}"
+                                            Margin="10,0,0,0"
+                                            ToolTip="Test Speakers, Microphone, and Camera"/>
+                                </StackPanel>
+                                
+                            </Grid>
+                            
+                            <!-- USB Controllers -->
+                            <TextBlock Text="USB  Controllers" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" Style="{StaticResource LargeValue}"/>
+                                <TextBlock Text=" Total" Foreground="#6b7280" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                                <Button Content="Test" 
+                                        Command="{Binding OpenUsbPortTestCommand}"
+                                        Style="{StaticResource SmallTestButton}"
+                                        Margin="15,0,0,0"
+                                        ToolTip="Test each USB port by plugging in a device"/>
+                                <TextBlock Style="{StaticResource InfoLabel}" VerticalAlignment="Center" Margin="15,0,0,0">
+                                    <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                    <Run Text=" USB 3.x .. "/>
+                                    <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
+                                    <Run Text=" USB 2.0"/>
+                                </TextBlock>
+                            </StackPanel>
+                            
+                            <Border Style="{StaticResource StatusBoxSuccess}" Margin="0,12,0,0">
+                                <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                            </Border>
                         </StackPanel>
                         
-                        <Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Security Card -->
+                <Border Grid.Column="1" Style="{StaticResource CardPanel}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <!-- Row 1: Input Devices -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="Input Devices" Style="{StaticResource InfoLabel}" Margin="0,0,0,6"/>
-                            
-                            <!-- Keyboard -->
-                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
-                                <TextBlock Text="Keyboard" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
-                                <Button Content="Test" 
-                                        Command="{Binding OpenKeyboardTestCommand}"
-                                        Style="{StaticResource SmallTestButton}"
-                                        Margin="10,0,0,0"
-                                        ToolTip="Test all keyboard keys"/>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <TextBlock Text="🛡️" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Security" Style="{StaticResource SectionTitle}"/>
                             </StackPanel>
-                            
-                            <!-- Trackpad -->
-                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                                <TextBlock Text="Trackpad" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
-                                <Button Content="Test" 
-                                        Command="{Binding OpenTrackpadTestCommand}"
-                                        Style="{StaticResource SmallTestButton}"
-                                        Margin="10,0,0,0"
-                                        ToolTip="Test trackpad movement, clicks, and scroll"/>
-                            </StackPanel>
-                            
-                        </Grid>
-                        
-                        <!-- Camera / Display Row -->
-                        <TextBlock Text="Camera" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,4">
-                                <TextBlock Text="Webcam" Style="{StaticResource ValueText}" VerticalAlignment="Center"/>
-                                <Button Content="Test A/V" 
-                                        Command="{Binding OpenAudioVideoTestCommand}"
-                                        Style="{StaticResource SmallTestButton}"
-                                        Margin="10,0,0,0"
-                                        ToolTip="Test Speakers, Microphone, and Camera"/>
-                            </StackPanel>
-                            
-                        </Grid>
-                        
-                        <!-- USB Controllers -->
-                        <TextBlock Text="USB  Controllers" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" Style="{StaticResource LargeValue}"/>
-                            <TextBlock Text=" Total" Foreground="#6b7280" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
-                            <Button Content="Test" 
-                                    Command="{Binding OpenUsbPortTestCommand}"
+
+                            <Button Grid.Column="1"
+                                    Content="Refresh"
+                                    Command="{Binding RefreshSecurityCommand}"
+                                    IsEnabled="{Binding IsSecurityChecking, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
                                     Style="{StaticResource SmallTestButton}"
-                                    Margin="15,0,0,0"
-                                    ToolTip="Test each USB port by plugging in a device"/>
-                            <TextBlock Style="{StaticResource InfoLabel}" VerticalAlignment="Center" Margin="15,0,0,0">
-                                <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                <Run Text=" USB 3.x .. "/>
-                                <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                <Run Text=" USB 2.0"/>
-                            </TextBlock>
+                                    Padding="10,6"
+                                    ToolTip="Refresh Windows activation and antivirus status"/>
+                        </Grid>
+
+                        <StackPanel>
+                            <TextBlock Text="Windows Activation" Style="{StaticResource InfoLabel}"/>
+                            <TextBlock Text="{Binding WindowsActivationStatus, FallbackValue='Not scanned'}" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
                         </StackPanel>
-                        
+
+                        <StackPanel Margin="0,12,0,0">
+                            <TextBlock Text="Antivirus" Style="{StaticResource InfoLabel}"/>
+                            <TextBlock Text="{Binding AntivirusStatus, FallbackValue='Not scanned'}" Style="{StaticResource ValueText}" TextWrapping="Wrap"/>
+                        </StackPanel>
+
                         <Border Style="{StaticResource StatusBoxSuccess}" Margin="0,12,0,0">
-                            <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                            <TextBlock Text="Security checks reflect Windows license and antivirus status only."
+                                       Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
                         </Border>
                     </StackPanel>
-                    
-                </Grid>
-            </Border>
+                </Border>
+            </Grid>
             
             <!-- Test Results List -->
             <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,5,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
