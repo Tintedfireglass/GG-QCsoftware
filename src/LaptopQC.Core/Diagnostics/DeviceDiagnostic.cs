@@ -306,8 +306,13 @@ public class DeviceDiagnostic : IDeviceDiagnostic
     /// </summary>
     private void DetectDisplays(DevicesInfo info)
     {
+        var monitorIds = GetMonitorIdMap();
+
         foreach (var obj in _wmi.Query("Win32_DesktopMonitor"))
         {
+            var pnpDeviceId = _wmi.GetValue<string>(obj, "PNPDeviceID", "") ?? "";
+            var pnpKey = NormalizePnpId(pnpDeviceId);
+
             var display = new DisplayDevice
             {
                 Name = _wmi.GetValue<string>(obj, "Name", "Unknown Display") ?? "Unknown Display",
@@ -316,9 +321,17 @@ public class DeviceDiagnostic : IDeviceDiagnostic
                 ScreenHeight = (int)_wmi.GetValue<uint>(obj, "ScreenHeight", 0),
                 IsActive = _wmi.GetValue<ushort>(obj, "Availability", 0) == 3 // 3 = Running/Full Power
             };
-            
+
             // Determine connection type from device ID
             display.ConnectionType = DetermineDisplayConnection(display.DeviceId, display.Name);
+
+            if (!string.IsNullOrWhiteSpace(pnpKey) && monitorIds.TryGetValue(pnpKey, out var id))
+            {
+                display.ManufacturerCode = id.ManufacturerCode;
+                display.ProductCode = id.ProductCode;
+                display.SerialNumber = id.SerialNumber;
+                display.PartNumber = id.PartNumber;
+            }
             
             info.Displays.Add(display);
         }
@@ -554,6 +567,88 @@ public class DeviceDiagnostic : IDeviceDiagnostic
             return (false, string.Join("; ", issues));
 
         return (true, $"All devices OK - {info.InputDevices.Count} input, {info.TotalUsbPorts} USB ports, {info.Displays.Count} display(s)");
+    }
+
+    private Dictionary<string, DisplayId> GetMonitorIdMap()
+    {
+        var map = new Dictionary<string, DisplayId>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var obj in _wmi.Query("WmiMonitorID", "root\\WMI"))
+        {
+            var instanceName = obj["InstanceName"]?.ToString() ?? "";
+            var key = NormalizePnpId(instanceName);
+            if (string.IsNullOrWhiteSpace(key))
+                continue;
+
+            var manufacturer = DecodeWmiString(obj["ManufacturerName"]);
+            var productCode = DecodeWmiProductCode(obj["ProductCodeID"]);
+            var serial = DecodeWmiString(obj["SerialNumberID"]);
+            var partNumber = BuildDisplayPartNumber(manufacturer, productCode);
+
+            map[key] = new DisplayId
+            {
+                ManufacturerCode = manufacturer,
+                ProductCode = productCode,
+                SerialNumber = serial,
+                PartNumber = partNumber
+            };
+        }
+
+        return map;
+    }
+
+    private static string NormalizePnpId(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+
+        var normalized = value.Trim().Replace(@"\\", @"\").ToUpperInvariant();
+        var underscoreIndex = normalized.IndexOf('_');
+        if (underscoreIndex > 0)
+            normalized = normalized.Substring(0, underscoreIndex);
+
+        return normalized;
+    }
+
+    private static string DecodeWmiString(object? value)
+    {
+        if (value is ushort[] arr)
+        {
+            var chars = arr
+                .TakeWhile(c => c != 0)
+                .Select(c => (char)c)
+                .ToArray();
+            return new string(chars).Trim();
+        }
+
+        return value?.ToString()?.Trim() ?? "";
+    }
+
+    private static string DecodeWmiProductCode(object? value)
+    {
+        if (value is ushort u)
+            return u.ToString();
+        if (value is int i)
+            return i.ToString();
+        if (value is ushort[] arr && arr.Length > 0)
+            return arr[0].ToString();
+
+        return "";
+    }
+
+    private static string BuildDisplayPartNumber(string manufacturer, string productCode)
+    {
+        if (string.IsNullOrWhiteSpace(manufacturer) || string.IsNullOrWhiteSpace(productCode))
+            return "";
+        return $"{manufacturer}-{productCode}";
+    }
+
+    private sealed class DisplayId
+    {
+        public string ManufacturerCode { get; set; } = "";
+        public string ProductCode { get; set; } = "";
+        public string SerialNumber { get; set; } = "";
+        public string PartNumber { get; set; } = "";
     }
 }
 #endif

@@ -2,12 +2,14 @@
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Management;
+using System.Runtime.Versioning;
 
 namespace LaptopQC.Core.Diagnostics;
 
 /// <summary>
 /// Service for running SMART self-tests on storage devices
 /// </summary>
+[SupportedOSPlatform("windows")]
 public class SmartTestService : ISmartTestService
 {
     private readonly ISmartctlProvider _smartctl;
@@ -215,6 +217,7 @@ public class SmartTestService : ISmartTestService
 
     private const long UsbFlashMaxBytes = 64L * 1024 * 1024 * 1024; // 64 GB
 
+    [SupportedOSPlatform("windows")]
     private static UsbRemovableInfo GetUsbRemovableInfo()
     {
         var info = new UsbRemovableInfo();

@@ -42,16 +42,22 @@ async function findOrCreateMachine(
     }
 
     // Also check by machine_id field (legacy: might have been created by old QC submission)
+    // If the serial already exists, reuse that row to avoid unique constraint violations.
     const legacyMatch = await client.query(
-        'SELECT id FROM machines WHERE machine_id = $1 AND hardware_fingerprint IS NULL',
+        'SELECT id FROM machines WHERE machine_id = $1',
         [serial]
     );
 
     if (legacyMatch.rows.length > 0) {
-        // Backfill fingerprint on legacy row
+        // Backfill/refresh fingerprint and metadata on existing row
         await client.query(
-            'UPDATE machines SET hardware_fingerprint = $1, computer_name = $2, last_seen = NOW() WHERE id = $3',
-            [fingerprint, computerName || null, legacyMatch.rows[0].id]
+            `UPDATE machines
+             SET hardware_fingerprint = $1,
+                 computer_name = $2,
+                 mac_address = $3,
+                 last_seen = NOW()
+             WHERE id = $4`,
+            [fingerprint, computerName || null, macAddress || null, legacyMatch.rows[0].id]
         );
         return legacyMatch.rows[0].id;
     }

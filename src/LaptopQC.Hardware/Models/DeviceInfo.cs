@@ -83,6 +83,10 @@ public class DisplayDevice
     public int ScreenHeight { get; set; }
     public string Resolution => $"{ScreenWidth}x{ScreenHeight}";
     public bool IsActive { get; set; }
+    public string ManufacturerCode { get; set; } = "";
+    public string ProductCode { get; set; } = "";
+    public string SerialNumber { get; set; } = "";
+    public string PartNumber { get; set; } = "";
 }
 
 /// <summary>

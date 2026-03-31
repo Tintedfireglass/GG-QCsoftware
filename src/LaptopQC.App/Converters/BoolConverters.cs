@@ -58,3 +58,27 @@ public class InverseBooleanToVisibilityConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+/// Converts boolean to a column width (parameter) or 0 when false.
+/// </summary>
+public class BoolToWidthConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue && boolValue)
+        {
+            if (parameter is double width)
+                return width;
+            if (parameter is string str && double.TryParse(str, out var parsed))
+                return parsed;
+            return 0d;
+        }
+        return 0d;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

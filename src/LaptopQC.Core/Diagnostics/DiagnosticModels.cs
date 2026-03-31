@@ -44,6 +44,7 @@ public class BatteryInfo
     public string BatteryStatus { get; set; } = "";
     public int EstimatedChargeRemaining { get; set; }
     public int ChargePercent { get; set; }
+    public string PartNumber { get; set; } = "";
     
     // Capacity info (in mWh)
     public uint DesignedCapacityMWh { get; set; }

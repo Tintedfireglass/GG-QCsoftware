@@ -54,6 +54,7 @@ public class BatteryDiagnostic : IBatteryDiagnostic
                 info.ManufactureName = _wmi.GetValue<string>(obj, "ManufactureName", "") ?? "";
                 info.SerialNumber = _wmi.GetValue<string>(obj, "SerialNumber", "") ?? "";
                 info.Chemistry = _wmi.GetValue<string>(obj, "Chemistry", "") ?? "";
+                info.PartNumber = _wmi.GetValue<string>(obj, "DeviceName", "") ?? "";
                 break;
             }
 

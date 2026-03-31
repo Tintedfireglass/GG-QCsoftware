@@ -334,6 +334,9 @@ public partial class MainViewModel : ObservableObject
                         
                         if (batteryInfo.CycleCount > 0)
                             AddResult("Battery", "Cycle Count", batteryInfo.CycleCount < 500, $"{batteryInfo.CycleCount} cycles");
+
+                        if (!string.IsNullOrWhiteSpace(batteryInfo.PartNumber))
+                            AddResult("Battery", "Part Number", true, batteryInfo.PartNumber);
                     }
                     else
                     {
@@ -394,7 +397,14 @@ public partial class MainViewModel : ObservableObject
                     foreach (var display in devicesInfo.Displays)
                     {
                         var resolution = display.ScreenWidth > 0 ? $" ({display.Resolution})" : "";
-                        AddResult("Devices", $"Display ({display.ConnectionType})", display.IsActive, $"{display.Name}{resolution}");
+                        var hasVendor = !string.IsNullOrWhiteSpace(display.ManufacturerCode);
+                        var hasProduct = !string.IsNullOrWhiteSpace(display.ProductCode);
+                        var hasSerial = !string.IsNullOrWhiteSpace(display.SerialNumber);
+                        var edidDetails = (hasVendor || hasProduct || hasSerial)
+                            ? $" | EDID: Vendor={display.ManufacturerCode} | Product={display.ProductCode} | Serial={display.SerialNumber}"
+                            : "";
+
+                        AddResult("Devices", $"Display ({display.ConnectionType})", display.IsActive, $"{display.Name}{resolution}{edidDetails}");
                     }
 
                     // Audio
@@ -533,6 +543,16 @@ public partial class MainViewModel : ObservableObject
         {
             IsScanning = false;
         }
+    }
+
+    [RelayCommand]
+    private void OpenCleanup()
+    {
+        var win = new Views.CleanupWindow
+        {
+            Owner = App.Current.MainWindow
+        };
+        win.ShowDialog();
     }
 
     [RelayCommand]
