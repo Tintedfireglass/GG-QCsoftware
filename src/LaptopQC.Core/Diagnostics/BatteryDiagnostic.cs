@@ -40,6 +40,8 @@ public class BatteryDiagnostic : IBatteryDiagnostic
             return info;
 
         // Get detailed capacity info from BatteryFullChargedCapacity
+        int? wmiCycleCount = null;
+        bool wmiCycleSeen = false;
         try
         {
             foreach (var obj in _wmi.Query("BatteryFullChargedCapacity", "root\\WMI"))
@@ -61,7 +63,9 @@ public class BatteryDiagnostic : IBatteryDiagnostic
             // Get cycle count if available
             foreach (var obj in _wmi.Query("BatteryCycleCount", "root\\WMI"))
             {
-                info.CycleCount = _wmi.GetValue<uint>(obj, "CycleCount", 0);
+                wmiCycleSeen = true;
+                var raw = _wmi.GetValue<uint>(obj, "CycleCount", 0);
+                wmiCycleCount = (int)raw;
                 break;
             }
         }
@@ -71,6 +75,8 @@ public class BatteryDiagnostic : IBatteryDiagnostic
         }
 
         // Try LibreHardwareMonitor for additional data
+        int? sensorDegradation = null;
+        int? sensorCycleCount = null;
         try
         {
             BatteryData? batteryData = null;
@@ -90,6 +96,10 @@ public class BatteryDiagnostic : IBatteryDiagnostic
                     info.DesignedCapacityMWh = batteryData.DesignedCapacity;
                 if (info.FullChargedCapacityMWh == 0)
                     info.FullChargedCapacityMWh = batteryData.FullChargedCapacity;
+                if (batteryData.DegradationLevel > 0)
+                    sensorDegradation = batteryData.DegradationLevel;
+                if (batteryData.CycleCount.HasValue && batteryData.CycleCount.Value > 0)
+                    sensorCycleCount = batteryData.CycleCount.Value;
             }
         }
         catch { }
@@ -97,12 +107,79 @@ public class BatteryDiagnostic : IBatteryDiagnostic
         // Calculate wear level
         if (info.DesignedCapacityMWh > 0 && info.FullChargedCapacityMWh > 0)
         {
-            info.WearLevelPercent = (int)Math.Round(
+            var wear = (int)Math.Round(
                 (1 - ((double)info.FullChargedCapacityMWh / info.DesignedCapacityMWh)) * 100);
-            info.HealthPercent = 100 - info.WearLevelPercent;
+            wear = Math.Clamp(wear, 0, 100);
+            info.WearLevelPercent = wear;
+            info.HealthPercent = 100 - wear;
+        }
+
+        // If sensor degradation exists and conflicts with WMI, prefer the worse (more worn) value.
+        if (sensorDegradation.HasValue)
+        {
+            var degradation = Math.Clamp(sensorDegradation.Value, 0, 100);
+            if (!info.WearLevelPercent.HasValue || info.WearLevelPercent.Value == 0 || degradation > info.WearLevelPercent.Value)
+            {
+                info.WearLevelPercent = degradation;
+                info.HealthPercent = 100 - degradation;
+            }
+        }
+
+        // Resolve cycle count: prefer sensor data, else use WMI if it looks reliable.
+        if (sensorCycleCount.HasValue)
+        {
+            info.CycleCount = sensorCycleCount.Value;
+        }
+        else if (wmiCycleSeen)
+        {
+            if (wmiCycleCount.HasValue && wmiCycleCount.Value > 0)
+            {
+                info.CycleCount = wmiCycleCount.Value;
+            }
+            else
+            {
+                // WMI often reports 0 when cycle count is unavailable.
+                // Treat 0 as unknown to avoid misleading "0 cycles".
+                info.CycleCount = null;
+            }
+        }
+
+        // Validate BMS-reported data for obvious impossibilities/unreadable values.
+        // If tampered/unreadable, clear derived metrics to prevent misleading scoring.
+        var (isTampered, reason) = EvaluateTamperState(info, sensorDegradation);
+        if (isTampered)
+        {
+            info.IsTampered = true;
+            info.TamperReason = reason;
+            info.WearLevelPercent = null;
+            info.HealthPercent = null;
         }
 
         return info;
+    }
+
+    private static (bool IsTampered, string Reason) EvaluateTamperState(BatteryInfo info, int? sensorDegradation)
+    {
+        if (!info.IsPresent) return (false, "");
+
+        // Missing capacity numbers => we can't trust BMS data enough to certify health.
+        if (info.DesignedCapacityMWh == 0 || info.FullChargedCapacityMWh == 0)
+            return (true, "Battery Tampered - Unable to read data");
+
+        // Full charged capacity should not exceed design capacity by a material amount.
+        // Allow a small tolerance for firmware rounding differences.
+        if (info.FullChargedCapacityMWh > info.DesignedCapacityMWh * 1.10)
+            return (true, "Battery Tampered - Unable to read data");
+
+        // If we have two independent wear signals and they strongly disagree, treat as unreliable.
+        if (sensorDegradation.HasValue && info.WearLevelPercent.HasValue)
+        {
+            var delta = Math.Abs(sensorDegradation.Value - info.WearLevelPercent.Value);
+            if (delta >= 35)
+                return (true, "Battery Tampered - Unable to read data");
+        }
+
+        return (false, "");
     }
 
     private string MapBatteryStatus(int status)
@@ -130,6 +207,9 @@ public class BatteryDiagnostic : IBatteryDiagnostic
     {
         if (!info.IsPresent)
             return (true, "No battery (desktop system)");
+
+        if (info.IsTampered)
+            return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Battery Tampered - Unable to read data" : info.TamperReason);
 
         if (info.WearLevelPercent > 40)
             return (false, $"Battery wear level critical: {info.WearLevelPercent}% worn");

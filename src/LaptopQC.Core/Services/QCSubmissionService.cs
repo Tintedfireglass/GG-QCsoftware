@@ -80,6 +80,7 @@ public class QCSubmissionService
             Timestamp = report.Timestamp,
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,
+            AppVersion = string.IsNullOrWhiteSpace(report.AppVersion) ? AppVersionProvider.GetVersion() : report.AppVersion,
             OverallPass = report.OverallPass,
             OverallScore = report.OverallScore,
             OverallGrade = report.OverallGrade,

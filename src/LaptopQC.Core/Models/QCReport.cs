@@ -9,6 +9,7 @@ public class QCReport
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string RefurbishId { get; set; } = "";
     public string TechnicianNotes { get; set; } = "";
+    public string AppVersion { get; set; } = "";
     
     // System Information
     public SystemInfo? SystemInfo { get; set; }

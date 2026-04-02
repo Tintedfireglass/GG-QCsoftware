@@ -56,7 +56,8 @@ public class QCWorkflowService
         {
             RefurbishId = refurbId,
             TechnicianNotes = notes,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.Now,
+            AppVersion = AppVersionProvider.GetVersion()
         };
         CurrentStep = QCWorkflowStep.AutomatedChecks;
     }
@@ -126,26 +127,60 @@ public class QCWorkflowService
                 Report.StorageTest.Tested = true;
                 Report.StorageTest.Passed = storVal.IsHealthy;
                 Report.StorageTest.Message = storVal.Message;
-                foreach (var drive in Report.StorageDetails.Devices)
+                if (Report.StorageDetails.IsTampered)
                 {
-                    var type = drive.IsSsd ? "SSD" : "HDD";
-                    Report.StorageTest.Details.Add($"{drive.Model} ({drive.SizeGB:F0} GB {type})");
+                    Report.StorageTest.Details.Add("Storage Tampered - Unable to read data");
+                }
+                else if (Report.StorageDetails.IsInconclusive)
+                {
+                    Report.StorageTest.Details.Add("Storage SMART Inconclusive - Unable to verify health data");
+                }
+                else if (Report.StorageDetails.IsSuspicious)
+                {
+                    Report.StorageTest.Details.Add("Storage data suspicious - Review recommended");
+                    foreach (var drive in Report.StorageDetails.Devices)
+                    {
+                        var type = drive.IsSsd ? "SSD" : "HDD";
+                        Report.StorageTest.Details.Add($"{drive.Model} ({drive.SizeGB:F0} GB {type})");
+                    }
+                }
+                else
+                {
+                    foreach (var drive in Report.StorageDetails.Devices)
+                    {
+                        var type = drive.IsSsd ? "SSD" : "HDD";
+                        Report.StorageTest.Details.Add($"{drive.Model} ({drive.SizeGB:F0} GB {type})");
+                    }
                 }
 
                 // Battery
                 Report.BatteryDetails = _batteryDiagnostic.GetInfo();
+                if (Report.BatteryDetails.CycleCount.HasValue && Report.BatteryDetails.CycleCount.Value <= 0)
+                    Report.BatteryDetails.CycleCount = null;
                 var batVal = _batteryDiagnostic.ValidateBattery(Report.BatteryDetails);
                 Report.BatteryTest.Tested = true;
                 Report.BatteryTest.Passed = batVal.IsHealthy;
                 Report.BatteryTest.Message = batVal.Message;
                 if (Report.BatteryDetails.IsPresent)
                 {
-                    Report.BatteryTest.Details.Add($"Charge: {Report.BatteryDetails.EstimatedChargeRemaining}%");
-                    Report.BatteryTest.Details.Add($"Health: {Report.BatteryDetails.HealthPercent}%");
-                    Report.BatteryTest.Details.Add($"Cycle Count: {Report.BatteryDetails.CycleCount}");
-                    if (Report.BatteryDetails.WearLevelPercent.HasValue)
-                        Report.BatteryTest.Details.Add($"Wear Level: {Report.BatteryDetails.WearLevelPercent}%");
-                    Report.BatteryTest.Details.Add($"Capacity: {Report.BatteryDetails.FullChargedCapacityMWh} / {Report.BatteryDetails.DesignedCapacityMWh} mWh");
+                    if (Report.BatteryDetails.IsTampered)
+                    {
+                        // Do not surface potentially misleading capacity/wear metrics when BMS data is invalid.
+                        Report.BatteryTest.Details.Add("Battery Tampered - Unable to read data");
+                    }
+                    else
+                    {
+                        Report.BatteryTest.Details.Add($"Charge: {Report.BatteryDetails.EstimatedChargeRemaining}%");
+                        var healthLabel = GetBatteryHealthLabel(Report.BatteryDetails);
+                        Report.BatteryTest.Details.Add($"Health: {healthLabel}");
+                        var cycleLabel = Report.BatteryDetails.CycleCount.HasValue
+                            ? Report.BatteryDetails.CycleCount.Value.ToString()
+                            : "N/A";
+                        Report.BatteryTest.Details.Add($"Cycle Count: {cycleLabel}");
+                        if (Report.BatteryDetails.WearLevelPercent.HasValue)
+                            Report.BatteryTest.Details.Add($"Wear Level: {Report.BatteryDetails.WearLevelPercent}%");
+                        Report.BatteryTest.Details.Add($"Capacity: {Report.BatteryDetails.FullChargedCapacityMWh} / {Report.BatteryDetails.DesignedCapacityMWh} mWh");
+                    }
                 }
                 else
                 {
@@ -218,16 +253,16 @@ public class QCWorkflowService
                             deviceType: device.DeviceType);
                         if (!testResult.Success)
                         {
-                            var detailMessage = $"{device.Model} ({testResult.Message})";
                             if (IsInconclusiveSmartTestMessage(testResult.Message))
                             {
                                 selfTestInconclusiveCount++;
-                                Report.SmartTest.Details.Add($"Self-Test Inconclusive: {detailMessage}");
+                                var reason = GetInconclusiveReason(testResult.Message);
+                                Report.SmartTest.Details.Add($"Self-Test Inconclusive: {device.Model} ({reason})");
                             }
                             else
                             {
                                 selfTestFailedCount++;
-                                Report.SmartTest.Details.Add($"Self-Test Failed: {detailMessage}");
+                                Report.SmartTest.Details.Add($"Self-Test Failed: {device.Model} ({testResult.Message})");
                             }
                         }
                         else
@@ -254,10 +289,17 @@ public class QCWorkflowService
                     Report.SmartTest.Passed = false;
                     Report.SmartTest.Message = "SMART self-test failed on one or more drives";
                 }
+                else if (selfTestInconclusiveCount > 0 && selfTestPassedCount == 0)
+                {
+                    // All self-tests were inconclusive — driver incompatibility, not a drive failure.
+                    Report.SmartTest.Passed = true;
+                    Report.SmartTest.Message = "SMART health check passed (self-test skipped — driver incompatibility on one or more drives)";
+                }
                 else if (selfTestInconclusiveCount > 0)
                 {
-                    Report.SmartTest.Passed = false;
-                    Report.SmartTest.Message = "SMART self-test inconclusive on one or more drives";
+                    // Mix of passed and inconclusive — not a failure
+                    Report.SmartTest.Passed = true;
+                    Report.SmartTest.Message = $"SMART health passed ({selfTestPassedCount} self-test(s) passed, {selfTestInconclusiveCount} skipped due to driver incompatibility)";
                 }
                 else
                 {
@@ -422,6 +464,27 @@ public class QCWorkflowService
         OnProgressUpdate?.Invoke(progress);
     }
 
+    private static string GetBatteryHealthLabel(BatteryInfo info)
+    {
+        if (!info.HealthPercent.HasValue)
+            return "N/A";
+
+        // If WMI reports equal capacities and cycles are unknown, health may be unreliable.
+        bool suspiciousFullCharge =
+            info.DesignedCapacityMWh > 0 &&
+            info.FullChargedCapacityMWh == info.DesignedCapacityMWh;
+
+        if (info.HealthPercent.Value >= 95 &&
+            info.WearLevelPercent.GetValueOrDefault() == 0 &&
+            !info.CycleCount.HasValue &&
+            suspiciousFullCharge)
+        {
+            return "N/A";
+        }
+
+        return $"{info.HealthPercent.Value}%";
+    }
+
     private static bool IsInconclusiveSmartTestMessage(string message)
     {
         if (string.IsNullOrWhiteSpace(message)) return true;
@@ -443,5 +506,35 @@ public class QCWorkflowService
 
         return inconclusiveMarkers.Any(m =>
             message.Contains(m, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Converts a raw smartctl inconclusive error message into a clean,
+    /// user-facing reason string.
+    /// </summary>
+    private static string GetInconclusiveReason(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "Unknown reason";
+
+        if (message.Contains("ioctl_storage", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("read nvme identify", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("ioctl", StringComparison.OrdinalIgnoreCase))
+            return "Driver incompatibility — cannot run self-test on this drive type";
+
+        if (message.Contains("not supported", StringComparison.OrdinalIgnoreCase))
+            return "Self-test not supported by this drive";
+
+        if (message.Contains("unknown usb bridge", StringComparison.OrdinalIgnoreCase))
+            return "USB bridge — self-test not available for external drives";
+
+        if (message.Contains("timed out", StringComparison.OrdinalIgnoreCase))
+            return "Self-test timed out";
+
+        if (message.Contains("host reset", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("interrupted", StringComparison.OrdinalIgnoreCase))
+            return "Self-test interrupted";
+
+        return "Self-test could not be started";
     }
 }

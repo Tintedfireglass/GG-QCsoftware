@@ -273,13 +273,51 @@ public class MacStorageDiagnostic : IStorageDiagnostic
         }
         catch { /* Return whatever we got */ }
 
+        EvaluateTamperState(info);
+
         return info;
     }
 
     public (bool IsHealthy, string Message) ValidateStorage(StorageInfo info)
     {
         if (info.Devices.Count == 0) return (false, "No storage devices detected");
+        if (info.IsTampered) return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered - Unable to read data" : info.TamperReason);
+        if (info.IsInconclusive) return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage SMART Inconclusive - Unable to verify health data" : info.InconclusiveReason);
+        if (info.IsSuspicious) return (true, string.IsNullOrWhiteSpace(info.SuspiciousReason) ? "Storage data suspicious - Review recommended" : info.SuspiciousReason);
         return (true, $"{info.Devices.Count} drive(s) detected");
+    }
+
+    private static void EvaluateTamperState(StorageInfo info)
+    {
+        foreach (var device in info.Devices)
+        {
+            bool invalidSize = device.SizeGB <= 0;
+            bool invalidHealth = device.HealthPercent.HasValue && (device.HealthPercent.Value < 0 || device.HealthPercent.Value > 100);
+            bool invalidTemp = device.Temperature.HasValue && (device.Temperature.Value < -10 || device.Temperature.Value > 120);
+
+            if (invalidSize || invalidHealth || invalidTemp)
+            {
+                device.IsTampered = true;
+                device.TamperReason = "Storage Tampered - Unable to read data";
+                info.IsTampered = true;
+                info.TamperReason = "Storage Tampered - Unable to read data";
+            }
+
+            bool suspiciousPerfectHealth =
+                device.HealthPercent.HasValue &&
+                device.HealthPercent.Value == 100 &&
+                device.PowerOnHours.HasValue &&
+                device.PowerOnHours.Value > 20000;
+
+            if (!info.IsTampered && suspiciousPerfectHealth)
+            {
+                device.IsSuspicious = true;
+                device.SuspiciousReason = "Storage data suspicious - Review recommended";
+                info.IsSuspicious = true;
+                if (string.IsNullOrWhiteSpace(info.SuspiciousReason))
+                    info.SuspiciousReason = "Storage data suspicious - Review recommended";
+            }
+        }
     }
 }
 
@@ -308,7 +346,8 @@ public class MacBatteryDiagnostic : IBatteryDiagnostic
 
             // Parse key values from ioreg output
             // Format: "KeyName" = Value
-            info.CycleCount = (uint)(ParseIoregInt(ioreg, "CycleCount") ?? 0);
+            var cycles = ParseIoregInt(ioreg, "CycleCount");
+            info.CycleCount = cycles.HasValue && cycles.Value > 0 ? cycles.Value : null;
 
             var designCap = ParseIoregInt(ioreg, "DesignCapacity") ?? 0;
             var maxCap = ParseIoregInt(ioreg, "MaxCapacity") ?? 0;
@@ -333,6 +372,16 @@ public class MacBatteryDiagnostic : IBatteryDiagnostic
             info.Status = isCharging == true ? "Charging" 
                        : externalConnected == true ? "Plugged In (Not Charging)" 
                        : "On Battery";
+
+            // Tamper/unreadable detection: impossible or missing capacity values.
+            // If tampered/unreadable, clear derived metrics to avoid misleading scoring.
+            if (designCap <= 0 || maxCap <= 0 || maxCap > designCap * 1.10)
+            {
+                info.IsTampered = true;
+                info.TamperReason = "Battery Tampered - Unable to read data";
+                info.WearLevelPercent = null;
+                info.HealthPercent = null;
+            }
         }
         catch
         {
@@ -345,9 +394,11 @@ public class MacBatteryDiagnostic : IBatteryDiagnostic
     public (bool IsHealthy, string Message) ValidateBattery(BatteryInfo info)
     {
         if (!info.IsPresent) return (true, "No battery (desktop system)");
+        if (info.IsTampered) return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Battery Tampered - Unable to read data" : info.TamperReason);
         if (info.WearLevelPercent > 40) return (false, $"Battery wear critical: {info.WearLevelPercent}%");
         if (info.WearLevelPercent > 20) return (true, $"Battery wear moderate: {info.WearLevelPercent}%");
-        return (true, $"Battery healthy (wear: {info.WearLevelPercent}%, cycles: {info.CycleCount})");
+        var cycleLabel = info.CycleCount.HasValue ? info.CycleCount.Value.ToString() : "N/A";
+        return (true, $"Battery healthy (wear: {info.WearLevelPercent}%, cycles: {cycleLabel})");
     }
 
     private static int? ParseIoregInt(string output, string key)

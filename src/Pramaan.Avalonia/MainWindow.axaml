@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         x:Class="Pramaan.Avalonia.MainWindow"
         x:DataType="vm:MainViewModel"
-        Title="PRAMAAN" Height="750" Width="1050"
+        Title="PRAMAAN" Height="680" Width="960"
         WindowStartupLocation="CenterScreen"
         Background="#f5f5f5">
 
@@ -420,8 +420,8 @@
                             
                             <Border Classes="DeviceItemBox" Margin="0,12,0,0">
                                 <TextBlock Classes="InfoLabel">
-                                    <Run Text="Wear: "/> <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-'}" Foreground="#22c55e"/>
-                                    <Run Text="%  |  Cycles: "/> <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-'}" Foreground="#22c55e"/>
+                                <Run Text="Wear: "/> <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-', TargetNullValue='-'}" Foreground="#22c55e"/>
+                                <Run Text="%  |  Cycles: "/> <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-', TargetNullValue='-'}" Foreground="#22c55e"/>
                                 </TextBlock>
                             </Border>
                             

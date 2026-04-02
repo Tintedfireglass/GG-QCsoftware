@@ -36,6 +36,10 @@ export default function ResultDetailPage() {
     if (!data) return <div className="p-8">Result not found</div>
 
     const { test_results = [] } = data
+    const batteryBrand = data?.battery_details_json
+        ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
+        : null
+    const hasCycleCount = data?.battery_details_json?.cycleCount != null && data.battery_details_json.cycleCount > 0
 
     // Helper to get grade badge
     const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
@@ -79,6 +83,9 @@ export default function ResultDetailPage() {
                             </p>
                             <p className="text-slate-500">
                                 Device ID: {data.machine_identifier ?? data.machine_id}
+                            </p>
+                            <p className="text-slate-500">
+                                App Version: {data.app_version ?? "Unknown"}
                             </p>
                             {data.health_id && (
                                 <p className="text-slate-500 flex items-center gap-2 mt-1">
@@ -147,17 +154,37 @@ export default function ResultDetailPage() {
                                     <div className="grid grid-cols-3">
                                         <dt className="font-medium text-slate-500">Storage</dt>
                                         <dd className="col-span-2">
-                                            {data.storage_details_json.totalCapacityGB?.toFixed(0)} GB
+                                            {data.storage_details_json.isTampered
+                                                ? 'Storage Tampered - Unable to read data'
+                                                : data.storage_details_json.isInconclusive
+                                                    ? 'Storage SMART Inconclusive - Unable to verify health data'
+                                                    : data.storage_details_json.isSuspicious
+                                                        ? 'Storage data suspicious - Review recommended'
+                                                        : `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`}
                                         </dd>
                                     </div>
                                 )}
                                 {/* Parse battery if available */}
                                 {data.battery_details_json && (
                                     <div className="grid grid-cols-3">
-                                        <dt className="font-medium text-slate-500">Battery Wear</dt>
+                                        <dt className="font-medium text-slate-500">Battery</dt>
                                         <dd className="col-span-2">
-                                            {data.battery_details_json.wearLevelPercent}%
+                                            {data.battery_details_json.isTampered
+                                                ? 'Battery Tampered - Unable to read data'
+                                                : `${data.battery_details_json.wearLevelPercent}%`}
                                         </dd>
+                                    </div>
+                                )}
+                                {data.battery_details_json && !data.battery_details_json.isTampered && batteryBrand && (
+                                    <div className="grid grid-cols-3">
+                                        <dt className="font-medium text-slate-500">Battery Brand</dt>
+                                        <dd className="col-span-2">{batteryBrand}</dd>
+                                    </div>
+                                )}
+                                {data.battery_details_json && !data.battery_details_json.isTampered && !hasCycleCount && (
+                                    <div className="grid grid-cols-3">
+                                        <dt className="font-medium text-slate-500">Cycle Count</dt>
+                                        <dd className="col-span-2 text-slate-500 italic">Not reported by firmware</dd>
                                     </div>
                                 )}
                             </dl>

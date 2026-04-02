@@ -263,8 +263,10 @@ public partial class MainViewModel : ObservableObject
                             AddResult("Battery", "Health", batteryInfo.HealthPercent >= 60, $"{batteryInfo.HealthPercent}%");
                         if (batteryInfo.WearLevelPercent.HasValue)
                             AddResult("Battery", "Wear Level", batteryInfo.WearLevelPercent <= 30, $"{batteryInfo.WearLevelPercent}% worn");
-                        if (batteryInfo.CycleCount > 0)
-                            AddResult("Battery", "Cycle Count", batteryInfo.CycleCount < 500, $"{batteryInfo.CycleCount} cycles");
+                        if (batteryInfo.CycleCount.HasValue)
+                            AddResult("Battery", "Cycle Count", batteryInfo.CycleCount.Value < 500, $"{batteryInfo.CycleCount.Value} cycles");
+                        else
+                            AddResult("Battery", "Cycle Count", true, "N/A");
                     }
                     else
                     {

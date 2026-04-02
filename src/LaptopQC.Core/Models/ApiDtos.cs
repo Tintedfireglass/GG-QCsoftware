@@ -19,6 +19,9 @@ public class SubmitQCResultRequest
     
     [JsonPropertyName("technicianNotes")]
     public string? TechnicianNotes { get; set; }
+
+    [JsonPropertyName("appVersion")]
+    public string? AppVersion { get; set; }
     
     [JsonPropertyName("overallPass")]
     public bool OverallPass { get; set; }

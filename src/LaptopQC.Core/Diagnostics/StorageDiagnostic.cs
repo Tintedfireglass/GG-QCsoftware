@@ -62,6 +62,8 @@ public class StorageDiagnostic : IStorageDiagnostic
         }
         catch { /* Ignore SMART failures */ }
 
+        EvaluateTamperState(info);
+
         return info;
     }
 
@@ -111,6 +113,12 @@ public class StorageDiagnostic : IStorageDiagnostic
         if (info.Devices.Count == 0)
             return (false, "No storage devices detected");
 
+        if (info.IsTampered)
+            return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered - Unable to read data" : info.TamperReason);
+
+        if (info.IsInconclusive)
+            return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage SMART Inconclusive - Unable to verify health data" : info.InconclusiveReason);
+
         foreach (var device in info.Devices)
         {
             if (device.HealthPercent.HasValue && device.HealthPercent < 50)
@@ -120,7 +128,64 @@ public class StorageDiagnostic : IStorageDiagnostic
                 return (false, $"Drive temperature high: {device.Model} at {device.Temperature}°C");
         }
 
+        if (info.IsSuspicious)
+            return (true, string.IsNullOrWhiteSpace(info.SuspiciousReason) ? "Storage data suspicious - Review recommended" : info.SuspiciousReason);
+
         return (true, $"{info.Devices.Count} drive(s) healthy");
+    }
+
+    private static void EvaluateTamperState(StorageInfo info)
+    {
+        bool allMissingSmartTelemetry = info.Devices.Count > 0;
+        foreach (var device in info.Devices)
+        {
+            bool hasSmartTelemetry = device.HealthPercent.HasValue || device.Temperature.HasValue || device.PowerOnHours.HasValue || device.TotalBytesWritten.HasValue;
+            allMissingSmartTelemetry &= !hasSmartTelemetry;
+
+            bool invalidHealth = device.HealthPercent.HasValue && (device.HealthPercent.Value < 0 || device.HealthPercent.Value > 100);
+            bool invalidTemp = device.Temperature.HasValue && (device.Temperature.Value < -10 || device.Temperature.Value > 120);
+            bool invalidPowerHours = device.PowerOnHours.HasValue && device.PowerOnHours.Value < 0;
+            bool invalidSize = device.SizeGB <= 0;
+
+            if (invalidHealth || invalidTemp || invalidPowerHours || invalidSize)
+            {
+                device.IsTampered = true;
+                device.TamperReason = "Storage Tampered - Unable to read data";
+                info.IsTampered = true;
+                info.TamperReason = "Storage Tampered - Unable to read data";
+            }
+
+            bool suspiciousPlaceholderTemp =
+                device.Temperature.HasValue &&
+                device.Temperature.Value == 0 &&
+                device.PowerOnHours.HasValue &&
+                device.PowerOnHours.Value > 1000;
+            bool suspiciousPerfectHealth =
+                device.HealthPercent.HasValue &&
+                device.HealthPercent.Value == 100 &&
+                device.PowerOnHours.HasValue &&
+                device.PowerOnHours.Value > 20000;
+
+            if (!info.IsTampered && (suspiciousPlaceholderTemp || suspiciousPerfectHealth))
+            {
+                device.IsSuspicious = true;
+                device.SuspiciousReason = "Storage data suspicious - Review recommended";
+                info.IsSuspicious = true;
+                if (string.IsNullOrWhiteSpace(info.SuspiciousReason))
+                    info.SuspiciousReason = "Storage data suspicious - Review recommended";
+            }
+        }
+
+        if (!info.IsTampered && allMissingSmartTelemetry)
+        {
+            info.IsInconclusive = true;
+            info.InconclusiveReason = "Storage SMART Inconclusive - Unable to verify health data";
+            foreach (var device in info.Devices)
+            {
+                device.IsInconclusive = true;
+                device.InconclusiveReason = info.InconclusiveReason;
+            }
+        }
     }
 }
 #endif

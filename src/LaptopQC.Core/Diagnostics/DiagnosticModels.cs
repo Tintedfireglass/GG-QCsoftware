@@ -14,6 +14,12 @@ public class StorageInfo
 {
     public List<StorageDevice> Devices { get; set; } = new();
     public double TotalCapacityGB => Devices.Sum(d => d.SizeGB);
+    public bool IsTampered { get; set; }
+    public string TamperReason { get; set; } = "";
+    public bool IsInconclusive { get; set; }
+    public string InconclusiveReason { get; set; } = "";
+    public bool IsSuspicious { get; set; }
+    public string SuspiciousReason { get; set; } = "";
 }
 
 public class StorageDevice
@@ -32,6 +38,12 @@ public class StorageDevice
     public int? Temperature { get; set; }
     public int? PowerOnHours { get; set; }
     public long? TotalBytesWritten { get; set; }
+    public bool IsTampered { get; set; }
+    public string TamperReason { get; set; } = "";
+    public bool IsInconclusive { get; set; }
+    public string InconclusiveReason { get; set; } = "";
+    public bool IsSuspicious { get; set; }
+    public string SuspiciousReason { get; set; } = "";
 }
 
 // ═══════════════ Battery Models ═══════════════
@@ -58,7 +70,16 @@ public class BatteryInfo
     // Health metrics
     public int? WearLevelPercent { get; set; }
     public int? HealthPercent { get; set; }
-    public uint CycleCount { get; set; }
+    public int? CycleCount { get; set; }
+
+    /// <summary>
+    /// True when battery firmware/BMS data appears invalid/unreliable (e.g. impossible capacities).
+    /// In this case, battery diagnostics should fail and reports should include a disclaimer.
+    /// </summary>
+    public bool IsTampered { get; set; }
+
+    /// <summary>Optional human-readable reason for IsTampered.</summary>
+    public string TamperReason { get; set; } = "";
 }
 
 // NOTE: SystemInfo, CpuInfo, RamInfo, RamModule are in LaptopQC.Hardware.Models

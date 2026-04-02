@@ -62,7 +62,7 @@ public class GradingService
         new() { Name = "Keyboard",   Weight = 10, GetResult = r => r.KeyboardTest,   ScoreFunc = ScoreBinary },
         new() { Name = "RAM",        Weight = 5,  GetResult = r => r.RamTest,        ScoreFunc = ScoreRam },
         new() { Name = "Trackpad",   Weight = 5,  GetResult = r => r.TrackpadTest,   ScoreFunc = ScoreBinary },
-        new() { Name = "Storage",    Weight = 4,  GetResult = r => r.StorageTest,    ScoreFunc = ScoreBinary },
+        new() { Name = "Storage",    Weight = 4,  GetResult = r => r.StorageTest,    ScoreFunc = ScoreStorage },
         new() { Name = "USB",        Weight = 4,  GetResult = r => r.UsbTest,        ScoreFunc = ScoreBinary },
         new() { Name = "AudioVideo", Weight = 4,  GetResult = r => r.AudioVideoTest, ScoreFunc = ScoreBinary },
         new() { Name = "AudioJack",  Weight = 2,  GetResult = r => r.AudioJackTest,  ScoreFunc = ScoreBinary },
@@ -152,6 +152,10 @@ public class GradingService
         if (report.BatteryDetails == null || !report.BatteryDetails.IsPresent)
             return null;
 
+        // Hard penalty when BMS data is invalid/unreadable (tamper indication).
+        if (report.BatteryDetails.IsTampered)
+            return 0;
+
         int health = report.BatteryDetails.HealthPercent ?? 100;
         int score = health switch
         {
@@ -163,9 +167,17 @@ public class GradingService
             _     => 20
         };
 
-        uint cycles = report.BatteryDetails.CycleCount;
-        if (cycles > 1500) score -= 10;
-        else if (cycles > 1000) score -= 5;
+        int? cycles = report.BatteryDetails.CycleCount;
+        if (cycles.HasValue)
+        {
+            if (cycles.Value > 1500) score -= 10;
+            else if (cycles.Value > 1000) score -= 5;
+        }
+        else
+        {
+            // Missing cycle count: apply a small neutral penalty.
+            score -= 3;
+        }
 
         return Math.Max(0, score);
     }
@@ -263,6 +275,28 @@ public class GradingService
             return 20;
 
         return result.Passed ? 100 : 25;
+    }
+
+    /// <summary>
+    /// Storage: three trust tiers.
+    /// Tampered = hard fail, Inconclusive = soft fail, Suspicious = penalty.
+    /// </summary>
+    private static int? ScoreStorage(QCReport report, TestResult result)
+    {
+        if (!result.Tested) return null;
+
+        if (report.StorageDetails?.IsTampered == true)
+            return 0;
+
+        if (report.StorageDetails?.IsInconclusive == true)
+            return 35;
+
+        int score = result.Passed ? 100 : 0;
+
+        if (report.StorageDetails?.IsSuspicious == true)
+            score -= 25;
+
+        return Math.Clamp(score, 0, 100);
     }
 
     /// <summary>Binary scoring for interactive tests: 100 if passed, 0 if failed.</summary>

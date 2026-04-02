@@ -500,6 +500,11 @@ public class SensorProvider : ISensorProvider
         var degradation = battery.Sensors.FirstOrDefault(s => s.Name.Contains("Degradation"));
         if (degradation?.Value != null) data.DegradationLevel = (int)degradation.Value;
 
+        // Cycle count (if exposed)
+        var cycles = battery.Sensors.FirstOrDefault(s => s.Name.Contains("Cycle", StringComparison.OrdinalIgnoreCase));
+        if (cycles?.Value != null && cycles.Value > 0)
+            data.CycleCount = (int)cycles.Value;
+
         return data;
     }
 
@@ -522,5 +527,6 @@ public class BatteryData
     public uint DesignedCapacity { get; set; }
     public uint FullChargedCapacity { get; set; }
     public int DegradationLevel { get; set; }
+    public int? CycleCount { get; set; }
 }
 #endif

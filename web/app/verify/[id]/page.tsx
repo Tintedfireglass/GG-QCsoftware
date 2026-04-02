@@ -108,6 +108,10 @@ export default function VerificationPage() {
                         <p className="text-gray-900">{new Date(data.certificationDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                     <div className="sm:col-span-2">
+                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">App Version</p>
+                        <p className="text-gray-900">{data.appVersion || "Unknown"}</p>
+                    </div>
+                    <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Health ID (UUID)</p>
                         <p className="text-sm font-mono text-gray-600 bg-gray-50 border border-gray-200 p-3 rounded break-all tracking-tight">
                             {data.healthId}
@@ -116,7 +120,7 @@ export default function VerificationPage() {
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-200 text-center bg-gray-100 text-xs text-gray-500">
-                    <p>Powered by PRAMAAN v{data.algorithmVersion || "1.0.0"}</p>
+                    <p>Powered by PRAMAAN v{data.appVersion || "Unknown"}</p>
                     <p className="mt-1">This digital certificate guarantees that the device hardware was scanned and verified by PRAMAAN scoring algorithms.</p>
                 </div>
             </div>

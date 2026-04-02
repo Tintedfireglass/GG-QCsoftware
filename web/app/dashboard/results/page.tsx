@@ -89,6 +89,7 @@ export default function ResultsPage() {
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Technician</th>
                                 )}
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Model name</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500">App Version</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Serial No.</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Date</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Action</th>
@@ -96,9 +97,9 @@ export default function ResultsPage() {
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={showTechnicianColumn ? 7 : 6} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 8 : 7} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : results.length === 0 ? (
-                                <tr><td colSpan={showTechnicianColumn ? 7 : 6} className="p-8 text-center text-slate-500">No results found</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 8 : 7} className="p-8 text-center text-slate-500">No results found</td></tr>
                             ) : (
                                 results.map((test) => {
                                     const dateObj = new Date(test.timestamp);
@@ -150,6 +151,7 @@ export default function ResultsPage() {
                                                 </td>
                                             )}
                                             <td className="p-4 align-middle text-slate-900">{test.system_manufacturer} {test.system_model}</td>
+                                            <td className="p-4 align-middle text-slate-500">{test.app_version ?? "â€”"}</td>
                                             <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
                                             <td className="p-4 align-middle text-slate-500">
                                                 <div>{dateStr}</div>

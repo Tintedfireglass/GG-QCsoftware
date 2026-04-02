@@ -26,6 +26,7 @@ export async function GET(
                 pramaan_score,
                 pramaan_grade,
                 pramaan_algorithm_version,
+                app_version,
                 timestamp,
                 system_model,
                 system_manufacturer
@@ -66,6 +67,7 @@ export async function GET(
             validityDays,
             status: isExpired ? 'expired' : 'valid',
             algorithmVersion: result.pramaan_algorithm_version,
+            appVersion: result.app_version,
             device: {
                 manufacturer: result.system_manufacturer || null,
                 model: result.system_model || null,

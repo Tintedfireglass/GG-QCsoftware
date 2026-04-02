@@ -19,6 +19,7 @@ export interface QCResult {
     timestamp: Date;
     refurbish_id?: string;
     technician_notes?: string;
+    app_version?: string;
     overall_pass: boolean;
     overall_score?: number;
     overall_grade?: string;
@@ -134,6 +135,7 @@ export interface SubmitQCResultRequest {
     timestamp: string;
     refurbishId?: string;
     technicianNotes?: string;
+    appVersion?: string;
     overallPass: boolean;
     overallScore?: number;
     overallGrade?: string;

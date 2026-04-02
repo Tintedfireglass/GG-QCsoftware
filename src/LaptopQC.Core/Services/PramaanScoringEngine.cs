@@ -111,6 +111,11 @@ public class PramaanScoringEngine
     /// </summary>
     private int ScoreStorage(QCReport report)
     {
+        if (report.StorageDetails?.IsTampered == true)
+            return 0;
+        if (report.StorageDetails?.IsInconclusive == true)
+            return 35;
+
         var scores = new List<int>();
 
         // SMART test (primary signal — raw SMART health %)
@@ -153,7 +158,12 @@ public class PramaanScoringEngine
         else if (report.StorageTest.Tested)
             scores.Add(0);
 
-        return scores.Count > 0 ? (int)scores.Average() : 50; // neutral if untested
+        int finalScore = scores.Count > 0 ? (int)scores.Average() : 50; // neutral if untested
+
+        if (report.StorageDetails?.IsSuspicious == true)
+            finalScore -= 20;
+
+        return Math.Clamp(finalScore, 0, 100);
     }
 
     /// <summary>
@@ -227,6 +237,10 @@ public class PramaanScoringEngine
         if (report.BatteryDetails == null || !report.BatteryDetails.IsPresent)
             return 100; // No battery = desktop, no penalty
 
+        // Tampered/unreadable BMS data: treat as a hard failure + strong penalty.
+        if (report.BatteryDetails.IsTampered)
+            return 0;
+
         int health = report.BatteryDetails.HealthPercent ?? 100;
 
         // Map health % to score with non-linear curve
@@ -242,10 +256,18 @@ public class PramaanScoringEngine
         };
 
         // Cycle count penalty
-        uint cycles = report.BatteryDetails.CycleCount;
-        if (cycles > 1500)      score -= 15;
-        else if (cycles > 1000) score -= 8;
-        else if (cycles > 500)  score -= 3;
+        int? cycles = report.BatteryDetails.CycleCount;
+        if (cycles.HasValue)
+        {
+            if (cycles.Value > 1500)      score -= 15;
+            else if (cycles.Value > 1000) score -= 8;
+            else if (cycles.Value > 500)  score -= 3;
+        }
+        else
+        {
+            // Missing cycle count: apply a small neutral penalty.
+            score -= 3;
+        }
 
         // Wear level cross-check
         if (report.BatteryDetails.WearLevelPercent.HasValue)
