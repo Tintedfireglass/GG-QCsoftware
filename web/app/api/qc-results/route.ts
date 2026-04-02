@@ -188,10 +188,22 @@ export async function POST(request: NextRequest) {
         }
 
         let machineDbId: number;
-        const machines = await query(
-            'SELECT id FROM machines WHERE machine_id = $1',
-            [body.machineId]
-        );
+        const machineIdRaw = body.machineId?.trim();
+        const machineIdIsNumeric = !!machineIdRaw && /^[0-9]+$/.test(machineIdRaw);
+        const machineIdAsNumber = machineIdIsNumeric ? parseInt(machineIdRaw!, 10) : null;
+
+        // First, if machineId is numeric and matches an existing machines.id, use that row.
+        let machines = machineIdAsNumber
+            ? await query('SELECT id FROM machines WHERE id = $1', [machineIdAsNumber])
+            : [];
+
+        // Otherwise fall back to matching by machines.machine_id (string identifier)
+        if (machines.length === 0) {
+            machines = await query(
+                'SELECT id FROM machines WHERE machine_id = $1',
+                [machineIdRaw]
+            );
+        }
 
         if (machines.length > 0) {
             machineDbId = machines[0].id;
@@ -218,7 +230,7 @@ export async function POST(request: NextRequest) {
          VALUES ($1, $2, $3, $4, $5, NOW())
          RETURNING id`,
                 [
-                    body.machineId,
+                    machineIdRaw,
                     body.systemInfo?.serialNumber || null,
                     body.systemInfo?.macAddress || null,
                     body.systemInfo?.manufacturer || null,

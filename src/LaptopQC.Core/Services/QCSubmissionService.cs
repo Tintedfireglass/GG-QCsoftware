@@ -72,11 +72,17 @@ public class QCSubmissionService
             ramTotal = (long)(report.RamDetails.TotalCapacityGB * 1024 * 1024 * 1024); // Estimate bytes
         }
 
+        var identityKey = MachineIdentityService.IsUsableHardwareSerial(report.SystemInfo?.SerialNumber)
+            ? report.SystemInfo?.SerialNumber
+            : MachineIdentityService.BuildFallbackSerial(report.SystemInfo?.MacAddress ?? report.MacAddress, report.SystemInfo?.ComputerName);
+        if (string.IsNullOrWhiteSpace(identityKey))
+            identityKey = _config.StationId;
+
         var request = new SubmitQCResultRequest
         {
             ReportId = report.ReportId,
             HealthId = report.HealthId,
-            MachineId = report.DeviceId > 0 ? report.DeviceId.ToString() : _config.StationId,
+            MachineId = identityKey ?? "",
             Timestamp = report.Timestamp,
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,
@@ -90,9 +96,7 @@ public class QCSubmissionService
             {
                 Manufacturer = report.SystemInfo?.Manufacturer,
                 Model = report.SystemInfo?.Model,
-                SerialNumber = MachineIdentityService.IsUsableHardwareSerial(report.SystemInfo?.SerialNumber)
-                    ? report.SystemInfo?.SerialNumber
-                    : MachineIdentityService.BuildFallbackSerial(report.SystemInfo?.MacAddress ?? report.MacAddress, report.SystemInfo?.ComputerName),
+                SerialNumber = identityKey,
                 MacAddress = report.MacAddress,
                 DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,
