@@ -2,6 +2,7 @@
 using LaptopQC.Core.Abstractions;
 using LaptopQC.Hardware.Providers;
 using System.Management;
+using System.IO;
 
 namespace LaptopQC.Core.Diagnostics;
 
@@ -45,6 +46,33 @@ public class StorageDiagnostic : IStorageDiagnostic
 
             info.Devices.Add(device);
         }
+
+        // Get logical drive usage (used / free)
+        try
+        {
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (!drive.IsReady) continue;
+                if (drive.DriveType != DriveType.Fixed) continue;
+
+                var total = drive.TotalSize;
+                var free = drive.TotalFreeSpace;
+                var used = total - free;
+                var usedPercent = total > 0 ? (used / (double)total) * 100.0 : 0;
+
+                info.Volumes.Add(new StorageVolume
+                {
+                    Name = drive.Name.TrimEnd('\\'),
+                    Label = drive.VolumeLabel ?? "",
+                    FileSystem = drive.DriveFormat ?? "",
+                    TotalBytes = total,
+                    FreeBytes = free,
+                    UsedBytes = used,
+                    UsedPercent = usedPercent
+                });
+            }
+        }
+        catch { /* Best-effort only */ }
 
         // Get SMART data from LibreHardwareMonitor
         try
@@ -117,7 +145,7 @@ public class StorageDiagnostic : IStorageDiagnostic
             return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered - Unable to read data" : info.TamperReason);
 
         if (info.IsInconclusive)
-            return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage SMART Inconclusive - Unable to verify health data" : info.InconclusiveReason);
+            return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage Inconclusive - Unable to verify health data" : info.InconclusiveReason);
 
         foreach (var device in info.Devices)
         {
@@ -179,7 +207,7 @@ public class StorageDiagnostic : IStorageDiagnostic
         if (!info.IsTampered && allMissingSmartTelemetry)
         {
             info.IsInconclusive = true;
-            info.InconclusiveReason = "Storage SMART Inconclusive - Unable to verify health data";
+            info.InconclusiveReason = "Storage Inconclusive - Unable to verify health data";
             foreach (var device in info.Devices)
             {
                 device.IsInconclusive = true;

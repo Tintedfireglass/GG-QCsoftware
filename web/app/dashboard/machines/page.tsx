@@ -47,8 +47,10 @@ export default function MachinesPage() {
                                     <CardTitle className="text-base font-semibold text-slate-900">
                                         Device ID: {machine.id}
                                     </CardTitle>
-                                    <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={machine.computer_name || ""}>
-                                        {machine.computer_name ? `${machine.computer_name} • ` : ''}Seen {formatDbDate(machine.last_seen)}
+                                    <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={(machine.custom_name || machine.computer_name) || ""}>
+                                        {machine.custom_name ? `${machine.custom_name} • ` : ''}
+                                        {!machine.custom_name && machine.computer_name ? `${machine.computer_name} • ` : ''}
+                                        Seen {formatDbDate(machine.last_seen)}
                                     </div>
                                 </div>
                             </div>

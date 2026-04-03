@@ -82,6 +82,9 @@ public class SubmitQCResultRequest
 
 public class SystemInfoSnapshot
 {
+    [JsonPropertyName("computerName")]
+    public string? ComputerName { get; set; }
+
     [JsonPropertyName("manufacturer")]
     public string? Manufacturer { get; set; }
     
@@ -93,6 +96,15 @@ public class SystemInfoSnapshot
     
     [JsonPropertyName("macAddress")]
     public string? MacAddress { get; set; }
+
+    [JsonPropertyName("osVersion")]
+    public string? OsVersion { get; set; }
+
+    [JsonPropertyName("windowsActivationStatus")]
+    public string? WindowsActivationStatus { get; set; }
+
+    [JsonPropertyName("isWindowsActivated")]
+    public bool? IsWindowsActivated { get; set; }
 
     [JsonPropertyName("deviceId")]
     public int? DeviceId { get; set; }

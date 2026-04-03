@@ -8,7 +8,7 @@ import { ArrowLeft, Printer, Download } from "lucide-react"
 import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDateTime } from "@/lib/utils"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -40,6 +40,15 @@ export default function ResultDetailPage() {
         ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
         : null
     const hasCycleCount = data?.battery_details_json?.cycleCount != null && data.battery_details_json.cycleCount > 0
+    const storageVolumes = Array.isArray(data?.storage_details_json?.volumes)
+        ? data.storage_details_json.volumes
+        : []
+    const activationStatus = data?.system_info_json?.windowsActivationStatus
+    const isActivated = data?.system_info_json?.isWindowsActivated
+    const activationText =
+        typeof isActivated === "boolean"
+            ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
+            : (activationStatus || "Unknown")
 
     // Helper to get grade badge
     const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
@@ -85,7 +94,7 @@ export default function ResultDetailPage() {
                                 Device ID: {data.machine_identifier ?? data.machine_id}
                             </p>
                             <p className="text-slate-500">
-                                App Version: {data.app_version ?? "Unknown"}
+                                App Version: {formatAppVersion(data.app_version)}
                             </p>
                             {data.health_id && (
                                 <p className="text-slate-500 flex items-center gap-2 mt-1">
@@ -133,6 +142,14 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">MAC Address</dt>
                                     <dd className="col-span-2 font-mono">{data.mac_address}</dd>
                                 </div>
+                                <div className="grid grid-cols-3">
+                                    <dt className="font-medium text-slate-500">Windows Version</dt>
+                                    <dd className="col-span-2">{data.system_info_json?.osVersion || "Unknown"}</dd>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <dt className="font-medium text-slate-500">Windows Activation</dt>
+                                    <dd className="col-span-2">{activationText}</dd>
+                                </div>
                             </dl>
                         </div>
 
@@ -154,16 +171,26 @@ export default function ResultDetailPage() {
                                     <div className="grid grid-cols-3">
                                         <dt className="font-medium text-slate-500">Storage</dt>
                                         <dd className="col-span-2">
-                                            {data.storage_details_json.isTampered
-                                                ? 'Storage Tampered - Unable to read data'
-                                                : data.storage_details_json.isInconclusive
-                                                    ? 'Storage SMART Inconclusive - Unable to verify health data'
-                                                    : data.storage_details_json.isSuspicious
-                                                        ? 'Storage data suspicious - Review recommended'
-                                                        : `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`}
+                                            {storageVolumes.length > 0
+                                                ? 'Drive usage listed below'
+                                                : (data.storage_details_json.totalCapacityGB
+                                                    ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
+                                                    : 'Storage details not available')}
                                         </dd>
                                     </div>
                                 )}
+                                {storageVolumes.length > 0 && storageVolumes.map((vol: any, idx: number) => {
+                                    const label = vol.label ? ` (${vol.label})` : ""
+                                    const name = vol.name || `Drive ${idx + 1}`
+                                    return (
+                                        <div key={`${name}-${idx}`} className="grid grid-cols-3">
+                                            <dt className="font-medium text-slate-500">Drive {name}{label}</dt>
+                                            <dd className="col-span-2">
+                                                Free {formatBytes(vol.freeBytes)} of {formatBytes(vol.totalBytes)}
+                                            </dd>
+                                        </div>
+                                    )
+                                })}
                                 {/* Parse battery if available */}
                                 {data.battery_details_json && (
                                     <div className="grid grid-cols-3">

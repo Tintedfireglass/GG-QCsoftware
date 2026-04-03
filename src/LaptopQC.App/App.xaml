@@ -13,6 +13,10 @@
         <!-- Inverse Bool to Visibility Converter -->
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisConverter" 
                                      xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+
+        <!-- Empty collection/count to Visibility Converter -->
+        <local:EmptyToVisibilityConverter x:Key="EmptyToVisibilityConverter"
+                                     xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
         
         <!-- Bool to Pass/Fail Converter -->
         <local:BoolToPassFailConverter x:Key="BoolToPassFailConverter" 

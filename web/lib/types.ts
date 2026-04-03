@@ -7,6 +7,8 @@ export interface Machine {
     mac_address?: string;
     manufacturer?: string;
     model?: string;
+    computer_name?: string;
+    custom_name?: string;
     last_seen?: Date;
     location?: string;
     created_at: Date;
@@ -39,6 +41,7 @@ export interface QCResult {
     storage_details_json?: any;
     battery_details_json?: any;
     device_details_json?: any;
+    submission_ip?: string;
 
     // PRAMAAN scoring
     pramaan_score?: number;
@@ -142,10 +145,14 @@ export interface SubmitQCResultRequest {
     technicianId?: number; // Optional: ID of logged-in technician
 
     systemInfo?: {
+        computerName?: string;
         manufacturer?: string;
         model?: string;
         serialNumber?: string;
         macAddress?: string;
+        osVersion?: string;
+        windowsActivationStatus?: string;
+        isWindowsActivated?: boolean;
         cpuModel?: string;
         ramTotal?: number;
     };

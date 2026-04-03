@@ -211,7 +211,7 @@
                                Foreground="#9ca3af" FontSize="14" FontFamily="Segoe UI"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                TextAlignment="Center"
-                               Visibility="{Binding InsertionEvents.Count, Converter={StaticResource InverseBoolToVisConverter}, FallbackValue=Visible}"/>
+                               Visibility="{Binding InsertionEvents, Converter={StaticResource EmptyToVisibilityConverter}, FallbackValue=Visible}"/>
                 </Grid>
             </Border>
             

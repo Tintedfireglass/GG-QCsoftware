@@ -113,8 +113,6 @@ public class PramaanScoringEngine
     {
         if (report.StorageDetails?.IsTampered == true)
             return 0;
-        if (report.StorageDetails?.IsInconclusive == true)
-            return 35;
 
         var scores = new List<int>();
 

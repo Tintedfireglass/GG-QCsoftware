@@ -94,10 +94,14 @@ public class QCSubmissionService
             
             SystemInfo = new SystemInfoSnapshot
             {
+                ComputerName = report.SystemInfo?.ComputerName,
                 Manufacturer = report.SystemInfo?.Manufacturer,
                 Model = report.SystemInfo?.Model,
                 SerialNumber = identityKey,
                 MacAddress = report.MacAddress,
+                OsVersion = report.SystemInfo?.OsVersion,
+                WindowsActivationStatus = report.SystemInfo?.WindowsActivationStatus,
+                IsWindowsActivated = report.SystemInfo?.IsWindowsActivated,
                 DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,
 

@@ -330,7 +330,7 @@ public class ReportGenerator
             }
             else if (report.StorageDetails.IsInconclusive)
             {
-                sb.AppendLine("<tr><td class='label'>Storage</td><td class='value'>Storage SMART Inconclusive - Unable to verify health data</td></tr>");
+                sb.AppendLine("<tr><td class='label'>Storage</td><td class='value'>Storage Inconclusive - Unable to verify health data</td></tr>");
             }
             else if (report.StorageDetails.IsSuspicious)
             {
@@ -501,3 +501,4 @@ public class ReportGenerator
         return path;
     }
 }
+

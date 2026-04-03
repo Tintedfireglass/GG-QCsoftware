@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { formatAppVersion } from "@/lib/utils"
 
 export default function VerificationPage() {
     const { id } = useParams()
@@ -109,7 +110,7 @@ export default function VerificationPage() {
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">App Version</p>
-                        <p className="text-gray-900">{data.appVersion || "Unknown"}</p>
+                        <p className="text-gray-900">{formatAppVersion(data.appVersion)}</p>
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Health ID (UUID)</p>
@@ -120,7 +121,7 @@ export default function VerificationPage() {
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-200 text-center bg-gray-100 text-xs text-gray-500">
-                    <p>Powered by PRAMAAN v{data.appVersion || "Unknown"}</p>
+                    <p>Powered by PRAMAAN v{formatAppVersion(data.appVersion)}</p>
                     <p className="mt-1">This digital certificate guarantees that the device hardware was scanned and verified by PRAMAAN scoring algorithms.</p>
                 </div>
             </div>

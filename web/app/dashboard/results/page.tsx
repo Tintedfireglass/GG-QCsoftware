@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Search, ChevronLeft, ChevronRight, Printer, User } from "lucide-react"
 import { getGradeStyle } from "@/lib/grades"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
 export default function ResultsPage() {
     const { isSuperAdmin, isAdmin, isUser } = useAuth()
@@ -151,7 +151,7 @@ export default function ResultsPage() {
                                                 </td>
                                             )}
                                             <td className="p-4 align-middle text-slate-900">{test.system_manufacturer} {test.system_model}</td>
-                                            <td className="p-4 align-middle text-slate-500">{test.app_version ?? "â€”"}</td>
+                                            <td className="p-4 align-middle text-slate-500">{formatAppVersion(test.app_version)}</td>
                                             <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
                                             <td className="p-4 align-middle text-slate-500">
                                                 <div>{dateStr}</div>

@@ -282,7 +282,7 @@ public class MacStorageDiagnostic : IStorageDiagnostic
     {
         if (info.Devices.Count == 0) return (false, "No storage devices detected");
         if (info.IsTampered) return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered - Unable to read data" : info.TamperReason);
-        if (info.IsInconclusive) return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage SMART Inconclusive - Unable to verify health data" : info.InconclusiveReason);
+        if (info.IsInconclusive) return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage Inconclusive - Unable to verify health data" : info.InconclusiveReason);
         if (info.IsSuspicious) return (true, string.IsNullOrWhiteSpace(info.SuspiciousReason) ? "Storage data suspicious - Review recommended" : info.SuspiciousReason);
         return (true, $"{info.Devices.Count} drive(s) detected");
     }
@@ -826,3 +826,4 @@ public class MacAudioVideoTestService : IAudioVideoTestService
         }
     }
 }
+

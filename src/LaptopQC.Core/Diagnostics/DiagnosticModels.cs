@@ -13,6 +13,7 @@ namespace LaptopQC.Core.Diagnostics;
 public class StorageInfo
 {
     public List<StorageDevice> Devices { get; set; } = new();
+    public List<StorageVolume> Volumes { get; set; } = new();
     public double TotalCapacityGB => Devices.Sum(d => d.SizeGB);
     public bool IsTampered { get; set; }
     public string TamperReason { get; set; } = "";
@@ -20,6 +21,17 @@ public class StorageInfo
     public string InconclusiveReason { get; set; } = "";
     public bool IsSuspicious { get; set; }
     public string SuspiciousReason { get; set; } = "";
+}
+
+public class StorageVolume
+{
+    public string Name { get; set; } = "";
+    public string Label { get; set; } = "";
+    public string FileSystem { get; set; } = "";
+    public long TotalBytes { get; set; }
+    public long FreeBytes { get; set; }
+    public long UsedBytes { get; set; }
+    public double UsedPercent { get; set; }
 }
 
 public class StorageDevice

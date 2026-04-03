@@ -168,6 +168,13 @@ export async function POST(request: NextRequest) {
 
         const body: SubmitQCResultRequest = await request.json();
 
+        const forwardedFor = request.headers.get('x-forwarded-for');
+        const submissionIp =
+            forwardedFor?.split(',')[0]?.trim() ||
+            request.headers.get('x-real-ip') ||
+            (request as any).ip ||
+            null;
+
         if (!body.reportId || !body.machineId || !body.timestamp) {
             return NextResponse.json(
                 { error: 'Validation Error', message: 'Missing required fields' } as ApiError,
@@ -214,20 +221,22 @@ export async function POST(request: NextRequest) {
           serial_number = COALESCE($1, serial_number),
           mac_address = COALESCE($2, mac_address),
           manufacturer = COALESCE($3, manufacturer),
-          model = COALESCE($4, model)
-         WHERE id = $5`,
+          model = COALESCE($4, model),
+          computer_name = COALESCE($5, computer_name)
+         WHERE id = $6`,
                 [
                     body.systemInfo?.serialNumber,
                     body.systemInfo?.macAddress,
                     body.systemInfo?.manufacturer,
                     body.systemInfo?.model,
+                    body.systemInfo?.computerName || null,
                     machineDbId,
                 ]
             );
         } else {
             const newMachine = await query(
-                `INSERT INTO machines (machine_id, serial_number, mac_address, manufacturer, model, last_seen)
-         VALUES ($1, $2, $3, $4, $5, NOW())
+                `INSERT INTO machines (machine_id, serial_number, mac_address, manufacturer, model, computer_name, last_seen)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
          RETURNING id`,
                 [
                     machineIdRaw,
@@ -235,6 +244,7 @@ export async function POST(request: NextRequest) {
                     body.systemInfo?.macAddress || null,
                     body.systemInfo?.manufacturer || null,
                     body.systemInfo?.model || null,
+                    body.systemInfo?.computerName || null,
                 ]
             );
             machineDbId = newMachine[0].id;
@@ -246,9 +256,9 @@ export async function POST(request: NextRequest) {
         overall_score, overall_grade,
         system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
         system_info_json, cpu_details_json, ram_details_json, storage_details_json,
-        battery_details_json, device_details_json, technician_id,
+        battery_details_json, device_details_json, submission_ip, technician_id,
         pramaan_score, health_id, pramaan_hash, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
-      ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+      ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
       RETURNING id`,
             [
                 body.reportId,
@@ -271,6 +281,7 @@ export async function POST(request: NextRequest) {
                 body.storageDetails ? JSON.stringify(body.storageDetails) : null,
                 body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
                 body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
+                submissionIp,
                 body.technicianId || null,
                 body.pramaanScore ?? null,
                 body.healthId || null,

@@ -60,6 +60,31 @@ public class InverseBooleanToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
+/// Shows Visible when a collection/count is empty, otherwise Collapsed.
+/// </summary>
+public class EmptyToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value == null)
+            return Visibility.Visible;
+
+        if (value is int count)
+            return count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (value is System.Collections.ICollection collection)
+            return collection.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
 /// Converts boolean to a column width (parameter) or 0 when false.
 /// </summary>
 public class BoolToWidthConverter : IValueConverter

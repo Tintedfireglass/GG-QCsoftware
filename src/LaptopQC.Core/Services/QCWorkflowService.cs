@@ -70,11 +70,11 @@ public class QCWorkflowService
         {
             // 1. System Info
             UpdateStatus("Detecting System Info...", 5);
-            await Task.Run(() => 
-            {
-                Report.SystemInfo = _systemDiagnostic.GetInfo();
-                if (Report.SystemInfo != null)
+                await Task.Run(() => 
                 {
+                    Report.SystemInfo = _systemDiagnostic.GetInfo();
+                    if (Report.SystemInfo != null)
+                    {
                     Report.MacAddress = Report.SystemInfo.MacAddress;
                     var identitySource = MachineIdentityService.GetBestIdentityKey(
                         Report.SystemInfo.SerialNumber,
@@ -89,10 +89,23 @@ public class QCWorkflowService
                             Report.SystemInfo.ComputerName);
                     }
 
-                    // DeviceId is now allocated server-side during license activation.
-                    // It will be set by the caller (MainWindow) from AuthService.MachineId.
-                }
-            });
+                        // DeviceId is now allocated server-side during license activation.
+                        // It will be set by the caller (MainWindow) from AuthService.MachineId.
+                    }
+#if WINDOWS
+                    try
+                    {
+                        var security = new SecurityDiagnostic();
+                        var activation = security.GetWindowsActivationStatus();
+                        if (Report.SystemInfo != null)
+                        {
+                            Report.SystemInfo.WindowsActivationStatus = activation.StatusLabel;
+                            Report.SystemInfo.IsWindowsActivated = activation.IsActivated;
+                        }
+                    }
+                    catch { /* Best-effort only */ }
+#endif
+                });
             
             // 2. Hardware Detection & Basic Validation
             UpdateStatus("Scanning Hardware...", 10);
@@ -133,24 +146,18 @@ public class QCWorkflowService
                 }
                 else if (Report.StorageDetails.IsInconclusive)
                 {
-                    Report.StorageTest.Details.Add("Storage SMART Inconclusive - Unable to verify health data");
+                    Report.StorageTest.Details.Add("Storage Inconclusive - Unable to verify health data");
                 }
                 else if (Report.StorageDetails.IsSuspicious)
                 {
                     Report.StorageTest.Details.Add("Storage data suspicious - Review recommended");
-                    foreach (var drive in Report.StorageDetails.Devices)
-                    {
-                        var type = drive.IsSsd ? "SSD" : "HDD";
-                        Report.StorageTest.Details.Add($"{drive.Model} ({drive.SizeGB:F0} GB {type})");
-                    }
+                    foreach (var detail in BuildDriveDetails(Report.StorageDetails))
+                        Report.StorageTest.Details.Add(detail);
                 }
                 else
                 {
-                    foreach (var drive in Report.StorageDetails.Devices)
-                    {
-                        var type = drive.IsSsd ? "SSD" : "HDD";
-                        Report.StorageTest.Details.Add($"{drive.Model} ({drive.SizeGB:F0} GB {type})");
-                    }
+                    foreach (var detail in BuildDriveDetails(Report.StorageDetails))
+                        Report.StorageTest.Details.Add(detail);
                 }
 
                 // Battery
@@ -270,6 +277,38 @@ public class QCWorkflowService
                             selfTestPassedCount++;
                             Report.SmartTest.Details.Add($"Self-Test Passed: {device.Model}");
                         }
+                    }
+                }
+
+                // If SMART health data is now present, clear earlier "inconclusive" flag
+                // and re-evaluate storage so StorageTest.Passed reflects actual drive health.
+                if (Report.StorageDetails != null && !Report.StorageDetails.IsTampered)
+                {
+                    bool hasHealthTelemetry = Report.StorageDetails.Devices.Any(d => d.HealthPercent.HasValue);
+                    if (hasHealthTelemetry)
+                    {
+                        Report.StorageDetails.IsInconclusive = false;
+                        Report.StorageDetails.InconclusiveReason = "";
+                        foreach (var d in Report.StorageDetails.Devices)
+                        {
+                            d.IsInconclusive = false;
+                            d.InconclusiveReason = "";
+                        }
+
+                        // Re-validate now that SMART data is available — the earlier call
+                        // returned Inconclusive (before smartctl ran) and locked Passed=false.
+                        var storVal = _storageDiagnostic.ValidateStorage(Report.StorageDetails);
+                        Report.StorageTest.Passed = storVal.IsHealthy;
+                        Report.StorageTest.Message = storVal.Message;
+
+                        // Replace the stale "Inconclusive" detail entry with the real drive list.
+                        Report.StorageTest.Details.Clear();
+                        if (Report.StorageDetails.IsSuspicious)
+                        {
+                            Report.StorageTest.Details.Add("Storage data suspicious - Review recommended");
+                        }
+                        foreach (var detail in BuildDriveDetails(Report.StorageDetails))
+                            Report.StorageTest.Details.Add(detail);
                     }
                 }
 
@@ -464,6 +503,39 @@ public class QCWorkflowService
         OnProgressUpdate?.Invoke(progress);
     }
 
+    /// <summary>
+    /// Builds one detail line per physical drive: "Model (Size GB Type): X GB used / Y GB free".
+    /// Volume usage is distributed across drives proportionally by their reported size.
+    /// For single-drive machines this is exact; for multi-drive it's a close estimate.
+    /// </summary>
+    private static IEnumerable<string> BuildDriveDetails(StorageInfo info)
+    {
+        long totalVolUsed = info.Volumes.Sum(v => v.UsedBytes);
+        long totalVolFree = info.Volumes.Sum(v => v.FreeBytes);
+        double totalDriveGb = info.Devices.Sum(d => d.SizeGB);
+
+        foreach (var drive in info.Devices)
+        {
+            var driveType = drive.IsSsd ? "SSD" : "HDD";
+            string spacePart;
+
+            if (totalVolUsed + totalVolFree > 0 && totalDriveGb > 0)
+            {
+                // Distribute volume usage proportionally by this drive's share of total capacity.
+                double fraction = drive.SizeGB / totalDriveGb;
+                double usedGb = (totalVolUsed * fraction) / (1024.0 * 1024 * 1024);
+                double freeGb = (totalVolFree * fraction) / (1024.0 * 1024 * 1024);
+                spacePart = $"{usedGb:F0} GB used / {freeGb:F0} GB free";
+            }
+            else
+            {
+                spacePart = $"{drive.SizeGB:F0} GB total";
+            }
+
+            yield return $"{drive.Model} ({drive.SizeGB:F0} GB {driveType}): {spacePart}";
+        }
+    }
+
     private static string GetBatteryHealthLabel(BatteryInfo info)
     {
         if (!info.HealthPercent.HasValue)
@@ -538,3 +610,4 @@ public class QCWorkflowService
         return "Self-test could not be started";
     }
 }
+

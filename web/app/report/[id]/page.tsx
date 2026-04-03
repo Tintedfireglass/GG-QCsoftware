@@ -5,7 +5,7 @@ import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
 import { QRCodeSVG } from "qrcode.react"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDateTime } from "@/lib/utils"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -44,6 +44,15 @@ export default function DedicatedReportPage() {
         ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
         : null
     const hasCycleCount = data?.battery_details_json?.cycleCount != null && data.battery_details_json.cycleCount > 0
+    const storageVolumes = Array.isArray(data?.storage_details_json?.volumes)
+        ? data.storage_details_json.volumes
+        : []
+    const activationStatus = data?.system_info_json?.windowsActivationStatus
+    const isActivated = data?.system_info_json?.isWindowsActivated
+    const activationText =
+        typeof isActivated === "boolean"
+            ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
+            : (activationStatus || "Unknown")
 
     return (
         <div className="font-sans text-black bg-white p-8 max-w-[210mm] mx-auto min-h-screen">
@@ -120,6 +129,14 @@ export default function DedicatedReportPage() {
                                 <td className="py-2 text-gray-600">MAC Address</td>
                                 <td className="py-2 font-mono">{data.mac_address}</td>
                             </tr>
+                            <tr className="border-b border-dotted border-gray-300">
+                                <td className="py-2 text-gray-600">Windows Version</td>
+                                <td className="py-2 font-medium">{data.system_info_json?.osVersion || "Unknown"}</td>
+                            </tr>
+                            <tr className="border-b border-dotted border-gray-300">
+                                <td className="py-2 text-gray-600">Windows Activation</td>
+                                <td className="py-2 font-medium">{activationText}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -141,20 +158,30 @@ export default function DedicatedReportPage() {
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Storage</td>
                                     <td className="py-2 font-medium">
-                                        {data.storage_details_json.isTampered
-                                            ? 'Storage Tampered - Unable to read data'
-                                            : data.storage_details_json.isInconclusive
-                                                ? 'Storage SMART Inconclusive - Unable to verify health data'
-                                                : data.storage_details_json.isSuspicious
-                                                    ? 'Storage data suspicious - Review recommended'
-                                                    : `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`}
+                                        {storageVolumes.length > 0
+                                            ? 'Drive usage listed below'
+                                            : (data.storage_details_json.totalCapacityGB
+                                                ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
+                                                : 'Storage details not available')}
                                     </td>
                                 </tr>
                             )}
-                            {data.battery_details_json && (
-                                <tr className="border-b border-dotted border-gray-300">
-                                    <td className="py-2 text-gray-600">Battery</td>
-                                    <td className="py-2 font-medium">
+                            {storageVolumes.length > 0 && storageVolumes.map((vol: any, idx: number) => {
+                                const label = vol.label ? ` (${vol.label})` : ""
+                                const name = vol.name || `Drive ${idx + 1}`
+                                return (
+                                    <tr key={`${name}-${idx}`} className="border-b border-dotted border-gray-300">
+                                        <td className="py-2 text-gray-600">Drive {name}{label}</td>
+                                        <td className="py-2 font-medium">
+                                            Free {formatBytes(vol.freeBytes)} of {formatBytes(vol.totalBytes)}
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                                {data.battery_details_json && (
+                                    <tr className="border-b border-dotted border-gray-300">
+                                        <td className="py-2 text-gray-600">Battery</td>
+                                        <td className="py-2 font-medium">
                                         {data.battery_details_json.isTampered
                                             ? 'Battery Tampered - Unable to read data'
                                             : `Wear: ${data.battery_details_json.wearLevelPercent}%`}
@@ -233,9 +260,10 @@ export default function DedicatedReportPage() {
 
             {/* Footer */}
             <footer className="mt-12 pt-6 border-t border-gray-300 text-center text-xs text-gray-500 flex justify-between">
-                <div>Generated by Laptop QC Tool</div>
-                <div>App Version: {data.app_version ?? "Unknown"}</div>
+                <div>Generated by pramaan</div>
+                <div>App Version: {formatAppVersion(data.app_version)}</div>
                 <div>Test ID: #{data.id}</div>
+                <div>Submission IP: {data.submission_ip || "N/A"}</div>
                 <div>Date Printed: {new Date().toLocaleDateString()}</div>
             </footer>
 

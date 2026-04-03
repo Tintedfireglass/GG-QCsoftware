@@ -6,6 +6,7 @@ import { useParams } from "next/navigation"
 import { getMachine } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { formatDbDateTime } from "@/lib/utils"
 import { ArrowLeft, ExternalLink, Monitor } from "lucide-react"
 
@@ -19,6 +20,9 @@ export default function MachineDetailPage() {
     const [data, setData] = useState<MachineDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [customName, setCustomName] = useState("")
+    const [savingName, setSavingName] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
 
     useEffect(() => {
         async function load() {
@@ -28,6 +32,7 @@ export default function MachineDetailPage() {
             try {
                 const result = await getMachine(id as string)
                 setData(result)
+                setCustomName(result.machine?.custom_name || "")
             } catch (err) {
                 console.error(err)
                 setError(err instanceof Error ? err.message : "Failed to load machine history")
@@ -71,7 +76,59 @@ export default function MachineDetailPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="pt-4 grid gap-3 md:grid-cols-2 text-sm">
+                <CardContent className="pt-4 grid gap-4 text-sm">
+                    <div className="flex flex-col gap-2">
+                        <span className="text-slate-500">Custom Name</span>
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                            <Input
+                                value={customName}
+                                onChange={(e) => setCustomName(e.target.value)}
+                                placeholder="Add a custom name"
+                            />
+                            <Button
+                                variant="outline"
+                                className="rounded-full border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                disabled={savingName}
+                                onClick={async () => {
+                                    if (!id) return
+                                    setSavingName(true)
+                                    setSaveError(null)
+                                    try {
+                                        const token = localStorage.getItem("qc_token")
+                                        const res = await fetch(`/api/machines/${id}`, {
+                                            method: "PATCH",
+                                            headers: {
+                                                "Content-Type": "application/json",
+                                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                            },
+                                            body: JSON.stringify({ customName }),
+                                        })
+                                        if (!res.ok) {
+                                            const err = await res.json()
+                                            throw new Error(err.message || "Failed to save name")
+                                        }
+                                        const updated = await res.json()
+                                        setData({ machine: updated.machine, test_history })
+                                        setCustomName(updated.machine?.custom_name || "")
+                                    } catch (err) {
+                                        setSaveError(err instanceof Error ? err.message : "Failed to save name")
+                                    } finally {
+                                        setSavingName(false)
+                                    }
+                                }}
+                            >
+                                {savingName ? "Saving..." : "Save"}
+                            </Button>
+                        </div>
+                        {saveError && <div className="text-xs text-rose-600">{saveError}</div>}
+                        {machine.computer_name && (
+                            <div className="text-xs text-slate-400">
+                                Device name: {machine.computer_name}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
                     <div className="flex items-center justify-between">
                         <span className="text-slate-500">Machine ID</span>
                         <span className="font-medium text-slate-900">{machine.machine_id}</span>
@@ -87,6 +144,7 @@ export default function MachineDetailPage() {
                     <div className="flex items-center justify-between">
                         <span className="text-slate-500">Model</span>
                         <span className="font-medium text-slate-900">{machine.model || "Unknown"}</span>
+                    </div>
                     </div>
                 </CardContent>
             </Card>

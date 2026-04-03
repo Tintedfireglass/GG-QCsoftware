@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS machines (
     mac_address     VARCHAR(50),
     manufacturer    VARCHAR(100),
     model           VARCHAR(100),
+    computer_name   VARCHAR(200),
+    custom_name     VARCHAR(200),
     last_seen       TIMESTAMP,
     location        VARCHAR(100),
     created_at      TIMESTAMP DEFAULT NOW()
@@ -41,6 +43,7 @@ CREATE TABLE IF NOT EXISTS qc_results (
     storage_details_json JSONB,
     battery_details_json JSONB,
     device_details_json  JSONB,
+    submission_ip        VARCHAR(64),
     
     created_at          TIMESTAMP DEFAULT NOW()
 );
