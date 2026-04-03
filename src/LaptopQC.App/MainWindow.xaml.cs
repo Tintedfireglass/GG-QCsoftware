@@ -7,6 +7,7 @@ using LaptopQC.App.Views;
 using System.Management;
 using System.Net.NetworkInformation;
 using LaptopQC.Core.Services;
+using LaptopQC.App.Services;
 
 namespace LaptopQC.App;
 
@@ -19,6 +20,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         RefreshActivationUi();
+        Loaded += async (_, _) => await UpdateService.CheckForUpdatesAsync(this);
     }
 
     private async void UserStatus_Click(object sender, MouseButtonEventArgs e)
