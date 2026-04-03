@@ -47,6 +47,16 @@ export default function DedicatedReportPage() {
     const storageVolumes = Array.isArray(data?.storage_details_json?.volumes)
         ? data.storage_details_json.volumes
         : []
+    const storageTotalBytes = storageVolumes.reduce(
+        (sum: number, vol: any) => sum + (typeof vol?.totalBytes === "number" ? vol.totalBytes : 0),
+        0
+    )
+    const storageTotalLabel =
+        storageTotalBytes > 0
+            ? formatBytes(storageTotalBytes)
+            : (data?.storage_details_json?.totalCapacityGB
+                ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
+                : "Storage details not available")
     const activationStatus = data?.system_info_json?.windowsActivationStatus
     const isActivated = data?.system_info_json?.isWindowsActivated
     const activationText =
@@ -168,26 +178,10 @@ export default function DedicatedReportPage() {
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Storage</td>
                                     <td className="py-2 font-medium">
-                                        {storageVolumes.length > 0
-                                            ? 'Drive usage listed below'
-                                            : (data.storage_details_json.totalCapacityGB
-                                                ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
-                                                : 'Storage details not available')}
+                                        {storageTotalLabel}
                                     </td>
                                 </tr>
                             )}
-                            {storageVolumes.length > 0 && storageVolumes.map((vol: any, idx: number) => {
-                                const label = vol.label ? ` (${vol.label})` : ""
-                                const name = vol.name || `Drive ${idx + 1}`
-                                return (
-                                    <tr key={`${name}-${idx}`} className="border-b border-dotted border-gray-300">
-                                        <td className="py-2 text-gray-600">Drive {name}{label}</td>
-                                        <td className="py-2 font-medium">
-                                            Free {formatBytes(vol.freeBytes)} of {formatBytes(vol.totalBytes)}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
                                 {data.battery_details_json && (
                                     <tr className="border-b border-dotted border-gray-300">
                                         <td className="py-2 text-gray-600">Battery</td>
