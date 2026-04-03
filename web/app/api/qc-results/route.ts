@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
         system_info_json, cpu_details_json, ram_details_json, storage_details_json,
         battery_details_json, device_details_json, submission_ip, technician_id,
         pramaan_score, health_id, pramaan_hash, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
-      ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+      ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
       RETURNING id`,
             [
                 body.reportId,
