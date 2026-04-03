@@ -102,6 +102,8 @@ public class QCSubmissionService
                 OsVersion = report.SystemInfo?.OsVersion,
                 WindowsActivationStatus = report.SystemInfo?.WindowsActivationStatus,
                 IsWindowsActivated = report.SystemInfo?.IsWindowsActivated,
+                AntivirusStatus = report.SystemInfo?.AntivirusStatus,
+                IsAntivirusHealthy = report.SystemInfo?.IsAntivirusHealthy,
                 DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,
 

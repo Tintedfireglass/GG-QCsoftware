@@ -43,12 +43,28 @@ export default function ResultDetailPage() {
     const storageVolumes = Array.isArray(data?.storage_details_json?.volumes)
         ? data.storage_details_json.volumes
         : []
+    const storageTotalBytes = storageVolumes.reduce(
+        (sum: number, vol: any) => sum + (typeof vol?.totalBytes === "number" ? vol.totalBytes : 0),
+        0
+    )
+    const storageTotalLabel =
+        storageTotalBytes > 0
+            ? formatBytes(storageTotalBytes)
+            : (data?.storage_details_json?.totalCapacityGB
+                ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
+                : "Storage details not available")
     const activationStatus = data?.system_info_json?.windowsActivationStatus
     const isActivated = data?.system_info_json?.isWindowsActivated
     const activationText =
         typeof isActivated === "boolean"
             ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
             : (activationStatus || "Unknown")
+    const antivirusStatus = data?.system_info_json?.antivirusStatus
+    const isAntivirusHealthy = data?.system_info_json?.isAntivirusHealthy
+    const antivirusText =
+        typeof isAntivirusHealthy === "boolean"
+            ? `${isAntivirusHealthy ? "Healthy" : "Not Healthy"}${antivirusStatus ? ` (${antivirusStatus})` : ""}`
+            : (antivirusStatus || "Unknown")
 
     // Helper to get grade badge
     const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
@@ -150,6 +166,10 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">Windows Activation</dt>
                                     <dd className="col-span-2">{activationText}</dd>
                                 </div>
+                                <div className="grid grid-cols-3">
+                                    <dt className="font-medium text-slate-500">Antivirus Status</dt>
+                                    <dd className="col-span-2">{antivirusText}</dd>
+                                </div>
                             </dl>
                         </div>
 
@@ -171,26 +191,10 @@ export default function ResultDetailPage() {
                                     <div className="grid grid-cols-3">
                                         <dt className="font-medium text-slate-500">Storage</dt>
                                         <dd className="col-span-2">
-                                            {storageVolumes.length > 0
-                                                ? 'Drive usage listed below'
-                                                : (data.storage_details_json.totalCapacityGB
-                                                    ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
-                                                    : 'Storage details not available')}
+                                            {storageTotalLabel}
                                         </dd>
                                     </div>
                                 )}
-                                {storageVolumes.length > 0 && storageVolumes.map((vol: any, idx: number) => {
-                                    const label = vol.label ? ` (${vol.label})` : ""
-                                    const name = vol.name || `Drive ${idx + 1}`
-                                    return (
-                                        <div key={`${name}-${idx}`} className="grid grid-cols-3">
-                                            <dt className="font-medium text-slate-500">Drive {name}{label}</dt>
-                                            <dd className="col-span-2">
-                                                Free {formatBytes(vol.freeBytes)} of {formatBytes(vol.totalBytes)}
-                                            </dd>
-                                        </div>
-                                    )
-                                })}
                                 {/* Parse battery if available */}
                                 {data.battery_details_json && (
                                     <div className="grid grid-cols-3">

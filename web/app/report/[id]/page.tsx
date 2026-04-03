@@ -53,6 +53,12 @@ export default function DedicatedReportPage() {
         typeof isActivated === "boolean"
             ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
             : (activationStatus || "Unknown")
+    const antivirusStatus = data?.system_info_json?.antivirusStatus
+    const isAntivirusHealthy = data?.system_info_json?.isAntivirusHealthy
+    const antivirusText =
+        typeof isAntivirusHealthy === "boolean"
+            ? `${isAntivirusHealthy ? "Healthy" : "Not Healthy"}${antivirusStatus ? ` (${antivirusStatus})` : ""}`
+            : (antivirusStatus || "Unknown")
 
     return (
         <div className="font-sans text-black bg-white p-8 max-w-[210mm] mx-auto min-h-screen">
@@ -136,6 +142,10 @@ export default function DedicatedReportPage() {
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Windows Activation</td>
                                 <td className="py-2 font-medium">{activationText}</td>
+                            </tr>
+                            <tr className="border-b border-dotted border-gray-300">
+                                <td className="py-2 text-gray-600">Antivirus Status</td>
+                                <td className="py-2 font-medium">{antivirusText}</td>
                             </tr>
                         </tbody>
                     </table>

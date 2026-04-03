@@ -153,6 +153,8 @@ export interface SubmitQCResultRequest {
         osVersion?: string;
         windowsActivationStatus?: string;
         isWindowsActivated?: boolean;
+        antivirusStatus?: string;
+        isAntivirusHealthy?: boolean;
         cpuModel?: string;
         ramTotal?: number;
     };

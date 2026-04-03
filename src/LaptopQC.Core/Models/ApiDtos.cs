@@ -106,6 +106,12 @@ public class SystemInfoSnapshot
     [JsonPropertyName("isWindowsActivated")]
     public bool? IsWindowsActivated { get; set; }
 
+    [JsonPropertyName("antivirusStatus")]
+    public string? AntivirusStatus { get; set; }
+
+    [JsonPropertyName("isAntivirusHealthy")]
+    public bool? IsAntivirusHealthy { get; set; }
+
     [JsonPropertyName("deviceId")]
     public int? DeviceId { get; set; }
     

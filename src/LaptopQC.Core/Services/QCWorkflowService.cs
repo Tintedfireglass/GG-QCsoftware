@@ -97,10 +97,13 @@ public class QCWorkflowService
                     {
                         var security = new SecurityDiagnostic();
                         var activation = security.GetWindowsActivationStatus();
+                        var antivirus = security.GetAntivirusStatus();
                         if (Report.SystemInfo != null)
                         {
                             Report.SystemInfo.WindowsActivationStatus = activation.StatusLabel;
                             Report.SystemInfo.IsWindowsActivated = activation.IsActivated;
+                            Report.SystemInfo.AntivirusStatus = antivirus.Summary;
+                            Report.SystemInfo.IsAntivirusHealthy = antivirus.IsHealthy;
                         }
                     }
                     catch { /* Best-effort only */ }

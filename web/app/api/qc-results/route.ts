@@ -168,11 +168,17 @@ export async function POST(request: NextRequest) {
 
         const body: SubmitQCResultRequest = await request.json();
 
-        const forwardedFor = request.headers.get('x-forwarded-for');
+        const forwardedFor = request.headers.get('x-forwarded-for') || request.headers.get('x-vercel-forwarded-for');
+        const forwarded = request.headers.get('forwarded');
+        const forwardedIp = forwarded?.match(/for="?([^;,"]+)"?/i)?.[1];
         const submissionIp =
             forwardedFor?.split(',')[0]?.trim() ||
+            forwardedIp ||
             request.headers.get('x-real-ip') ||
-            (request as any).ip ||
+            request.headers.get('cf-connecting-ip') ||
+            request.headers.get('true-client-ip') ||
+            request.headers.get('x-client-ip') ||
+            request.headers.get('fly-client-ip') ||
             null;
 
         if (!body.reportId || !body.machineId || !body.timestamp) {
