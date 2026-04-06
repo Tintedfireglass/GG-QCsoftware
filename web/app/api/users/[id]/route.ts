@@ -142,6 +142,12 @@ export async function PUT(
         let paramIndex = 1;
 
         if (email !== undefined) {
+            if (!email?.trim()) {
+                return NextResponse.json(
+                    { error: 'Validation Error', message: 'Email is required' } as ApiError,
+                    { status: 400 }
+                );
+            }
             updates.push(`email = $${paramIndex++}`);
             values.push(email);
         }

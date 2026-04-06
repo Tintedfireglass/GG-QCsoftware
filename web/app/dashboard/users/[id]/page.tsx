@@ -84,6 +84,10 @@ export default function EditUserPage() {
                 return
             }
         }
+        if (!formData.email.trim()) {
+            setError("Email is required")
+            return
+        }
 
         setSaving(true)
 
@@ -281,6 +285,7 @@ export default function EditUserPage() {
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 placeholder="Enter email"
+                                required
                             />
                         </div>
 

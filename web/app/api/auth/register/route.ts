@@ -24,9 +24,16 @@ export async function POST(request: NextRequest) {
         const { username, password, email, company_name, display_name, role } = body;
 
         // Validate input
-        if (!username || !password) {
+        if (!username || !password || !email) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Username and password are required' } as ApiError,
+                { error: 'Validation Error', message: 'Username, password, and email are required' } as ApiError,
+                { status: 400 }
+            );
+        }
+
+        if (!email?.trim()) {
+            return NextResponse.json(
+                { error: 'Validation Error', message: 'Email is required' } as ApiError,
                 { status: 400 }
             );
         }
