@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const { user, isSuperAdmin, isRefurbisher, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
+    const { user, isSuperAdmin, isRefurbisher, isReseller, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
@@ -55,11 +55,11 @@ export default function DashboardPage() {
             let userStats = { totalUsers: 0, totalAdmins: 0, totalTechnicians: 0 }
 
             // Load user stats for admins
-            if (isSuperAdmin() || isAdmin()) {
+            if (isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) {
                 try {
                     const usersData = await getUsers(1, 100)
                     userStats.totalUsers = usersData.pagination.total
-                    userStats.totalAdmins = usersData.users.filter((u: any) => u.role === 'Refurbisher' || u.role === 'Enterprise').length
+                    userStats.totalAdmins = usersData.users.filter((u: any) => u.role === 'Refurbisher' || u.role === 'Enterprise' || u.role === 'Reseller').length
                     userStats.totalTechnicians = usersData.users.filter((u: any) => u.role === 'Technician').length
                 } catch (err) {
                     console.error("Failed to load user stats", err)
@@ -97,7 +97,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
+                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* Show different stats based on role */}
-                {(isSuperAdmin() || isAdmin()) && (
+                {(isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) && (
                     <>
                         <Card className="shadow-none border-slate-200">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -164,11 +164,11 @@ export default function DashboardPage() {
                             <CardContent>
                                 <div className="text-2xl font-bold text-slate-900">{stats.totalUsers}</div>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                    {isSuperAdmin()
-                                        ? `${stats.totalAdmins} refurb/enterprise, ${stats.totalTechnicians} technicians`
-                                        : "Technicians in your team"
-                                    }
-                                </p>
+                                {isSuperAdmin()
+                                    ? `${stats.totalAdmins} refurb/enterprise/reseller, ${stats.totalTechnicians} technicians`
+                                    : "Technicians in your team"
+                                }
+                            </p>
                             </CardContent>
                         </Card>
                     </>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions for Admins */}
-            {(isSuperAdmin() || isAdmin()) && (
+            {(isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) && (
                 <div className="grid gap-4 md:grid-cols-3">
                     <Link href="/dashboard/users/new">
                         <Card className="cursor-pointer hover:border-[var(--brand-purple)] transition-colors shadow-none border border-slate-200">
@@ -219,9 +219,11 @@ export default function DashboardPage() {
                                     <p className="text-sm text-slate-500 mt-1">
                                         {isSuperAdmin()
                                             ? "Create admin or technician"
-                                            : isEnterprise()
+                                            : isReseller()
                                                 ? "Add technician or client"
-                                                : "Add new technician"}
+                                                : isEnterprise()
+                                                    ? "Add new technician"
+                                                    : "Add new technician"}
                                     </p>
                                 </div>
                             </CardContent>

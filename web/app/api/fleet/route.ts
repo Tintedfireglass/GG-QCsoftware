@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        // Only Enterprise and SuperAdmin can access fleet
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise']);
+        // Only Enterprise, Reseller, and SuperAdmin can access fleet
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise', 'Reseller']);
         if (roleError) return roleError;
 
         const { searchParams } = new URL(request.url);
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
         const whereClauses: string[] = [];
         let paramCount = 1;
 
-        // Enterprise sees only their owned machines
-        if (authUser.role === 'Enterprise') {
+        // Enterprise/Reseller sees only their owned machines
+        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
             whereClauses.push(`m.owner_user_id = $${paramCount}`);
             params.push(authUser.id);
             paramCount++;
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise', 'Reseller']);
         if (roleError) return roleError;
 
         const body = await request.json();

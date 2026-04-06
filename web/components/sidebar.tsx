@@ -52,19 +52,19 @@ export function Sidebar() {
             href: "/dashboard/machines",
             label: "Machines",
             icon: Monitor,
-            roles: ['SuperAdmin', 'Enterprise'] // Visible to SuperAdmin and Enterprise
+            roles: ['SuperAdmin', 'Enterprise', 'Reseller'] // Visible to SuperAdmin, Enterprise, Reseller
         },
         {
             href: "/dashboard/users",
             label: "User Management",
             icon: Users,
-            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise'] // Visible to user managers
+            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller'] // Visible to user managers
         },
         {
             href: "/dashboard/licenses",
             label: "Licenses",
             icon: Key,
-            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise'] // Visible to user managers
+            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] // Visible to license managers
         },
     ]
 
@@ -84,6 +84,8 @@ export function Sidebar() {
                 return 'bg-blue-500'
             case 'Enterprise':
                 return 'bg-amber-500'
+            case 'Reseller':
+                return 'bg-indigo-500'
             case 'Technician':
                 return 'bg-green-500'
             case 'Client':

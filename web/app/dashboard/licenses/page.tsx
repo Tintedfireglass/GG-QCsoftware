@@ -44,7 +44,7 @@ export default function LicensesPage() {
             router.push("/login")
             return
         }
-        if (user.role !== "Refurbisher" && user.role !== "Enterprise" && user.role !== "SuperAdmin") {
+        if (user.role !== "Refurbisher" && user.role !== "Enterprise" && user.role !== "Reseller" && user.role !== "Client" && user.role !== "SuperAdmin") {
             router.push("/dashboard")
             return
         }

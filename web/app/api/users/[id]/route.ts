@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, transaction } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { ApiError, UpdateUserRequest, UserWithCreator, UserRole } from '@/lib/types';
 import { authenticateRequest, requireRole, canManageUser, getCreatableRoles } from '@/lib/auth-middleware';
@@ -67,7 +67,7 @@ export async function GET(
             );
         }
 
-        if ((authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') && !canManageUser(authUser, userId, targetUser.created_by)) {
+        if ((authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'Reseller') && !canManageUser(authUser, userId, targetUser.created_by)) {
             return NextResponse.json(
                 { error: 'Authorization Error', message: 'You can only view users in your team' } as ApiError,
                 { status: 403 }
@@ -112,7 +112,7 @@ export async function PUT(
 
         // Get the target user first
         const existingUsers = await query(
-            'SELECT id, role, created_by FROM users WHERE id = $1',
+            'SELECT id, role, created_by, license_credits FROM users WHERE id = $1',
             [userId]
         );
 
@@ -161,7 +161,7 @@ export async function PUT(
             }
 
             // Validate the role
-            const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise', 'Client'];
+            const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
             if (!validRoles.includes(role)) {
                 return NextResponse.json(
                     { error: 'Validation Error', message: 'Invalid role' } as ApiError,
@@ -184,19 +184,97 @@ export async function PUT(
             values.push(passwordHash);
         }
 
+        const isResellerAllocatingCredits = authUser.role === 'Reseller' && license_credits !== undefined;
+
         if (license_credits !== undefined && authUser.role === 'SuperAdmin') {
             updates.push(`license_credits = $${paramIndex++}`);
             values.push(license_credits);
         }
 
-        if (updates.length === 0) {
+        if (updates.length === 0 && !isResellerAllocatingCredits) {
             return NextResponse.json(
                 { error: 'Validation Error', message: 'No fields to update' } as ApiError,
                 { status: 400 }
             );
         }
 
-        // Execute update
+        if (isResellerAllocatingCredits) {
+            if (targetUser.role !== 'Client') {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'Resellers can only allocate credits to Client users' } as ApiError,
+                    { status: 403 }
+                );
+            }
+
+            const desiredCreditsRaw = Number(license_credits);
+            if (Number.isNaN(desiredCreditsRaw)) {
+                return NextResponse.json(
+                    { error: 'Validation Error', message: 'license_credits must be a number' } as ApiError,
+                    { status: 400 }
+                );
+            }
+            const desiredCredits = Math.max(0, desiredCreditsRaw);
+            const currentCredits = Number(targetUser.license_credits || 0);
+            const delta = desiredCredits - currentCredits;
+
+            if (delta !== 0 || updates.length > 0) {
+                const result = await transaction(async (client) => {
+                    const resellerRes = await client.query(
+                        'SELECT license_credits FROM users WHERE id = $1 FOR UPDATE',
+                        [authUser.id]
+                    );
+                    const resellerCredits = Number(resellerRes.rows[0]?.license_credits || 0);
+
+                    if (delta > 0 && resellerCredits < delta) {
+                        throw new Error('INSUFFICIENT_CREDITS');
+                    }
+
+                    if (delta !== 0) {
+                        await client.query(
+                            'UPDATE users SET license_credits = license_credits - $1 WHERE id = $2',
+                            [delta, authUser.id]
+                        );
+                        await client.query(
+                            'UPDATE users SET license_credits = $1 WHERE id = $2',
+                            [desiredCredits, userId]
+                        );
+                    }
+
+                    if (updates.length > 0) {
+                        const updateValues = [...values, userId];
+                        await client.query(
+                            `UPDATE users 
+                             SET ${updates.join(', ')}
+                             WHERE id = $${paramIndex}`,
+                            updateValues
+                        );
+                    }
+
+                    const updatedUser = await client.query(
+                        'SELECT id, username, email, display_name, role, created_by, is_active, license_credits, created_at FROM users WHERE id = $1',
+                        [userId]
+                    );
+                    return updatedUser.rows[0];
+                });
+
+                return NextResponse.json({
+                    message: 'User updated successfully',
+                    user: result,
+                });
+            }
+            if (delta === 0 && updates.length === 0) {
+                const currentUser = await query(
+                    'SELECT id, username, email, display_name, role, created_by, is_active, license_credits, created_at FROM users WHERE id = $1',
+                    [userId]
+                );
+                return NextResponse.json({
+                    message: 'User updated successfully',
+                    user: currentUser[0],
+                });
+            }
+        }
+
+        // Execute update (non-reseller or no credit allocation)
         values.push(userId);
         const result = await query(
             `UPDATE users 
@@ -211,6 +289,12 @@ export async function PUT(
             user: result[0],
         });
     } catch (error) {
+        if (error instanceof Error && error.message === 'INSUFFICIENT_CREDITS') {
+            return NextResponse.json(
+                { error: 'Credit Error', message: 'Insufficient license credits to allocate' } as ApiError,
+                { status: 403 }
+            );
+        }
         console.error('Update user error:', error);
         return NextResponse.json(
             { error: 'Server Error', message: 'An error occurred while updating user' } as ApiError,

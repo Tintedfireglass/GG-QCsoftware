@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
         if (roleError) return roleError;
 
         let queryStr = `
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
         if (roleError) return roleError;
 
         const body = await request.json();
@@ -119,7 +119,7 @@ export async function PATCH(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
         if (roleError) return roleError;
 
         const body = await request.json();

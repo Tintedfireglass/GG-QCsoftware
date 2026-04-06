@@ -19,7 +19,7 @@ import {
 
 export default function NewUserPage() {
     const router = useRouter()
-    const { isSuperAdmin, isEnterprise, isRefurbisher, canManageUsers } = useAuth()
+    const { isSuperAdmin, isEnterprise, isRefurbisher, isReseller, canManageUsers } = useAuth()
 
     const [formData, setFormData] = useState({
         username: "",
@@ -34,20 +34,23 @@ export default function NewUserPage() {
 
     // Get roles that current user can create
     const creatableRoles: UserRole[] = isSuperAdmin()
-        ? ['Refurbisher', 'Technician', 'Enterprise', 'Client']
-        : isEnterprise()
+        ? ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
+        : isReseller()
             ? ['Technician', 'Client']
-            : isRefurbisher()
+            : isEnterprise()
                 ? ['Technician']
-                : []
+                : isRefurbisher()
+                    ? ['Technician']
+                    : []
 
     // Custom role mapping for the UI
     const customRoleDisplay: Record<UserRole, { title: string, description: string }> = {
         SuperAdmin: { title: "Super Admin", description: "Full system access" },
         Refurbisher: { title: "Refurbisher", description: "Bulk reseller, manages technician team and grading" },
+        Reseller: { title: "Reseller", description: "Enterprise features with client management" },
         Technician: { title: "Technician", description: "QC Technician, performs certifications on laptops" },
         Enterprise: { title: "Enterprise", description: "IT fleet manager, tracks company machines over time" },
-        Client: { title: "Client", description: "Enterprise client with limited access" },
+        Client: { title: "Client", description: "Reseller client with limited access" },
         B2CDevice: { title: "B2C Device", description: "Consumer devices initiated via B2C plans" }
     }
 
@@ -67,8 +70,8 @@ export default function NewUserPage() {
             return
         }
 
-        if ((formData.role === "Enterprise" || formData.role === "Refurbisher") && !formData.company_name.trim()) {
-            setError("Company name is required for Enterprise and Refurbisher users")
+        if ((formData.role === "Enterprise" || formData.role === "Refurbisher" || formData.role === "Reseller") && !formData.company_name.trim()) {
+            setError("Company name is required for Enterprise, Refurbisher, and Reseller users")
             return
         }
 
@@ -176,10 +179,10 @@ export default function NewUserPage() {
                             <div className="hidden md:block"></div> {/* Empty spacer */}
 
                             {/* Company Name Row */}
-                            {(formData.role === "Enterprise" || formData.role === "Refurbisher" || formData.role === "Technician") && (
+                            {(formData.role === "Enterprise" || formData.role === "Refurbisher" || formData.role === "Reseller" || formData.role === "Technician") && (
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                        Company name {(formData.role === "Enterprise" || formData.role === "Refurbisher") && <span className="text-rose-500">*</span>}
+                                        Company name {(formData.role === "Enterprise" || formData.role === "Refurbisher" || formData.role === "Reseller") && <span className="text-rose-500">*</span>}
                                     </label>
                                     <Input
                                         type="text"

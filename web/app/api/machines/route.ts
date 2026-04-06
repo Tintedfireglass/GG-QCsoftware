@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
             joinCondition += ' AND (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))';
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';
-        } else if (authUser.role === 'Enterprise') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
             // Enterprise sees machines they own or that their team tested
             whereClause = `WHERE (
                 m.owner_user_id = $1 OR EXISTS (

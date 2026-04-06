@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             baseWhereClauses.push(`qr.technician_id = $${paramCount}`);
             params.push(authUser.id);
             paramCount++;
-        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise') {
+        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
             baseWhereClauses.push(`(qr.technician_id = $${paramCount} OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $${paramCount}))`);
             params.push(authUser.id);
             paramCount++;

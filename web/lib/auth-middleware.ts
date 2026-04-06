@@ -96,8 +96,8 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
         return true;
     }
 
-    // Refurbisher and Enterprise can manage users they created
-    if (manager.role === 'Refurbisher' || manager.role === 'Enterprise') {
+    // Refurbisher, Enterprise, and Reseller can manage users they created
+    if (manager.role === 'Refurbisher' || manager.role === 'Enterprise' || manager.role === 'Reseller') {
         return targetCreatedBy === manager.id;
     }
 
@@ -109,11 +109,13 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
 export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
-            return ['Refurbisher', 'Technician', 'Enterprise', 'Client'];
+            return ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
         case 'Refurbisher':
             return ['Technician']; // Refurbisher can create their own technicians
         case 'Enterprise':
-            return ['Technician', 'Client']; // Enterprise can create their own IT technicians and clients
+            return ['Technician']; // Enterprise can create their own IT technicians
+        case 'Reseller':
+            return ['Technician', 'Client']; // Reseller can create their own technicians and clients
         default:
             return []; // Technicians cannot create anyone
     }
@@ -136,7 +138,7 @@ export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]
         // SuperAdmin can see all users
         const users = await query('SELECT id FROM users');
         return users.map((u: any) => u.id);
-    } else if (user.role === 'Refurbisher' || user.role === 'Enterprise') {
+    } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'Reseller') {
         // Refurbisher/Enterprise can see users they created + themselves
         const users = await query(
             'SELECT id FROM users WHERE created_by = $1 OR id = $1',

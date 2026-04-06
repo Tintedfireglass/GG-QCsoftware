@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Only SuperAdmin, Refurbisher, and Enterprise can create users
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller']);
         if (roleError) return roleError;
 
         const body: CreateUserRequest = await request.json();
@@ -32,17 +32,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate role
-        const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise', 'Client'];
+        const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Refurbisher, Technician, Enterprise, or Client)' } as ApiError,
+                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Refurbisher, Reseller, Technician, Enterprise, or Client)' } as ApiError,
                 { status: 400 }
             );
         }
 
-        if ((role === 'Enterprise' || role === 'Refurbisher') && !company_name?.trim()) {
+        if ((role === 'Enterprise' || role === 'Refurbisher' || role === 'Reseller') && !company_name?.trim()) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Company name is required for Enterprise and Refurbisher users' } as ApiError,
+                { error: 'Validation Error', message: 'Company name is required for Enterprise, Refurbisher, and Reseller users' } as ApiError,
                 { status: 400 }
             );
         }

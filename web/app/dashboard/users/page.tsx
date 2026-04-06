@@ -35,7 +35,7 @@ interface UserData {
 }
 
 export default function UsersPage() {
-    const { user: authUser, isSuperAdmin, isEnterprise, canManageUsers } = useAuth()
+    const { user: authUser, isSuperAdmin, isEnterprise, isReseller, canManageUsers } = useAuth()
     const [users, setUsers] = useState<UserData[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -93,6 +93,8 @@ export default function UsersPage() {
                 return 'bg-blue-100 text-blue-800'
             case 'Enterprise':
                 return 'bg-amber-100 text-amber-800'
+            case 'Reseller':
+                return 'bg-indigo-100 text-indigo-800'
             case 'Technician':
                 return 'bg-green-100 text-green-800'
             case 'Client':
@@ -103,8 +105,9 @@ export default function UsersPage() {
     }
 
     const getCreatableRoles = (): UserRole[] => {
-        if (isSuperAdmin()) return ['Refurbisher', 'Technician', 'Enterprise', 'Client']
-        if (isEnterprise()) return ['Technician', 'Client']
+        if (isSuperAdmin()) return ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
+        if (isReseller()) return ['Technician', 'Client']
+        if (isEnterprise()) return ['Technician']
         return ['Technician']
     }
 
@@ -125,9 +128,11 @@ export default function UsersPage() {
                     <p className="text-slate-500 mt-1">
                         {isSuperAdmin()
                             ? "Manage all admins, technicians, and clients"
-                            : isEnterprise()
+                            : isReseller()
                                 ? "Manage your team of technicians and clients"
-                                : "Manage your team of technicians"}
+                                : isEnterprise()
+                                    ? "Manage your team of technicians"
+                                    : "Manage your team of technicians"}
                     </p>
                 </div>
                 <Link href="/dashboard/users/new">
@@ -202,6 +207,7 @@ export default function UsersPage() {
                                 <option value="">All Roles</option>
                                 {isSuperAdmin() && <option value="SuperAdmin">Super Admin</option>}
                                 <option value="Refurbisher">Refurbisher</option>
+                                <option value="Reseller">Reseller</option>
                                 <option value="Technician">Technician</option>
                                 <option value="Enterprise">Enterprise</option>
                                 <option value="Client">Client</option>
@@ -242,8 +248,9 @@ export default function UsersPage() {
                                                     <div className="flex items-center gap-3">
                                                         <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
                                                             userItem.role === 'Refurbisher' ? 'bg-blue-500' :
-                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' :
-                                                                    userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
+                                                                userItem.role === 'Reseller' ? 'bg-indigo-500' :
+                                                                    userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                        userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
                                                         </div>
@@ -274,7 +281,7 @@ export default function UsersPage() {
                                                     )}
                                                 </td>
                                                 <td className="p-4 align-middle text-slate-500">
-                                                    {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise') ? userItem.team_size || 0 : '-'}
+                                                    {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}
                                                 </td>
                                                 <td className="p-4 align-middle text-right">
                                                     <div className="flex items-center justify-end gap-2">

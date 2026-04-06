@@ -18,11 +18,11 @@ export async function GET(
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise', 'Reseller']);
         if (roleError) return roleError;
 
-        // Verify this machine belongs to the Enterprise user
-        if (authUser.role === 'Enterprise') {
+        // Verify this machine belongs to the Enterprise/Reseller user
+        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
             const machineCheck = await query('SELECT id FROM machines WHERE id = $1 AND owner_user_id = $2', [id, authUser.id]);
             if (machineCheck.length === 0) {
                 return NextResponse.json({ error: 'Not Found', message: 'Machine not found in your fleet' } as ApiError, { status: 404 });
@@ -62,11 +62,11 @@ export async function POST(
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Enterprise', 'Reseller']);
         if (roleError) return roleError;
 
         // Verify ownership
-        if (authUser.role === 'Enterprise') {
+        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
             const machineCheck = await query('SELECT id FROM machines WHERE id = $1 AND owner_user_id = $2', [id, authUser.id]);
             if (machineCheck.length === 0) {
                 return NextResponse.json({ error: 'Not Found', message: 'Machine not found in your fleet' } as ApiError, { status: 404 });
