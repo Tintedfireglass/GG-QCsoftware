@@ -101,7 +101,7 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
         return targetCreatedBy === manager.id;
     }
 
-    // Technicians cannot manage anyone
+    // Technicians and clients cannot manage anyone
     return false;
 }
 
@@ -109,11 +109,11 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
 export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
-            return ['Refurbisher', 'Technician', 'Enterprise'];
+            return ['Refurbisher', 'Technician', 'Enterprise', 'Client'];
         case 'Refurbisher':
             return ['Technician']; // Refurbisher can create their own technicians
         case 'Enterprise':
-            return ['Technician']; // Enterprise can create their own IT technicians
+            return ['Technician', 'Client']; // Enterprise can create their own IT technicians and clients
         default:
             return []; // Technicians cannot create anyone
     }
@@ -144,7 +144,7 @@ export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]
         );
         return users.map((u: any) => u.id);
     } else {
-        // Technicians can only see themselves
+        // Technicians/clients can only see themselves
         return [user.id];
     }
 }

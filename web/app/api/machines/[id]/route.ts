@@ -24,7 +24,7 @@ export async function GET(
         const machineParams: SqlParam[] = [id];
         let accessClause = '';
 
-        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
             accessClause = ` AND EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id AND qr.technician_id = $2
@@ -62,7 +62,7 @@ export async function GET(
         const historyParams: SqlParam[] = [id];
         let historyClause = '';
 
-        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
             historyClause = ' AND technician_id = $2';
             historyParams.push(authUser.id);
         } else if (authUser.role === 'Refurbisher') {
@@ -122,7 +122,7 @@ export async function PATCH(
         const machineParams: SqlParam[] = [id];
         let accessClause = '';
 
-        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
             accessClause = ` AND EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id AND qr.technician_id = $2

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Add role filter
-        if (roleFilter && ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'].includes(roleFilter)) {
+        if (roleFilter && ['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise', 'Client'].includes(roleFilter)) {
             whereClause += ` AND u.role = $${paramIndex}`;
             params.push(roleFilter);
             paramIndex++;

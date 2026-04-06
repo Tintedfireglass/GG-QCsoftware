@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const { user, isSuperAdmin, isRefurbisher, isTechnician, isEnterprise, isAdmin, isUser, getRoleDisplayName } = useAuth()
+    const { user, isSuperAdmin, isRefurbisher, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
@@ -97,7 +97,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isRefurbisher() ? "Team management access" : "QC Technician access"}
+                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>
@@ -217,7 +217,11 @@ export default function DashboardPage() {
                                 <div>
                                     <h3 className="font-semibold text-slate-900">Add User</h3>
                                     <p className="text-sm text-slate-500 mt-1">
-                                        {isSuperAdmin() ? "Create admin or technician" : "Add new technician"}
+                                        {isSuperAdmin()
+                                            ? "Create admin or technician"
+                                            : isEnterprise()
+                                                ? "Add technician or client"
+                                                : "Add new technician"}
                                     </p>
                                 </div>
                             </CardContent>

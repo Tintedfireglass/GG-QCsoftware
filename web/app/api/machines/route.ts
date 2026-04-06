@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         let whereClause = '';
         let havingClause = '';
 
-        if (authUser.role === 'Technician' || authUser.role === 'B2CDevice') {
+        if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
             joinCondition += ' AND qr.technician_id = $1';
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';

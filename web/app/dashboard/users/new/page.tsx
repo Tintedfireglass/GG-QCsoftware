@@ -19,7 +19,7 @@ import {
 
 export default function NewUserPage() {
     const router = useRouter()
-    const { isSuperAdmin, canManageUsers } = useAuth()
+    const { isSuperAdmin, isEnterprise, isRefurbisher, canManageUsers } = useAuth()
 
     const [formData, setFormData] = useState({
         username: "",
@@ -33,7 +33,13 @@ export default function NewUserPage() {
     const [error, setError] = useState<string | null>(null)
 
     // Get roles that current user can create
-    const creatableRoles: UserRole[] = isSuperAdmin() ? ['Refurbisher', 'Technician', 'Enterprise'] : ['Technician']
+    const creatableRoles: UserRole[] = isSuperAdmin()
+        ? ['Refurbisher', 'Technician', 'Enterprise', 'Client']
+        : isEnterprise()
+            ? ['Technician', 'Client']
+            : isRefurbisher()
+                ? ['Technician']
+                : []
 
     // Custom role mapping for the UI
     const customRoleDisplay: Record<UserRole, { title: string, description: string }> = {
@@ -41,6 +47,7 @@ export default function NewUserPage() {
         Refurbisher: { title: "Refurbisher", description: "Bulk reseller, manages technician team and grading" },
         Technician: { title: "Technician", description: "QC Technician, performs certifications on laptops" },
         Enterprise: { title: "Enterprise", description: "IT fleet manager, tracks company machines over time" },
+        Client: { title: "Client", description: "Enterprise client with limited access" },
         B2CDevice: { title: "B2C Device", description: "Consumer devices initiated via B2C plans" }
     }
 

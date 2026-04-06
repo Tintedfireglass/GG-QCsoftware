@@ -35,7 +35,7 @@ interface UserData {
 }
 
 export default function UsersPage() {
-    const { user: authUser, isSuperAdmin, canManageUsers } = useAuth()
+    const { user: authUser, isSuperAdmin, isEnterprise, canManageUsers } = useAuth()
     const [users, setUsers] = useState<UserData[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -95,13 +95,16 @@ export default function UsersPage() {
                 return 'bg-amber-100 text-amber-800'
             case 'Technician':
                 return 'bg-green-100 text-green-800'
+            case 'Client':
+                return 'bg-teal-100 text-teal-800'
             default:
                 return 'bg-slate-100 text-slate-800'
         }
     }
 
     const getCreatableRoles = (): UserRole[] => {
-        if (isSuperAdmin()) return ['Refurbisher', 'Technician', 'Enterprise']
+        if (isSuperAdmin()) return ['Refurbisher', 'Technician', 'Enterprise', 'Client']
+        if (isEnterprise()) return ['Technician', 'Client']
         return ['Technician']
     }
 
@@ -121,8 +124,10 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
                     <p className="text-slate-500 mt-1">
                         {isSuperAdmin()
-                            ? "Manage all admins and technicians"
-                            : "Manage your team of technicians"}
+                            ? "Manage all admins, technicians, and clients"
+                            : isEnterprise()
+                                ? "Manage your team of technicians and clients"
+                                : "Manage your team of technicians"}
                     </p>
                 </div>
                 <Link href="/dashboard/users/new">
@@ -199,6 +204,7 @@ export default function UsersPage() {
                                 <option value="Refurbisher">Refurbisher</option>
                                 <option value="Technician">Technician</option>
                                 <option value="Enterprise">Enterprise</option>
+                                <option value="Client">Client</option>
                             </select>
                             <Button size="icon" onClick={() => loadUsers(1)}>
                                 <Search className="h-4 w-4" />
@@ -236,7 +242,8 @@ export default function UsersPage() {
                                                     <div className="flex items-center gap-3">
                                                         <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
                                                             userItem.role === 'Refurbisher' ? 'bg-blue-500' :
-                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' : 'bg-green-500'
+                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                    userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
                                                         </div>

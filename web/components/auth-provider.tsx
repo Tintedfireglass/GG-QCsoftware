@@ -22,6 +22,7 @@ interface AuthContextType {
     isRefurbisher: () => boolean
     isTechnician: () => boolean
     isEnterprise: () => boolean
+    isClient: () => boolean
     // Legacy aliases (backward compat during transition)
     isAdmin: () => boolean
     isUser: () => boolean
@@ -44,6 +45,7 @@ const AuthContext = createContext<AuthContextType>({
     isRefurbisher: () => false,
     isTechnician: () => false,
     isEnterprise: () => false,
+    isClient: () => false,
     isAdmin: () => false,
     isUser: () => false,
     canManageUsers: () => false,
@@ -108,10 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isRefurbisher = () => user?.role === "Refurbisher"
     const isTechnician = () => user?.role === "Technician"
     const isEnterprise = () => user?.role === "Enterprise"
+    const isClient = () => user?.role === "Client"
 
     // Legacy aliases — point to new names for backward compat
     const isAdmin = () => isRefurbisher()
-    const isUser = () => isTechnician()
+    const isUser = () => isTechnician() || isClient()
 
     // Permission checks
     const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise()
@@ -133,9 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout,
             isLoading: false,
             isSuperAdmin,
-            isRefurbisher,
-            isTechnician,
-            isEnterprise,
+        isRefurbisher,
+        isTechnician,
+        isEnterprise,
+        isClient,
             isAdmin,
             isUser,
             canManageUsers,

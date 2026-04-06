@@ -86,6 +86,8 @@ export function Sidebar() {
                 return 'bg-amber-500'
             case 'Technician':
                 return 'bg-green-500'
+            case 'Client':
+                return 'bg-teal-500'
             default:
                 return 'bg-slate-500'
         }

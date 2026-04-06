@@ -69,7 +69,7 @@ export interface TestResult {
 }
 
 // User role types for role-based access control
-export type UserRole = 'SuperAdmin' | 'Refurbisher' | 'Technician' | 'Enterprise' | 'B2CDevice';
+export type UserRole = 'SuperAdmin' | 'Refurbisher' | 'Technician' | 'Enterprise' | 'Client' | 'B2CDevice';
 
 // Role display names for UI
 export const UserRoleDisplayNames: Record<UserRole, string> = {
@@ -77,6 +77,7 @@ export const UserRoleDisplayNames: Record<UserRole, string> = {
     Refurbisher: 'Refurbisher',
     Technician: 'Technician',
     Enterprise: 'Enterprise',
+    Client: 'Client',
     B2CDevice: 'B2C Device',
 };
 
@@ -86,6 +87,7 @@ export const UserRoleDescriptions: Record<UserRole, string> = {
     Refurbisher: 'Bulk refurbisher/reseller, manages technician team and grading',
     Technician: 'QC Technician, performs certifications on client laptops',
     Enterprise: 'IT fleet manager, tracks company machines and health over time',
+    Client: 'Enterprise client, limited access to assigned results and machines',
     B2CDevice: 'Restricted device session for B2C license activation',
 };
 

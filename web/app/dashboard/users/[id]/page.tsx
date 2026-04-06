@@ -185,7 +185,8 @@ export default function EditUserPage() {
                     <div className="flex items-center gap-4">
                         <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold text-white ${userData.role === 'SuperAdmin' ? 'bg-purple-500' :
                             userData.role === 'Refurbisher' ? 'bg-blue-500' :
-                                userData.role === 'Enterprise' ? 'bg-amber-500' : 'bg-green-500'
+                                userData.role === 'Enterprise' ? 'bg-amber-500' :
+                                    userData.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                             }`}>
                             {userData.username.charAt(0).toUpperCase()}
                         </div>
@@ -285,7 +286,7 @@ export default function EditUserPage() {
                                     Role
                                 </label>
                                 <div className="space-y-2">
-                                    {(['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise'] as UserRole[]).map((role) => (
+                                    {(['SuperAdmin', 'Refurbisher', 'Technician', 'Enterprise', 'Client'] as UserRole[]).map((role) => (
                                         <label
                                             key={role}
                                             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.role === role
@@ -305,7 +306,8 @@ export default function EditUserPage() {
                                                 <div className="flex items-center gap-2">
                                                     <Shield className={`h-4 w-4 ${role === 'SuperAdmin' ? 'text-purple-500' :
                                                         role === 'Refurbisher' ? 'text-blue-500' :
-                                                            role === 'Enterprise' ? 'text-amber-500' : 'text-green-500'
+                                                            role === 'Enterprise' ? 'text-amber-500' :
+                                                                role === 'Client' ? 'text-teal-500' : 'text-green-500'
                                                         }`} />
                                                     <span className="font-medium">{UserRoleDisplayNames[role]}</span>
                                                 </div>
