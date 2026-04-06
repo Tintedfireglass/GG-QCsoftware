@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\LaptopQC.Core\LaptopQC.Core.csproj" />
@@ -36,7 +36,7 @@
     <AssemblyName>Pramaan</AssemblyName>
     <Product>PRAMAAN</Product>
     <Company>Gadget Guruz</Company>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     
   </PropertyGroup>
 

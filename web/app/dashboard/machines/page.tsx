@@ -62,6 +62,12 @@ export default function MachinesPage() {
                                     {machine.serial_number || "N/A"}
                                 </div>
                             </div>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm text-slate-500">IP Address</div>
+                                <div className="text-sm font-mono text-slate-900 truncate max-w-[150px]" title={machine.latest_ip || "N/A"}>
+                                    {machine.latest_ip || "N/A"}
+                                </div>
+                            </div>
 
                             <div className="flex items-center justify-between">
                                 <div>

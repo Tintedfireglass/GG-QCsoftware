@@ -170,6 +170,10 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">Antivirus Status</dt>
                                     <dd className="col-span-2">{antivirusText}</dd>
                                 </div>
+                                <div className="grid grid-cols-3">
+                                    <dt className="font-medium text-slate-500">IP Address</dt>
+                                    <dd className="col-span-2 font-mono">{data.submission_ip || "N/A"}</dd>
+                                </div>
                             </dl>
                         </div>
 

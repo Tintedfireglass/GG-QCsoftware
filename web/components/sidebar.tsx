@@ -41,12 +41,13 @@ export function Sidebar() {
             label: "QC Results",
             icon: ClipboardList
         },
-        {
-            href: "/dashboard/fleet",
-            label: "Fleet",
-            icon: Server,
-            roles: ['Enterprise'] // Only visible to Enterprise
-        },
+        // Fleet Management – hidden while still in development
+        // {
+        //     href: "/dashboard/fleet",
+        //     label: "Fleet",
+        //     icon: Server,
+        //     roles: ['Enterprise'],
+        // },
         {
             href: "/dashboard/machines",
             label: "Machines",

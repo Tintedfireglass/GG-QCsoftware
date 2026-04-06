@@ -23,7 +23,7 @@ public static class UpdateService
             var current = ParseVersion(AppVersionProvider.GetVersion());
             if (current == null) return;
 
-            if (updateInfo.Version <= current.Value)
+            if (updateInfo.Version <= current)
                 return;
 
             var result = MessageBox.Show(
@@ -66,7 +66,7 @@ public static class UpdateService
         if (version == null)
             return null;
 
-        return new UpdateInfo(version.Value, finalUri);
+        return new UpdateInfo(version, finalUri);
     }
 
     private static async Task<string?> DownloadInstallerAsync(Uri downloadUrl)
