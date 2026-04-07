@@ -171,7 +171,7 @@ export default function NewUserPage() {
                             {/* Email Row */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    Email
+                                    Email <span className="text-rose-500">*</span>
                                 </label>
                                 <Input
                                     type="email"

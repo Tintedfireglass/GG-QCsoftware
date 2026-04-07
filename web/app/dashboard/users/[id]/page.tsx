@@ -278,7 +278,7 @@ export default function EditUserPage() {
                         {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Email
+                                Email <span className="text-rose-500">*</span>
                             </label>
                             <Input
                                 type="email"
