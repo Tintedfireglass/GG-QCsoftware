@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,9 @@ export default function MachinesPage() {
     const [machines, setMachines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [navigating, setNavigating] = useState<number | null>(null)
+    const [selectedGrades, setSelectedGrades] = useState<string[]>([])
+    const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
+    const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
 
     useEffect(() => {
         async function load() {
@@ -32,12 +35,141 @@ export default function MachinesPage() {
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading machines...</div>
 
+    const gradeOptions = ["A+", "A", "B", "C", "Reject", "Unknown"]
+    const gradeOrder: Record<string, number> = {
+        "A+": 0,
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "Reject": 4,
+        "Unknown": 5
+    }
+
+    const getGradeKey = (grade?: string) => {
+        if (!grade) return "Unknown"
+        const g = grade.toUpperCase() === "REJECT" ? "Reject" : grade.toUpperCase()
+        if (g === "A+") return "A+"
+        if (g === "A") return "A"
+        if (g === "B") return "B"
+        if (g === "C") return "C"
+        if (g === "D" || g === "E" || g === "F") return "Reject"
+        if (g === "REJECT") return "Reject"
+        return "Unknown"
+    }
+
+    const isGradeSelected = (gradeKey: string) =>
+        selectedGrades.length === 0 || selectedGrades.includes(gradeKey)
+
+    const toggleGrade = (grade: string) => {
+        setSelectedGrades((prev) =>
+            prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
+        )
+    }
+
+    const filteredMachines = useMemo(() => {
+        return machines.filter((m) => isGradeSelected(getGradeKey(m?.latest_grade)))
+    }, [machines, selectedGrades])
+
+    const sortedMachines = useMemo(() => {
+        const list = [...filteredMachines]
+        if (machineSort === "grade_desc") {
+            return list.sort((a: any, b: any) => {
+                const aRank = gradeOrder[getGradeKey(a?.latest_grade)] ?? gradeOrder.Unknown
+                const bRank = gradeOrder[getGradeKey(b?.latest_grade)] ?? gradeOrder.Unknown
+                if (aRank !== bRank) return aRank - bRank
+                return String(a?.id ?? "").localeCompare(String(b?.id ?? ""))
+            })
+        }
+        if (machineSort === "grade_asc") {
+            return list.sort((a: any, b: any) => {
+                const aRank = gradeOrder[getGradeKey(a?.latest_grade)] ?? gradeOrder.Unknown
+                const bRank = gradeOrder[getGradeKey(b?.latest_grade)] ?? gradeOrder.Unknown
+                if (aRank !== bRank) return bRank - aRank
+                return String(a?.id ?? "").localeCompare(String(b?.id ?? ""))
+            })
+        }
+        if (machineSort === "last_seen_desc") {
+            return list.sort((a: any, b: any) => {
+                const aTime = Date.parse(a?.last_seen || "") || 0
+                const bTime = Date.parse(b?.last_seen || "") || 0
+                return bTime - aTime
+            })
+        }
+        if (machineSort === "last_seen_asc") {
+            return list.sort((a: any, b: any) => {
+                const aTime = Date.parse(a?.last_seen || "") || 0
+                const bTime = Date.parse(b?.last_seen || "") || 0
+                return aTime - bTime
+            })
+        }
+        return list.sort((a: any, b: any) => String(a?.id ?? "").localeCompare(String(b?.id ?? "")))
+    }, [filteredMachines, machineSort])
+
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Registered Machines</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Registered Machines</h1>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Showing {sortedMachines.length} of {machines.length} machines
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => setIsGradeFilterOpen((v) => !v)}
+                        >
+                            Filter: {selectedGrades.length === 0 ? "All grades" : `${selectedGrades.length} selected`}
+                        </Button>
+                        {isGradeFilterOpen && (
+                            <div className="absolute right-0 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-10">
+                                <div className="px-3 py-2 text-xs text-slate-500">Grades</div>
+                                <div className="px-3 text-[11px] text-slate-400">No selection = all grades</div>
+                                <div className="max-h-56 overflow-auto pb-1">
+                                    {gradeOptions.map((grade) => (
+                                        <label key={grade} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4"
+                                                checked={selectedGrades.includes(grade)}
+                                                onChange={() => toggleGrade(grade)}
+                                            />
+                                            <span>{grade}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <div className="border-t border-slate-100 px-3 py-2">
+                                    <button
+                                        type="button"
+                                        className="text-xs text-slate-600 hover:text-slate-900"
+                                        onClick={() => setSelectedGrades([])}
+                                    >
+                                        Clear filters
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <select
+                        value={machineSort}
+                        onChange={(e) => setMachineSort(e.target.value as typeof machineSort)}
+                        className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
+                        aria-label="Sort machines"
+                    >
+                        <option value="grade_desc">Sort: Grade high to low</option>
+                        <option value="grade_asc">Sort: Grade low to high</option>
+                        <option value="last_seen_desc">Sort: Last seen (newest)</option>
+                        <option value="last_seen_asc">Sort: Last seen (oldest)</option>
+                        <option value="id_asc">Sort: Device ID</option>
+                    </select>
+                </div>
+            </div>
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {machines.map((machine) => (
+                {sortedMachines.map((machine) => (
                     <Card key={machine.id} className="shadow-none border border-slate-200">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
                             <div className="flex items-center gap-3">
@@ -121,9 +253,9 @@ export default function MachinesPage() {
                         </CardContent>
                     </Card>
                 ))}
-                {machines.length === 0 && (
+                {sortedMachines.length === 0 && (
                     <p className="col-span-full text-center text-slate-500 py-10">
-                        No machines registered yet. Run the desktop app to register.
+                        No machines match the selected filters.
                     </p>
                 )}
             </div>
