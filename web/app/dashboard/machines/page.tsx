@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +18,7 @@ export default function MachinesPage() {
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
+    const gradeFilterRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {
         async function load() {
@@ -32,6 +33,29 @@ export default function MachinesPage() {
         }
         load()
     }, [])
+
+    useEffect(() => {
+        function onDocumentMouseDown(e: MouseEvent) {
+            if (!isGradeFilterOpen) return
+            const target = e.target as Node | null
+            if (gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
+                setIsGradeFilterOpen(false)
+            }
+        }
+
+        function onDocumentKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") {
+                setIsGradeFilterOpen(false)
+            }
+        }
+
+        document.addEventListener("mousedown", onDocumentMouseDown)
+        document.addEventListener("keydown", onDocumentKeyDown)
+        return () => {
+            document.removeEventListener("mousedown", onDocumentMouseDown)
+            document.removeEventListener("keydown", onDocumentKeyDown)
+        }
+    }, [isGradeFilterOpen])
 
     const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
     const gradeOrder: Record<string, number> = {
@@ -114,7 +138,7 @@ export default function MachinesPage() {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative">
+                    <div className="relative" ref={gradeFilterRef}>
                         <Button
                             size="sm"
                             variant="outline"
