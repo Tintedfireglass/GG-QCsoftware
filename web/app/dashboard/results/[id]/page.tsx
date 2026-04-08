@@ -35,16 +35,14 @@ export default function ResultDetailPage() {
         load()
     }, [id])
 
-    if (loading) return <div className="p-8">Loading result details...</div>
-    if (!data) return <div className="p-8">Result not found</div>
-
-    const { test_results = [] } = data
-    const batteryBrand = data?.battery_details_json
-        ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
+    const safeData = data ?? {}
+    const { test_results = [] } = safeData as any
+    const batteryBrand = safeData?.battery_details_json
+        ? (safeData.battery_details_json.manufactureName || safeData.battery_details_json.name || safeData.battery_details_json.partNumber)
         : null
-    const hasCycleCount = data?.battery_details_json?.cycleCount != null && data.battery_details_json.cycleCount > 0
-    const storageVolumes = Array.isArray(data?.storage_details_json?.volumes)
-        ? data.storage_details_json.volumes
+    const hasCycleCount = safeData?.battery_details_json?.cycleCount != null && safeData.battery_details_json.cycleCount > 0
+    const storageVolumes = Array.isArray(safeData?.storage_details_json?.volumes)
+        ? safeData.storage_details_json.volumes
         : []
     const storageTotalBytes = storageVolumes.reduce(
         (sum: number, vol: any) => sum + (typeof vol?.totalBytes === "number" ? vol.totalBytes : 0),
@@ -53,17 +51,17 @@ export default function ResultDetailPage() {
     const storageTotalLabel =
         storageTotalBytes > 0
             ? formatBytes(storageTotalBytes)
-            : (data?.storage_details_json?.totalCapacityGB
-                ? `${data.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
+            : (safeData?.storage_details_json?.totalCapacityGB
+                ? `${safeData.storage_details_json.totalCapacityGB?.toFixed(0)} GB`
                 : "Storage details not available")
-    const activationStatus = data?.system_info_json?.windowsActivationStatus
-    const isActivated = data?.system_info_json?.isWindowsActivated
+    const activationStatus = safeData?.system_info_json?.windowsActivationStatus
+    const isActivated = safeData?.system_info_json?.isWindowsActivated
     const activationText =
         typeof isActivated === "boolean"
             ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
             : (activationStatus || "Unknown")
-    const antivirusStatus = data?.system_info_json?.antivirusStatus
-    const isAntivirusHealthy = data?.system_info_json?.isAntivirusHealthy
+    const antivirusStatus = safeData?.system_info_json?.antivirusStatus
+    const isAntivirusHealthy = safeData?.system_info_json?.isAntivirusHealthy
     const antivirusText =
         typeof isAntivirusHealthy === "boolean"
             ? `${isAntivirusHealthy ? "Healthy" : "Not Healthy"}${antivirusStatus ? ` (${antivirusStatus})` : ""}`
@@ -125,8 +123,11 @@ export default function ResultDetailPage() {
         return list.sort((a: any, b: any) => String(a?.test_type || "").localeCompare(String(b?.test_type || "")))
     }, [filteredTests, testSort])
 
-    const pramaanGradeKey = getGradeKey(data?.pramaan_grade)
-    const showPramaanSection = data.pramaan_score != null && isGradeSelected(pramaanGradeKey)
+    const pramaanGradeKey = getGradeKey(safeData?.pramaan_grade)
+    const showPramaanSection = safeData.pramaan_score != null && isGradeSelected(pramaanGradeKey)
+
+    if (loading) return <div className="p-8">Loading result details...</div>
+    if (!data) return <div className="p-8">Result not found</div>
 
     // Helper to get grade badge
     const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
