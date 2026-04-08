@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Wand2, Search, CheckCircle2, Copy, X } from "lucide-react"
+import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2 } from "lucide-react"
 
 interface LicenseKey {
     id: number
@@ -189,7 +189,85 @@ export default function LicensesPage() {
                     </div>
                 </div>
 
-                <div className="relative w-full overflow-auto">
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col gap-4 p-4 bg-slate-50 rounded-b-xl">
+                    {loading ? (
+                        <div className="py-8 text-center text-slate-500">Loading licenses...</div>
+                    ) : filteredKeys.length === 0 ? (
+                        <div className="py-8 text-center text-slate-500">No licenses found</div>
+                    ) : (
+                        filteredKeys.map((k) => {
+                            const usagePercent = Math.min(100, Math.round(((k.current_uses || 0) / k.max_uses) * 100));
+
+                            return (
+                                <div key={k.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <Key className="h-4 w-4 text-[var(--brand-purple)]" />
+                                            <span className="font-mono font-medium text-slate-900 text-sm tracking-tight truncate max-w-[140px] sm:max-w-xs">{k.key}</span>
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-400 hover:text-slate-900" onClick={() => handleCopy(k.key)}>
+                                                <Copy className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                        {k.is_active ? (
+                                            k.current_uses >= k.max_uses ? (
+                                                <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                                                    Exhausted
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                                                    Active
+                                                </span>
+                                            )
+                                        ) : (
+                                            <span className="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700 uppercase tracking-wider">
+                                                Revoked
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                        <div>
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Type</div>
+                                            <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 font-mono">
+                                                {k.type === "bulk" ? "Bulk" : "Single use"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <div className="flex justify-between items-end mb-1.5">
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Usage</span>
+                                            <span className="text-xs font-mono font-medium text-slate-700">{k.current_uses || 0} / {k.max_uses}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                            <div 
+                                                className={`h-1.5 rounded-full ${usagePercent >= 90 ? 'bg-rose-500' : usagePercent >= 75 ? 'bg-amber-400' : 'bg-[var(--brand-purple)]'}`} 
+                                                style={{ width: `${usagePercent}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleToggleActive(k)}
+                                            className={`h-7 px-3 text-xs font-medium rounded-full ${k.is_active ? 'text-rose-600 hover:text-rose-700 hover:bg-rose-50' : 'text-green-600 hover:text-green-700 hover:bg-green-50'}`}
+                                            disabled={togglingId === k.id}
+                                        >
+                                            {togglingId === k.id ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : null}
+                                            {togglingId === k.id ? "Updating..." : k.is_active ? "Disable" : "Enable"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                         <thead className="[&_tr]:border-b border-slate-200 bg-white">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">

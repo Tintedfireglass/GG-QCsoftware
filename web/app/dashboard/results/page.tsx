@@ -76,8 +76,78 @@ export default function ResultsPage() {
                 </form>
             </div>
 
-            <div className="bg-white rounded-xl">
-                <div className="relative w-full overflow-auto">
+            <div className="bg-transparent md:bg-white md:rounded-xl">
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col gap-4">
+                    {loading ? (
+                        <div className="p-8 text-center text-slate-500">Loading...</div>
+                    ) : results.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500">No results found</div>
+                    ) : (
+                        results.map((test) => {
+                            const dateObj = new Date(test.timestamp);
+                            const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+                            return (
+                                <div key={test.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                                            <span className="font-bold text-[var(--brand-purple)] bg-[var(--brand-purple)]/10 px-2 py-0.5 rounded-md">#{test.id}</span>
+                                            <span>{timeStr}</span>
+                                            {test.health_id && (
+                                                <span className="font-mono text-[10px] bg-slate-100 rounded px-1">{test.health_id.split('-')[0]}&hellip;</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            {test.pramaan_grade ? (() => {
+                                                const s = getGradeStyle(test.pramaan_grade);
+                                                return (
+                                                    <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap ${s.bg} ${s.text}`}>
+                                                        {test.pramaan_grade}-{test.pramaan_score}
+                                                    </span>
+                                                );
+                                            })() : (
+                                                test.overall_pass ? (
+                                                    <span className="font-medium text-emerald-600 flex items-center gap-1.5 text-xs whitespace-nowrap">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-600"></div> Pass
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-medium text-rose-500 flex items-center gap-1.5 text-xs whitespace-nowrap">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500"></div> Fail
+                                                    </span>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mb-4">
+                                        <div className="font-bold text-slate-900 text-base leading-tight mb-1">{test.system_manufacturer} {test.system_model}</div>
+                                        <div className="text-xs text-slate-500">
+                                            <span className="font-semibold text-slate-700">Serial No:</span> {test.system_serial}
+                                        </div>
+                                        {showTechnicianColumn && (
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                <span className="font-semibold text-slate-700">Tech:</span> {test.technician_name || test.technician_username || "Unassigned"}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-sm pt-3 border-t border-slate-100">
+                                        <div className="text-slate-500 text-xs">{dateStr}</div>
+                                        <Link href={`/dashboard/results/${test.id}`} className="text-[var(--brand-purple)] font-semibold text-xs tracking-wider uppercase flex items-center gap-1 hover:underline">
+                                            View Details
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Link>
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">

@@ -229,7 +229,83 @@ export default function UsersPage() {
                         <div className="text-center py-8 text-slate-500">Loading users...</div>
                     ) : (
                         <>
-                            <div className="relative w-full overflow-auto">
+                            {/* Mobile Card View */}
+                            <div className="md:hidden flex flex-col gap-4">
+                                {users.map((userItem) => (
+                                    <div key={userItem.id} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
+                                        <div className="flex items-start justify-between mb-3 relative">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
+                                                    userItem.role === 'Refurbisher' ? 'bg-blue-500' :
+                                                        userItem.role === 'Reseller' ? 'bg-indigo-500' :
+                                                            userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
+                                                    }`}>
+                                                    {userItem.username.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="max-w-[150px] sm:max-w-xs overflow-hidden">
+                                                    <div className="font-bold text-slate-900 truncate">{userItem.display_name || userItem.username}</div>
+                                                    <div className="text-xs text-slate-500 truncate">{userItem.email || userItem.username}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <Link href={`/dashboard/users/${userItem.id}`}>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-[var(--brand-purple)]">
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                {authUser?.id !== userItem.id && (
+                                                    deleteConfirm === userItem.id ? (
+                                                        <div className="flex flex-col gap-1 items-end absolute right-0 top-10 bg-white border border-slate-200 p-2 rounded-lg shadow-lg z-10">
+                                                            <Button onClick={() => handleDelete(userItem.id)} variant="destructive" size="sm" className="w-full">Confirm Action</Button>
+                                                            <Button onClick={() => setDeleteConfirm(null)} variant="outline" size="sm" className="w-full">Cancel</Button>
+                                                        </div>
+                                                    ) : (
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-red-600" onClick={() => setDeleteConfirm(userItem.id)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm pt-3 border-t border-slate-100">
+                                            <div>
+                                                <div className="text-xs text-slate-400 mb-1">Status</div>
+                                                {userItem.is_active ? (
+                                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                                                        Inactive
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-400 mb-1">Role</div>
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(userItem.role)}`}>
+                                                    <Shield className="h-3 w-3 shrink-0" />
+                                                    <span className="truncate max-w-[80px] sm:max-w-none">{UserRoleDisplayNames[userItem.role]}</span>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-400 mb-1">Team Size</div>
+                                                <div className="font-medium text-slate-700">{(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-400 mb-1">Created By</div>
+                                                <div className="font-medium text-slate-700 truncate">{userItem.creator_username || '-'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {users.length === 0 && (
+                                    <div className="p-8 text-center text-slate-500">No users found</div>
+                                )}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block relative w-full overflow-auto">
                                 <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                                     <thead className="[&_tr]:border-b">
                                         <tr className="border-b transition-colors">
