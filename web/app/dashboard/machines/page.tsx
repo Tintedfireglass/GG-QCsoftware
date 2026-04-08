@@ -69,14 +69,14 @@ export default function MachinesPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
                                 <div>
                                     <div className="text-2xl font-bold text-slate-900 leading-none">
                                         {machine.test_count}
                                     </div>
                                     <div className="text-xs text-slate-500 mt-1">Total Tests</div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <Link href={`/dashboard/machines/${machine.id}`}>
                                         <Button
                                             variant="outline"
@@ -108,7 +108,7 @@ export default function MachinesPage() {
                                         }}
                                     >
                                         {navigating === machine.id ? "Loading..." : "Latest Report"}
-                                        {navigating !== machine.id && <ExternalLink className="ml-1.5 h-3.5 w-3.5" />}
+                                        {navigating !== machine.id && <ExternalLink className="ml-1.5 shrink-0 h-3.5 w-3.5" />}
                                     </Button>
                                 </div>
                             </div>
