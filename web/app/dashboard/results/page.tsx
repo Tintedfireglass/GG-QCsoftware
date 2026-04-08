@@ -147,29 +147,29 @@ export default function ResultsPage() {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left">
+                <div className="hidden md:block relative w-full overflow-x-hidden">
+                    <table className="w-full table-fixed caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px] whitespace-nowrap">Test ID</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[120px]">Device ID</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Status</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Test ID</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Device ID</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Status</th>
 
                                 {showTechnicianColumn && (
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Technician</th>
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[160px]">Technician</th>
                                 )}
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500">Model name</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">App Version</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500">Serial No.</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Date</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right whitespace-nowrap">Action</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500">Model name</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[110px]">App Version</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[140px]">Serial No.</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Date</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 text-right w-[140px]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={showTechnicianColumn ? 8 : 7} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : results.length === 0 ? (
-                                <tr><td colSpan={showTechnicianColumn ? 8 : 7} className="p-8 text-center text-slate-500">No results found</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">No results found</td></tr>
                             ) : (
                                 results.map((test) => {
                                     const dateObj = new Date(test.timestamp);
@@ -178,19 +178,19 @@ export default function ResultsPage() {
 
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
-                                            <td className="p-4 align-middle font-medium text-slate-900 whitespace-nowrap">#{test.id}</td>
-                                            <td className="p-4 align-middle font-mono text-xs text-slate-500">
+                                            <td className="p-2 align-middle font-medium text-slate-900 break-words">#{test.id}</td>
+                                            <td className="p-2 align-middle font-mono text-xs text-slate-500 break-words">
                                                 {test.machine_id ? (
                                                     <span>{test.machine_id}</span>
                                                 ) : (
                                                     <span className="text-slate-300">—</span>
                                                 )}
                                             </td>
-                                            <td className="p-4 align-middle whitespace-nowrap">
+                                            <td className="p-2 align-middle break-words">
                                                 {test.pramaan_grade ? (() => {
                                                     const s = getGradeStyle(test.pramaan_grade);
                                                     return (
-                                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
+                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${s.bg} ${s.text}`}>
                                                             {test.pramaan_grade} — {test.pramaan_score}
                                                         </span>
                                                     );
@@ -207,38 +207,42 @@ export default function ResultsPage() {
                                                 )}
                                             </td>
                                             {showTechnicianColumn && (
-                                                <td className="p-4 align-middle whitespace-nowrap">
+                                                <td className="p-2 align-middle">
                                                     {test.technician_name || test.technician_username ? (
                                                         <span className="inline-flex items-center gap-2 text-slate-900 font-medium">
-                                                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500 font-bold">
+                                                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500 font-bold shrink-0">
                                                                 {(test.technician_name || test.technician_username).charAt(0).toUpperCase()}
                                                             </div>
-                                                            {test.technician_name || test.technician_username}
+                                                            <span className="max-w-[120px] truncate" title={test.technician_name || test.technician_username}>
+                                                                {test.technician_name || test.technician_username}
+                                                            </span>
                                                         </span>
                                                     ) : (
                                                         <span className="text-slate-400 text-xs">Unassigned</span>
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="p-4 align-middle text-slate-900 leading-tight">
-                                                <div className="max-w-[250px] truncate" title={`${test.system_manufacturer} ${test.system_model}`}>
+                                            <td className="p-2 align-middle text-slate-900 leading-tight">
+                                                <div className="truncate" title={`${test.system_manufacturer} ${test.system_model}`}>
                                                     {test.system_manufacturer} {test.system_model}
                                                 </div>
                                             </td>
-                                            <td className="p-4 align-middle text-slate-500 whitespace-nowrap">{formatAppVersion(test.app_version)}</td>
-                                            <td className="p-4 align-middle text-slate-500 break-all sm:break-normal">{test.system_serial}</td>
-                                            <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
+                                            <td className="p-2 align-middle text-slate-500 break-words">{formatAppVersion(test.app_version)}</td>
+                                            <td className="p-2 align-middle text-slate-500 break-words">
+                                                <div className="truncate" title={test.system_serial}>{test.system_serial}</div>
+                                            </td>
+                                            <td className="p-2 align-middle text-slate-500">
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
                                             </td>
-                                            <td className="p-4 align-middle text-right space-x-2 whitespace-nowrap">
+                                            <td className="p-2 align-middle text-right space-x-2">
                                                 <Link href={`/dashboard/results/${test.id}`}>
-                                                    <Button variant="outline" size="sm" className="rounded-full px-6 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm">
+                                                    <Button variant="outline" size="sm" className="rounded-full px-4 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-8">
                                                         VIEW
                                                     </Button>
                                                 </Link>
                                                 <Link href={`/report/${test.id}`} target="_blank">
-                                                    <Button variant="ghost" size="sm" className="rounded-full w-9 h-9 p-0 text-slate-400 hover:text-[var(--brand-purple)]">
+                                                    <Button variant="ghost" size="sm" className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-[var(--brand-purple)]">
                                                         <Printer className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
