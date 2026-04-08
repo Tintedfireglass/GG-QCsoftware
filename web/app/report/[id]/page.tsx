@@ -124,7 +124,7 @@ export default function DedicatedReportPage() {
             </div>
 
             {/* System Info Grid */}
-            <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6 mb-8">
                 <div>
                     <h3 className="uppercase tracking-widest text-xs font-bold border-b border-gray-300 pb-2 mb-3">System Specification</h3>
                     <table className="w-full text-sm">
@@ -210,7 +210,7 @@ export default function DedicatedReportPage() {
             </div>
 
             {/* Test Results Table */}
-            <div className="mb-8">
+            <div className="mb-8 overflow-x-auto w-full">
                 <h3 className="uppercase tracking-widest text-xs font-bold border-b-2 border-black pb-2 mb-4">Diagnostic Results</h3>
                 <table className="w-full text-sm text-left">
                     <thead>

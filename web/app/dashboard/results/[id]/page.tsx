@@ -100,7 +100,7 @@ export default function ResultDetailPage() {
             {/* Report Header */}
             <Card className="border-t-4 border-t-blue-600">
                 <CardContent className="p-8">
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 md:gap-0">
                         <div>
                             <h1 className="text-3xl font-bold mb-2">QC Report: #{data.id}</h1>
                             <p className="text-slate-500">
@@ -138,41 +138,41 @@ export default function ResultDetailPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6 pt-6 border-t">
                         <div>
                             <h3 className="font-semibold text-lg mb-4">System Information</h3>
                             <dl className="space-y-2 text-sm">
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Manufacturer</dt>
-                                    <dd className="col-span-2">{data.system_manufacturer}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_manufacturer}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Model</dt>
-                                    <dd className="col-span-2">{data.system_model}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_model}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Serial Number</dt>
-                                    <dd className="col-span-2 font-mono">{data.system_serial}</dd>
+                                    <dd className="sm:col-span-2 font-mono text-slate-900 break-all">{data.system_serial}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">MAC Address</dt>
-                                    <dd className="col-span-2 font-mono">{data.mac_address}</dd>
+                                    <dd className="sm:col-span-2 font-mono text-slate-900 break-all">{data.mac_address}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Version</dt>
-                                    <dd className="col-span-2">{data.system_info_json?.osVersion || "Unknown"}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_info_json?.osVersion || "Unknown"}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Activation</dt>
-                                    <dd className="col-span-2">{activationText}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{activationText}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Antivirus Status</dt>
-                                    <dd className="col-span-2">{antivirusText}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{antivirusText}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">IP Address</dt>
-                                    <dd className="col-span-2 font-mono">{data.submission_ip || "N/A"}</dd>
+                                    <dd className="sm:col-span-2 font-mono text-slate-900 break-all">{data.submission_ip || "N/A"}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -180,30 +180,30 @@ export default function ResultDetailPage() {
                         <div>
                             <h3 className="font-semibold text-lg mb-4">Hardware Specs</h3>
                             <dl className="space-y-2 text-sm">
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">CPU</dt>
-                                    <dd className="col-span-2">{data.cpu_model}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{data.cpu_model}</dd>
                                 </div>
-                                <div className="grid grid-cols-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">RAM</dt>
-                                    <dd className="col-span-2">
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">
                                         {data.ram_total ? Math.round(data.ram_total / (1024 * 1024 * 1024)) : 0} GB
                                     </dd>
                                 </div>
                                 {/* Parse storage if available */}
                                 {data.storage_details_json && (
-                                    <div className="grid grid-cols-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                         <dt className="font-medium text-slate-500">Storage</dt>
-                                        <dd className="col-span-2">
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">
                                             {storageTotalLabel}
                                         </dd>
                                     </div>
                                 )}
                                 {/* Parse battery if available */}
                                 {data.battery_details_json && (
-                                    <div className="grid grid-cols-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                         <dt className="font-medium text-slate-500">Battery</dt>
-                                        <dd className="col-span-2">
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">
                                             {data.battery_details_json.isTampered
                                                 ? 'Battery Tampered - Unable to read data'
                                                 : `${data.battery_details_json.wearLevelPercent}%`}
@@ -211,15 +211,15 @@ export default function ResultDetailPage() {
                                     </div>
                                 )}
                                 {data.battery_details_json && !data.battery_details_json.isTampered && batteryBrand && (
-                                    <div className="grid grid-cols-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                         <dt className="font-medium text-slate-500">Battery Brand</dt>
-                                        <dd className="col-span-2">{batteryBrand}</dd>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{batteryBrand}</dd>
                                     </div>
                                 )}
                                 {data.battery_details_json && !data.battery_details_json.isTampered && !hasCycleCount && (
-                                    <div className="grid grid-cols-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                         <dt className="font-medium text-slate-500">Cycle Count</dt>
-                                        <dd className="col-span-2 text-slate-500 italic">Not reported by firmware</dd>
+                                        <dd className="sm:col-span-2 text-slate-500 italic break-words">Not reported by firmware</dd>
                                     </div>
                                 )}
                             </dl>
@@ -239,7 +239,7 @@ export default function ResultDetailPage() {
             {data.pramaan_score != null && (
                 <Card className="border-t-4 border-t-emerald-600">
                     <CardContent className="p-8">
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 md:gap-0">
                             <div>
                                 <h2 className="text-2xl font-bold mb-1">PRAMAAN Health Score</h2>
                                 <p className="text-sm text-slate-500">

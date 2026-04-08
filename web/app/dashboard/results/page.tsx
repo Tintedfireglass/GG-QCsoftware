@@ -51,7 +51,7 @@ export default function ResultsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                         {isUser() ? "My QC Results" : "QC Results"}
@@ -62,16 +62,16 @@ export default function ResultsPage() {
                         {isSuperAdmin() && "All quality check results across the system"}
                     </p>
                 </div>
-                <form onSubmit={handleSearch} className="flex gap-2">
+                <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                     <Input
                         placeholder="Search Test ID, Serial..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                        className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
                     />
-                    <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white">
-                        <Search className="h-4 w-4 mr-2" />
-                        Search
+                    <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white sm:shrink-0 w-full sm:w-auto">
+                        <Search className="h-4 w-4 sm:mr-2" />
+                        <span className="inline">Search</span>
                     </Button>
                 </form>
             </div>

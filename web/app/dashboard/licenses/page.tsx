@@ -175,7 +175,7 @@ export default function LicensesPage() {
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 mt-8">
-                <div className="p-6 flex items-center justify-between border-b border-slate-100">
+                <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 gap-4 sm:gap-0">
                     <h2 className="text-xl font-bold text-slate-900">Active License Keys</h2>
 
                     <div className="relative">
