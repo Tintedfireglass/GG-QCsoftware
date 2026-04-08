@@ -33,14 +33,13 @@ export default function MachinesPage() {
         load()
     }, [])
 
-    const gradeOptions = ["A+", "A", "B", "C", "Reject", "Unknown"]
+    const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
     const gradeOrder: Record<string, number> = {
         "A+": 0,
         "A": 1,
         "B": 2,
         "C": 3,
-        "Reject": 4,
-        "Unknown": 5
+        "Unknown": 4
     }
 
     const getGradeKey = (grade?: string) => {
@@ -50,8 +49,8 @@ export default function MachinesPage() {
         if (g === "A") return "A"
         if (g === "B") return "B"
         if (g === "C") return "C"
-        if (g === "D" || g === "E" || g === "F") return "Reject"
-        if (g === "REJECT") return "Reject"
+        if (g === "D" || g === "E" || g === "F") return "Unknown"
+        if (g === "REJECT") return "Unknown"
         return "Unknown"
     }
 
