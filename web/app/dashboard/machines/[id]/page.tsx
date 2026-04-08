@@ -172,17 +172,17 @@ export default function MachineDetailPage() {
                                     Report #{test.report_id} â€¢ {test.overall_pass ? "PASS" : "FAIL"}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-xs text-slate-500">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                <div className="text-xs text-slate-500 truncate">
                                     Serial: {test.system_serial || "-"}
                                 </div>
-                                <Link href={`/dashboard/results/${test.id}`}>
+                                <Link href={`/dashboard/results/${test.id}`} className="shrink-0">
                                     <Button
                                         variant="outline"
-                                        className="rounded-full border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                        className="w-full sm:w-auto rounded-full border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
                                     >
                                         View Report
-                                        <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                                        <ExternalLink className="ml-1.5 shrink-0 h-3.5 w-3.5" />
                                     </Button>
                                 </Link>
                             </div>
