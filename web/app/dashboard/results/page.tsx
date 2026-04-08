@@ -95,8 +95,8 @@ export default function ResultsPage() {
                                         <div className="flex items-center gap-2 text-sm text-slate-500">
                                             <span className="font-bold text-[var(--brand-purple)] bg-[var(--brand-purple)]/10 px-2 py-0.5 rounded-md">#{test.id}</span>
                                             <span>{timeStr}</span>
-                                            {test.health_id && (
-                                                <span className="font-mono text-[10px] bg-slate-100 rounded px-1">{test.health_id.split('-')[0]}&hellip;</span>
+                                            {test.machine_id && (
+                                                <span className="font-mono text-[10px] bg-slate-100 rounded px-1">{test.machine_id}</span>
                                             )}
                                         </div>
                                         <div>
@@ -152,7 +152,7 @@ export default function ResultsPage() {
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px] whitespace-nowrap">Test ID</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[120px]">Health ID</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[120px]">Device ID</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Status</th>
 
                                 {showTechnicianColumn && (
@@ -180,8 +180,8 @@ export default function ResultsPage() {
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                             <td className="p-4 align-middle font-medium text-slate-900 whitespace-nowrap">#{test.id}</td>
                                             <td className="p-4 align-middle font-mono text-xs text-slate-500">
-                                                {test.health_id ? (
-                                                    <span title={test.health_id}>{test.health_id.split('-')[0]}&hellip;</span>
+                                                {test.machine_id ? (
+                                                    <span>{test.machine_id}</span>
                                                 ) : (
                                                     <span className="text-slate-300">—</span>
                                                 )}
@@ -220,9 +220,13 @@ export default function ResultsPage() {
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="p-4 align-middle text-slate-900 min-w-[200px] leading-tight">{test.system_manufacturer} {test.system_model}</td>
+                                            <td className="p-4 align-middle text-slate-900 leading-tight">
+                                                <div className="max-w-[250px] truncate" title={`${test.system_manufacturer} ${test.system_model}`}>
+                                                    {test.system_manufacturer} {test.system_model}
+                                                </div>
+                                            </td>
                                             <td className="p-4 align-middle text-slate-500 whitespace-nowrap">{formatAppVersion(test.app_version)}</td>
-                                            <td className="p-4 align-middle text-slate-500 min-w-[150px] break-all sm:break-normal">{test.system_serial}</td>
+                                            <td className="p-4 align-middle text-slate-500 break-all sm:break-normal">{test.system_serial}</td>
                                             <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
