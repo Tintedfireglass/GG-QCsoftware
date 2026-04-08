@@ -78,7 +78,7 @@ export default function ResultsPage() {
 
             <div className="bg-white rounded-xl">
                 <div className="relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left">
+                    <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Test ID</th>

@@ -230,7 +230,7 @@ export default function UsersPage() {
                     ) : (
                         <>
                             <div className="relative w-full overflow-auto">
-                                <table className="w-full caption-bottom text-sm text-left">
+                                <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                                     <thead className="[&_tr]:border-b">
                                         <tr className="border-b transition-colors">
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground">User</th>

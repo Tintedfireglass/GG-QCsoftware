@@ -284,7 +284,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="px-0">
                     <div className="relative w-full overflow-auto">
-                        <table className="w-full caption-bottom text-sm text-left">
+                        <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
                             <thead className="[&_tr]:border-b border-slate-200">
                                 <tr className="border-b transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-50">
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Test ID</th>
