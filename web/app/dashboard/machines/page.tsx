@@ -68,13 +68,13 @@ export default function MachinesPage() {
 
     const getGradeKey = (grade?: string) => {
         if (!grade) return "Unknown"
-        const g = grade.toUpperCase() === "REJECT" ? "Reject" : grade.toUpperCase()
-        if (g === "A+") return "A+"
-        if (g === "A") return "A"
-        if (g === "B") return "B"
-        if (g === "C") return "C"
-        if (g === "D" || g === "E" || g === "F") return "Unknown"
-        if (g === "REJECT") return "Unknown"
+        const g = grade.trim().toUpperCase()
+        if (g.startsWith("A+")) return "A+"
+        if (g.startsWith("A")) return "A"
+        if (g.startsWith("B")) return "B"
+        if (g.startsWith("C")) return "C"
+        if (g.includes("REJECT")) return "Unknown"
+        if (g.startsWith("D") || g.startsWith("E") || g.startsWith("F")) return "Unknown"
         return "Unknown"
     }
 
