@@ -6,20 +6,20 @@ import { LoginRequest, LoginResponse, ApiError } from '@/lib/types';
 export async function POST(request: NextRequest) {
     try {
         const body: LoginRequest = await request.json();
-        const { username, password } = body;
+        const { identifier, password } = body;
 
         // Validate input
-        if (!username || !password) {
+        if (!identifier || !password) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Username and password are required' } as ApiError,
+                { error: 'Validation Error', message: 'Username/email and password are required' } as ApiError,
                 { status: 400 }
             );
         }
 
         // Find user
         const users = await query(
-            'SELECT * FROM users WHERE username = $1 AND is_active = true',
-            [username]
+            'SELECT * FROM users WHERE (username = $1 OR LOWER(email) = LOWER($1)) AND is_active = true',
+            [identifier.trim()]
         );
 
         if (users.length === 0) {

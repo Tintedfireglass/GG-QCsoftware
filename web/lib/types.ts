@@ -192,7 +192,7 @@ export interface SubmitQCResultRequest {
 }
 
 export interface LoginRequest {
-    username: string;
+    identifier: string;
     password: string;
 }
 

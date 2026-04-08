@@ -9,7 +9,7 @@ import Image from "next/image"
 import Link from "next/link"
 
 export default function LoginPage() {
-    const [username, setUsername] = useState("")
+    const [identifier, setIdentifier] = useState("")
     const [password, setPassword] = useState("")
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
@@ -24,7 +24,7 @@ export default function LoginPage() {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ identifier, password }),
             })
 
             const data = await res.json()
@@ -71,12 +71,13 @@ export default function LoginPage() {
                         <div className="space-y-4">
                             <div className="space-y-1.5 relative pt-2">
                                 <label className="absolute -top-1 left-2 bg-white px-1 text-[11px] font-medium text-slate-500 z-10">
-                                    Username
+                                    Username or Email
                                 </label>
                                 <Input
                                     id="username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    placeholder="Enter username or email"
                                     disabled={loading}
                                     className="h-12 border-slate-300 rounded-lg focus-visible:ring-[var(--brand-purple)] text-base text-slate-800 relative z-0"
                                 />
