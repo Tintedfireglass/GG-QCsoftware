@@ -342,15 +342,15 @@ export default function DashboardPage() {
 
                     {/* Desktop Table View */}
                     <div className="hidden md:block relative w-full overflow-auto">
-                        <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
+                        <table className="w-full caption-bottom text-sm text-left">
                             <thead className="[&_tr]:border-b border-slate-200">
                                 <tr className="border-b transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-50">
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Test ID</th>
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Status</th>
+                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Test ID</th>
+                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Status</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Model name</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Serial No.</th>
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Date</th>
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Action</th>
+                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Date</th>
+                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="[&_tr:last-child]:border-0">
@@ -361,8 +361,8 @@ export default function DashboardPage() {
 
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
-                                            <td className="p-4 align-middle font-medium text-slate-900">#{test.id}</td>
-                                            <td className="p-4 align-middle">
+                                            <td className="p-4 align-middle font-medium text-slate-900 whitespace-nowrap">#{test.id}</td>
+                                            <td className="p-4 align-middle whitespace-nowrap">
                                                 {test.pramaan_grade ? (() => {
                                                     const s = getGradeStyle(test.pramaan_grade);
                                                     return (
@@ -372,24 +372,24 @@ export default function DashboardPage() {
                                                     );
                                                 })() : (
                                                     test.overall_pass ? (
-                                                        <span className="font-medium text-emerald-600 flex items-center gap-1.5">
+                                                        <span className="font-medium text-emerald-600 flex items-center gap-1.5 whitespace-nowrap">
                                                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-600"></div> Pass
                                                         </span>
                                                     ) : (
-                                                        <span className="font-medium text-rose-500 flex items-center gap-1.5">
+                                                        <span className="font-medium text-rose-500 flex items-center gap-1.5 whitespace-nowrap">
                                                             <div className="h-1.5 w-1.5 rounded-full bg-rose-500"></div> Fail
                                                         </span>
                                                     )
                                                 )}
                                             </td>
 
-                                            <td className="p-4 align-middle text-slate-900">{test.system_model}</td>
-                                            <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
-                                            <td className="p-4 align-middle text-slate-500">
+                                            <td className="p-4 align-middle text-slate-900 min-w-[200px] leading-tight">{test.system_model}</td>
+                                            <td className="p-4 align-middle text-slate-500 min-w-[150px] break-all sm:break-normal">{test.system_serial}</td>
+                                            <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
                                             </td>
-                                            <td className="p-4 align-middle text-right">
+                                            <td className="p-4 align-middle text-right whitespace-nowrap">
                                                 <Link href={`/dashboard/results/${test.id}`}>
                                                     <Button variant="outline" size="sm" className="rounded-full px-6 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)]">
                                                         VIEW

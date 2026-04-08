@@ -148,10 +148,10 @@ export default function ResultsPage() {
 
                 {/* Desktop Table View */}
                 <div className="hidden md:block relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
+                    <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Test ID</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px] whitespace-nowrap">Test ID</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[120px]">Health ID</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500 w-[100px]">Status</th>
 
@@ -159,10 +159,10 @@ export default function ResultsPage() {
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Technician</th>
                                 )}
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Model name</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500">App Version</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">App Version</th>
                                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Serial No.</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500">Date</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Action</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Date</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
@@ -178,7 +178,7 @@ export default function ResultsPage() {
 
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
-                                            <td className="p-4 align-middle font-medium text-slate-900">#{test.id}</td>
+                                            <td className="p-4 align-middle font-medium text-slate-900 whitespace-nowrap">#{test.id}</td>
                                             <td className="p-4 align-middle font-mono text-xs text-slate-500">
                                                 {test.health_id ? (
                                                     <span title={test.health_id}>{test.health_id.split('-')[0]}&hellip;</span>
@@ -186,7 +186,7 @@ export default function ResultsPage() {
                                                     <span className="text-slate-300">—</span>
                                                 )}
                                             </td>
-                                            <td className="p-4 align-middle">
+                                            <td className="p-4 align-middle whitespace-nowrap">
                                                 {test.pramaan_grade ? (() => {
                                                     const s = getGradeStyle(test.pramaan_grade);
                                                     return (
@@ -207,7 +207,7 @@ export default function ResultsPage() {
                                                 )}
                                             </td>
                                             {showTechnicianColumn && (
-                                                <td className="p-4 align-middle">
+                                                <td className="p-4 align-middle whitespace-nowrap">
                                                     {test.technician_name || test.technician_username ? (
                                                         <span className="inline-flex items-center gap-2 text-slate-900 font-medium">
                                                             <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500 font-bold">
@@ -220,14 +220,14 @@ export default function ResultsPage() {
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="p-4 align-middle text-slate-900">{test.system_manufacturer} {test.system_model}</td>
-                                            <td className="p-4 align-middle text-slate-500">{formatAppVersion(test.app_version)}</td>
-                                            <td className="p-4 align-middle text-slate-500">{test.system_serial}</td>
-                                            <td className="p-4 align-middle text-slate-500">
+                                            <td className="p-4 align-middle text-slate-900 min-w-[200px] leading-tight">{test.system_manufacturer} {test.system_model}</td>
+                                            <td className="p-4 align-middle text-slate-500 whitespace-nowrap">{formatAppVersion(test.app_version)}</td>
+                                            <td className="p-4 align-middle text-slate-500 min-w-[150px] break-all sm:break-normal">{test.system_serial}</td>
+                                            <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
                                             </td>
-                                            <td className="p-4 align-middle text-right space-x-2">
+                                            <td className="p-4 align-middle text-right space-x-2 whitespace-nowrap">
                                                 <Link href={`/dashboard/results/${test.id}`}>
                                                     <Button variant="outline" size="sm" className="rounded-full px-6 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm">
                                                         VIEW

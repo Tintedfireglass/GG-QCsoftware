@@ -306,23 +306,23 @@ export default function UsersPage() {
 
                             {/* Desktop Table View */}
                             <div className="hidden md:block relative w-full overflow-auto">
-                                <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
+                                <table className="w-full caption-bottom text-sm text-left">
                                     <thead className="[&_tr]:border-b">
                                         <tr className="border-b transition-colors">
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground">User</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Role</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Created By</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Status</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Team Size</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Actions</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Role</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Created By</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Team Size</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right whitespace-nowrap">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="[&_tr:last-child]:border-0">
                                         {users.map((userItem) => (
                                             <tr key={userItem.id} className="border-b transition-colors hover:bg-muted/50">
-                                                <td className="p-4 align-middle">
+                                                <td className="p-4 align-middle leading-tight min-w-[200px]">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
+                                                        <div className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
                                                             userItem.role === 'Refurbisher' ? 'bg-blue-500' :
                                                                 userItem.role === 'Reseller' ? 'bg-indigo-500' :
                                                                     userItem.role === 'Enterprise' ? 'bg-amber-500' :
@@ -330,22 +330,22 @@ export default function UsersPage() {
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
                                                         </div>
-                                                        <div>
+                                                        <div className="break-all sm:break-normal">
                                                             <p className="font-medium">{userItem.display_name || userItem.username}</p>
                                                             <p className="text-xs text-slate-500">{userItem.email || userItem.username}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 align-middle">
+                                                <td className="p-4 align-middle whitespace-nowrap">
                                                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(userItem.role)}`}>
                                                         <Shield className="h-3 w-3" />
                                                         {UserRoleDisplayNames[userItem.role]}
                                                     </span>
                                                 </td>
-                                                <td className="p-4 align-middle text-slate-500">
+                                                <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                     {userItem.creator_username || '-'}
                                                 </td>
-                                                <td className="p-4 align-middle">
+                                                <td className="p-4 align-middle whitespace-nowrap">
                                                     {userItem.is_active ? (
                                                         <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                                                             Active
@@ -356,10 +356,10 @@ export default function UsersPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="p-4 align-middle text-slate-500">
+                                                <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                     {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}
                                                 </td>
-                                                <td className="p-4 align-middle text-right">
+                                                <td className="p-4 align-middle text-right whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Link href={`/dashboard/users/${userItem.id}`}>
                                                             <Button variant="ghost" size="sm">

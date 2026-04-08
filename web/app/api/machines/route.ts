@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
         MAX(qr.timestamp) as last_test_date,
         SUM(CASE WHEN qr.overall_pass = true THEN 1 ELSE 0 END) as passed_count,
         SUM(CASE WHEN qr.overall_pass = false THEN 1 ELSE 0 END) as failed_count,
-        (SELECT qr2.submission_ip FROM qc_results qr2 WHERE qr2.machine_id = m.id ORDER BY qr2.timestamp DESC LIMIT 1) as latest_ip
+        (SELECT qr2.submission_ip FROM qc_results qr2 WHERE qr2.machine_id = m.id ORDER BY qr2.timestamp DESC LIMIT 1) as latest_ip,
+        (SELECT COALESCE(qr2.pramaan_grade, qr2.overall_grade) FROM qc_results qr2 WHERE qr2.machine_id = m.id ORDER BY qr2.timestamp DESC LIMIT 1) as latest_grade
       FROM machines m
       LEFT JOIN qc_results qr ON ${joinCondition}
       ${whereClause}

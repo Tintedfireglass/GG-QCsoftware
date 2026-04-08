@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Monitor, ExternalLink } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
+import { getGradeStyle } from "@/lib/grades"
 
 export default function MachinesPage() {
     const router = useRouter()
@@ -40,9 +41,14 @@ export default function MachinesPage() {
                     <Card key={machine.id} className="shadow-none border border-slate-200">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                                    <Monitor className="h-5 w-5 text-emerald-600" />
-                                </div>
+                                {(() => {
+                                    const style = getGradeStyle(machine.latest_grade);
+                                    return (
+                                        <div className={`h-10 w-10 rounded-full ${style.bg} flex items-center justify-center shrink-0`}>
+                                            <Monitor className={`h-5 w-5 ${style.text}`} />
+                                        </div>
+                                    );
+                                })()}
                                 <div>
                                     <CardTitle className="text-base font-semibold text-slate-900">
                                         Device ID: {machine.id}

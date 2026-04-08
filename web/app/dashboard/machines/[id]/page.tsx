@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDbDateTime } from "@/lib/utils"
+import { getGradeStyle } from "@/lib/grades"
 import { ArrowLeft, ExternalLink, Monitor } from "lucide-react"
 
 type MachineDetail = {
@@ -63,9 +64,15 @@ export default function MachineDetailPage() {
             <Card className="border border-slate-200 shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <Monitor className="h-5 w-5 text-emerald-600" />
-                        </div>
+                        {(() => {
+                            const latestGrade = test_history.length > 0 ? test_history[0].overall_grade : undefined;
+                            const style = getGradeStyle(latestGrade);
+                            return (
+                                <div className={`h-10 w-10 rounded-full ${style.bg} flex items-center justify-center shrink-0`}>
+                                    <Monitor className={`h-5 w-5 ${style.text}`} />
+                                </div>
+                            );
+                        })()}
                         <div>
                             <CardTitle className="text-lg font-semibold text-slate-900">
                                 Device ID: {machine.id}

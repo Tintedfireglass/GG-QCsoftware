@@ -268,14 +268,14 @@ export default function LicensesPage() {
 
                 {/* Desktop Table View */}
                 <div className="hidden md:block relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm text-left whitespace-nowrap">
+                    <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b border-slate-200 bg-white">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900">License Key</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px]">Type</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px]">Activation (Uses /Max)</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px]">Status</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px]">Action</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Type</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px] whitespace-nowrap">Activation Size</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Status</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px] whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">

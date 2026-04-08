@@ -104,7 +104,7 @@ export default function DedicatedReportPage() {
                 <div className="text-right flex items-center gap-6">
                     <div>
                         <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Device ID</div>
-                        <div className="font-mono text-xl">{data.machine_identifier ?? data.machine_id}</div>
+                        <div className="font-mono text-xl">{data.machine_id}</div>
                     </div>
                     {data.health_id && (
                         <div className="text-right">
