@@ -33,8 +33,6 @@ export default function MachinesPage() {
         load()
     }, [])
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading machines...</div>
-
     const gradeOptions = ["A+", "A", "B", "C", "Reject", "Unknown"]
     const gradeOrder: Record<string, number> = {
         "A+": 0,
@@ -104,6 +102,8 @@ export default function MachinesPage() {
         }
         return list.sort((a: any, b: any) => String(a?.id ?? "").localeCompare(String(b?.id ?? "")))
     }, [filteredMachines, machineSort])
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading machines...</div>
 
     return (
         <div className="space-y-6">
