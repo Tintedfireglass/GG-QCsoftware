@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { getQCResults } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, Printer, User } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Printer } from "lucide-react"
 import { getGradeStyle } from "@/lib/grades"
 import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
@@ -17,6 +17,10 @@ export default function ResultsPage() {
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const [search, setSearch] = useState("")
+    const [selectedGrades, setSelectedGrades] = useState<string[]>([])
+    const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
+    const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
+    const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const limit = 20
 
     // Show technician column for admins/superadmins
@@ -40,6 +44,29 @@ export default function ResultsPage() {
         loadData(page, search)
     }, [page]) // Reload when page changes
 
+    useEffect(() => {
+        function onDocumentMouseDown(e: MouseEvent) {
+            if (!isGradeFilterOpen) return
+            const target = e.target as Node | null
+            if (gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
+                setIsGradeFilterOpen(false)
+            }
+        }
+
+        function onDocumentKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") {
+                setIsGradeFilterOpen(false)
+            }
+        }
+
+        document.addEventListener("mousedown", onDocumentMouseDown)
+        document.addEventListener("keydown", onDocumentKeyDown)
+        return () => {
+            document.removeEventListener("mousedown", onDocumentMouseDown)
+            document.removeEventListener("keydown", onDocumentKeyDown)
+        }
+    }, [isGradeFilterOpen])
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
         const term = search.trim()
@@ -48,6 +75,65 @@ export default function ResultsPage() {
     }
 
     const totalPages = Math.ceil(total / limit)
+
+    const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
+    const gradeOrder: Record<string, number> = {
+        "A+": 0,
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "Unknown": 4
+    }
+
+    const getGradeKey = (grade?: string) => {
+        if (!grade) return "Unknown"
+        const g = grade.trim().toUpperCase()
+        if (g.startsWith("A+")) return "A+"
+        if (g.startsWith("A")) return "A"
+        if (g.startsWith("B")) return "B"
+        if (g.startsWith("C")) return "C"
+        return "Unknown"
+    }
+
+    const isGradeSelected = (gradeKey: string) =>
+        selectedGrades.length === 0 || selectedGrades.includes(gradeKey)
+
+    const toggleGrade = (grade: string) => {
+        setSelectedGrades((prev) =>
+            prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
+        )
+    }
+
+    const filteredResults = useMemo(() => {
+        return results.filter((r) => isGradeSelected(getGradeKey(r?.pramaan_grade)))
+    }, [results, selectedGrades])
+
+    const sortedResults = useMemo(() => {
+        const list = [...filteredResults]
+        if (resultSort === "grade_desc") {
+            return list.sort((a: any, b: any) => {
+                const aRank = gradeOrder[getGradeKey(a?.pramaan_grade)] ?? gradeOrder.Unknown
+                const bRank = gradeOrder[getGradeKey(b?.pramaan_grade)] ?? gradeOrder.Unknown
+                if (aRank !== bRank) return aRank - bRank
+                return (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0)
+            })
+        }
+        if (resultSort === "grade_asc") {
+            return list.sort((a: any, b: any) => {
+                const aRank = gradeOrder[getGradeKey(a?.pramaan_grade)] ?? gradeOrder.Unknown
+                const bRank = gradeOrder[getGradeKey(b?.pramaan_grade)] ?? gradeOrder.Unknown
+                if (aRank !== bRank) return bRank - aRank
+                return (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0)
+            })
+        }
+        if (resultSort === "date_asc") {
+            return list.sort((a: any, b: any) => (a?.timestamp ? new Date(a.timestamp).getTime() : 0) - (b?.timestamp ? new Date(b.timestamp).getTime() : 0))
+        }
+        if (resultSort === "id_asc") {
+            return list.sort((a: any, b: any) => String(a?.id ?? "").localeCompare(String(b?.id ?? "")))
+        }
+        return list.sort((a: any, b: any) => (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0))
+    }, [filteredResults, resultSort])
 
     return (
         <div className="space-y-6">
@@ -61,19 +147,76 @@ export default function ResultsPage() {
                         {isAdmin() && "Results from your team's quality checks"}
                         {isSuperAdmin() && "All quality check results across the system"}
                     </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Showing {sortedResults.length} of {results.length} results
+                    </p>
                 </div>
-                <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
-                    <Input
-                        placeholder="Search Test ID, Serial..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
-                    />
-                    <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white sm:shrink-0 w-full sm:w-auto">
-                        <Search className="h-4 w-4 sm:mr-2" />
-                        <span className="inline">Search</span>
-                    </Button>
-                </form>
+                <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
+                    <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
+                        <Input
+                            placeholder="Search Test ID, Serial..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                        />
+                        <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white sm:shrink-0 w-full sm:w-auto">
+                            <Search className="h-4 w-4 sm:mr-2" />
+                            <span className="inline">Search</span>
+                        </Button>
+                    </form>
+                    <div className="flex items-center gap-2">
+                        <div className="relative" ref={gradeFilterRef}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10"
+                                onClick={() => setIsGradeFilterOpen((v) => !v)}
+                            >
+                                Filter: {selectedGrades.length === 0 ? "All grades" : `${selectedGrades.length} selected`}
+                            </Button>
+                            {isGradeFilterOpen && (
+                                <div className="absolute right-0 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-10">
+                                    <div className="px-3 py-2 text-xs text-slate-500">Grades</div>
+                                    <div className="px-3 text-[11px] text-slate-400">No selection = all grades</div>
+                                    <div className="max-h-56 overflow-auto pb-1">
+                                        {gradeOptions.map((grade) => (
+                                            <label key={grade} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4"
+                                                    checked={selectedGrades.includes(grade)}
+                                                    onChange={() => toggleGrade(grade)}
+                                                />
+                                                <span>{grade}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <div className="border-t border-slate-100 px-3 py-2">
+                                        <button
+                                            type="button"
+                                            className="text-xs text-slate-600 hover:text-slate-900"
+                                            onClick={() => setSelectedGrades([])}
+                                        >
+                                            Clear filters
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <select
+                            value={resultSort}
+                            onChange={(e) => setResultSort(e.target.value as typeof resultSort)}
+                            className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
+                            aria-label="Sort results"
+                        >
+                            <option value="grade_desc">Sort: Grade high to low</option>
+                            <option value="grade_asc">Sort: Grade low to high</option>
+                            <option value="date_desc">Sort: Date newest</option>
+                            <option value="date_asc">Sort: Date oldest</option>
+                            <option value="id_asc">Sort: Test ID</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-transparent md:bg-white md:rounded-xl">
@@ -81,10 +224,10 @@ export default function ResultsPage() {
                 <div className="md:hidden flex flex-col gap-4">
                     {loading ? (
                         <div className="p-8 text-center text-slate-500">Loading...</div>
-                    ) : results.length === 0 ? (
+                    ) : sortedResults.length === 0 ? (
                         <div className="p-8 text-center text-slate-500">No results found</div>
                     ) : (
-                        results.map((test) => {
+                        sortedResults.map((test) => {
                             const dateObj = new Date(test.timestamp);
                             const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -168,10 +311,10 @@ export default function ResultsPage() {
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
                                 <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">Loading...</td></tr>
-                            ) : results.length === 0 ? (
-                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">No results found</td></tr>
+                            ) : sortedResults.length === 0 ? (
+                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
                             ) : (
-                                results.map((test) => {
+                                sortedResults.map((test) => {
                                     const dateObj = new Date(test.timestamp);
                                     const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
