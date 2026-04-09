@@ -271,7 +271,7 @@ export default function ResultsPage() {
                                         </div>
                                         {showTechnicianColumn && (
                                             <div className="text-xs text-slate-500 mt-1">
-                                                <span className="font-semibold text-slate-700">Tech:</span> {test.technician_name || test.technician_username || "Unassigned"}
+                                                <span className="font-semibold text-slate-700">User:</span> {test.technician_name || test.technician_username || "Unassigned"}
                                             </div>
                                         )}
                                     </div>
@@ -299,7 +299,7 @@ export default function ResultsPage() {
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Status</th>
 
                                 {showTechnicianColumn && (
-                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[160px]">Technician</th>
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[160px]">User</th>
                                 )}
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500">Model name</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[110px]">App Version</th>
