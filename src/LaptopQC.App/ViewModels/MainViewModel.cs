@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using LaptopQC.App;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Hardware.Models;
+using LaptopQC.App.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
 
