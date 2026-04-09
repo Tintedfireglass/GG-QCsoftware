@@ -17,6 +17,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         RefreshActivationUi();
+        App.AuthService.LoggedOut += () =>
+        {
+            Dispatcher.Invoke(RefreshActivationUi);
+        };
         Loaded += async (_, _) =>
         {
             await UpdateService.CheckForUpdatesAsync(this);

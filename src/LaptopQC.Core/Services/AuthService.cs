@@ -20,6 +20,7 @@ public class AuthService
     public string? LicenseKey { get; private set; }
     public int? MachineId { get; private set; }
     public DateTime? LastOnlineCheckUtc { get; private set; }
+    public event Action? LoggedOut;
 
     public AuthService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
     {
@@ -155,6 +156,7 @@ public class AuthService
         MachineId = null;
         LastOnlineCheckUtc = null;
         ClearSession();
+        LoggedOut?.Invoke();
     }
 
     /// <summary>

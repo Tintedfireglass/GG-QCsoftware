@@ -51,6 +51,10 @@ public static class ComplianceService
             if (!refreshResult.Success)
             {
                 App.AuthService.Logout();
+                if (owner is MainWindow mainWin)
+                {
+                    mainWin.RefreshActivationUi();
+                }
                 MessageBox.Show(owner,
                     "Activation required. Your license is disabled or expired.",
                     "Activation Required",

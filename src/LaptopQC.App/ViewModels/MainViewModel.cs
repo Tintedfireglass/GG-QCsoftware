@@ -138,7 +138,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void StartFullQc()
+    private async Task StartFullQc()
     {
         if (!EnsureComplianceOrNotify())
             return;
@@ -172,6 +172,16 @@ public partial class MainViewModel : ObservableObject
             // If still not activated after login attempt, don't open QC wizard
             if (!App.IsLoggedIn)
                 return;
+        }
+        else if (!string.IsNullOrWhiteSpace(App.AuthService.LicenseKey))
+        {
+            if (App.Current.MainWindow is MainWindow mainWin)
+            {
+                var ok = await ComplianceService.EnsureOnlineComplianceAsync(mainWin, force: true);
+                mainWin.RefreshActivationUi();
+                if (!ok)
+                    return;
+            }
         }
 
         var wizard = new Views.QCWizardWindow
