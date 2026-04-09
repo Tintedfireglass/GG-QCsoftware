@@ -14,6 +14,7 @@ import { ArrowLeft, ExternalLink, Monitor } from "lucide-react"
 type MachineDetail = {
     machine: any
     test_history: any[]
+    machine_history?: any[]
 }
 
 export default function MachineDetailPage() {
@@ -48,7 +49,7 @@ export default function MachineDetailPage() {
     if (error) return <div className="p-8 text-center text-rose-600">{error}</div>
     if (!data) return <div className="p-8 text-center text-slate-500">Machine not found.</div>
 
-    const { machine, test_history } = data
+    const { machine, test_history, machine_history = [] } = data
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
@@ -199,6 +200,67 @@ export default function MachineDetailPage() {
                     {test_history.length === 0 && (
                         <div className="text-center text-slate-500 py-8">
                             No tests recorded for this machine yet.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-none">
+                <CardHeader className="flex items-center justify-between">
+                    <div>
+                        <CardTitle className="text-lg text-slate-900">Machine History</CardTitle>
+                        <p className="text-sm text-slate-500 mt-1">
+                            {machine_history.length} record{machine_history.length === 1 ? "" : "s"} recorded.
+                        </p>
+                    </div>
+                </CardHeader>
+                <CardContent className="grid gap-3">
+                    {machine_history.map((entry: any) => {
+                        const grades = typeof entry.component_grades === "string"
+                            ? JSON.parse(entry.component_grades)
+                            : entry.component_grades || {};
+                        const components = Object.keys(grades);
+                        return (
+                            <div
+                                key={entry.id}
+                                className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                            >
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                    <div>
+                                        <div className="text-sm font-semibold text-slate-900">
+                                            {formatDbDateTime(entry.timestamp)}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            Source: {entry.source || "unknown"} {entry.app_version ? `• v${entry.app_version}` : ""}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {components.length === 0 && (
+                                        <span className="text-xs text-slate-500">No component grades recorded.</span>
+                                    )}
+                                    {components.map((key) => {
+                                        const grade = grades[key]?.grade || "-";
+                                        const score = grades[key]?.score;
+                                        const style = getGradeStyle(grade);
+                                        return (
+                                            <span
+                                                key={key}
+                                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${style.bg} ${style.text}`}
+                                            >
+                                                <span className="uppercase">{key}</span>
+                                                <span>{grade}{score != null ? ` (${score})` : ""}</span>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {machine_history.length === 0 && (
+                        <div className="text-center text-slate-500 py-8">
+                            No machine history recorded for this device yet.
                         </div>
                     )}
                 </CardContent>

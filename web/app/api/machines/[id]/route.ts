@@ -86,9 +86,35 @@ export async function GET(
             historyParams
         );
 
+        const historyParams2: SqlParam[] = [id];
+        let machineHistoryClause = '';
+
+        if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
+            machineHistoryClause = ' AND created_by = $2';
+            historyParams2.push(authUser.id);
+        } else if (authUser.role === 'Refurbisher') {
+            machineHistoryClause = ' AND (created_by = $2 OR created_by IN (SELECT id FROM users WHERE created_by = $2))';
+            historyParams2.push(authUser.id);
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+            machineHistoryClause = ` AND (
+                created_by = $2 OR created_by IN (SELECT id FROM users WHERE created_by = $2)
+                OR $2 IN (SELECT owner_user_id FROM machines WHERE id = $1)
+            )`;
+            historyParams2.push(authUser.id);
+        }
+
+        const machineHistory = await query(
+            `SELECT id, timestamp, source, component_grades, app_version
+             FROM machine_history
+             WHERE machine_id = $1${machineHistoryClause}
+             ORDER BY timestamp DESC`,
+            historyParams2
+        );
+
         return NextResponse.json({
             machine,
             test_history: testHistory,
+            machine_history: machineHistory,
         });
     } catch (error) {
         console.error('Error fetching machine details:', error);
