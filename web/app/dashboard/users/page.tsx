@@ -89,6 +89,8 @@ export default function UsersPage() {
         switch (role) {
             case 'SuperAdmin':
                 return 'bg-purple-100 text-purple-800'
+            case 'Employee':
+                return 'bg-rose-100 text-rose-800'
             case 'Refurbisher':
                 return 'bg-blue-100 text-blue-800'
             case 'Enterprise':
@@ -105,7 +107,7 @@ export default function UsersPage() {
     }
 
     const getCreatableRoles = (): UserRole[] => {
-        if (isSuperAdmin()) return ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
+        if (isSuperAdmin()) return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
         if (isReseller()) return ['Technician', 'Client']
         if (isEnterprise()) return ['Technician']
         return ['Technician']
@@ -206,6 +208,7 @@ export default function UsersPage() {
                             >
                                 <option value="">All Roles</option>
                                 {isSuperAdmin() && <option value="SuperAdmin">Super Admin</option>}
+                                {isSuperAdmin() && <option value="Employee">Employee</option>}
                                 <option value="Refurbisher">Refurbisher</option>
                                 <option value="Reseller">Reseller</option>
                                 <option value="Technician">Technician</option>
@@ -236,10 +239,11 @@ export default function UsersPage() {
                                         <div className="flex items-start justify-between mb-3 relative">
                                             <div className="flex items-center gap-3">
                                                 <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
-                                                    userItem.role === 'Refurbisher' ? 'bg-blue-500' :
-                                                        userItem.role === 'Reseller' ? 'bg-indigo-500' :
-                                                            userItem.role === 'Enterprise' ? 'bg-amber-500' :
-                                                                userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
+                                                    userItem.role === 'Employee' ? 'bg-rose-500' :
+                                                        userItem.role === 'Refurbisher' ? 'bg-blue-500' :
+                                                            userItem.role === 'Reseller' ? 'bg-indigo-500' :
+                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                    userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                     }`}>
                                                     {userItem.username.charAt(0).toUpperCase()}
                                                 </div>
@@ -323,10 +327,11 @@ export default function UsersPage() {
                                                 <td className="p-4 align-middle leading-tight min-w-[200px]">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
-                                                            userItem.role === 'Refurbisher' ? 'bg-blue-500' :
-                                                                userItem.role === 'Reseller' ? 'bg-indigo-500' :
-                                                                    userItem.role === 'Enterprise' ? 'bg-amber-500' :
-                                                                        userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
+                                                            userItem.role === 'Employee' ? 'bg-rose-500' :
+                                                                userItem.role === 'Refurbisher' ? 'bg-blue-500' :
+                                                                    userItem.role === 'Reseller' ? 'bg-indigo-500' :
+                                                                        userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                            userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
                                                         </div>

@@ -62,7 +62,7 @@ public class QCWorkflowService
         CurrentStep = QCWorkflowStep.AutomatedChecks;
     }
 
-    public async Task RunAutomatedChecksAsync()
+    public async Task RunAutomatedChecksAsync(bool skipStressTests = false)
     {
         CurrentStep = QCWorkflowStep.AutomatedChecks;
         
@@ -356,7 +356,9 @@ public class QCWorkflowService
                 Report.SmartTest.Message = "SMART tools not available";
             }
 
-            // 4. Stress Tests
+            if (!skipStressTests)
+            {
+                // 4. Stress Tests
             UpdateStatus("Running CPU Stress Test...", 60);
             var cpuStress = new CpuStressTest(durationSeconds: 15);
             cpuStress.OnProgress += (p) => UpdateStatus($"CPU Stress Test: {p.CurrentTemp:F0}°C", 60 + (p.PercentComplete / 5)); // 60-80%
@@ -417,6 +419,8 @@ public class QCWorkflowService
                     double throttlePercent = gpuResult.MaxClock > 0 ? (1 - gpuResult.MinClock / gpuResult.MaxClock) * 100 : 0;
                     Report.GpuTest.Details.Add($"Clock Range: {gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
                 }
+            }
+
             }
 
             UpdateStatus("Automated Checks Complete", 100);

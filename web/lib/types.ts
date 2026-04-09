@@ -51,6 +51,8 @@ export interface QCResult {
     pramaan_category_scores?: PramaanCategoryScores;
     pramaan_risk_flags?: PramaanRiskFlags;
     pramaan_algorithm_version?: string;
+    is_demo?: boolean;
+    demo_license_key_id?: number;
 
     created_at: Date;
 }
@@ -69,11 +71,12 @@ export interface TestResult {
 }
 
 // User role types for role-based access control
-export type UserRole = 'SuperAdmin' | 'Refurbisher' | 'Reseller' | 'Technician' | 'Enterprise' | 'Client' | 'B2CDevice';
+export type UserRole = 'SuperAdmin' | 'Employee' | 'Refurbisher' | 'Reseller' | 'Technician' | 'Enterprise' | 'Client' | 'B2CDevice';
 
 // Role display names for UI
 export const UserRoleDisplayNames: Record<UserRole, string> = {
     SuperAdmin: 'Gadget Guruz',
+    Employee: 'Employee',
     Refurbisher: 'Refurbisher',
     Reseller: 'Reseller',
     Technician: 'Technician',
@@ -85,6 +88,7 @@ export const UserRoleDisplayNames: Record<UserRole, string> = {
 // Role descriptions
 export const UserRoleDescriptions: Record<UserRole, string> = {
     SuperAdmin: 'Full system access, can manage all user types',
+    Employee: 'Sales/demo user who can generate demo keys only',
     Refurbisher: 'Bulk refurbisher/reseller, manages technician team and grading',
     Reseller: 'Reseller account with enterprise features and client management',
     Technician: 'QC Technician, performs certifications on client laptops',
@@ -189,6 +193,24 @@ export interface SubmitQCResultRequest {
     pramaanCategoryScores?: PramaanCategoryScores;
     pramaanRiskFlags?: PramaanRiskFlags;
     pramaanAlgorithmVersion?: string;
+}
+
+export interface SubmitMachineHistoryRequest {
+    machineId: string;
+    timestamp?: string;
+    source: string;
+    componentGrades: Record<string, { score: number; grade: string }>;
+    appVersion?: string;
+}
+
+export interface MachineHistoryAlert {
+    machine_id: number;
+    machine_identifier: string;
+    custom_name?: string;
+    component: string;
+    previous_grade: string;
+    latest_grade: string;
+    latest_timestamp: string;
 }
 
 export interface LoginRequest {

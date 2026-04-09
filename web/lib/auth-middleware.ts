@@ -109,13 +109,15 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
 export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
-            return ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
+            return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
         case 'Refurbisher':
             return ['Technician']; // Refurbisher can create their own technicians
         case 'Enterprise':
             return ['Technician']; // Enterprise can create their own IT technicians
         case 'Reseller':
             return ['Technician', 'Client']; // Reseller can create their own technicians and clients
+        case 'Employee':
+            return []; // Employees cannot create users
         default:
             return []; // Technicians cannot create anyone
     }

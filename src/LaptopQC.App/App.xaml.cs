@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
 using System.Data;
+using System.Linq;
 using System.Windows;
+using LaptopQC.App.Services;
 using LaptopQC.Core.Services;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Core.Abstractions;
@@ -81,8 +83,27 @@ public partial class App : Application
     /// </summary>
     public static int? MachineId => AuthService.MachineId;
 
+    /// <summary>
+    /// When true, the app is locked until an online compliance check succeeds.
+    /// </summary>
+    public static bool IsComplianceLocked { get; private set; }
+
+    public static void SetComplianceLocked(bool locked)
+    {
+        IsComplianceLocked = locked;
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        bool isAutoBasicQc = e.Args.Any(arg => arg.Equals("--auto-basic-qc", StringComparison.OrdinalIgnoreCase));
+        if (isAutoBasicQc)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            StartupUri = null;
+            _ = RunAutoBasicQcAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
+            return;
+        }
+
         base.OnStartup(e);
         
         // First-run: show T&C / Privacy Policy acceptance
@@ -109,5 +130,55 @@ public partial class App : Application
         
         // Register QC reminder scheduled task (if not already registered)
         Task.Run(() => ReminderTaskService.EnsureRegistered());
+        Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
+    }
+
+    private async Task RunAutoBasicQcAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey))
+                return;
+
+            var serial = DeviceIdentityService.GetMachineSerialNumber();
+            var mac = DeviceIdentityService.GetMacAddress();
+            var computerName = DeviceIdentityService.GetComputerName();
+
+            var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
+            if (!loginResult.Success)
+            {
+                AuthService.Logout();
+                return;
+            }
+
+            var workflow = Services.GetRequiredService<QCWorkflowService>();
+            workflow.StartNewSession("AUTO_BASIC_QC", "Automated monthly component check");
+
+            if (MachineId.HasValue)
+                workflow.Report.DeviceId = MachineId.Value;
+
+            await workflow.RunAutomatedChecksAsync(skipStressTests: true);
+
+            var grading = new GradingService();
+            var components = new[] { "CPU", "RAM", "Storage", "Battery", "SMART" };
+            var componentGrades = grading.GradeComponentTestsOnly(workflow.Report, components);
+
+            if (componentGrades.Count == 0)
+                return;
+
+            var submission = new MachineHistorySubmissionService();
+            var submitResult = await submission.SubmitComponentGradesAsync(
+                workflow.Report,
+                componentGrades,
+                "auto_basic_qc",
+                AuthService.Token);
+
+            if (!submitResult.Success && submitResult.IsAuthError)
+                AuthService.Logout();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Auto basic QC failed: {ex.Message}");
+        }
     }
 }

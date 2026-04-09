@@ -22,7 +22,7 @@ export async function GET() {
                 qcResults: {
                     list: 'GET /api/qc-results (JWT required)',
                     get: 'GET /api/qc-results/[id] (JWT required)',
-                    submit: 'POST /api/qc-results (API key required)',
+                    submit: 'POST /api/qc-results (API key + JWT required)',
                 },
                 machines: {
                     list: 'GET /api/machines (JWT required)',

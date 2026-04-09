@@ -34,7 +34,7 @@ export default function NewUserPage() {
 
     // Get roles that current user can create
     const creatableRoles: UserRole[] = isSuperAdmin()
-        ? ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
+        ? ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
         : isReseller()
             ? ['Technician', 'Client']
             : isEnterprise()
@@ -46,6 +46,7 @@ export default function NewUserPage() {
     // Custom role mapping for the UI
     const customRoleDisplay: Record<UserRole, { title: string, description: string }> = {
         SuperAdmin: { title: "Super Admin", description: "Full system access" },
+        Employee: { title: "Employee", description: "Sales/demo user who can generate demo keys only" },
         Refurbisher: { title: "Refurbisher", description: "Bulk reseller, manages technician team and grading" },
         Reseller: { title: "Reseller", description: "Enterprise features with client management" },
         Technician: { title: "Technician", description: "QC Technician, performs certifications on laptops" },

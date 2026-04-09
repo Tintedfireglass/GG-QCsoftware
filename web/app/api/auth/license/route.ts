@@ -110,6 +110,10 @@ export async function POST(request: NextRequest) {
                 throw new Error('This license key has expired');
             }
 
+            if (license.type === 'demo' && license.demo_runs_used >= (license.demo_max_runs || 1)) {
+                throw new Error('This demo key has already been used');
+            }
+
             // 2. Check if this machine is already activated for this key
             const activationRes = await client.query(
                 'SELECT * FROM license_key_activations WHERE license_key_id = $1 AND machine_serial = $2',

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { getMachines, getQCResults, getUsers } from "@/lib/api"
+import { getMachineHistoryAlerts, getMachines, getQCResults, getUsers } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,11 +19,12 @@ import {
     Shield,
     UserCheck,
     TrendingUp,
-    Download
+    Download,
+    AlertTriangle
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const { user, isSuperAdmin, isRefurbisher, isReseller, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
+    const { user, isSuperAdmin, isEmployee, isRefurbisher, isReseller, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
@@ -33,15 +34,17 @@ export default function DashboardPage() {
         totalTechnicians: 0,
         recentTests: [] as any[]
     })
+    const [alerts, setAlerts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
     async function loadData(query = "") {
         setLoading(true)
         try {
-            const [resultsData, machinesData] = await Promise.all([
+            const [resultsData, machinesData, alertsData] = await Promise.all([
                 getQCResults(1, 10, { search: query }),
-                getMachines()
+                getMachines(),
+                getMachineHistoryAlerts().catch(() => ({ alerts: [] }))
             ])
 
             const total = resultsData.pagination.total
@@ -73,6 +76,7 @@ export default function DashboardPage() {
                 ...userStats,
                 recentTests: resultsData.results
             })
+            setAlerts(alertsData.alerts || [])
         } catch (error) {
             console.error("Failed to load dashboard data", error)
         } finally {
@@ -97,7 +101,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEnterprise() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
+                        Pramaan • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>
@@ -258,6 +262,34 @@ export default function DashboardPage() {
                         </Card>
                     </Link>
                 </div>
+            )}
+
+            {/* Degradation Alerts */}
+            {alerts.length > 0 && (
+                <Card className="shadow-none border-slate-200">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-600">Degradation Alerts</CardTitle>
+                        <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {alerts.map((alert) => (
+                            <div key={`${alert.machine_id}-${alert.component}-${alert.latest_timestamp}`} className="flex items-center justify-between gap-4 border border-amber-100 rounded-lg px-4 py-3 bg-amber-50">
+                                <div className="text-sm text-slate-700">
+                                    <span className="font-semibold text-slate-900">
+                                        {alert.custom_name || alert.machine_identifier}
+                                    </span>
+                                    <span className="text-slate-500">: </span>
+                                    <span>{alert.component} dropped {alert.previous_grade} → {alert.latest_grade} (last 30 days)</span>
+                                </div>
+                                <div className="text-xs text-slate-500 whitespace-nowrap">
+                                    {formatDbDateTime(alert.latest_timestamp)}
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             )}
 
             {/* Recent Results Table */}

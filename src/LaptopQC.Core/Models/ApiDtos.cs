@@ -157,4 +157,34 @@ public class SubmitResponse
     
     [JsonPropertyName("id")]
     public int Id { get; set; }
+
+    [JsonPropertyName("demoExhausted")]
+    public bool DemoExhausted { get; set; }
+}
+
+public class SubmitMachineHistoryRequest
+{
+    [JsonPropertyName("machineId")]
+    public string MachineId { get; set; } = "";
+
+    [JsonPropertyName("timestamp")]
+    public DateTime Timestamp { get; set; }
+
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = "";
+
+    [JsonPropertyName("componentGrades")]
+    public Dictionary<string, ComponentGrade> ComponentGrades { get; set; } = new();
+
+    [JsonPropertyName("appVersion")]
+    public string? AppVersion { get; set; }
+}
+
+public class ComponentGrade
+{
+    [JsonPropertyName("score")]
+    public int Score { get; set; }
+
+    [JsonPropertyName("grade")]
+    public string Grade { get; set; } = "";
 }

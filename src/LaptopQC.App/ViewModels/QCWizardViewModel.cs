@@ -463,16 +463,28 @@ public partial class QCWizardViewModel : ObservableObject
             ReportPath = _reportGenerator.SaveReport(report);
         }
 
-        var success = await _submissionService.SubmitReportAsync(report, technicianId);
+        var submitResult = await _submissionService.SubmitReportAsync(report, technicianId, App.AuthService.Token);
         
-        if (success)
+        if (submitResult.Success)
         {
             SubmissionStatus = $"✓ Submitted (by {App.UserDisplayName})";
             GenerateQrCode(report.HealthId);
+
+            if (submitResult.DemoExhausted)
+            {
+                App.AuthService.Logout();
+                MessageBox.Show(
+                    "Demo completed. Activation required to continue.",
+                    "Demo Completed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
         }
         else
         {
-            SubmissionStatus = "✗ Failed to Submit (Saved Locally)";
+            SubmissionStatus = submitResult.IsAuthError
+                ? "✗ Activation required to submit"
+                : "✗ Failed to Submit (Saved Locally)";
         }
     }
 

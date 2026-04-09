@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, transaction } from '@/lib/db';
 import { verifyApiKey } from '@/lib/auth';
 import { authenticateRequest } from '@/lib/auth-middleware';
 import { SubmitQCResultRequest, ApiError } from '@/lib/types';
@@ -166,6 +166,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const { user: authUser, error: authError } = await authenticateRequest(request);
+        if (authError) return authError;
+
+        const legacyCutoffUtc = new Date('2026-04-12T23:59:59Z');
+        const nowUtc = new Date();
+        const legacyWindowOpen = nowUtc <= legacyCutoffUtc;
+
+        if (!authUser && !legacyWindowOpen) {
+            return NextResponse.json(
+                { error: 'Authentication Error', message: 'Please update to the latest version to submit results.' } as ApiError,
+                { status: 426 }
+            );
+        }
+
         const body: SubmitQCResultRequest = await request.json();
 
         const forwardedFor = request.headers.get('x-forwarded-for') || request.headers.get('x-vercel-forwarded-for');
@@ -188,147 +202,235 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const existing = await query(
-            'SELECT id FROM qc_results WHERE report_id = $1',
-            [body.reportId]
-        );
-
-        if (existing.length > 0) {
+        const machineIdRaw = body.machineId?.trim();
+        if (!machineIdRaw) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Report ID already exists' } as ApiError,
-                { status: 409 }
+                { error: 'Validation Error', message: 'Missing machine identifier' } as ApiError,
+                { status: 400 }
             );
         }
 
-        let machineDbId: number;
-        const machineIdRaw = body.machineId?.trim();
-        const machineIdIsNumeric = !!machineIdRaw && /^[0-9]+$/.test(machineIdRaw);
-        const machineIdAsNumber = machineIdIsNumeric ? parseInt(machineIdRaw!, 10) : null;
+        let qcResultId: number | null = null;
+        let demoKeyId: number | null = null;
+        let isDemo = false;
+        let demoExhausted = false;
 
-        // First, if machineId is numeric and matches an existing machines.id, use that row.
-        let machines = machineIdAsNumber
-            ? await query('SELECT id FROM machines WHERE id = $1', [machineIdAsNumber])
-            : [];
+        await transaction(async (client) => {
+            const existing = await client.query(
+                'SELECT id FROM qc_results WHERE report_id = $1',
+                [body.reportId]
+            );
+            if (existing.rows.length > 0) {
+                throw new Error('REPORT_EXISTS');
+            }
 
-        // Otherwise fall back to matching by machines.machine_id (string identifier)
-        if (machines.length === 0) {
-            machines = await query(
-                'SELECT id FROM machines WHERE machine_id = $1',
+            const activationRes = await client.query(
+                `SELECT lk.*
+                 FROM license_key_activations lka
+                 JOIN license_keys lk ON lk.id = lka.license_key_id
+                 WHERE lka.machine_serial = $1
+                 ORDER BY lka.activated_at DESC
+                 LIMIT 1`,
                 [machineIdRaw]
             );
-        }
 
-        if (machines.length > 0) {
-            machineDbId = machines[0].id;
+            if (activationRes.rows.length === 0) {
+                throw new Error('NO_ACTIVATION');
+            }
 
-            await query(
-                `UPDATE machines SET
-          last_seen = NOW(),
-          serial_number = COALESCE($1, serial_number),
-          mac_address = COALESCE($2, mac_address),
-          manufacturer = COALESCE($3, manufacturer),
-          model = COALESCE($4, model),
-          computer_name = COALESCE($5, computer_name)
-         WHERE id = $6`,
-                [
-                    body.systemInfo?.serialNumber,
-                    body.systemInfo?.macAddress,
-                    body.systemInfo?.manufacturer,
-                    body.systemInfo?.model,
-                    body.systemInfo?.computerName || null,
-                    machineDbId,
-                ]
-            );
-        } else {
-            const newMachine = await query(
-                `INSERT INTO machines (machine_id, serial_number, mac_address, manufacturer, model, computer_name, last_seen)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
-         RETURNING id`,
-                [
-                    machineIdRaw,
-                    body.systemInfo?.serialNumber || null,
-                    body.systemInfo?.macAddress || null,
-                    body.systemInfo?.manufacturer || null,
-                    body.systemInfo?.model || null,
-                    body.systemInfo?.computerName || null,
-                ]
-            );
-            machineDbId = newMachine[0].id;
-        }
+            const license = activationRes.rows[0];
 
-        const qcResult = await query(
-            `INSERT INTO qc_results (
-        report_id, machine_id, timestamp, refurbish_id, technician_notes, app_version, overall_pass,
-        overall_score, overall_grade,
-        system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
-        system_info_json, cpu_details_json, ram_details_json, storage_details_json,
-        battery_details_json, device_details_json, submission_ip, technician_id,
-        pramaan_score, health_id, pramaan_hash, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version
-      ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
-      RETURNING id`,
-            [
-                body.reportId,
-                machineDbId,
-                body.refurbishId || null,
-                body.technicianNotes || null,
-                body.appVersion || null,
-                body.overallPass,
-                body.overallScore || 0,
-                body.overallGrade || '',
-                body.systemInfo?.manufacturer || null,
-                body.systemInfo?.model || null,
-                body.systemInfo?.serialNumber || null,
-                body.systemInfo?.macAddress || null,
-                body.systemInfo?.cpuModel || null,
-                body.systemInfo?.ramTotal || null,
-                body.systemInfo ? JSON.stringify(body.systemInfo) : null,
-                body.cpuDetails ? JSON.stringify(body.cpuDetails) : null,
-                body.ramDetails ? JSON.stringify(body.ramDetails) : null,
-                body.storageDetails ? JSON.stringify(body.storageDetails) : null,
-                body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
-                body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
-                submissionIp,
-                body.technicianId || null,
-                body.pramaanScore ?? null,
-                body.healthId || null,
-                body.pramaanHash || null,
-                body.pramaanGrade || null,
-                body.pramaanCategoryScores ? JSON.stringify(body.pramaanCategoryScores) : null,
-                body.pramaanRiskFlags ? JSON.stringify(body.pramaanRiskFlags) : null,
-                body.pramaanAlgorithmVersion || null,
-            ]
-        );
+            if (!license.is_active) {
+                throw new Error('KEY_DISABLED');
+            }
 
-        const qcResultId = qcResult[0].id;
+            if (license.expires_at && new Date(license.expires_at) < new Date()) {
+                throw new Error('KEY_EXPIRED');
+            }
 
-        if (body.testResults && body.testResults.length > 0) {
-            for (const test of body.testResults) {
-                await query(
-                    `INSERT INTO test_results (qc_result_id, test_type, tested, passed, score, grade, message, details_json, timestamp)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+            if (license.type === 'demo') {
+                const maxRuns = license.demo_max_runs || 1;
+                if (license.demo_runs_used >= maxRuns) {
+                    throw new Error('DEMO_USED');
+                }
+                isDemo = true;
+                demoKeyId = license.id;
+                demoExhausted = license.demo_runs_used + 1 >= maxRuns;
+            }
+
+            let machineDbId: number;
+            const machineIdIsNumeric = !!machineIdRaw && /^[0-9]+$/.test(machineIdRaw);
+            const machineIdAsNumber = machineIdIsNumeric ? parseInt(machineIdRaw!, 10) : null;
+
+            let machines = machineIdAsNumber
+                ? (await client.query('SELECT id FROM machines WHERE id = $1', [machineIdAsNumber])).rows
+                : [];
+
+            if (machines.length === 0) {
+                machines = (await client.query(
+                    'SELECT id FROM machines WHERE machine_id = $1',
+                    [machineIdRaw]
+                )).rows;
+            }
+
+            if (machines.length > 0) {
+                machineDbId = machines[0].id;
+
+                await client.query(
+                    `UPDATE machines SET
+              last_seen = NOW(),
+              serial_number = COALESCE($1, serial_number),
+              mac_address = COALESCE($2, mac_address),
+              manufacturer = COALESCE($3, manufacturer),
+              model = COALESCE($4, model),
+              computer_name = COALESCE($5, computer_name)
+             WHERE id = $6`,
                     [
-                        qcResultId,
-                        test.testType,
-                        test.tested,
-                        test.passed,
-                        test.score || 0,
-                        test.grade || '',
-                        test.message || null,
-                        test.details ? JSON.stringify(test.details) : null,
+                        body.systemInfo?.serialNumber,
+                        body.systemInfo?.macAddress,
+                        body.systemInfo?.manufacturer,
+                        body.systemInfo?.model,
+                        body.systemInfo?.computerName || null,
+                        machineDbId,
                     ]
                 );
+            } else {
+                const newMachine = await client.query(
+                    `INSERT INTO machines (machine_id, serial_number, mac_address, manufacturer, model, computer_name, last_seen)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())
+             RETURNING id`,
+                    [
+                        machineIdRaw,
+                        body.systemInfo?.serialNumber || null,
+                        body.systemInfo?.macAddress || null,
+                        body.systemInfo?.manufacturer || null,
+                        body.systemInfo?.model || null,
+                        body.systemInfo?.computerName || null,
+                    ]
+                );
+                machineDbId = newMachine.rows[0].id;
             }
-        }
+
+            const qcResult = await client.query(
+                `INSERT INTO qc_results (
+            report_id, machine_id, timestamp, refurbish_id, technician_notes, app_version, overall_pass,
+            overall_score, overall_grade,
+            system_manufacturer, system_model, system_serial, mac_address, cpu_model, ram_total,
+            system_info_json, cpu_details_json, ram_details_json, storage_details_json,
+            battery_details_json, device_details_json, submission_ip, technician_id,
+            pramaan_score, health_id, pramaan_hash, pramaan_grade, pramaan_category_scores, pramaan_risk_flags, pramaan_algorithm_version,
+            is_demo, demo_license_key_id
+          ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+          RETURNING id`,
+                [
+                    body.reportId,
+                    machineDbId,
+                    body.refurbishId || null,
+                    body.technicianNotes || null,
+                    body.appVersion || null,
+                    body.overallPass,
+                    body.overallScore || 0,
+                    body.overallGrade || '',
+                    body.systemInfo?.manufacturer || null,
+                    body.systemInfo?.model || null,
+                    body.systemInfo?.serialNumber || null,
+                    body.systemInfo?.macAddress || null,
+                    body.systemInfo?.cpuModel || null,
+                    body.systemInfo?.ramTotal || null,
+                    body.systemInfo ? JSON.stringify(body.systemInfo) : null,
+                    body.cpuDetails ? JSON.stringify(body.cpuDetails) : null,
+                    body.ramDetails ? JSON.stringify(body.ramDetails) : null,
+                    body.storageDetails ? JSON.stringify(body.storageDetails) : null,
+                    body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
+                    body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
+                    submissionIp,
+                    body.technicianId || null,
+                    body.pramaanScore ?? null,
+                    body.healthId || null,
+                    body.pramaanHash || null,
+                    body.pramaanGrade || null,
+                    body.pramaanCategoryScores ? JSON.stringify(body.pramaanCategoryScores) : null,
+                    body.pramaanRiskFlags ? JSON.stringify(body.pramaanRiskFlags) : null,
+                    body.pramaanAlgorithmVersion || null,
+                    isDemo,
+                    demoKeyId,
+                ]
+            );
+
+            qcResultId = qcResult.rows[0].id;
+
+            if (body.testResults && body.testResults.length > 0) {
+                for (const test of body.testResults) {
+                    await client.query(
+                        `INSERT INTO test_results (qc_result_id, test_type, tested, passed, score, grade, message, details_json, timestamp)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+                        [
+                            qcResultId,
+                            test.testType,
+                            test.tested,
+                            test.passed,
+                            test.score || 0,
+                            test.grade || '',
+                            test.message || null,
+                            test.details ? JSON.stringify(test.details) : null,
+                        ]
+                    );
+                }
+            }
+
+            if (isDemo && demoKeyId) {
+                await client.query(
+                    `UPDATE license_keys
+                     SET demo_runs_used = COALESCE(demo_runs_used, 0) + 1,
+                         is_active = CASE WHEN COALESCE(demo_runs_used, 0) + 1 >= COALESCE(demo_max_runs, 1) THEN false ELSE is_active END
+                     WHERE id = $1`,
+                    [demoKeyId]
+                );
+            }
+        });
 
         return NextResponse.json(
             {
                 message: 'QC result submitted successfully',
                 id: qcResultId,
                 reportId: body.reportId,
+                demoExhausted
             },
             { status: 201 }
         );
     } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === 'REPORT_EXISTS') {
+                return NextResponse.json(
+                    { error: 'Validation Error', message: 'Report ID already exists' } as ApiError,
+                    { status: 409 }
+                );
+            }
+            if (error.message === 'NO_ACTIVATION') {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'This machine is not activated with a license key' } as ApiError,
+                    { status: 403 }
+                );
+            }
+            if (error.message === 'KEY_DISABLED') {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'The license key for this machine has been disabled' } as ApiError,
+                    { status: 403 }
+                );
+            }
+            if (error.message === 'KEY_EXPIRED') {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'The license key for this machine has expired' } as ApiError,
+                    { status: 403 }
+                );
+            }
+            if (error.message === 'DEMO_USED') {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'This demo license has already been used' } as ApiError,
+                    { status: 403 }
+                );
+            }
+        }
         console.error('Error submitting QC result:', error);
         return NextResponse.json(
             { error: 'Server Error', message: 'Failed to submit QC result' } as ApiError,

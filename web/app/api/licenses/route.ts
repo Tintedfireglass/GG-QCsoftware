@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
         if (roleError) return roleError;
 
         let queryStr = `
@@ -53,14 +53,28 @@ export async function POST(request: NextRequest) {
         const { user: authUser, error: authError } = await authenticateRequest(request);
         if (authError || !authUser) return authError || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const roleError = requireRole(authUser, ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
+        const roleError = requireRole(authUser, ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client']);
         if (roleError) return roleError;
 
         const body = await request.json();
-        const { type, max_uses, expires_at } = body;
+        const { type, max_uses, expires_at, demo_customer_name } = body;
 
-        if (!type || !['single_use', 'bulk'].includes(type) || !max_uses || max_uses < 1) {
+        if (!type || !['single_use', 'bulk', 'demo'].includes(type)) {
             return NextResponse.json({ error: 'Invalid input parameters' }, { status: 400 });
+        }
+
+        if (authUser.role === 'Employee' && type !== 'demo') {
+            return NextResponse.json({ error: 'Authorization Error', message: 'Employees can only generate demo keys' }, { status: 403 });
+        }
+
+        const normalizedMaxUses = type === 'demo' ? 1 : max_uses;
+
+        if (!normalizedMaxUses || normalizedMaxUses < 1) {
+            return NextResponse.json({ error: 'Invalid input parameters' }, { status: 400 });
+        }
+
+        if (type === 'demo' && !demo_customer_name?.trim()) {
+            return NextResponse.json({ error: 'Validation Error', message: 'Customer name is required for demo keys' }, { status: 400 });
         }
 
         // Generate the 16-digit code
@@ -75,22 +89,30 @@ export async function POST(request: NextRequest) {
                 const userRes = await client.query('SELECT license_credits FROM users WHERE id = $1', [authUser.id]);
                 const credits = userRes.rows[0]?.license_credits || 0;
 
-                if (credits < max_uses) {
-                    throw new Error(`Insufficient license credits. You have ${credits} credits, but requested ${max_uses} uses.`);
+                if (type !== 'demo' && credits < normalizedMaxUses) {
+                    throw new Error(`Insufficient license credits. You have ${credits} credits, but requested ${normalizedMaxUses} uses.`);
                 }
 
                 // Deduct credits
-                await client.query('UPDATE users SET license_credits = license_credits - $1 WHERE id = $2', [max_uses, authUser.id]);
+                if (type !== 'demo') {
+                    await client.query('UPDATE users SET license_credits = license_credits - $1 WHERE id = $2', [normalizedMaxUses, authUser.id]);
+                }
             }
 
             // Insert new key
             const insertQuery = `
-                INSERT INTO license_keys (key, type, max_uses, created_by, is_active, expires_at)
-                VALUES ($1, $2, $3, $4, true, $5)
+                INSERT INTO license_keys (key, type, max_uses, created_by, is_active, expires_at, demo_customer_name, demo_max_runs)
+                VALUES ($1, $2, $3, $4, true, $5, $6, $7)
                 RETURNING *
             `;
             const result = await client.query(insertQuery, [
-                assignedKey, type, max_uses, authUser.id, expires_at ? new Date(expires_at) : null
+                assignedKey,
+                type,
+                normalizedMaxUses,
+                authUser.id,
+                expires_at ? new Date(expires_at) : null,
+                type === 'demo' ? demo_customer_name?.trim() : null,
+                type === 'demo' ? 1 : null,
             ]);
 
             generatedKeyRecord = result.rows[0];

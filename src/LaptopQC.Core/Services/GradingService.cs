@@ -119,6 +119,43 @@ public class GradingService
         report.PramaanResult = pramaanEngine.ScoreReport(report);
     }
 
+    /// <summary>
+    /// Scores and grades only selected components. Does NOT compute overall grade or PRAMAAN.
+    /// Returns a dictionary of component grades keyed by lowercase component name.
+    /// </summary>
+    public Dictionary<string, ComponentGrade> GradeComponentTestsOnly(QCReport report, IEnumerable<string> componentNames)
+    {
+        var selected = new HashSet<string>(componentNames ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, ComponentGrade>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var def in TestDefinitions)
+        {
+            if (!selected.Contains(def.Name))
+                continue;
+
+            var testResult = def.GetResult(report);
+            if (!testResult.Tested)
+                continue;
+
+            int? score = def.ScoreFunc(report, testResult);
+            if (score == null)
+                continue;
+
+            int clamped = Math.Clamp(score.Value, 0, 100);
+            testResult.Score = clamped;
+            testResult.Grade = ScoreToGrade(clamped).ToString();
+
+            var key = def.Name.ToLowerInvariant();
+            result[key] = new ComponentGrade
+            {
+                Score = clamped,
+                Grade = testResult.Grade
+            };
+        }
+
+        return result;
+    }
+
     /// <summary>Maps a score (0-100) to a DeviceGrade</summary>
     public static DeviceGrade ScoreToGrade(int score) => score switch
     {

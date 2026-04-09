@@ -4,6 +4,7 @@ using LaptopQC.App;
 using LaptopQC.Core.Diagnostics;
 using LaptopQC.Hardware.Models;
 using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace LaptopQC.App.ViewModels;
 
@@ -81,11 +82,20 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSecurityChecking;
 
+    public bool IsComplianceLocked => App.IsComplianceLocked;
+
     public bool IsLoggedIn => App.IsLoggedIn;
+
+    public bool IsInteractionEnabled => !IsScanning && !App.IsComplianceLocked;
+
+    public bool IsSecurityRefreshEnabled => !IsSecurityChecking && !App.IsComplianceLocked;
 
     public void RefreshLoginState()
     {
         OnPropertyChanged(nameof(IsLoggedIn));
+        OnPropertyChanged(nameof(IsComplianceLocked));
+        OnPropertyChanged(nameof(IsInteractionEnabled));
+        OnPropertyChanged(nameof(IsSecurityRefreshEnabled));
     }
 
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
@@ -105,9 +115,34 @@ public partial class MainViewModel : ObservableObject
         SmartctlAvailable = _smartTestService.IsAvailable;
     }
 
+    private bool EnsureComplianceOrNotify()
+    {
+        if (App.AuthService.IsOnlineCheckRequired())
+        {
+            App.SetComplianceLocked(true);
+            OnPropertyChanged(nameof(IsComplianceLocked));
+            OnPropertyChanged(nameof(IsInteractionEnabled));
+            OnPropertyChanged(nameof(IsSecurityRefreshEnabled));
+            if (App.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.RefreshActivationUi();
+            }
+        }
+
+        if (!App.IsComplianceLocked)
+            return true;
+
+        StatusMessage = "Internet required. Please connect and retry.";
+        MessageBox.Show("Internet is required to continue. Connect to WiFi/Ethernet and retry.", "Internet Required");
+        return false;
+    }
+
     [RelayCommand]
     private void StartFullQc()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         if (!App.IsLoggedIn)
         {
             // Show WiFi test popup first
@@ -149,6 +184,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenKeyboardTest()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         var keyboardWindow = new Views.KeyboardTestWindow
         {
             Owner = App.Current.MainWindow
@@ -174,6 +212,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenAudioVideoTest()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         var avWindow = new Views.AudioVideoTestWindow
         {
             Owner = App.Current.MainWindow
@@ -208,6 +249,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenTrackpadTest()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         var trackpadWindow = new Views.TrackpadTestWindow
         {
             Owner = App.Current.MainWindow
@@ -233,6 +277,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenUsbPortTest()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         var usbWindow = new Views.UsbPortTestWindow
         {
             Owner = App.Current.MainWindow
@@ -258,6 +305,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunDiagnosticsAsync()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         // UI Thread: Start scan state
         IsScanning = true;
         StatusMessage = "Scanning hardware...";
@@ -460,6 +510,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunStressTestsAsync()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         IsScanning = true;
         StatusMessage = "Running stress tests... (This may take a minute)";
         
@@ -550,6 +603,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenCleanup()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         var win = new Views.CleanupWindow
         {
             Owner = App.Current.MainWindow
@@ -560,6 +616,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshSecurityAsync()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         if (IsSecurityChecking)
             return;
 
@@ -641,6 +700,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunSmartTestAsync()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         if (!SmartctlAvailable)
         {
             StatusMessage = "smartctl.exe not found. Please install smartmontools.";
@@ -718,6 +780,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task QuickSmartCheckAsync()
     {
+        if (!EnsureComplianceOrNotify())
+            return;
+
         if (!SmartctlAvailable)
         {
             StatusMessage = "smartctl.exe not found. Please install smartmontools.";
@@ -752,6 +817,16 @@ public partial class MainViewModel : ObservableObject
         {
             IsSmartTestRunning = false;
         }
+    }
+
+    partial void OnIsScanningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsInteractionEnabled));
+    }
+
+    partial void OnIsSecurityCheckingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsSecurityRefreshEnabled));
     }
 }
 

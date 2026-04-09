@@ -455,15 +455,17 @@ public partial class QCWizardViewModel : ObservableObject
         
         try
         {
-            var success = await _submissionService.SubmitReportAsync(report, technicianId);
+            var submitResult = await _submissionService.SubmitReportAsync(report, technicianId, App.AuthService.Token);
             
-            if (success)
+            if (submitResult.Success)
             {
                 SubmissionStatus = $"Submitted (by {App.UserDisplayName})";
             }
             else
             {
-                SubmissionStatus = "Failed to Submit (Saved Locally)";
+                SubmissionStatus = submitResult.IsAuthError
+                    ? "Activation required to submit"
+                    : "Failed to Submit (Saved Locally)";
             }
         }
         catch (Exception ex)

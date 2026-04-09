@@ -64,7 +64,7 @@ export function Sidebar() {
             href: "/dashboard/licenses",
             label: "Licenses",
             icon: Key,
-            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] // Visible to license managers
+            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] // Visible to license managers
         },
     ]
 
@@ -80,6 +80,8 @@ export function Sidebar() {
         switch (user?.role) {
             case 'SuperAdmin':
                 return 'bg-purple-500'
+            case 'Employee':
+                return 'bg-rose-500'
             case 'Refurbisher':
                 return 'bg-blue-500'
             case 'Enterprise':

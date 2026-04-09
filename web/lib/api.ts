@@ -52,6 +52,12 @@ export async function getMachines() {
     return res.json();
 }
 
+export async function getMachineHistoryAlerts() {
+    const res = await fetchWithAuth("/api/machine-history/alerts");
+    if (!res.ok) throw new Error("Failed to fetch machine history alerts");
+    return res.json();
+}
+
 export async function getMachine(id: string) {
     const res = await fetchWithAuth(`/api/machines/${id}`);
     if (!res.ok) throw new Error("Failed to fetch machine details");

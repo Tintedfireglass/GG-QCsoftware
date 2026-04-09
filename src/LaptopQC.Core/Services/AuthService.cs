@@ -19,6 +19,7 @@ public class AuthService
     public string? Token { get; private set; }
     public string? LicenseKey { get; private set; }
     public int? MachineId { get; private set; }
+    public DateTime? LastOnlineCheckUtc { get; private set; }
 
     public AuthService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
     {
@@ -56,6 +57,7 @@ public class AuthService
                     CurrentUser = result.User;
                     Token = result.Token;
                     LicenseKey = null;
+                    LastOnlineCheckUtc = DateTime.UtcNow;
                     SaveSession();
                     return new LoginResult { Success = true, Message = "Login successful" };
                 }
@@ -111,6 +113,7 @@ public class AuthService
                     Token = result.Token;
                     LicenseKey = licenseKey;
                     MachineId = result.MachineId;
+                    LastOnlineCheckUtc = DateTime.UtcNow;
                     SaveSession();
                     return new LoginResult { Success = true, Message = "License Login successful" };
                 }
@@ -150,6 +153,7 @@ public class AuthService
         Token = null;
         LicenseKey = null;
         MachineId = null;
+        LastOnlineCheckUtc = null;
         ClearSession();
     }
 
@@ -177,7 +181,8 @@ public class AuthService
                 Token = Token!,
                 User = CurrentUser,
                 LicenseKey = LicenseKey,
-                MachineId = MachineId
+                MachineId = MachineId,
+                LastOnlineCheckUtc = LastOnlineCheckUtc
             };
 
             var json = JsonSerializer.Serialize(payload);
@@ -205,6 +210,7 @@ public class AuthService
             Token = payload.Token;
             LicenseKey = payload.LicenseKey;
             MachineId = payload.MachineId;
+            LastOnlineCheckUtc = payload.LastOnlineCheckUtc;
         }
         catch
         {
@@ -212,6 +218,7 @@ public class AuthService
             Token = null;
             LicenseKey = null;
             MachineId = null;
+            LastOnlineCheckUtc = null;
         }
     }
 
@@ -229,6 +236,20 @@ public class AuthService
             // Ignore cleanup failures.
         }
     }
+
+    public bool IsOnlineCheckRequired(int maxDays = 7)
+    {
+        if (!LastOnlineCheckUtc.HasValue)
+            return true;
+
+        return DateTime.UtcNow - LastOnlineCheckUtc.Value > TimeSpan.FromDays(maxDays);
+    }
+
+    public void MarkOnlineCheckNow()
+    {
+        LastOnlineCheckUtc = DateTime.UtcNow;
+        SaveSession();
+    }
 }
 
 internal sealed class AuthSessionRecord
@@ -237,6 +258,7 @@ internal sealed class AuthSessionRecord
     public UserInfo User { get; set; } = new();
     public string? LicenseKey { get; set; }
     public int? MachineId { get; set; }
+    public DateTime? LastOnlineCheckUtc { get; set; }
 }
 
 public class LoginResult

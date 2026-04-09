@@ -27,8 +27,8 @@ public class QCSubmissionService
     /// </summary>
     /// <param name="report">The QC report to submit</param>
     /// <param name="technicianId">Optional technician ID if user is logged in</param>
-    /// <returns>True if submission was successful</returns>
-    public async Task<bool> SubmitReportAsync(QCReport report, int? technicianId = null)
+    /// <returns>SubmitResult with status and message</returns>
+    public async Task<SubmitResult> SubmitReportAsync(QCReport report, int? technicianId = null, string? authToken = null)
     {
         try
         {
@@ -41,25 +41,44 @@ public class QCSubmissionService
             {
                 endpoint = "qc-results";
             }
+
+            using var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = JsonContent.Create(request)
+            };
+
+            if (!string.IsNullOrWhiteSpace(authToken))
+            {
+                message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
+            }
             
-            var response = await _httpClient.PostAsJsonAsync(endpoint, request);
+            var response = await _httpClient.SendAsync(message);
             
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<SubmitResponse>();
-                return true;
+                return new SubmitResult
+                {
+                    Success = true,
+                    DemoExhausted = result?.DemoExhausted ?? false
+                };
             }
-            else
+
+            var error = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"API Submission Failed: {response.StatusCode} - {error}");
+            var isAuthError = response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                              response.StatusCode == System.Net.HttpStatusCode.Forbidden;
+            return new SubmitResult
             {
-                var error = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"API Submission Failed: {response.StatusCode} - {error}");
-                return false;
-            }
+                Success = false,
+                IsAuthError = isAuthError,
+                ErrorMessage = string.IsNullOrWhiteSpace(error) ? response.ReasonPhrase : error
+            };
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"API Submission Error: {ex.Message}");
-            return false;
+            return new SubmitResult { Success = false, ErrorMessage = ex.Message };
         }
     }
 
@@ -174,4 +193,12 @@ public class QCSubmissionService
 
         return request;
     }
+}
+
+public class SubmitResult
+{
+    public bool Success { get; set; }
+    public bool IsAuthError { get; set; }
+    public string? ErrorMessage { get; set; }
+    public bool DemoExhausted { get; set; }
 }

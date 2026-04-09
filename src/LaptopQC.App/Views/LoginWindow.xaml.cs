@@ -1,8 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
-using System.Management;
 using LaptopQC.Core.Services;
-using System.Net.NetworkInformation;
+using LaptopQC.App.Services;
 
 namespace LaptopQC.App.Views;
 
@@ -51,7 +50,7 @@ public partial class LoginWindow : Window
 
         try
         {
-            string machineSerial = GetMachineSerialNumber();
+            string machineSerial = DeviceIdentityService.GetMachineSerialNumber();
             if (string.IsNullOrEmpty(machineSerial))
             {
                 ShowError("Error: Could not retrieve machine serial number. Required for node-locking.");
@@ -59,18 +58,8 @@ public partial class LoginWindow : Window
             }
 
             // Collect MAC address and computer name for server-side Machine ID allocation
-            string? macAddress = null;
-            try
-            {
-                macAddress = NetworkInterface.GetAllNetworkInterfaces()
-                    .Where(n => n.OperationalStatus == OperationalStatus.Up &&
-                                n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                    .Select(n => n.GetPhysicalAddress()?.ToString())
-                    .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
-            }
-            catch { /* Ignore MAC retrieval failures */ }
-
-            string computerName = Environment.MachineName;
+            string? macAddress = DeviceIdentityService.GetMacAddress();
+            string computerName = DeviceIdentityService.GetComputerName();
 
             LoginResult result = await _authService.LoginWithLicenseAsync(license, machineSerial, macAddress, computerName);
 
@@ -99,41 +88,6 @@ public partial class LoginWindow : Window
     {
         ErrorMessage.Text = message;
         ErrorMessage.Visibility = Visibility.Visible;
-    }
-
-    private string GetMachineSerialNumber()
-    {
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS");
-            foreach (ManagementBaseObject obj in searcher.Get())
-            {
-                var serial = obj["SerialNumber"]?.ToString()?.Trim();
-                if (MachineIdentityService.IsUsableHardwareSerial(serial))
-                {
-                    return serial!;
-                }
-            }
-        }
-        catch { /* Ignore WMI errors */ }
-
-        try
-        {
-            var networkMac = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
-                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                .Select(n => n.GetPhysicalAddress()?.ToString())
-                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
-
-            var fallback = MachineIdentityService.BuildFallbackSerial(networkMac, Environment.MachineName);
-            if (!string.IsNullOrWhiteSpace(fallback))
-            {
-                return fallback;
-            }
-        }
-        catch { /* Ignore adapter access failures */ }
-
-        return MachineIdentityService.BuildFallbackSerial(string.Empty, Environment.MachineName);
     }
 
     private void SkipButton_Click(object sender, RoutedEventArgs e)

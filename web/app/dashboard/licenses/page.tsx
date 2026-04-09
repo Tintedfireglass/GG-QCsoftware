@@ -17,6 +17,9 @@ interface LicenseKey {
     expires_at: string | null
     created_at: string
     activations_count: string
+    demo_customer_name?: string | null
+    demo_runs_used?: number | null
+    demo_max_runs?: number | null
 }
 
 export default function LicensesPage() {
@@ -35,6 +38,7 @@ export default function LicensesPage() {
     const [isGenerating, setIsGenerating] = useState(false)
     const [newType, setNewType] = useState("single_use")
     const [newMaxUses, setNewMaxUses] = useState("1")
+    const [demoCustomerName, setDemoCustomerName] = useState("")
     const [generatedKeyString, setGeneratedKeyString] = useState("")
     const [generateError, setGenerateError] = useState("")
     const [togglingId, setTogglingId] = useState<number | null>(null)
@@ -44,7 +48,7 @@ export default function LicensesPage() {
             router.push("/login")
             return
         }
-        if (user.role !== "Refurbisher" && user.role !== "Enterprise" && user.role !== "Reseller" && user.role !== "Client" && user.role !== "SuperAdmin") {
+        if (user.role !== "Refurbisher" && user.role !== "Enterprise" && user.role !== "Reseller" && user.role !== "Client" && user.role !== "SuperAdmin" && user.role !== "Employee") {
             router.push("/dashboard")
             return
         }
@@ -78,6 +82,10 @@ export default function LicensesPage() {
                 setGenerateError("Max device activations must be a number of 1 or more.")
                 return
             }
+            if (newType === "demo" && !demoCustomerName.trim()) {
+                setGenerateError("Customer name is required for demo keys.")
+                return
+            }
             const res = await fetch("/api/licenses", {
                 method: "POST",
                 headers: {
@@ -86,7 +94,8 @@ export default function LicensesPage() {
                 },
                 body: JSON.stringify({
                     type: newType,
-                    max_uses: maxUsesValue
+                    max_uses: newType === "demo" ? 1 : maxUsesValue,
+                    demo_customer_name: newType === "demo" ? demoCustomerName.trim() : undefined
                 })
             })
 
@@ -148,7 +157,10 @@ export default function LicensesPage() {
     }
 
     // Filter keys
-    const filteredKeys = keys.filter(k => k.key.toLowerCase().includes(search.toLowerCase()))
+    const filteredKeys = keys.filter(k => {
+        const q = search.toLowerCase()
+        return k.key.toLowerCase().includes(q) || (k.demo_customer_name || "").toLowerCase().includes(q)
+    })
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading licenses...</div>
 
@@ -163,8 +175,10 @@ export default function LicensesPage() {
                 <Button
                     className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white px-6 h-11 rounded-lg font-medium shadow-sm transition-colors"
                     onClick={() => {
-                        setNewType("single_use")
+                        const defaultType = user?.role === "Employee" ? "demo" : "single_use"
+                        setNewType(defaultType)
                         setNewMaxUses("1")
+                        setDemoCustomerName("")
                         setGenerateError("")
                         setIsGenerateModalOpen(true)
                     }}
@@ -230,9 +244,15 @@ export default function LicensesPage() {
                                         <div>
                                             <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Type</div>
                                             <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 font-mono">
-                                                {k.type === "bulk" ? "Bulk" : "Single use"}
+                                                {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </div>
+                                        {k.type === "demo" && (
+                                            <div>
+                                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
+                                                <div className="text-xs text-slate-600 truncate">{k.demo_customer_name || "—"}</div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mb-4">
@@ -289,11 +309,14 @@ export default function LicensesPage() {
                                 filteredKeys.map((k) => (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                         <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
-                                            {k.key}
+                                            <div>{k.key}</div>
+                                            {k.type === "demo" && (
+                                                <div className="text-xs text-slate-400">Customer: {k.demo_customer_name || "—"}</div>
+                                            )}
                                         </td>
                                         <td className="p-6 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
-                                                {k.type === "bulk" ? "Bulk" : "Single use"}
+                                                {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </td>
                                         <td className="p-6 align-middle text-center text-slate-600">
@@ -381,11 +404,14 @@ export default function LicensesPage() {
                                     onChange={(e) => {
                                         setNewType(e.target.value)
                                         if (e.target.value === "single_use") setNewMaxUses("1")
+                                        if (e.target.value === "demo") setNewMaxUses("1")
+                                        if (e.target.value !== "demo") setDemoCustomerName("")
                                     }}
                                     className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer"
                                 >
-                                    <option value="single_use">Single Use (1 Device)</option>
-                                    <option value="bulk">Bulk Use (Multi Device)</option>
+                                    {user?.role !== "Employee" && <option value="single_use">Single Use (1 Device)</option>}
+                                    {user?.role !== "Employee" && <option value="bulk">Bulk Use (Multi Device)</option>}
+                                    <option value="demo">Demo Key (1 Full QC)</option>
                                 </select>
                             </div>
 
@@ -400,13 +426,31 @@ export default function LicensesPage() {
                                     step={1}
                                     value={newMaxUses}
                                     onChange={(e) => setNewMaxUses(e.target.value)}
-                                    disabled={newType === "single_use"}
+                                    disabled={newType === "single_use" || newType === "demo"}
                                     className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                                 />
                                 <p className="mt-2 text-xs text-slate-500">
                                     Enter any number of activations you need (for example: 37 or 1000).
                                 </p>
                             </div>
+
+                            {newType === "demo" && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Customer Name
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        value={demoCustomerName}
+                                        onChange={(e) => setDemoCustomerName(e.target.value)}
+                                        placeholder="Acme Retail"
+                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                    />
+                                    <p className="mt-2 text-xs text-slate-500">
+                                        Required for demo keys.
+                                    </p>
+                                </div>
+                            )}
 
                             <Button
                                 className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"

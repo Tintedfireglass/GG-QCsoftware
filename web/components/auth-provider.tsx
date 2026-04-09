@@ -19,6 +19,7 @@ interface AuthContextType {
     isLoading: boolean
     // Role-based helpers
     isSuperAdmin: () => boolean
+    isEmployee: () => boolean
     isRefurbisher: () => boolean
     isReseller: () => boolean
     isTechnician: () => boolean
@@ -43,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
     logout: () => { },
     isLoading: true,
     isSuperAdmin: () => false,
+    isEmployee: () => false,
     isRefurbisher: () => false,
     isReseller: () => false,
     isTechnician: () => false,
@@ -109,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Role-based helper functions
     const isSuperAdmin = () => user?.role === "SuperAdmin"
+    const isEmployee = () => user?.role === "Employee"
     const isRefurbisher = () => user?.role === "Refurbisher"
     const isReseller = () => user?.role === "Reseller"
     const isTechnician = () => user?.role === "Technician"
@@ -139,11 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout,
             isLoading: false,
             isSuperAdmin,
-        isRefurbisher,
-        isReseller,
-        isTechnician,
-        isEnterprise,
-        isClient,
+            isEmployee,
+            isRefurbisher,
+            isReseller,
+            isTechnician,
+            isEnterprise,
+            isClient,
             isAdmin,
             isUser,
             canManageUsers,

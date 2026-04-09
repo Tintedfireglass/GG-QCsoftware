@@ -167,7 +167,7 @@ export async function PUT(
             }
 
             // Validate the role
-            const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
+            const validRoles: UserRole[] = ['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
             if (!validRoles.includes(role)) {
                 return NextResponse.json(
                     { error: 'Validation Error', message: 'Invalid role' } as ApiError,

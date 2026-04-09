@@ -278,7 +278,7 @@
                     <!-- Full QC - Outline style with cyan text -->
                     <Button Content="Full QC" 
                             Command="{Binding StartFullQcCommand}"
-                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
+                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                             Margin="0,0,10,0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
@@ -290,7 +290,7 @@
                     <!-- Run Diagnostics - Outline style with green text -->
                     <Button Content="Basic QC" 
                             Command="{Binding RunDiagnosticsCommand}"
-                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}">
+                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
                                 <Setter Property="Foreground" Value="#8B3D88"/>
@@ -301,7 +301,7 @@
                     <!-- Junk Cleanup -->
                     <Button Content="Junk Cleanup"
                             Command="{Binding OpenCleanupCommand}"
-                            IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
+                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                             Margin="10,0,0,0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
@@ -561,6 +561,7 @@
                                     <Button Content="Test" 
                                             Command="{Binding OpenKeyboardTestCommand}"
                                             Style="{StaticResource SmallTestButton}"
+                                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                                             Margin="10,0,0,0"
                                             ToolTip="Test all keyboard keys"/>
                                 </StackPanel>
@@ -571,6 +572,7 @@
                                     <Button Content="Test" 
                                             Command="{Binding OpenTrackpadTestCommand}"
                                             Style="{StaticResource SmallTestButton}"
+                                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                                             Margin="10,0,0,0"
                                             ToolTip="Test trackpad movement, clicks, and scroll"/>
                                 </StackPanel>
@@ -591,6 +593,7 @@
                                     <Button Content="Test A/V" 
                                             Command="{Binding OpenAudioVideoTestCommand}"
                                             Style="{StaticResource SmallTestButton}"
+                                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                                             Margin="10,0,0,0"
                                             ToolTip="Test Speakers, Microphone, and Camera"/>
                                 </StackPanel>
@@ -605,6 +608,7 @@
                                 <Button Content="Test" 
                                         Command="{Binding OpenUsbPortTestCommand}"
                                         Style="{StaticResource SmallTestButton}"
+                                        IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                                         Margin="15,0,0,0"
                                         ToolTip="Test each USB port by plugging in a device"/>
                                 <TextBlock Style="{StaticResource InfoLabel}" VerticalAlignment="Center" Margin="15,0,0,0">
@@ -640,7 +644,7 @@
                             <Button Grid.Column="1"
                                     Content="Refresh"
                                     Command="{Binding RefreshSecurityCommand}"
-                                    IsEnabled="{Binding IsSecurityChecking, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}"
+                                    IsEnabled="{Binding IsSecurityRefreshEnabled, FallbackValue=True}"
                                     Style="{StaticResource SmallTestButton}"
                                     Padding="10,6"
                                     ToolTip="Refresh Windows activation and antivirus status"/>

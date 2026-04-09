@@ -36,7 +36,21 @@ public static class UpdateService
             if (result != MessageBoxResult.Yes)
                 return;
 
-            var installerPath = await DownloadInstallerAsync(updateInfo.DownloadUrl);
+            var progressWindow = new Views.UpdateDownloadWindow
+            {
+                Owner = owner
+            };
+            progressWindow.Show();
+
+            var installerPath = await DownloadInstallerAsync(updateInfo.DownloadUrl, progress =>
+            {
+                owner.Dispatcher.Invoke(() =>
+                {
+                    progressWindow.UpdateProgress(progress.BytesReceived, progress.TotalBytes);
+                });
+            });
+
+            progressWindow.Close();
             if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
                 return;
 
@@ -69,9 +83,9 @@ public static class UpdateService
         return new UpdateInfo(version, finalUri);
     }
 
-    private static async Task<string?> DownloadInstallerAsync(Uri downloadUrl)
+    private static async Task<string?> DownloadInstallerAsync(Uri downloadUrl, Action<DownloadProgress>? onProgress = null)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         var fileName = Path.GetFileName(downloadUrl.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName))
             fileName = "Pramaan_Setup.exe";
@@ -82,9 +96,24 @@ public static class UpdateService
         if (!response.IsSuccessStatusCode)
             return null;
 
+        var totalBytes = response.Content.Headers.ContentLength;
+        long totalRead = 0;
+        var buffer = new byte[81920];
+
         await using var input = await response.Content.ReadAsStreamAsync();
         await using var output = File.Create(targetPath);
-        await input.CopyToAsync(output);
+
+        int read;
+        do
+        {
+            read = await input.ReadAsync(buffer, 0, buffer.Length);
+            if (read > 0)
+            {
+                await output.WriteAsync(buffer, 0, read);
+                totalRead += read;
+                onProgress?.Invoke(new DownloadProgress(totalRead, totalBytes));
+            }
+        } while (read > 0);
 
         return targetPath;
     }
@@ -113,3 +142,5 @@ public static class UpdateService
 
     private record UpdateInfo(Version Version, Uri DownloadUrl);
 }
+
+public record DownloadProgress(long BytesReceived, long? TotalBytes);

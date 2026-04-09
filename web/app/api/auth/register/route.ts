@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate role
-        const validRoles: UserRole[] = ['SuperAdmin', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
+        const validRoles: UserRole[] = ['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Refurbisher, Reseller, Technician, Enterprise, or Client)' } as ApiError,
+                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Employee, Refurbisher, Reseller, Technician, Enterprise, or Client)' } as ApiError,
                 { status: 400 }
             );
         }
