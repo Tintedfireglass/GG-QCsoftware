@@ -9,6 +9,7 @@ import Link from "next/link"
 import { Monitor, ExternalLink } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/grades"
+import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/machine-status"
 
 export default function MachinesPage() {
     const router = useRouter()
@@ -19,19 +20,33 @@ export default function MachinesPage() {
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
+    const [nowMs, setNowMs] = useState(() => Date.now())
 
     useEffect(() => {
-        async function load() {
+        let mounted = true
+
+        async function load(showLoading: boolean) {
             try {
+                if (showLoading) setLoading(true)
                 const data = await getMachines()
-                setMachines(data.machines)
+                if (mounted) setMachines(data.machines)
             } catch (error) {
                 console.error(error)
             } finally {
-                setLoading(false)
+                if (showLoading) setLoading(false)
             }
         }
-        load()
+        load(true)
+        const poll = setInterval(() => load(false), POLL_INTERVAL_MS)
+        return () => {
+            mounted = false
+            clearInterval(poll)
+        }
+    }, [])
+
+    useEffect(() => {
+        const t = setInterval(() => setNowMs(Date.now()), NOW_TICK_MS)
+        return () => clearInterval(t)
     }, [])
 
     useEffect(() => {
@@ -217,6 +232,19 @@ export default function MachinesPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm text-slate-500">Status</div>
+                                {(() => {
+                                    const active = isMachineActive(machine.last_seen, nowMs)
+                                    return (
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                        >
+                                            {active ? "Active" : "Inactive"}
+                                        </span>
+                                    )
+                                })()}
+                            </div>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="text-sm text-slate-500">Hardware ID</div>
                                 <div className="text-sm font-medium text-slate-900 truncate max-w-[150px]" title={machine.serial_number || "N/A"}>

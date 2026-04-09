@@ -96,11 +96,19 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         bool isAutoBasicQc = e.Args.Any(arg => arg.Equals("--auto-basic-qc", StringComparison.OrdinalIgnoreCase));
+        bool isHeartbeat = e.Args.Any(arg => arg.Equals("--heartbeat", StringComparison.OrdinalIgnoreCase));
         if (isAutoBasicQc)
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             StartupUri = null;
             _ = RunAutoBasicQcAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
+            return;
+        }
+        if (isHeartbeat)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            StartupUri = null;
+            _ = RunHeartbeatAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
             return;
         }
 
@@ -131,6 +139,7 @@ public partial class App : Application
         // Register QC reminder scheduled task (if not already registered)
         Task.Run(() => ReminderTaskService.EnsureRegistered());
         Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
+        Task.Run(() => HeartbeatTaskService.EnsureRegistered());
     }
 
     private async Task RunAutoBasicQcAsync()
@@ -179,6 +188,25 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Auto basic QC failed: {ex.Message}");
+        }
+    }
+
+    private async Task RunHeartbeatAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey))
+                return;
+
+            var serial = DeviceIdentityService.GetMachineSerialNumber();
+            var mac = DeviceIdentityService.GetMacAddress();
+            var computerName = DeviceIdentityService.GetComputerName();
+
+            await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Heartbeat failed: {ex.Message}");
         }
     }
 }

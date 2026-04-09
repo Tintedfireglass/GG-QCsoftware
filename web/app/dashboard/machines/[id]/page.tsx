@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { formatDbDateTime } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/grades"
 import { ArrowLeft, ExternalLink, Monitor } from "lucide-react"
+import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/machine-status"
 
 type MachineDetail = {
     machine: any
@@ -25,25 +26,44 @@ export default function MachineDetailPage() {
     const [customName, setCustomName] = useState("")
     const [savingName, setSavingName] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [nowMs, setNowMs] = useState(() => Date.now())
 
     useEffect(() => {
-        async function load() {
+        let mounted = true
+
+        async function load(showLoading: boolean) {
             if (!id) return
-            setLoading(true)
-            setError(null)
+            if (showLoading) {
+                setLoading(true)
+                setError(null)
+            }
             try {
                 const result = await getMachine(id as string)
+                if (!mounted) return
                 setData(result)
                 setCustomName(result.machine?.custom_name || "")
             } catch (err) {
                 console.error(err)
-                setError(err instanceof Error ? err.message : "Failed to load machine history")
+                if (showLoading) {
+                    setError(err instanceof Error ? err.message : "Failed to load machine history")
+                }
             } finally {
-                setLoading(false)
+                if (showLoading) setLoading(false)
             }
         }
-        load()
+
+        load(true)
+        const poll = setInterval(() => load(false), POLL_INTERVAL_MS)
+        return () => {
+            mounted = false
+            clearInterval(poll)
+        }
     }, [id])
+
+    useEffect(() => {
+        const t = setInterval(() => setNowMs(Date.now()), NOW_TICK_MS)
+        return () => clearInterval(t)
+    }, [])
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading machine history...</div>
     if (error) return <div className="p-8 text-center text-rose-600">{error}</div>
@@ -80,6 +100,18 @@ export default function MachineDetailPage() {
                             </CardTitle>
                             <div className="text-xs text-slate-500 mt-0.5">
                                 Last seen {machine.last_seen ? formatDbDateTime(machine.last_seen) : "-"}
+                                <span className="ml-2">
+                                    {(() => {
+                                        const active = isMachineActive(machine.last_seen, nowMs)
+                                        return (
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                            >
+                                                {active ? "Active" : "Inactive"}
+                                            </span>
+                                        )
+                                    })()}
+                                </span>
                             </div>
                         </div>
                     </div>
