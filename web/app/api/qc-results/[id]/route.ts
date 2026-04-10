@@ -38,7 +38,8 @@ export async function GET(
         m.machine_id as machine_identifier,
         m.location as machine_location,
         m.manufacturer as machine_manufacturer,
-        m.model as machine_model
+        m.model as machine_model,
+        m.computer_name
       FROM qc_results qr
       LEFT JOIN machines m ON qr.machine_id = m.id
       WHERE qr.id = $1${roleClause}`,

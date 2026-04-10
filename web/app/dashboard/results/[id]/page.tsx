@@ -209,6 +209,12 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">Manufacturer</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_manufacturer}</dd>
                                 </div>
+                                {data.computer_name && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">Computer Name</dt>
+                                        <dd className="sm:col-span-2 font-mono text-slate-900 break-words">{data.computer_name}</dd>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Model</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_model}</dd>

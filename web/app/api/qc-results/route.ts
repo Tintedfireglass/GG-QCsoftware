@@ -64,19 +64,7 @@ export async function GET(request: NextRequest) {
 
         if (search) {
             searchWhereSql = `(
-                CAST(numbered.scoped_test_id AS TEXT) ILIKE $${paramCount} OR
-                CAST(numbered.id AS TEXT) ILIKE $${paramCount} OR
-                COALESCE(numbered.report_id, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.refurbish_id, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.pramaan_grade, '') ILIKE $${paramCount} OR
-                COALESCE(CASE WHEN numbered.overall_pass THEN 'PASS' ELSE 'FAIL' END, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.technician_name, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.technician_username, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.system_manufacturer, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.system_model, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.system_serial, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.machine_identifier, '') ILIKE $${paramCount} OR
-                TO_CHAR(numbered.timestamp, 'YYYY-MM-DD HH24:MI:SS') ILIKE $${paramCount}
+                COALESCE(numbered.computer_name, '') ILIKE $${paramCount}
             )`;
             params.push(`%${search}%`);
             paramCount++;
@@ -88,6 +76,7 @@ export async function GET(request: NextRequest) {
           qr.*,
           m.machine_id as machine_identifier,
           m.location as machine_location,
+          m.computer_name,
           u.username as technician_username,
           u.display_name as technician_name
         FROM qc_results qr
@@ -115,6 +104,7 @@ export async function GET(request: NextRequest) {
         SELECT
           qr.*,
           m.machine_id as machine_identifier,
+          m.computer_name,
           u.username as technician_username,
           u.display_name as technician_name
         FROM qc_results qr

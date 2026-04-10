@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, Printer } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Printer, Download } from "lucide-react"
 import { getGradeStyle } from "@/lib/grades"
 import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
@@ -21,6 +21,7 @@ export default function ResultsPage() {
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
+    const [exporting, setExporting] = useState(false)
     const limit = 20
 
     // Show technician column for admins/superadmins
@@ -72,6 +73,32 @@ export default function ResultsPage() {
         const term = search.trim()
         setPage(1)
         loadData(1, term)
+    }
+
+    const handleExport = async () => {
+        setExporting(true)
+        try {
+            const token = localStorage.getItem("qc_token")
+            const params = new URLSearchParams()
+            if (search.trim()) params.append("search", search.trim())
+            const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!res.ok) throw new Error("Export failed")
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.csv`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error("Export error:", error)
+        } finally {
+            setExporting(false)
+        }
     }
 
     const totalPages = Math.ceil(total / limit)
@@ -154,7 +181,7 @@ export default function ResultsPage() {
                 <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                     <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                         <Input
-                            placeholder="Search Test ID, Serial..."
+                            placeholder="Search by Computer Name..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
@@ -215,6 +242,16 @@ export default function ResultsPage() {
                             <option value="date_asc">Sort: Date oldest</option>
                             <option value="id_asc">Sort: Test ID</option>
                         </select>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10"
+                            onClick={handleExport}
+                            disabled={exporting}
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            {exporting ? "Exporting..." : "Export"}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -274,6 +311,11 @@ export default function ResultsPage() {
                                                 <span className="font-semibold text-slate-700">User:</span> {test.technician_name || test.technician_username || "Unassigned"}
                                             </div>
                                         )}
+                                        {test.computer_name && (
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                <span className="font-semibold text-slate-700">Computer:</span> {test.computer_name}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center justify-between text-sm pt-3 border-t border-slate-100">
@@ -296,6 +338,7 @@ export default function ResultsPage() {
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Test ID</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Device ID</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[150px]">Computer Name</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Status</th>
 
                                 {showTechnicianColumn && (
@@ -310,9 +353,9 @@ export default function ResultsPage() {
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 10 : 9} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : sortedResults.length === 0 ? (
-                                <tr><td colSpan={showTechnicianColumn ? 9 : 8} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? 10 : 9} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
                             ) : (
                                 sortedResults.map((test) => {
                                     const dateObj = new Date(test.timestamp);
@@ -325,6 +368,13 @@ export default function ResultsPage() {
                                             <td className="p-2 align-middle font-mono text-xs text-slate-500 break-words">
                                                 {test.machine_id ? (
                                                     <span>{test.machine_id}</span>
+                                                ) : (
+                                                    <span className="text-slate-300">—</span>
+                                                )}
+                                            </td>
+                                            <td className="p-2 align-middle text-slate-700 text-sm break-words">
+                                                {test.computer_name ? (
+                                                    <span className="font-medium">{test.computer_name}</span>
                                                 ) : (
                                                     <span className="text-slate-300">—</span>
                                                 )}

@@ -133,6 +133,12 @@ export default function DedicatedReportPage() {
                                 <td className="py-2 text-gray-600 w-1/3">Manufacturer</td>
                                 <td className="py-2 font-medium">{data.system_manufacturer}</td>
                             </tr>
+                            {data.computer_name && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">Computer Name</td>
+                                    <td className="py-2 font-mono font-medium">{data.computer_name}</td>
+                                </tr>
+                            )}
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Model</td>
                                 <td className="py-2 font-medium">{data.system_model}</td>
