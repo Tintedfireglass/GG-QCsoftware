@@ -332,23 +332,23 @@ export default function ResultsPage() {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block relative w-full overflow-x-hidden">
-                    <table className="w-full table-fixed caption-bottom text-sm text-left">
+                <div className="hidden md:block relative w-full overflow-x-auto">
+                    <table className="w-full table-auto caption-bottom text-sm text-left min-w-[1100px]">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Test ID</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Device ID</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[150px]">Computer Name</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Status</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[70px]">Test ID</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Device ID</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[140px]">Computer Name</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[100px]">Status</th>
 
                                 {showTechnicianColumn && (
-                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[160px]">User</th>
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
                                 )}
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500">Model name</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[110px]">App Version</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[140px]">Serial No.</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Date</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 text-right w-[140px]">Action</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500">Model</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Serial No.</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Date</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 text-right w-[120px]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
