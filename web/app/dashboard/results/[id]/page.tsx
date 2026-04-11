@@ -8,7 +8,7 @@ import { ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
-import { formatAppVersion, formatBytes, formatDbDateTime } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -229,7 +229,7 @@ export default function ResultDetailPage() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Version</dt>
-                                    <dd className="sm:col-span-2 text-slate-900 break-words">{data.system_info_json?.osVersion || "Unknown"}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{formatWindowsVersion(data.system_info_json?.osVersion)}</dd>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Activation</dt>

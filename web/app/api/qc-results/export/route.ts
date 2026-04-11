@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
+import { parseWindowsVersion } from '@/lib/utils';
 
 type SqlParam = string | number | boolean | null;
 
@@ -18,41 +19,6 @@ function formatBytes(bytes: number): string {
     if (!bytes || bytes <= 0) return '';
     const gb = bytes / (1024 * 1024 * 1024);
     return gb.toFixed(1);
-}
-
-/**
- * Parse the raw Environment.OSVersion string (e.g. "Microsoft Windows NT 10.0.22631.0")
- * and return a friendly edition name and a release version label.
- */
-function parseWindowsVersion(osVersionRaw: string): { edition: string; release: string } {
-    if (!osVersionRaw) return { edition: '', release: '' };
-
-    // Extract build number from strings like "Microsoft Windows NT 10.0.22631.0"
-    const match = osVersionRaw.match(/(\d+)\.(\d+)\.(\d+)/);
-    if (!match) return { edition: osVersionRaw, release: '' };
-
-    const major = parseInt(match[1], 10);
-    const minor = parseInt(match[2], 10);
-    const build = parseInt(match[3], 10);
-
-    // Determine Windows 10 vs 11: build >= 22000 is Windows 11
-    const winVersion = (major === 10 && build >= 22000) ? '11' : '10';
-
-    // Map build numbers to release versions
-    const buildToRelease: Record<number, string> = {
-        // Windows 10
-        10240: '1507', 10586: '1511', 14393: '1607', 15063: '1703',
-        16299: '1709', 17134: '1803', 17763: '1809', 18362: '1903',
-        18363: '1909', 19041: '2004', 19042: '20H2', 19043: '21H1',
-        19044: '21H2', 19045: '22H2',
-        // Windows 11
-        22000: '21H2', 22621: '22H2', 22631: '23H2', 26100: '24H2',
-    };
-
-    const release = buildToRelease[build] || '';
-    const edition = `Windows ${winVersion}`;
-
-    return { edition, release };
 }
 
 export async function GET(request: NextRequest) {

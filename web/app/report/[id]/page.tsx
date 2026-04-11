@@ -5,7 +5,7 @@ import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
 import { QRCodeSVG } from "qrcode.react"
-import { formatAppVersion, formatBytes, formatDbDateTime } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -153,7 +153,7 @@ export default function DedicatedReportPage() {
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Windows Version</td>
-                                <td className="py-2 font-medium">{data.system_info_json?.osVersion || "Unknown"}</td>
+                                <td className="py-2 font-medium">{formatWindowsVersion(data.system_info_json?.osVersion)}</td>
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Windows Activation</td>
