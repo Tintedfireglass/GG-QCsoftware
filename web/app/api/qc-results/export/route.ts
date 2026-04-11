@@ -20,6 +20,41 @@ function formatBytes(bytes: number): string {
     return gb.toFixed(1);
 }
 
+/**
+ * Parse the raw Environment.OSVersion string (e.g. "Microsoft Windows NT 10.0.22631.0")
+ * and return a friendly edition name and a release version label.
+ */
+function parseWindowsVersion(osVersionRaw: string): { edition: string; release: string } {
+    if (!osVersionRaw) return { edition: '', release: '' };
+
+    // Extract build number from strings like "Microsoft Windows NT 10.0.22631.0"
+    const match = osVersionRaw.match(/(\d+)\.(\d+)\.(\d+)/);
+    if (!match) return { edition: osVersionRaw, release: '' };
+
+    const major = parseInt(match[1], 10);
+    const minor = parseInt(match[2], 10);
+    const build = parseInt(match[3], 10);
+
+    // Determine Windows 10 vs 11: build >= 22000 is Windows 11
+    const winVersion = (major === 10 && build >= 22000) ? '11' : '10';
+
+    // Map build numbers to release versions
+    const buildToRelease: Record<number, string> = {
+        // Windows 10
+        10240: '1507', 10586: '1511', 14393: '1607', 15063: '1703',
+        16299: '1709', 17134: '1803', 17763: '1809', 18362: '1903',
+        18363: '1909', 19041: '2004', 19042: '20H2', 19043: '21H1',
+        19044: '21H2', 19045: '22H2',
+        // Windows 11
+        22000: '21H2', 22621: '22H2', 22631: '23H2', 26100: '24H2',
+    };
+
+    const release = buildToRelease[build] || '';
+    const edition = `Windows ${winVersion}`;
+
+    return { edition, release };
+}
+
 export async function GET(request: NextRequest) {
     try {
         const { user: authUser, error: authError } = await authenticateRequest(request);
@@ -125,15 +160,22 @@ export async function GET(request: NextRequest) {
                 0
             );
 
-            // Disk health: average health percent from storage devices
+            // Disk health: check for tampered first, then average health percent
+            const isStorageTampered = storageInfo.isTampered === true;
             const devices = Array.isArray(storageInfo.devices) ? storageInfo.devices : [];
-            const healthPercents = devices
-                .map((d: any) => d?.healthPercent)
-                .filter((h: any) => typeof h === 'number');
-            const avgDiskHealth =
-                healthPercents.length > 0
-                    ? Math.round(healthPercents.reduce((a: number, b: number) => a + b, 0) / healthPercents.length)
-                    : '';
+            const anyDeviceTampered = devices.some((d: any) => d?.isTampered === true);
+            let diskHealthLabel: string;
+            if (isStorageTampered || anyDeviceTampered) {
+                diskHealthLabel = 'Tampered';
+            } else {
+                const healthPercents = devices
+                    .map((d: any) => d?.healthPercent)
+                    .filter((h: any) => typeof h === 'number');
+                diskHealthLabel =
+                    healthPercents.length > 0
+                        ? String(Math.round(healthPercents.reduce((a: number, b: number) => a + b, 0) / healthPercents.length))
+                        : '';
+            }
 
             // Windows activation
             const isActivated = sysInfo.isWindowsActivated;
@@ -142,8 +184,8 @@ export async function GET(request: NextRequest) {
                     ? isActivated ? 'Active' : 'Not Active'
                     : (sysInfo.windowsActivationStatus || '');
 
-            // OS edition / version
-            const osVersion = sysInfo.osVersion || '';
+            // OS edition and version (e.g. "Windows 11" and "23H2")
+            const { edition: osEdition, release: winRelease } = parseWindowsVersion(sysInfo.osVersion || '');
 
             // Antivirus
             const antivirus = sysInfo.antivirusStatus || '';
@@ -163,15 +205,15 @@ export async function GET(request: NextRequest) {
             const row = [
                 String(index + 1),
                 r.computer_name || '',
-                osVersion,
+                osEdition,
                 activationLabel,
-                r.app_version || '',
+                winRelease,
                 r.cpu_model || '',
                 String(ramGb),
                 antivirus,
                 totalStorageBytes > 0 ? formatBytes(totalStorageBytes) : '',
                 freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
-                String(avgDiskHealth),
+                diskHealthLabel,
                 r.pramaan_grade || '',
                 r.pramaan_score != null ? String(r.pramaan_score) : '',
                 r.system_serial || '',
