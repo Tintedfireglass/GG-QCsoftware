@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
-import { parseWindowsVersion } from '@/lib/utils';
+import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
 
 type SqlParam = string | number | boolean | null;
 
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 
             // OS edition and version (e.g. "Windows 11" and "23H2")
             const { edition: parsedEdition, release: winRelease } = parseWindowsVersion(sysInfo.osVersion || '');
-            const osEdition = sysInfo.windowsProductName || parsedEdition;
+            const osEdition = sysInfo.windowsProductName ? cleanWindowsProductName(sysInfo.windowsProductName, parsedEdition) : parsedEdition;
 
             // Antivirus
             const antivirus = sysInfo.antivirusStatus || '';

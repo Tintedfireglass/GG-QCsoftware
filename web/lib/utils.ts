@@ -77,10 +77,47 @@ export function parseWindowsVersion(osVersionRaw: string): { edition: string; re
     return { edition, release };
 }
 
+export function cleanWindowsProductName(rawName: string, baseEditionFromBuild: string): string {
+    if (!rawName) return baseEditionFromBuild;
+    
+    let cleaned = rawName.replace('Windows(R), ', 'Windows ')
+                         .replace('Windows(R) ', 'Windows ')
+                         .replace(' edition', '')
+                         .trim();
+                         
+    // Replace "Core" variants with "Home"
+    if (cleaned.includes('CoreSingleLanguage')) {
+        cleaned = cleaned.replace('CoreSingleLanguage', 'Home Single Language');
+    } else if (cleaned.includes('CoreCountrySpecific')) {
+        cleaned = cleaned.replace('CoreCountrySpecific', 'Home');
+    } else if (cleaned.includes('Core')) {
+        cleaned = cleaned.replace('Core', 'Home');
+    }
+    
+    if (cleaned.includes('Professional')) {
+        cleaned = cleaned.replace('Professional', 'Pro');
+    }
+
+    if (cleaned.includes('ServerDatacenter')) {
+        cleaned = cleaned.replace('ServerDatacenter', 'Server Datacenter');
+    } else if (cleaned.includes('ServerStandard')) {
+        cleaned = cleaned.replace('ServerStandard', 'Server Standard');
+    }
+
+    if (cleaned.startsWith('Windows ') && !cleaned.startsWith('Windows Server')) {
+        const versionNum = baseEditionFromBuild.replace('Windows ', '');
+        if ((versionNum === "10" || versionNum === "11") && !cleaned.includes(`Windows ${versionNum}`)) {
+            cleaned = cleaned.replace('Windows ', `Windows ${versionNum} `);
+        }
+    }
+    
+    return cleaned;
+}
+
 export function formatWindowsVersion(osVersionRaw?: string | null, productName?: string | null): string {
     if (!osVersionRaw && !productName) return "Unknown";
     const { edition, release } = parseWindowsVersion(osVersionRaw || "");
-    const finalEdition = productName || edition;
+    const finalEdition = productName ? cleanWindowsProductName(productName, edition) : edition;
     if (release) return `${finalEdition} ${release}`;
     return finalEdition || "Unknown";
 }
