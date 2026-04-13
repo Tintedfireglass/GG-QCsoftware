@@ -153,7 +153,7 @@ export default function DedicatedReportPage() {
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Windows Version</td>
-                                <td className="py-2 font-medium">{formatWindowsVersion(data.system_info_json?.osVersion)}</td>
+                                <td className="py-2 font-medium">{formatWindowsVersion(data.system_info_json?.osVersion, data.system_info_json?.windowsProductName)}</td>
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Windows Activation</td>

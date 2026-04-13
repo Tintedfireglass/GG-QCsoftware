@@ -100,6 +100,9 @@ public class SystemInfoSnapshot
     [JsonPropertyName("osVersion")]
     public string? OsVersion { get; set; }
 
+    [JsonPropertyName("windowsProductName")]
+    public string? WindowsProductName { get; set; }
+
     [JsonPropertyName("windowsActivationStatus")]
     public string? WindowsActivationStatus { get; set; }
 

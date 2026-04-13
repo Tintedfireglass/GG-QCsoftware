@@ -119,6 +119,7 @@ public class QCSubmissionService
                 SerialNumber = identityKey,
                 MacAddress = report.MacAddress,
                 OsVersion = report.SystemInfo?.OsVersion,
+                WindowsProductName = report.SystemInfo?.WindowsProductName,
                 WindowsActivationStatus = report.SystemInfo?.WindowsActivationStatus,
                 IsWindowsActivated = report.SystemInfo?.IsWindowsActivated,
                 AntivirusStatus = report.SystemInfo?.AntivirusStatus,

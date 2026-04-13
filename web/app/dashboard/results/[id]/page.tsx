@@ -229,7 +229,7 @@ export default function ResultDetailPage() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Version</dt>
-                                    <dd className="sm:col-span-2 text-slate-900 break-words">{formatWindowsVersion(data.system_info_json?.osVersion)}</dd>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{formatWindowsVersion(data.system_info_json?.osVersion, data.system_info_json?.windowsProductName)}</dd>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Activation</dt>

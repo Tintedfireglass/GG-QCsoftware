@@ -77,9 +77,10 @@ export function parseWindowsVersion(osVersionRaw: string): { edition: string; re
     return { edition, release };
 }
 
-export function formatWindowsVersion(osVersionRaw: string): string {
-    if (!osVersionRaw) return "Unknown";
-    const { edition, release } = parseWindowsVersion(osVersionRaw);
-    if (release) return `${edition} ${release}`;
-    return edition;
+export function formatWindowsVersion(osVersionRaw?: string | null, productName?: string | null): string {
+    if (!osVersionRaw && !productName) return "Unknown";
+    const { edition, release } = parseWindowsVersion(osVersionRaw || "");
+    const finalEdition = productName || edition;
+    if (release) return `${finalEdition} ${release}`;
+    return finalEdition || "Unknown";
 }

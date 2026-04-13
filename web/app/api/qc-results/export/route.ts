@@ -151,7 +151,8 @@ export async function GET(request: NextRequest) {
                     : (sysInfo.windowsActivationStatus || '');
 
             // OS edition and version (e.g. "Windows 11" and "23H2")
-            const { edition: osEdition, release: winRelease } = parseWindowsVersion(sysInfo.osVersion || '');
+            const { edition: parsedEdition, release: winRelease } = parseWindowsVersion(sysInfo.osVersion || '');
+            const osEdition = sysInfo.windowsProductName || parsedEdition;
 
             // Antivirus
             const antivirus = sysInfo.antivirusStatus || '';

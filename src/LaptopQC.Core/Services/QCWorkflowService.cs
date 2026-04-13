@@ -100,6 +100,7 @@ public class QCWorkflowService
                         var antivirus = security.GetAntivirusStatus();
                         if (Report.SystemInfo != null)
                         {
+                            Report.SystemInfo.WindowsProductName = activation.ProductName;
                             Report.SystemInfo.WindowsActivationStatus = activation.StatusLabel;
                             Report.SystemInfo.IsWindowsActivated = activation.IsActivated;
                             Report.SystemInfo.AntivirusStatus = antivirus.Summary;

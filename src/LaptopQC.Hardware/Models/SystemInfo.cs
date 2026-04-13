@@ -12,6 +12,7 @@ public class SystemInfo
     public string MacAddress { get; set; } = string.Empty;
     public string BiosVersion { get; set; } = string.Empty;
     public string OsVersion { get; set; } = string.Empty;
+    public string WindowsProductName { get; set; } = string.Empty;
     public string WindowsActivationStatus { get; set; } = string.Empty;
     public bool? IsWindowsActivated { get; set; }
     public string AntivirusStatus { get; set; } = string.Empty;
