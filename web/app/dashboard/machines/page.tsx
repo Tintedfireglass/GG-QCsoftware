@@ -212,9 +212,14 @@ export default function MachinesPage() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
                             <div className="flex items-start sm:items-center justify-between w-full">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-[var(--brand-purple)]/10 flex items-center justify-center shrink-0">
-                                        <Monitor className="h-5 w-5 text-[var(--brand-purple)]" />
-                                    </div>
+                                    {(() => {
+                                        const style = getGradeStyle(machine.latest_grade);
+                                        return (
+                                            <div className={`h-10 w-10 rounded-lg ${style.bg} flex items-center justify-center shrink-0`}>
+                                                <Monitor className={`h-5 w-5 ${style.text}`} />
+                                            </div>
+                                        );
+                                    })()}
                                     <div>
                                         <CardTitle className="text-[15px] font-bold text-slate-900">
                                             Device ID: {machine.id}
