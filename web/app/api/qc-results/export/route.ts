@@ -75,12 +75,12 @@ export async function GET(request: NextRequest) {
             numbered AS (
                 SELECT
                     filtered.*,
-                    ROW_NUMBER() OVER (ORDER BY filtered.timestamp DESC, filtered.id DESC) AS scoped_test_id
+                    ROW_NUMBER() OVER (PARTITION BY filtered.machine_id ORDER BY filtered.timestamp DESC, filtered.id DESC) AS scoped_test_id
                 FROM filtered
             )
             SELECT *
             FROM numbered
-            WHERE ${searchWhereSql}
+            WHERE ${searchWhereSql} AND scoped_test_id = 1
             ORDER BY timestamp DESC, id DESC
         `;
 
