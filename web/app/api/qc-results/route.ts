@@ -64,7 +64,8 @@ export async function GET(request: NextRequest) {
 
         if (search) {
             searchWhereSql = `(
-                COALESCE(numbered.computer_name, '') ILIKE $${paramCount}
+                COALESCE(numbered.computer_name, '') ILIKE $${paramCount} OR
+                COALESCE(numbered.machine_identifier, '') ILIKE $${paramCount}
             )`;
             params.push(`%${search}%`);
             paramCount++;

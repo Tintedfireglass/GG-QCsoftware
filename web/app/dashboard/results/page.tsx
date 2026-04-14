@@ -181,7 +181,7 @@ export default function ResultsPage() {
                 <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                     <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                         <Input
-                            placeholder="Search by Computer Name..."
+                            placeholder="Search Device ID, Computer..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"

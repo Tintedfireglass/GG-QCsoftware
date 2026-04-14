@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
                 m.serial_number ILIKE $${paramCount} OR
                 m.manufacturer ILIKE $${paramCount} OR
                 m.model ILIKE $${paramCount} OR
+                COALESCE(m.computer_name, '') ILIKE $${paramCount} OR
                 COALESCE(m.asset_tag, '') ILIKE $${paramCount}
             )`);
             params.push(`%${search}%`);

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
         let searchWhereSql = '1=1';
         if (search) {
-            searchWhereSql = `COALESCE(numbered.computer_name, '') ILIKE $${paramCount}`;
+            searchWhereSql = `(COALESCE(numbered.computer_name, '') ILIKE $${paramCount} OR COALESCE(numbered.machine_identifier, '') ILIKE $${paramCount})`;
             params.push(`%${search}%`);
             paramCount++;
         }
