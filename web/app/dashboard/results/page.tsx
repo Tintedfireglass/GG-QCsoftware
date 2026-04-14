@@ -344,7 +344,7 @@ export default function ResultsPage() {
                                 {showTechnicianColumn && (
                                     <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
                                 )}
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[200px]">Model</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 max-w-[200px]">Model</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Serial No.</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Date</th>
@@ -412,8 +412,8 @@ export default function ResultsPage() {
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="p-2 align-middle text-slate-900 leading-tight">
-                                                <div className="truncate" title={`${test.system_manufacturer} ${test.system_model}`}>
+                                            <td className="p-2 align-middle text-slate-900 leading-tight max-w-[200px]">
+                                                <div className="truncate max-w-[200px]" title={`${test.system_manufacturer} ${test.system_model}`}>
                                                     {test.system_manufacturer} {test.system_model}
                                                 </div>
                                             </td>

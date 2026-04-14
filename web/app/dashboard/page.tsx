@@ -379,7 +379,7 @@ export default function DashboardPage() {
                                 <tr className="border-b transition-colors hover:bg-slate-50/50 data-[state=selected]:bg-slate-50">
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Test ID</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Status</th>
-                                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Model name</th>
+                                    <th className="h-12 px-4 align-middle font-medium text-slate-500 max-w-[200px]">Model name</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500">Serial No.</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Date</th>
                                     <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right whitespace-nowrap">Action</th>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
                                                 )}
                                             </td>
 
-                                            <td className="p-4 align-middle text-slate-900 min-w-[200px] leading-tight">{test.system_model}</td>
+                                            <td className="p-4 align-middle text-slate-900 min-w-[200px] max-w-[200px] leading-tight"><div className="truncate max-w-[200px]" title={test.system_model}>{test.system_model}</div></td>
                                             <td className="p-4 align-middle text-slate-500 min-w-[150px] break-all sm:break-normal">{test.system_serial}</td>
                                             <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                 <div>{dateStr}</div>
