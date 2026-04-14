@@ -208,75 +208,71 @@ export default function MachinesPage() {
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {sortedMachines.map((machine) => (
-                    <Card key={machine.id} className="shadow-none border border-slate-200">
+                    <Card key={machine.id} className="shadow-sm border border-slate-200 rounded-xl">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                                {(() => {
-                                    const style = getGradeStyle(machine.latest_grade);
-                                    return (
-                                        <div className={`h-10 w-10 rounded-full ${style.bg} flex items-center justify-center shrink-0`}>
-                                            <Monitor className={`h-5 w-5 ${style.text}`} />
-                                        </div>
-                                    );
-                                })()}
-                                <div>
-                                    <CardTitle className="text-base font-semibold text-slate-900">
-                                        Device ID: {machine.id}
-                                    </CardTitle>
-                                    <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]" title={(machine.custom_name || machine.computer_name) || ""}>
-                                        {machine.custom_name ? `${machine.custom_name} • ` : ''}
-                                        {!machine.custom_name && machine.computer_name ? `${machine.computer_name} • ` : ''}
-                                        Seen {formatDbDate(machine.last_seen)}
+                            <div className="flex items-start sm:items-center justify-between w-full">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-lg bg-[var(--brand-purple)]/10 flex items-center justify-center shrink-0">
+                                        <Monitor className="h-5 w-5 text-[var(--brand-purple)]" />
                                     </div>
+                                    <div>
+                                        <CardTitle className="text-[15px] font-bold text-slate-900">
+                                            Device ID: {machine.id}
+                                        </CardTitle>
+                                        <div className="text-[11px] font-medium text-slate-400 mt-0.5 truncate max-w-[180px] sm:max-w-[200px]" title={(machine.custom_name || machine.computer_name) || ""}>
+                                            {machine.custom_name ? `${machine.custom_name} • ` : ''}
+                                            {!machine.custom_name && machine.computer_name ? `${machine.computer_name} • ` : ''}
+                                            Seen {formatDbDate(machine.last_seen)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-1 sm:mt-0">
+                                    {(() => {
+                                        const active = isMachineActive(machine.last_seen, nowMs)
+                                        return (
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${active ? "bg-emerald-50 text-emerald-600 border-emerald-200/50" : "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                            >
+                                                {active ? "Active" : "Inactive"}
+                                            </span>
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="pt-4">
+                        <CardContent className="pt-5">
                             <div className="flex items-center justify-between mb-4">
-                                <div className="text-sm text-slate-500">Status</div>
-                                {(() => {
-                                    const active = isMachineActive(machine.last_seen, nowMs)
-                                    return (
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}
-                                        >
-                                            {active ? "Active" : "Inactive"}
-                                        </span>
-                                    )
-                                })()}
-                            </div>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="text-sm text-slate-500">Hardware ID</div>
-                                <div className="text-sm font-medium text-slate-900 truncate max-w-[150px]" title={machine.serial_number || "N/A"}>
+                                <div className="text-[13px] font-medium text-slate-400">Hardware ID</div>
+                                <div className="text-[13px] font-bold text-slate-900 truncate max-w-[150px]" title={machine.serial_number || "N/A"}>
                                     {machine.serial_number || "N/A"}
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="text-sm text-slate-500">IP Address</div>
-                                <div className="text-sm font-mono text-slate-900 truncate max-w-[150px]" title={machine.latest_ip || "N/A"}>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="text-[13px] font-medium text-slate-400">IP Address</div>
+                                <div className="text-[13px] font-medium text-slate-900 truncate max-w-[150px]" title={machine.latest_ip || "N/A"}>
                                     {machine.latest_ip || "N/A"}
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mt-6">
                                 <div>
-                                    <div className="text-2xl font-bold text-slate-900 leading-none">
+                                    <div className="text-[28px] font-bold text-slate-900 leading-none tracking-tight">
                                         {machine.test_count}
                                     </div>
-                                    <div className="text-xs text-slate-500 mt-1">Total Tests</div>
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1.5">TOTAL TESTS</div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
                                     <Link href={`/dashboard/machines/${machine.id}`}>
                                         <Button
                                             variant="outline"
-                                            className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                            className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-xs font-semibold"
                                         >
                                             View History
                                         </Button>
                                     </Link>
                                     <Button
                                         variant="outline"
-                                        className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                        className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-xs font-semibold"
                                         disabled={navigating === machine.id || Number(machine.test_count) === 0}
                                         onClick={async () => {
                                             setNavigating(machine.id)

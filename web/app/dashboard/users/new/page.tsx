@@ -268,7 +268,7 @@ export default function NewUserPage() {
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="h-12 px-8 bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white rounded-full font-medium text-base shadow-sm"
+                                className="h-12 px-8 bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white rounded-md font-medium text-base shadow-sm"
                             >
                                 {loading ? "Creating..." : "Create User"}
                             </Button>

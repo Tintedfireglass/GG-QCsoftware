@@ -344,7 +344,7 @@ export default function ResultsPage() {
                                 {showTechnicianColumn && (
                                     <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
                                 )}
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500">Model</th>
+                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[200px]">Model</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Serial No.</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Date</th>
@@ -403,9 +403,6 @@ export default function ResultsPage() {
                                                 <td className="p-2 align-middle">
                                                     {test.technician_name || test.technician_username ? (
                                                         <span className="inline-flex items-center gap-2 text-slate-900 font-medium">
-                                                            <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-500 font-bold shrink-0">
-                                                                {(test.technician_name || test.technician_username).charAt(0).toUpperCase()}
-                                                            </div>
                                                             <span className="max-w-[120px] truncate" title={test.technician_name || test.technician_username}>
                                                                 {test.technician_name || test.technician_username}
                                                             </span>
@@ -428,17 +425,19 @@ export default function ResultsPage() {
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
                                             </td>
-                                            <td className="p-2 align-middle text-right space-x-2">
-                                                <Link href={`/dashboard/results/${test.id}`}>
-                                                    <Button variant="outline" size="sm" className="rounded-full px-4 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-8">
-                                                        VIEW
-                                                    </Button>
-                                                </Link>
-                                                <Link href={`/report/${test.id}`} target="_blank">
-                                                    <Button variant="ghost" size="sm" className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-[var(--brand-purple)]">
-                                                        <Printer className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
+                                            <td className="p-2 align-middle text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Link href={`/dashboard/results/${test.id}`}>
+                                                        <Button variant="outline" size="sm" className="rounded-full px-4 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-8">
+                                                            VIEW
+                                                        </Button>
+                                                    </Link>
+                                                    <Link href={`/report/${test.id}`} target="_blank">
+                                                        <Button variant="ghost" size="sm" className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-[var(--brand-purple)]">
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                    </Link>
+                                                </div>
                                             </td>
                                         </tr>
                                     )

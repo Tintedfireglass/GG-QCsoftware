@@ -138,7 +138,7 @@ export default function UsersPage() {
                     </p>
                 </div>
                 <Link href="/dashboard/users/new">
-                    <Button className="flex items-center gap-2">
+                    <Button className="flex items-center gap-2 bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white">
                         <UserPlus className="h-4 w-4" />
                         Add User
                     </Button>
@@ -215,7 +215,7 @@ export default function UsersPage() {
                                 <option value="Enterprise">Enterprise</option>
                                 <option value="Client">Client</option>
                             </select>
-                            <Button size="icon" onClick={() => loadUsers(1)}>
+                            <Button size="icon" onClick={() => loadUsers(1)} className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white">
                                 <Search className="h-4 w-4" />
                             </Button>
                         </div>
@@ -422,7 +422,7 @@ export default function UsersPage() {
                                         {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                                         {pagination.total} users
                                     </p>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white">
                                         <Button
                                             variant="outline"
                                             size="sm"
