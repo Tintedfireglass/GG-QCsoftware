@@ -22,7 +22,8 @@ export default function ResultsPage() {
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
-    const [exporting, setExporting] = useState(false)
+    const [exportingExcel, setExportingExcel] = useState(false)
+    const [exportingPdf, setExportingPdf] = useState(false)
     const limit = 20
 
     // Show technician column for admins/superadmins
@@ -76,12 +77,14 @@ export default function ResultsPage() {
         setAppliedSearch(term)
     }
 
-    const handleExport = async () => {
-        setExporting(true)
+    const handleExport = async (format: "xlsx" | "pdf") => {
+        if (format === "xlsx") setExportingExcel(true)
+        else setExportingPdf(true)
         try {
             const token = localStorage.getItem("qc_token")
             const params = new URLSearchParams()
             if (appliedSearch) params.append("search", appliedSearch)
+            params.append("format", format)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })
@@ -90,7 +93,7 @@ export default function ResultsPage() {
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.xlsx`
+            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.${format}`
             document.body.appendChild(a)
             a.click()
             a.remove()
@@ -98,7 +101,8 @@ export default function ResultsPage() {
         } catch (error) {
             console.error("Export error:", error)
         } finally {
-            setExporting(false)
+            if (format === "xlsx") setExportingExcel(false)
+            else setExportingPdf(false)
         }
     }
 
@@ -247,11 +251,21 @@ export default function ResultsPage() {
                             size="sm"
                             variant="outline"
                             className="h-10"
-                            onClick={handleExport}
-                            disabled={exporting}
+                            onClick={() => handleExport("xlsx")}
+                            disabled={exportingExcel}
                         >
                             <Download className="h-4 w-4 mr-1" />
-                            {exporting ? "Exporting..." : "Export"}
+                            {exportingExcel ? "Exporting XLSX..." : "Export XLSX"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10"
+                            onClick={() => handleExport("pdf")}
+                            disabled={exportingPdf}
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            {exportingPdf ? "Exporting PDF..." : "Export PDF"}
                         </Button>
                     </div>
                 </div>
