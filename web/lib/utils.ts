@@ -42,39 +42,64 @@ export function formatAppVersion(version?: string | null): string {
     return version.split("+")[0]
 }
 
+function getWindowsClientRelease(build: number): string {
+    if (build >= 26100) return '24H2';
+    if (build >= 22631) return '23H2';
+    if (build >= 22621) return '22H2';
+    if (build >= 22000) return '21H2';
+    if (build >= 19045) return '22H2';
+    if (build >= 19044) return '21H2';
+    if (build >= 19043) return '21H1';
+    if (build >= 19042) return '20H2';
+    if (build >= 19041) return '2004';
+    if (build >= 18363) return '1909';
+    if (build >= 18362) return '1903';
+    if (build >= 17763) return '1809';
+    if (build >= 17134) return '1803';
+    if (build >= 16299) return '1709';
+    if (build >= 15063) return '1703';
+    if (build >= 14393) return '1607';
+    if (build >= 10586) return '1511';
+    if (build >= 10240) return '1507';
+    return '';
+}
+
+function getWindowsServerRelease(build: number): string {
+    if (build >= 26100) return '2025';
+    if (build >= 20348) return '2022';
+    if (build >= 17763) return '2019';
+    if (build >= 14393) return '2016';
+    return '';
+}
+
 /**
  * Parse the raw Environment.OSVersion string (e.g. "Microsoft Windows NT 10.0.22631.0")
  * and return a friendly edition name and a release version label.
  */
-export function parseWindowsVersion(osVersionRaw: string): { edition: string; release: string } {
+export function parseWindowsVersion(osVersionRaw: string, productNameRaw?: string | null): { edition: string; release: string } {
     if (!osVersionRaw) return { edition: '', release: '' };
 
-    // Extract build number from strings like "Microsoft Windows NT 10.0.22631.0"
     const match = osVersionRaw.match(/(\d+)\.(\d+)\.(\d+)/);
     if (!match) return { edition: osVersionRaw, release: '' };
 
     const major = parseInt(match[1], 10);
-    const minor = parseInt(match[2], 10);
     const build = parseInt(match[3], 10);
+    const productName = productNameRaw || '';
+    const isServer = /server/i.test(productName);
 
-    // Determine Windows 10 vs 11: build >= 22000 is Windows 11
-    const winVersion = (major === 10 && build >= 22000) ? '11' : '10';
+    if (isServer) {
+        return {
+            edition: 'Windows Server',
+            release: getWindowsServerRelease(build),
+        };
+    }
 
-    // Map build numbers to release versions
-    const buildToRelease: Record<number, string> = {
-        // Windows 10
-        10240: '1507', 10586: '1511', 14393: '1607', 15063: '1703',
-        16299: '1709', 17134: '1803', 17763: '1809', 18362: '1903',
-        18363: '1909', 19041: '2004', 19042: '20H2', 19043: '21H1',
-        19044: '21H2', 19045: '22H2',
-        // Windows 11
-        22000: '21H2', 22621: '22H2', 22631: '23H2', 26100: '24H2',
+    const winVersion = major === 10 && build >= 22000 ? '11' : '10';
+
+    return {
+        edition: `Windows ${winVersion}`,
+        release: getWindowsClientRelease(build),
     };
-
-    const release = buildToRelease[build] || '';
-    const edition = `Windows ${winVersion}`;
-
-    return { edition, release };
 }
 
 export function cleanWindowsProductName(rawName: string, baseEditionFromBuild: string): string {
@@ -116,7 +141,7 @@ export function cleanWindowsProductName(rawName: string, baseEditionFromBuild: s
 
 export function formatWindowsVersion(osVersionRaw?: string | null, productName?: string | null): string {
     if (!osVersionRaw && !productName) return "Unknown";
-    const { edition, release } = parseWindowsVersion(osVersionRaw || "");
+    const { edition, release } = parseWindowsVersion(osVersionRaw || "", productName);
     const finalEdition = productName ? cleanWindowsProductName(productName, edition) : edition;
     if (release) return `${finalEdition} ${release}`;
     return finalEdition || "Unknown";
