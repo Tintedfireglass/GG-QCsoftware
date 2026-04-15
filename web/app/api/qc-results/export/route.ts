@@ -327,7 +327,7 @@ export async function GET(request: NextRequest) {
         if (format === 'pdf') {
             const pdfBuffer = await buildPdfBuffer(exportRows, issueRows);
             const pdfName = `qc_results_export_${new Date().toISOString().slice(0, 10)}.pdf`;
-            return new NextResponse(pdfBuffer, {
+            return new NextResponse(new Uint8Array(pdfBuffer), {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/pdf',
@@ -450,7 +450,7 @@ export async function GET(request: NextRequest) {
         const fileBuffer = await workbook.xlsx.writeBuffer();
         const filename = `qc_results_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-        return new NextResponse(fileBuffer, {
+        return new NextResponse(new Uint8Array(fileBuffer as ArrayBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
