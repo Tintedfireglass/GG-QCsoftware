@@ -59,6 +59,18 @@ function toTitleCase(str: string): string {
         .join(' ');
 }
 
+function toOrdinal(value: number): string {
+    const v = Math.abs(value);
+    const mod100 = v % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${v}th`;
+    switch (v % 10) {
+        case 1: return `${v}st`;
+        case 2: return `${v}nd`;
+        case 3: return `${v}rd`;
+        default: return `${v}th`;
+    }
+}
+
 function toCompactProcessor(cpuModel: string | null | undefined): string {
     if (!cpuModel) return '';
     const model = cpuModel.trim();
@@ -66,8 +78,15 @@ function toCompactProcessor(cpuModel: string | null | undefined): string {
     const intelCoreMatch = model.match(/\b(i[3579])[-\s]*([0-9]{4,5}[a-zA-Z0-9]*)\b/i);
     if (intelCoreMatch) {
         const [, series, sku] = intelCoreMatch;
-        const genDigits = sku.slice(0, sku.length === 5 ? 2 : 1);
-        return `${series.toLowerCase()} ${genDigits}th Gen`;
+        const skuDigits = sku.replace(/[^0-9]/g, '');
+        const generation =
+            skuDigits.length >= 5
+                ? Number(skuDigits.slice(0, 2))
+                : Number(skuDigits.slice(0, 1));
+        if (Number.isFinite(generation) && generation > 0) {
+            return `${series.toLowerCase()} ${toOrdinal(generation)} Gen`;
+        }
+        return series.toLowerCase();
     }
 
     const ryzenMatch = model.match(/\b(Ryzen)\s*(3|5|7|9)\s*([0-9]{4,5}[A-Z]{0,3})\b/i);
@@ -275,7 +294,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
         font,
         color: rgb(0.88, 0.92, 0.98),
     });
-    page.drawText(`Generated: ${formatGeneratedDateTime(timeZone)} (${timeZone})`, {
+    page.drawText(`Generated: ${formatGeneratedDateTime(timeZone)}`, {
         x: pageWidth - 190,
         y: pageHeight - 52,
         size: 9,
