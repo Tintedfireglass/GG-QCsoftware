@@ -85,6 +85,7 @@ export default function ResultsPage() {
             const params = new URLSearchParams()
             if (appliedSearch) params.append("search", appliedSearch)
             params.append("format", format)
+            params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })

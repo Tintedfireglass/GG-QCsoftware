@@ -4,7 +4,7 @@ import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
 import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
 import ExcelJS from 'exceljs';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -70,10 +70,21 @@ function toCompactProcessor(cpuModel: string | null | undefined): string {
         return `${series.toLowerCase()} ${genDigits}th Gen`;
     }
 
-    const ryzenMatch = model.match(/\b(Ryzen)\s*(3|5|7|9)\s*([0-9]{4,5})\b/i);
+    const ryzenMatch = model.match(/\b(Ryzen)\s*(3|5|7|9)\s*([0-9]{4,5}[A-Z]{0,3})\b/i);
     if (ryzenMatch) {
-        const [, brand, tier, sku] = ryzenMatch;
-        return `${toTitleCase(brand)} ${tier} ${sku}`;
+        const [, , tier, sku] = ryzenMatch;
+        return `R${tier} ${sku.toUpperCase()}`;
+    }
+
+    const amdSeriesMatch = model.match(/\bAMD\s+([A-Za-z0-9\s]+?)\s+([0-9]{4,5}[A-Z]{0,3})\b/i);
+    if (amdSeriesMatch) {
+        const series = amdSeriesMatch[1].trim().replace(/\s+/g, ' ');
+        const shortSeries = series
+            .replace(/Ryzen/gi, 'R')
+            .replace(/Threadripper/gi, 'TR')
+            .replace(/PRO/gi, '')
+            .trim();
+        return `${shortSeries} ${amdSeriesMatch[2].toUpperCase()}`.slice(0, 22);
     }
 
     const appleMatch = model.match(/\bApple\s+(M[1-4](?:\s+Pro|\s+Max|\s+Ultra)?)\b/i);
@@ -124,12 +135,26 @@ function getIssueSummaryRows(issueMap: Record<IssueKey, Set<string>>) {
     });
 }
 
-function formatShiftDate(value: string | Date | null | undefined): string {
+function formatShiftDate(value: string | Date | null | undefined, timeZone: string): string {
     if (!value) return '';
     return new Date(value).toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
+        timeZone,
+    });
+}
+
+function formatGeneratedDateTime(timeZone: string): string {
+    return new Date().toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone,
     });
 }
 
@@ -147,7 +172,16 @@ async function loadPramaanLogoBytes(): Promise<Uint8Array | null> {
     return null;
 }
 
-async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise<Uint8Array> {
+function truncateToWidth(text: string, maxWidth: number, textSize: number, activeFont: PDFFont): string {
+    if (activeFont.widthOfTextAtSize(text, textSize) <= maxWidth) return text;
+    let result = text;
+    while (result.length > 1 && activeFont.widthOfTextAtSize(`${result}...`, textSize) > maxWidth) {
+        result = result.slice(0, -1);
+    }
+    return `${result}...`;
+}
+
+async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone: string): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -169,7 +203,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise
             color: rgb(0.82, 0.84, 0.87),
             thickness: 0.8,
         });
-        page.drawText(`Pramaan Confidential Report | Page ${pageNumber}`, {
+        page.drawText(`Page ${pageNumber}`, {
             x: margin,
             y: margin - 20,
             size: 9,
@@ -241,7 +275,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise
         font,
         color: rgb(0.88, 0.92, 0.98),
     });
-    page.drawText(`Generated: ${new Date().toLocaleString('en-GB')}`, {
+    page.drawText(`Generated: ${formatGeneratedDateTime(timeZone)} (${timeZone})`, {
         x: pageWidth - 190,
         y: pageHeight - 52,
         size: 9,
@@ -296,10 +330,52 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise
     y -= 70;
 
     page.drawText('Issue Breakdown', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+    y -= 8;
+    const issueCols = { issue: 184, count: 56, systems: pageWidth - margin * 2 - 240 };
+    page.drawRectangle({ x: margin, y: y - 14, width: pageWidth - margin * 2, height: 14, color: rgb(0.15, 0.32, 0.54) });
+    page.drawText('Issue', { x: margin + 6, y: y - 10, size: 8, font: boldFont, color: rgb(1, 1, 1) });
+    page.drawText('Count', { x: margin + issueCols.issue + 6, y: y - 10, size: 8, font: boldFont, color: rgb(1, 1, 1) });
+    page.drawText('Affected Systems', { x: margin + issueCols.issue + issueCols.count + 6, y: y - 10, size: 8, font: boldFont, color: rgb(1, 1, 1) });
     y -= 16;
-    issueRows.forEach((row) => {
-        drawWrappedText(`- ${row[0]}: ${row[1]} system(s) | ${row[2]}`, margin + 8, pageWidth - margin * 2 - 8, 9, false, rgb(0.22, 0.26, 0.32));
-        y -= 2;
+    issueRows.forEach((row, index) => {
+        const issue = row[0];
+        const count = row[1];
+        const affected = row[2] || '-';
+        const lines: string[] = [];
+        const words = affected.split(', ');
+        let line = '';
+        words.forEach((word) => {
+            const candidate = line ? `${line}, ${word}` : word;
+            if (font.widthOfTextAtSize(candidate, 8) <= issueCols.systems - 10) line = candidate;
+            else {
+                if (line) lines.push(line);
+                line = word;
+            }
+        });
+        if (line) lines.push(line);
+        const rowHeight = Math.max(14, lines.length * 10 + 4);
+        if (y < margin + rowHeight + 28) addNewPage();
+        page.drawRectangle({
+            x: margin,
+            y: y - rowHeight,
+            width: pageWidth - margin * 2,
+            height: rowHeight,
+            color: index % 2 === 0 ? rgb(0.985, 0.992, 1) : rgb(1, 1, 1),
+            borderColor: rgb(0.88, 0.90, 0.94),
+            borderWidth: 0.6,
+        });
+        page.drawText(issue, { x: margin + 6, y: y - 10, size: 8, font, color: rgb(0.17, 0.2, 0.25) });
+        page.drawText(count, { x: margin + issueCols.issue + 10, y: y - 10, size: 8, font: boldFont, color: rgb(0.17, 0.2, 0.25) });
+        lines.forEach((ln, i) => {
+            page.drawText(ln, {
+                x: margin + issueCols.issue + issueCols.count + 6,
+                y: y - 10 - i * 10,
+                size: 8,
+                font,
+                color: rgb(0.17, 0.2, 0.25),
+            });
+        });
+        y -= rowHeight + 2;
     });
 
     y -= 8;
@@ -374,15 +450,28 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise
         let x = margin + 4;
         cells.forEach((cell, cellIndex) => {
             const colWidth = columns[cellIndex].width - 6;
-            const clipped = cell.length > 28 ? `${cell.slice(0, 27)}...` : cell;
             const txtColor = cellIndex === 6 && entry.isTampered
                 ? rgb(0.78, 0.14, 0.14)
                 : cellIndex === 7 && entry.hasThermalIssue
                     ? rgb(0.75, 0.45, 0.07)
                     : rgb(0.15, 0.19, 0.24);
-            const finalText = font.widthOfTextAtSize(clipped, 7.8) > colWidth
-                ? `${clipped.slice(0, Math.max(1, clipped.length - 3))}...`
-                : clipped;
+            const finalText = truncateToWidth(cell, colWidth, 7.8, font);
+            if (cellIndex === 4 && entry.freePercent != null) {
+                const fillColor = entry.freePercent <= 10
+                    ? rgb(0.91, 0.20, 0.16)
+                    : entry.freePercent < 25
+                        ? rgb(0.98, 0.90, 0.25)
+                        : null;
+                if (fillColor) {
+                    page.drawRectangle({
+                        x: x - 2,
+                        y: y - 13,
+                        width: columns[cellIndex].width - 2,
+                        height: 12,
+                        color: fillColor,
+                    });
+                }
+            }
             page.drawText(finalText, { x, y: y - 10, size: 7.8, font, color: txtColor });
             x += columns[cellIndex].width;
         });
@@ -407,6 +496,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search')?.trim();
         const format = (searchParams.get('format') || 'xlsx').toLowerCase();
+        const timeZone = searchParams.get('timeZone') || 'Asia/Kolkata';
 
         const whereClauses: string[] = ['1=1'];
         const params: SqlParam[] = [];
@@ -538,7 +628,7 @@ export async function GET(request: NextRequest) {
             const rowValues = [
                 String(index + 1),
                 (r.computer_name as string | undefined) || '',
-                formatShiftDate((r.timestamp as string | Date | null | undefined) || null),
+                formatShiftDate((r.timestamp as string | Date | null | undefined) || null, timeZone),
                 osEdition,
                 activationLabel,
                 winRelease,
@@ -572,7 +662,7 @@ export async function GET(request: NextRequest) {
         const issueRows = getIssueSummaryRows(issueMap);
 
         if (format === 'pdf') {
-            const pdfBuffer = await buildPdfBuffer(exportRows, issueRows);
+            const pdfBuffer = await buildPdfBuffer(exportRows, issueRows, timeZone);
             const pdfName = `qc_results_export_${new Date().toISOString().slice(0, 10)}.pdf`;
             return new NextResponse(toArrayBuffer(pdfBuffer), {
                 status: 200,
