@@ -90,7 +90,7 @@ export default function ResultsPage() {
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.csv`
+            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.xlsx`
             document.body.appendChild(a)
             a.click()
             a.remove()

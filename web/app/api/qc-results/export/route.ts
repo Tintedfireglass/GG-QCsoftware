@@ -3,17 +3,9 @@ import { query } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
 import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
+import ExcelJS from 'exceljs';
 
 type SqlParam = string | number | boolean | null;
-
-function escapeCSV(value: string | null | undefined): string {
-    if (value == null || value === '') return '';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-        return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-}
 
 function formatBytes(bytes: number): string {
     if (!bytes || bytes <= 0) return '';
@@ -86,7 +78,7 @@ export async function GET(request: NextRequest) {
 
         const results = await query(queryText, params);
 
-        // Build CSV
+        // Build XLSX
         const headers = [
             'S.No',
             'Computer Name',
@@ -108,8 +100,33 @@ export async function GET(request: NextRequest) {
             'Date',
             'User',
         ];
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('QC Results');
+        worksheet.addRow(headers);
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.columns = [
+            { width: 8 },
+            { width: 24 },
+            { width: 24 },
+            { width: 14 },
+            { width: 12 },
+            { width: 22 },
+            { width: 12 },
+            { width: 20 },
+            { width: 18 },
+            { width: 18 },
+            { width: 14 },
+            { width: 10 },
+            { width: 10 },
+            { width: 20 },
+            { width: 22 },
+            { width: 18 },
+            { width: 20 },
+            { width: 14 },
+            { width: 20 },
+        ];
 
-        const rows: string[] = [headers.map(escapeCSV).join(',')];
+        const freeStorageColumnIndex = 10;
 
         results.forEach((r: any, index: number) => {
             const sysInfo = r.system_info_json || {};
@@ -193,17 +210,34 @@ export async function GET(request: NextRequest) {
                 dateStr,
                 r.technician_name || r.technician_username || '',
             ];
+            worksheet.addRow(row);
 
-            rows.push(row.map(escapeCSV).join(','));
+            const freePercent = totalStorageBytes > 0 ? (freeStorageBytes / totalStorageBytes) * 100 : null;
+            const freeStorageCell = worksheet.getCell(worksheet.rowCount, freeStorageColumnIndex);
+
+            if (freePercent != null && freePercent <= 10) {
+                freeStorageCell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFF0000' },
+                };
+                freeStorageCell.font = { color: { argb: 'FFFFFFFF' } };
+            } else if (freePercent != null && freePercent < 25) {
+                freeStorageCell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFFFF00' },
+                };
+            }
         });
 
-        const csv = rows.join('\r\n');
-        const filename = `qc_results_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        const fileBuffer = await workbook.xlsx.writeBuffer();
+        const filename = `qc_results_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-        return new NextResponse(csv, {
+        return new NextResponse(fileBuffer, {
             status: 200,
             headers: {
-                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition': `attachment; filename="${filename}"`,
             },
         });
