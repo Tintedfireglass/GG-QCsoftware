@@ -4,7 +4,7 @@ import { authenticateRequest } from '@/lib/auth-middleware';
 import { ApiError } from '@/lib/types';
 import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 type SqlParam = string | number | boolean | null;
 
@@ -28,6 +28,25 @@ function formatBytes(bytes: number): string {
     if (!bytes || bytes <= 0) return '';
     const gb = bytes / (1024 * 1024 * 1024);
     return gb.toFixed(1);
+}
+
+function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+}
+
+function toArrayBuffer(data: Uint8Array | ArrayBuffer): ArrayBuffer {
+    if (data instanceof ArrayBuffer) {
+        return data;
+    }
+    const bytes = new Uint8Array(data);
+    const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(arrayBuffer).set(bytes);
+    return arrayBuffer;
 }
 
 function toTitleCase(str: string): string {
@@ -112,38 +131,60 @@ function formatShiftDate(value: string | Date | null | undefined): string {
     });
 }
 
-async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise<Buffer> {
-    const doc = new PDFDocument({ size: 'A4', margin: 36 });
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-    const done = new Promise<Buffer>((resolve) => {
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-    });
+async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise<Uint8Array> {
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-    const addLine = (text: string, size = 10) => {
-        if (doc.y > doc.page.height - 48) doc.addPage();
-        doc.fontSize(size).text(text, { width: doc.page.width - 72 });
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 36;
+    const lineHeight = 14;
+    let y = pageHeight - margin;
+    let page = pdf.addPage([pageWidth, pageHeight]);
+
+    const drawLine = (text: string, size = 10, bold = false) => {
+        const activeFont = bold ? boldFont : font;
+        const maxChars = size <= 10 ? 120 : 95;
+        const wrapped = text.length > maxChars
+            ? text.match(new RegExp(`.{1,${maxChars}}`, 'g')) || [text]
+            : [text];
+
+        wrapped.forEach((segment) => {
+            if (y < margin + lineHeight) {
+                page = pdf.addPage([pageWidth, pageHeight]);
+                y = pageHeight - margin;
+            }
+            page.drawText(segment, {
+                x: margin,
+                y,
+                size,
+                font: activeFont,
+                color: rgb(0, 0, 0),
+            });
+            y -= lineHeight;
+        });
     };
 
-    doc.fontSize(16).text('QC Results Export');
-    addLine(`Generated: ${new Date().toLocaleString('en-GB')}`, 10);
-    doc.moveDown(0.8);
+    drawLine('QC Results Export', 16, true);
+    y -= 4;
+    drawLine(`Generated: ${new Date().toLocaleString('en-GB')}`, 10, false);
+    y -= 8;
 
-    doc.fontSize(13).text('Issue Summary');
-    issueRows.forEach((row) => addLine(`${row[0]} | Count: ${row[1]} | Systems: ${row[2]}`));
-    doc.moveDown(0.8);
+    drawLine('Issue Summary', 13, true);
+    issueRows.forEach((row) => drawLine(`${row[0]} | Count: ${row[1]} | Systems: ${row[2]}`));
+    y -= 8;
 
-    doc.fontSize(13).text('Detailed Rows');
-    addLine('S.No | Computer | Shift Date | Windows | Processor | Free Storage | Disk Health | Tamper | Thermal');
+    drawLine('Detailed Rows', 13, true);
+    drawLine('S.No | Computer | Shift Date | Windows | Processor | Free Storage | Disk Health | Tamper | Thermal');
     rows.forEach((entry) => {
         const values = entry.rowValues;
-        addLine(
+        drawLine(
             `${values[0]} | ${values[1] || '-'} | ${values[2] || '-'} | ${values[4] || '-'} | ${entry.compactProcessor || '-'} | ${values[10] || '-'} GB | ${values[11] || '-'} | ${values[12] || '-'} | ${entry.hasThermalIssue ? 'Yes' : 'No'}`
         );
     });
 
-    doc.end();
-    return done;
+    return pdf.save();
 }
 
 export async function GET(request: NextRequest) {
@@ -275,8 +316,8 @@ export async function GET(request: NextRequest) {
             const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
             const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
             const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
-            const ramTotal = typeof r.ram_total === 'number' ? r.ram_total : 0;
-            const ramGb = ramTotal ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
+            const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
+            const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
             const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
             const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
             const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
@@ -327,7 +368,7 @@ export async function GET(request: NextRequest) {
         if (format === 'pdf') {
             const pdfBuffer = await buildPdfBuffer(exportRows, issueRows);
             const pdfName = `qc_results_export_${new Date().toISOString().slice(0, 10)}.pdf`;
-            return new NextResponse(new Uint8Array(pdfBuffer), {
+            return new NextResponse(toArrayBuffer(pdfBuffer), {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/pdf',
@@ -450,7 +491,7 @@ export async function GET(request: NextRequest) {
         const fileBuffer = await workbook.xlsx.writeBuffer();
         const filename = `qc_results_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-        return new NextResponse(new Uint8Array(fileBuffer as ArrayBuffer), {
+        return new NextResponse(toArrayBuffer(fileBuffer as ArrayBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
