@@ -16,7 +16,8 @@ export default function ResultsPage() {
     const [loading, setLoading] = useState(true)
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
-    const [search, setSearch] = useState("")
+    const [searchInput, setSearchInput] = useState("")
+    const [appliedSearch, setAppliedSearch] = useState("")
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
@@ -27,7 +28,7 @@ export default function ResultsPage() {
     // Show technician column for admins/superadmins
     const showTechnicianColumn = isSuperAdmin() || isAdmin()
 
-    async function loadData(pageToLoad = page, searchTerm = search) {
+    async function loadData(pageToLoad = page, searchTerm = appliedSearch) {
         setLoading(true)
         try {
             const filters = searchTerm ? { search: searchTerm } : {}
@@ -42,8 +43,8 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-        loadData(page, search)
-    }, [page]) // Reload when page changes
+        loadData(page, appliedSearch)
+    }, [page, appliedSearch]) // Reload when page/search changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -70,9 +71,9 @@ export default function ResultsPage() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
-        const term = search.trim()
+        const term = searchInput.trim()
         setPage(1)
-        loadData(1, term)
+        setAppliedSearch(term)
     }
 
     const handleExport = async () => {
@@ -80,7 +81,7 @@ export default function ResultsPage() {
         try {
             const token = localStorage.getItem("qc_token")
             const params = new URLSearchParams()
-            if (search.trim()) params.append("search", search.trim())
+            if (appliedSearch) params.append("search", appliedSearch)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })
@@ -178,12 +179,12 @@ export default function ResultsPage() {
                         Showing {sortedResults.length} of {results.length} results
                     </p>
                 </div>
-                <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
+                    <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                     <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
                         <Input
                             placeholder="Search Device ID, Computer..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
                         />
                         <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white sm:shrink-0 w-full sm:w-auto">
