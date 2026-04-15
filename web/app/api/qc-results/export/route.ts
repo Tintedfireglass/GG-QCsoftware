@@ -5,6 +5,8 @@ import { ApiError } from '@/lib/types';
 import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
 import ExcelJS from 'exceljs';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 type SqlParam = string | number | boolean | null;
 
@@ -131,59 +133,263 @@ function formatShiftDate(value: string | Date | null | undefined): string {
     });
 }
 
+async function loadPramaanLogoBytes(): Promise<Uint8Array | null> {
+    const candidates = ['prmn_logo.png', 'Pramaan_logo_F1.png', 'loginImg.png'];
+    for (const fileName of candidates) {
+        try {
+            const logoPath = path.join(process.cwd(), 'public', fileName);
+            const file = await readFile(logoPath);
+            return new Uint8Array(file);
+        } catch {
+            // Try next logo candidate
+        }
+    }
+    return null;
+}
+
 async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][]): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const logoBytes = await loadPramaanLogoBytes();
+    const logoImage = logoBytes ? await pdf.embedPng(logoBytes) : null;
 
     const pageWidth = 595;
     const pageHeight = 842;
-    const margin = 36;
+    const margin = 32;
     const lineHeight = 14;
-    let y = pageHeight - margin;
     let page = pdf.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+    let pageNumber = 1;
 
-    const drawLine = (text: string, size = 10, bold = false) => {
-        const activeFont = bold ? boldFont : font;
-        const maxChars = size <= 10 ? 120 : 95;
-        const wrapped = text.length > maxChars
-            ? text.match(new RegExp(`.{1,${maxChars}}`, 'g')) || [text]
-            : [text];
+    const drawPageFooter = () => {
+        page.drawLine({
+            start: { x: margin, y: margin - 6 },
+            end: { x: pageWidth - margin, y: margin - 6 },
+            color: rgb(0.82, 0.84, 0.87),
+            thickness: 0.8,
+        });
+        page.drawText(`Pramaan Confidential Report | Page ${pageNumber}`, {
+            x: margin,
+            y: margin - 20,
+            size: 9,
+            font,
+            color: rgb(0.42, 0.46, 0.52),
+        });
+    };
 
-        wrapped.forEach((segment) => {
-            if (y < margin + lineHeight) {
-                page = pdf.addPage([pageWidth, pageHeight]);
-                y = pageHeight - margin;
+    const addNewPage = () => {
+        drawPageFooter();
+        page = pdf.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+        pageNumber += 1;
+    };
+
+    const drawWrappedText = (text: string, x: number, width: number, size = 10, useBold = false, color = rgb(0, 0, 0)) => {
+        const activeFont = useBold ? boldFont : font;
+        const words = text.split(' ');
+        let line = '';
+        const lines: string[] = [];
+
+        words.forEach((word) => {
+            const candidate = line ? `${line} ${word}` : word;
+            if (activeFont.widthOfTextAtSize(candidate, size) <= width) {
+                line = candidate;
+            } else {
+                if (line) lines.push(line);
+                line = word;
             }
-            page.drawText(segment, {
-                x: margin,
-                y,
-                size,
-                font: activeFont,
-                color: rgb(0, 0, 0),
-            });
+        });
+        if (line) lines.push(line);
+
+        lines.forEach((ln) => {
+            if (y < margin + lineHeight + 24) addNewPage();
+            page.drawText(ln, { x, y, size, font: activeFont, color });
             y -= lineHeight;
         });
     };
 
-    drawLine('QC Results Export', 16, true);
-    y -= 4;
-    drawLine(`Generated: ${new Date().toLocaleString('en-GB')}`, 10, false);
-    y -= 8;
-
-    drawLine('Issue Summary', 13, true);
-    issueRows.forEach((row) => drawLine(`${row[0]} | Count: ${row[1]} | Systems: ${row[2]}`));
-    y -= 8;
-
-    drawLine('Detailed Rows', 13, true);
-    drawLine('S.No | Computer | Shift Date | Windows | Processor | Free Storage | Disk Health | Tamper | Thermal');
-    rows.forEach((entry) => {
-        const values = entry.rowValues;
-        drawLine(
-            `${values[0]} | ${values[1] || '-'} | ${values[2] || '-'} | ${values[4] || '-'} | ${entry.compactProcessor || '-'} | ${values[10] || '-'} GB | ${values[11] || '-'} | ${values[12] || '-'} | ${entry.hasThermalIssue ? 'Yes' : 'No'}`
-        );
+    // Header band
+    page.drawRectangle({
+        x: 0,
+        y: pageHeight - 98,
+        width: pageWidth,
+        height: 98,
+        color: rgb(0.10, 0.24, 0.44),
+    });
+    if (logoImage) {
+        const logoHeight = 42;
+        const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
+        page.drawImage(logoImage, {
+            x: margin,
+            y: pageHeight - 70,
+            width: logoWidth,
+            height: logoHeight,
+        });
+    }
+    page.drawText('PRAAMAAN', {
+        x: margin + 64,
+        y: pageHeight - 48,
+        size: 20,
+        font: boldFont,
+        color: rgb(1, 1, 1),
+    });
+    page.drawText('Professional Device Quality Assessment', {
+        x: margin + 64,
+        y: pageHeight - 66,
+        size: 10,
+        font,
+        color: rgb(0.88, 0.92, 0.98),
+    });
+    page.drawText(`Generated: ${new Date().toLocaleString('en-GB')}`, {
+        x: pageWidth - 190,
+        y: pageHeight - 52,
+        size: 9,
+        font,
+        color: rgb(0.93, 0.95, 0.99),
     });
 
+    y = pageHeight - 122;
+    page.drawText('Executive Summary', { x: margin, y, size: 13, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+    y -= 20;
+
+    const summaryTotalIssues = issueRows.reduce((sum, row) => sum + Number(row[1]), 0);
+    const cards = [
+        { title: 'Systems Analyzed', value: String(rows.length), color: rgb(0.13, 0.45, 0.75) },
+        { title: 'Issue Flags Raised', value: String(summaryTotalIssues), color: rgb(0.75, 0.27, 0.24) },
+        { title: 'Tampered Systems', value: issueRows[2]?.[1] || '0', color: rgb(0.53, 0.19, 0.64) },
+    ];
+    const cardWidth = (pageWidth - margin * 2 - 16) / 3;
+    cards.forEach((card, index) => {
+        const x = margin + index * (cardWidth + 8);
+        page.drawRectangle({
+            x,
+            y: y - 50,
+            width: cardWidth,
+            height: 50,
+            color: rgb(0.97, 0.98, 1),
+            borderColor: rgb(0.88, 0.90, 0.94),
+            borderWidth: 1,
+        });
+        page.drawRectangle({
+            x,
+            y: y - 50,
+            width: 4,
+            height: 50,
+            color: card.color,
+        });
+        page.drawText(card.title, {
+            x: x + 10,
+            y: y - 20,
+            size: 9,
+            font,
+            color: rgb(0.38, 0.42, 0.48),
+        });
+        page.drawText(card.value, {
+            x: x + 10,
+            y: y - 40,
+            size: 16,
+            font: boldFont,
+            color: rgb(0.14, 0.18, 0.24),
+        });
+    });
+    y -= 70;
+
+    page.drawText('Issue Breakdown', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+    y -= 16;
+    issueRows.forEach((row) => {
+        drawWrappedText(`- ${row[0]}: ${row[1]} system(s) | ${row[2]}`, margin + 8, pageWidth - margin * 2 - 8, 9, false, rgb(0.22, 0.26, 0.32));
+        y -= 2;
+    });
+
+    y -= 8;
+    if (y < margin + 170) addNewPage();
+    page.drawText('Detailed Device Assessment', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+    y -= 18;
+
+    const columns = [
+        { key: 'computer', title: 'Computer', width: 116 },
+        { key: 'date', title: 'Shift Date', width: 64 },
+        { key: 'proc', title: 'Processor', width: 76 },
+        { key: 'ram', title: 'RAM', width: 36 },
+        { key: 'free', title: 'Free %', width: 40 },
+        { key: 'windows', title: 'Windows', width: 52 },
+        { key: 'tamper', title: 'Tamper', width: 44 },
+        { key: 'thermal', title: 'Thermal', width: 44 },
+    ];
+    const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
+
+    const drawTableHeader = () => {
+        page.drawRectangle({
+            x: margin,
+            y: y - 16,
+            width: tableWidth,
+            height: 16,
+            color: rgb(0.16, 0.35, 0.58),
+        });
+        let x = margin + 4;
+        columns.forEach((col) => {
+            page.drawText(col.title, {
+                x,
+                y: y - 12,
+                size: 8,
+                font: boldFont,
+                color: rgb(1, 1, 1),
+            });
+            x += col.width;
+        });
+        y -= 18;
+    };
+    drawTableHeader();
+
+    rows.forEach((entry, index) => {
+        if (y < margin + 36) {
+            addNewPage();
+            page.drawText('Detailed Device Assessment (cont.)', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+            y -= 18;
+            drawTableHeader();
+        }
+        const values = entry.rowValues;
+        const rowColor = index % 2 === 0 ? rgb(0.99, 0.995, 1) : rgb(1, 1, 1);
+        page.drawRectangle({
+            x: margin,
+            y: y - 14,
+            width: tableWidth,
+            height: 14,
+            color: rowColor,
+            borderColor: rgb(0.90, 0.92, 0.95),
+            borderWidth: 0.5,
+        });
+        const freePercentLabel = entry.freePercent == null ? '-' : `${entry.freePercent.toFixed(1)}%`;
+        const cells = [
+            String(values[1] || '-'),
+            String(values[2] || '-'),
+            String(entry.compactProcessor || '-'),
+            String(values[7] || '-'),
+            freePercentLabel,
+            String(values[4] || '-'),
+            entry.isTampered ? 'Tampered' : 'Clean',
+            entry.hasThermalIssue ? 'Risk' : 'OK',
+        ];
+        let x = margin + 4;
+        cells.forEach((cell, cellIndex) => {
+            const colWidth = columns[cellIndex].width - 6;
+            const clipped = cell.length > 28 ? `${cell.slice(0, 27)}...` : cell;
+            const txtColor = cellIndex === 6 && entry.isTampered
+                ? rgb(0.78, 0.14, 0.14)
+                : cellIndex === 7 && entry.hasThermalIssue
+                    ? rgb(0.75, 0.45, 0.07)
+                    : rgb(0.15, 0.19, 0.24);
+            const finalText = font.widthOfTextAtSize(clipped, 7.8) > colWidth
+                ? `${clipped.slice(0, Math.max(1, clipped.length - 3))}...`
+                : clipped;
+            page.drawText(finalText, { x, y: y - 10, size: 7.8, font, color: txtColor });
+            x += columns[cellIndex].width;
+        });
+        y -= 14;
+    });
+
+    drawPageFooter();
     return pdf.save();
 }
 
