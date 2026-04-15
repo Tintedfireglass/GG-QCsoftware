@@ -75,6 +75,31 @@ function toCompactProcessor(cpuModel: string | null | undefined): string {
     if (!cpuModel) return '';
     const model = cpuModel.trim();
 
+    const intelUltraMatch = model.match(/\bIntel(?:\(R\))?\s+Core(?:\s+Ultra)?\s+([3579])\s+([0-9]{3,5}[A-Z]{0,3})\b/i);
+    if (intelUltraMatch) {
+        const [, tier, sku] = intelUltraMatch;
+        const skuDigits = sku.replace(/[^0-9]/g, '');
+        const generation = skuDigits.length >= 3 ? Number(skuDigits.slice(0, 1)) : null;
+        if (generation && Number.isFinite(generation)) {
+            return `Core Ultra ${tier} (${toOrdinal(generation)} Gen)`;
+        }
+        return `Core Ultra ${tier} ${sku.toUpperCase()}`;
+    }
+
+    const intelCoreNamedMatch = model.match(/\bIntel(?:\(R\))?\s+Core(?:\(TM\))?\s+i([3579])[-\s]*([0-9]{4,5}[A-Z]{0,3})\b/i);
+    if (intelCoreNamedMatch) {
+        const [, tier, sku] = intelCoreNamedMatch;
+        const skuDigits = sku.replace(/[^0-9]/g, '');
+        const generation =
+            skuDigits.length >= 5
+                ? Number(skuDigits.slice(0, 2))
+                : Number(skuDigits.slice(0, 1));
+        if (Number.isFinite(generation) && generation > 0) {
+            return `i${tier} ${toOrdinal(generation)} Gen`;
+        }
+        return `i${tier} ${sku.toUpperCase()}`;
+    }
+
     const intelCoreMatch = model.match(/\b(i[3579])[-\s]*([0-9]{4,5}[a-zA-Z0-9]*)\b/i);
     if (intelCoreMatch) {
         const [, series, sku] = intelCoreMatch;
@@ -89,21 +114,35 @@ function toCompactProcessor(cpuModel: string | null | undefined): string {
         return series.toLowerCase();
     }
 
+    const intelNSeriesMatch = model.match(/\bIntel(?:\(R\))?\s+Processor\s+([Nn][0-9]{3})\b/);
+    if (intelNSeriesMatch) {
+        return `Intel ${intelNSeriesMatch[1].toUpperCase()}`;
+    }
+
     const ryzenMatch = model.match(/\b(Ryzen)\s*(3|5|7|9)\s*([0-9]{4,5}[A-Z]{0,3})\b/i);
     if (ryzenMatch) {
         const [, , tier, sku] = ryzenMatch;
         return `R${tier} ${sku.toUpperCase()}`;
     }
 
-    const amdSeriesMatch = model.match(/\bAMD\s+([A-Za-z0-9\s]+?)\s+([0-9]{4,5}[A-Z]{0,3})\b/i);
+    const amdSeriesMatch = model.match(/\bAMD\s+(Ryzen(?:\s+Threadripper)?|Athlon|EPYC|A[-\s]*Series)?\s*([3579])?\s*([0-9]{4,5}[A-Z]{0,3})\b/i);
     if (amdSeriesMatch) {
-        const series = amdSeriesMatch[1].trim().replace(/\s+/g, ' ');
-        const shortSeries = series
+        const family = (amdSeriesMatch[1] || 'AMD').replace(/\s+/g, ' ').trim();
+        const tier = amdSeriesMatch[2] ? amdSeriesMatch[2].trim() : '';
+        const sku = amdSeriesMatch[3].toUpperCase();
+        const shortFamily = family
+            .replace(/Ryzen Threadripper/gi, 'TR')
             .replace(/Ryzen/gi, 'R')
-            .replace(/Threadripper/gi, 'TR')
-            .replace(/PRO/gi, '')
-            .trim();
-        return `${shortSeries} ${amdSeriesMatch[2].toUpperCase()}`.slice(0, 22);
+            .replace(/Athlon/gi, 'Athlon')
+            .replace(/EPYC/gi, 'EPYC');
+        const label = tier ? `${shortFamily}${shortFamily === 'R' ? tier : ` ${tier}`} ${sku}` : `${shortFamily} ${sku}`;
+        return label.replace(/\s+/g, ' ').trim().slice(0, 24);
+    }
+
+    const amdRyzenAiMatch = model.match(/\bAMD\s+Ryzen\s+AI\s+([579])\s+([0-9]{3,4})\b/i);
+    if (amdRyzenAiMatch) {
+        const [, tier, sku] = amdRyzenAiMatch;
+        return `Ryzen AI ${tier} ${sku}`;
     }
 
     const appleMatch = model.match(/\bApple\s+(M[1-4](?:\s+Pro|\s+Max|\s+Ultra)?)\b/i);
