@@ -59,9 +59,24 @@ export async function GET(
             [qcResult.id]
         );
 
+        // Fetch component history for the machine associated with this QC result
+        // Only include snapshots recorded on or before this report's timestamp
+        const machineHistory = qcResult.machine_id
+            ? await query(
+                  `SELECT id, timestamp, source, component_grades, app_version
+                   FROM machine_history
+                   WHERE machine_id = $1
+                     AND timestamp <= $2
+                   ORDER BY timestamp DESC
+                   LIMIT 20`,
+                  [qcResult.machine_id, qcResult.timestamp]
+              )
+            : [];
+
         return NextResponse.json({
             ...qcResult,
             test_results: testResults,
+            machine_history: machineHistory,
         });
     } catch (error) {
         console.error('Error fetching QC result:', error);

@@ -4,11 +4,60 @@ import { useEffect, useMemo, useState } from "react"
 import { getQCResult } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Printer } from "lucide-react"
+import { ArrowLeft, Printer, TrendingUp, TrendingDown, Minus, Package } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
 import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
+
+// ── Component change-detection helpers ──────────────────────────────────────
+
+const GRADE_ORDER: Record<string, number> = {
+    "A+": 0, A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, Reject: 7,
+}
+function gradeRank(grade?: string) { return grade ? (GRADE_ORDER[grade] ?? 99) : 99 }
+
+type ChangeType = "improved" | "degraded" | "same" | "new"
+interface ComponentChange {
+    key: string
+    previousGrade?: string
+    currentGrade: string
+    currentScore?: number
+    changeType: ChangeType
+}
+
+function diffSnapshots(
+    current: Record<string, { grade: string; score?: number }>,
+    previous: Record<string, { grade: string; score?: number }> | null
+): ComponentChange[] {
+    const allKeys = new Set([...Object.keys(current), ...(previous ? Object.keys(previous) : [])])
+    const changes: ComponentChange[] = []
+    for (const key of allKeys) {
+        const cur = current[key]
+        const prev = previous ? previous[key] : undefined
+        if (!cur) continue
+        const changeType: ChangeType =
+            !prev ? "new"
+            : gradeRank(cur.grade) < gradeRank(prev.grade) ? "improved"
+            : gradeRank(cur.grade) > gradeRank(prev.grade) ? "degraded"
+            : "same"
+        changes.push({ key, previousGrade: prev?.grade, currentGrade: cur.grade, currentScore: cur.score, changeType })
+    }
+    const order: Record<ChangeType, number> = { improved: 0, degraded: 1, new: 2, same: 3 }
+    return changes.sort((a, b) => order[a.changeType] - order[b.changeType])
+}
+
+function ChangeIndicator({ type }: { type: ChangeType }) {
+    if (type === "improved")
+        return <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"><TrendingUp className="h-3 w-3" /> Improved</span>
+    if (type === "degraded")
+        return <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700"><TrendingDown className="h-3 w-3" /> Degraded</span>
+    if (type === "new")
+        return <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700"><Package className="h-3 w-3" /> New</span>
+    return <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"><Minus className="h-3 w-3" /> No change</span>
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -382,6 +431,134 @@ export default function ResultDetailPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Component History Section */}
+            {safeData.machine_history && safeData.machine_history.length > 0 && (() => {
+                const rawHistory: any[] = safeData.machine_history
+                const chronological = [...rawHistory].reverse()
+
+                interface DiffEntry { entry: any; changes: ComponentChange[]; isFirst: boolean }
+                const diffEntries: DiffEntry[] = chronological.map((entry: any, i: number) => {
+                    const currentGrades: Record<string, { grade: string; score?: number }> =
+                        typeof entry.component_grades === "string"
+                            ? JSON.parse(entry.component_grades)
+                            : entry.component_grades || {}
+                    const previousEntry = i > 0 ? chronological[i - 1] : null
+                    const previousGrades: Record<string, { grade: string; score?: number }> | null = previousEntry
+                        ? typeof previousEntry.component_grades === "string"
+                            ? JSON.parse(previousEntry.component_grades)
+                            : previousEntry.component_grades || {}
+                        : null
+                    return { entry, changes: diffSnapshots(currentGrades, previousGrades), isFirst: i === 0 }
+                })
+                diffEntries.reverse()
+                const hasAnyChange = diffEntries.some((d) => d.changes.some((c) => c.changeType !== "same"))
+
+                return (
+                    <Card className="border-t-4 border-t-amber-500">
+                        <CardContent className="p-8">
+                            <div className="flex items-start justify-between mb-6 gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold mb-1">Component History</h2>
+                                    <p className="text-sm text-slate-500">
+                                        {rawHistory.length} snapshot{rawHistory.length === 1 ? "" : "s"} recorded for this machine.
+                                        {hasAnyChange && (
+                                            <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                                Component changes detected
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-0">
+                                {diffEntries.map((d, idx) => {
+                                    const hasChanges = d.changes.some((c) => c.changeType !== "same")
+                                    const changedComponents = d.changes.filter((c) => c.changeType !== "same")
+                                    const isLast = idx === diffEntries.length - 1
+
+                                    return (
+                                        <div key={d.entry.id} className="flex gap-4">
+                                            <div className="flex flex-col items-center">
+                                                <div className={`mt-3.5 h-3 w-3 rounded-full shrink-0 border-2 ${
+                                                    hasChanges ? "border-amber-400 bg-amber-100"
+                                                    : d.isFirst ? "border-blue-400 bg-blue-100"
+                                                    : "border-slate-300 bg-white"
+                                                }`} />
+                                                {!isLast && <div className="w-px flex-1 bg-slate-200 mt-1" />}
+                                            </div>
+                                            <div className={`flex-1 ${isLast ? "pb-2" : "pb-6"}`}>
+                                                <div className="flex items-center gap-2 flex-wrap mb-2">
+                                                    <span className="text-sm font-semibold text-slate-900">
+                                                        {typeof d.entry.timestamp === "string"
+                                                            ? new Date(d.entry.timestamp).toLocaleString()
+                                                            : new Date(d.entry.timestamp).toLocaleString()}
+                                                    </span>
+                                                    <span className="text-xs text-slate-400">
+                                                        {d.entry.source || "unknown"}{d.entry.app_version ? ` · v${d.entry.app_version}` : ""}
+                                                    </span>
+                                                    {d.isFirst && (
+                                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Initial snapshot</span>
+                                                    )}
+                                                    {!d.isFirst && !hasChanges && (
+                                                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">No component changes</span>
+                                                    )}
+                                                    {!d.isFirst && hasChanges && (
+                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                                            {changedComponents.length} component{changedComponents.length === 1 ? "" : "s"} changed
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {(hasChanges || d.isFirst) && (
+                                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 grid gap-2">
+                                                        {d.isFirst ? (
+                                                            d.changes.map((change) => {
+                                                                const style = getGradeStyle(change.currentGrade)
+                                                                return (
+                                                                    <div key={change.key} className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide w-24 shrink-0">{change.key}</span>
+                                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${style.bg} ${style.text}`}>
+                                                                            {change.currentGrade}{change.currentScore != null ? ` (${change.currentScore})` : ""}
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                            })
+                                                        ) : (
+                                                            changedComponents.map((change) => {
+                                                                const style = getGradeStyle(change.currentGrade)
+                                                                const prevStyle = change.previousGrade ? getGradeStyle(change.previousGrade) : null
+                                                                return (
+                                                                    <div key={change.key} className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide w-24 shrink-0">{change.key}</span>
+                                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                                            {change.previousGrade && change.changeType !== "new" && (
+                                                                                <>
+                                                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${prevStyle?.bg ?? "bg-slate-100"} ${prevStyle?.text ?? "text-slate-600"} opacity-60`}>
+                                                                                        {change.previousGrade}
+                                                                                    </span>
+                                                                                    <span className="text-slate-300 text-xs">→</span>
+                                                                                </>
+                                                                            )}
+                                                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${style.bg} ${style.text}`}>
+                                                                                {change.currentGrade}{change.currentScore != null ? ` (${change.currentScore})` : ""}
+                                                                            </span>
+                                                                            <ChangeIndicator type={change.changeType} />
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            })
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
+            })()}
 
             {/* Test Results List */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
