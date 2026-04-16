@@ -79,7 +79,9 @@ export async function GET(
         const testHistory = await query(
             `SELECT
         id, report_id, timestamp, refurbish_id, overall_pass,
-        system_serial, cpu_model, ram_total, COALESCE(pramaan_grade, overall_grade) as overall_grade
+        system_serial, cpu_model, ram_total,
+        storage_details_json, battery_details_json, ram_details_json,
+        COALESCE(pramaan_grade, overall_grade) as overall_grade
       FROM qc_results
       WHERE machine_id = $1${historyClause}
       ORDER BY timestamp DESC`,
