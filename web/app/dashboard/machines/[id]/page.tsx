@@ -18,142 +18,225 @@ type MachineDetail = {
     machine_history?: any[]
 }
 
-// ── Hardware snapshot extraction ──────────────────────────────────────────────
+// ── JSON parse helpers ────────────────────────────────────────────────────────
 
-function getRamGB(test: any): number | null {
-    if (test.ram_total && test.ram_total > 0)
-        return Math.round(test.ram_total / (1024 ** 3))
-    return null
+function parseJson(val: any): any {
+    if (!val) return null
+    try { return typeof val === "string" ? JSON.parse(val) : val } catch { return null }
 }
 
-function getStorageLabel(test: any): string | null {
-    try {
-        const s = typeof test.storage_details_json === "string"
-            ? JSON.parse(test.storage_details_json)
-            : test.storage_details_json
-        if (!s) return null
-        // Sum volume totalBytes
-        const volumes: any[] = Array.isArray(s.volumes) ? s.volumes : []
-        const totalBytes = volumes.reduce((acc: number, v: any) =>
-            acc + (typeof v.totalBytes === "number" ? v.totalBytes : 0), 0)
-        if (totalBytes > 0) return formatBytes(totalBytes)
-        if (s.totalCapacityGB) return `${Math.round(s.totalCapacityGB)} GB`
-    } catch { /* ignore */ }
-    return null
+// ── Storage: diff by drive serial number ─────────────────────────────────────
+
+interface DriveSnap {
+    serial: string       // unique key
+    model: string
+    sizeGB: number
+    isSsd: boolean
+    mediaType: string
 }
 
-function getBatteryBrand(test: any): string | null {
-    try {
-        const b = typeof test.battery_details_json === "string"
-            ? JSON.parse(test.battery_details_json)
-            : test.battery_details_json
-        if (!b || b.isTampered) return null
-        return b.manufactureName || b.name || b.partNumber || null
-    } catch { /* ignore */ }
-    return null
+function extractDrives(test: any): DriveSnap[] {
+    const s = parseJson(test.storage_details_json)
+    if (!s) return []
+    const devices: any[] = Array.isArray(s.devices) ? s.devices : []
+    return devices
+        .filter((d: any) => d.serialNumber || d.model) // must have at least one identifier
+        .map((d: any) => ({
+            serial: (d.serialNumber || "").trim(),
+            model: (d.model || "Unknown").trim(),
+            sizeGB: d.sizeGB ?? 0,
+            isSsd: !!d.isSsd,
+            mediaType: d.mediaType || "",
+        }))
 }
 
-function getRamModules(test: any): string | null {
-    try {
-        const r = typeof test.ram_details_json === "string"
-            ? JSON.parse(test.ram_details_json)
-            : test.ram_details_json
-        if (!r) return null
-        const modules: any[] = Array.isArray(r.modules) ? r.modules : []
-        if (modules.length === 0) return null
-        // e.g. "2× 8 GB DDR4"
-        const parts = modules
-            .filter((m: any) => m.capacityBytes || m.capacityGb)
-            .map((m: any) => {
-                const gb = m.capacityGb ?? Math.round((m.capacityBytes ?? 0) / 1024 ** 3)
-                return `${gb} GB${m.speed ? ` ${m.speed}MHz` : ""}${m.type ? ` ${m.type}` : ""}`
-            })
-        return parts.length > 0 ? `${modules.length}× ${parts[0]}` : null
-    } catch { /* ignore */ }
-    return null
+function driveLabel(d: DriveSnap): string {
+    const size = d.sizeGB > 0 ? ` ${Math.round(d.sizeGB)} GB` : ""
+    const type = d.isSsd ? " SSD" : d.mediaType ? ` ${d.mediaType}` : " HDD"
+    const serial = d.serial ? ` [${d.serial}]` : ""
+    return `${d.model}${size}${type}${serial}`
 }
 
-interface HwSnapshot {
-    cpu: string | null
-    ramGB: number | null
-    ramModules: string | null
-    storage: string | null
-    battery: string | null
-    serial: string | null
+type DriveChange =
+    | { kind: "added"; drive: DriveSnap }
+    | { kind: "removed"; drive: DriveSnap }
+    | { kind: "same"; drive: DriveSnap }
+
+function diffDrives(prev: DriveSnap[], curr: DriveSnap[]): DriveChange[] {
+    // Use serial as key when available, fall back to model+size
+    const identity = (d: DriveSnap) => d.serial || `${d.model}|${Math.round(d.sizeGB)}`
+
+    const prevMap = new Map(prev.map(d => [identity(d), d]))
+    const currMap = new Map(curr.map(d => [identity(d), d]))
+
+    const changes: DriveChange[] = []
+
+    for (const [key, d] of currMap) {
+        if (prevMap.has(key)) changes.push({ kind: "same", drive: d })
+        else changes.push({ kind: "added", drive: d })
+    }
+    for (const [key, d] of prevMap) {
+        if (!currMap.has(key)) changes.push({ kind: "removed", drive: d })
+    }
+
+    // Sort: added, removed, same
+    const order = { added: 0, removed: 1, same: 2 }
+    return changes.sort((a, b) => order[a.kind] - order[b.kind])
 }
 
-function extractSnapshot(test: any): HwSnapshot {
+// ── RAM: diff by slot + capacityGB (no reliable serial numbers from firmware) ──
+
+interface RamModuleSnap {
+    slot: number
+    capacityGB: number
+    speedMHz: number
+    memoryType: string
+    partNumber: string
+}
+
+function extractRamModules(test: any): { modules: RamModuleSnap[]; totalGB: number; usedSlots: number; totalSlots: number } {
+    const r = parseJson(test.ram_details_json)
+    const totalGB = test.ram_total ? Math.round(test.ram_total / (1024 ** 3)) : (r?.totalCapacityGB ?? 0)
+
+    if (!r) return { modules: [], totalGB, usedSlots: 0, totalSlots: 0 }
+
+    const rawModules: any[] = Array.isArray(r.modules) ? r.modules : []
+    const modules: RamModuleSnap[] = rawModules.map((m: any, i: number) => ({
+        slot: typeof m.slot === "number" ? m.slot : i,
+        capacityGB: m.capacityGB ?? m.capacityGb ?? Math.round((m.capacityBytes ?? 0) / (1024 ** 3)),
+        speedMHz: m.speedMHz ?? m.speed ?? 0,
+        memoryType: m.memoryType ?? m.type ?? "",
+        partNumber: (m.partNumber || "").trim(),
+    }))
+
     return {
-        cpu: test.cpu_model || null,
-        ramGB: getRamGB(test),
-        ramModules: getRamModules(test),
-        storage: getStorageLabel(test),
-        battery: getBatteryBrand(test),
-        serial: test.system_serial || null,
+        modules,
+        totalGB,
+        usedSlots: r.usedSlots ?? modules.length,
+        totalSlots: r.totalSlots ?? 0,
     }
 }
 
-type ChangeType = "changed" | "same" | "unknown"
-
-interface FieldDiff {
-    label: string
-    prev: string | null
-    curr: string | null
-    change: ChangeType
+function slotLabel(m: RamModuleSnap): string {
+    const type = m.memoryType ? ` ${m.memoryType}` : ""
+    const speed = m.speedMHz ? ` ${m.speedMHz}MHz` : ""
+    const pn = m.partNumber ? ` (${m.partNumber})` : ""
+    return `Slot ${m.slot}: ${m.capacityGB} GB${type}${speed}${pn}`
 }
 
-function diffSnapshots(prev: HwSnapshot | null, curr: HwSnapshot): FieldDiff[] {
-    const fields: Array<{ label: string; prevVal: string | null; currVal: string | null }> = [
-        { label: "CPU", prevVal: prev?.cpu ?? null, currVal: curr.cpu },
-        {
-            label: "RAM",
-            prevVal: prev ? (prev.ramModules ?? (prev.ramGB != null ? `${prev.ramGB} GB` : null)) : null,
-            currVal: curr.ramModules ?? (curr.ramGB != null ? `${curr.ramGB} GB` : null),
+type RamChange =
+    | { kind: "added"; module: RamModuleSnap }
+    | { kind: "removed"; module: RamModuleSnap }
+    | { kind: "changed"; prev: RamModuleSnap; curr: RamModuleSnap }
+    | { kind: "same"; module: RamModuleSnap }
+
+function diffRam(prevInfo: ReturnType<typeof extractRamModules>, currInfo: ReturnType<typeof extractRamModules>): RamChange[] {
+    // Key by slot number
+    const prevBySlot = new Map(prevInfo.modules.map(m => [m.slot, m]))
+    const currBySlot = new Map(currInfo.modules.map(m => [m.slot, m]))
+
+    const changes: RamChange[] = []
+    const allSlots = new Set([...prevBySlot.keys(), ...currBySlot.keys()])
+
+    for (const slot of allSlots) {
+        const p = prevBySlot.get(slot)
+        const c = currBySlot.get(slot)
+        if (p && c) {
+            if (p.capacityGB !== c.capacityGB || (p.partNumber && c.partNumber && p.partNumber !== c.partNumber))
+                changes.push({ kind: "changed", prev: p, curr: c })
+            else
+                changes.push({ kind: "same", module: c })
+        } else if (c) {
+            changes.push({ kind: "added", module: c })
+        } else if (p) {
+            changes.push({ kind: "removed", module: p })
+        }
+    }
+
+    const order = { added: 0, removed: 1, changed: 2, same: 3 }
+    return changes.sort((a, b) => order[a.kind] - order[b.kind])
+}
+
+// ── Battery: diff by serial number ───────────────────────────────────────────
+
+interface BatterySnap {
+    serial: string
+    brand: string
+    partNumber: string
+}
+
+function extractBattery(test: any): BatterySnap | null {
+    const b = parseJson(test.battery_details_json)
+    if (!b || b.isTampered || !b.isPresent) return null
+    return {
+        serial: (b.serialNumber || "").trim(),
+        brand: (b.manufactureName || b.name || "").trim(),
+        partNumber: (b.partNumber || "").trim(),
+    }
+}
+
+function batteryLabel(bat: BatterySnap): string {
+    const parts = [bat.brand, bat.partNumber].filter(Boolean)
+    const id = bat.serial ? ` [S/N: ${bat.serial}]` : ""
+    return (parts.join(" ") || "Unknown battery") + id
+}
+
+// ── Change summary types ──────────────────────────────────────────────────────
+
+interface HwChangeSummary {
+    cpu: { prev: string | null; curr: string | null; changed: boolean }
+    drives: DriveChange[]
+    ram: { changes: RamChange[]; countChanged: boolean; totalGBChanged: boolean; prevGB: number; currGB: number; prevCount: number; currCount: number }
+    battery: { prev: BatterySnap | null; curr: BatterySnap | null; changed: boolean }
+    systemSerial: { prev: string | null; curr: string | null; changed: boolean }
+    hasAnyChange: boolean
+}
+
+function computeHwDiff(prev: any | null, curr: any): HwChangeSummary {
+    const currDrives = extractDrives(curr)
+    const prevDrives = prev ? extractDrives(prev) : []
+    const driveChanges = prev ? diffDrives(prevDrives, currDrives) : currDrives.map(d => ({ kind: "same" as const, drive: d }))
+
+    const currRam = extractRamModules(curr)
+    const prevRam = prev ? extractRamModules(prev) : { modules: [], totalGB: 0, usedSlots: 0, totalSlots: 0 }
+    const ramChanges = prev ? diffRam(prevRam, currRam) : currRam.modules.map(m => ({ kind: "same" as const, module: m }))
+
+    const currBat = extractBattery(curr)
+    const prevBat = prev ? extractBattery(prev) : null
+    const batteryChanged = !!(prev && prevBat !== null && currBat !== null && (
+        (prevBat.serial && currBat.serial && prevBat.serial !== currBat.serial) ||
+        (prevBat.partNumber && currBat.partNumber && prevBat.partNumber !== currBat.partNumber)
+    ))
+
+    const currCpu = curr.cpu_model || null
+    const prevCpu = prev?.cpu_model || null
+    const cpuChanged = !!prev && !!prevCpu && !!currCpu && prevCpu !== currCpu
+
+    const currSerial = curr.system_serial || null
+    const prevSerial = prev?.system_serial || null
+    const serialChanged = !!prev && !!prevSerial && !!currSerial && prevSerial !== currSerial
+
+    const driveHasChanges = driveChanges.some(c => c.kind !== "same")
+    const ramHasChanges = ramChanges.some(c => c.kind !== "same")
+
+    return {
+        cpu: { prev: prevCpu, curr: currCpu, changed: cpuChanged },
+        drives: driveChanges,
+        ram: {
+            changes: ramChanges,
+            countChanged: prev ? prevRam.usedSlots !== currRam.usedSlots : false,
+            totalGBChanged: prev ? prevRam.totalGB !== currRam.totalGB : false,
+            prevGB: prevRam.totalGB,
+            currGB: currRam.totalGB,
+            prevCount: prevRam.usedSlots,
+            currCount: currRam.usedSlots,
         },
-        { label: "Storage", prevVal: prev?.storage ?? null, currVal: curr.storage },
-        { label: "Battery", prevVal: prev?.battery ?? null, currVal: curr.battery },
-        { label: "Serial", prevVal: prev?.serial ?? null, currVal: curr.serial },
-    ]
-
-    return fields.map(({ label, prevVal, currVal }): FieldDiff => {
-        if (!prev) return { label, prev: null, curr: currVal, change: "unknown" }
-        if (prevVal === null && currVal === null) return { label, prev: null, curr: null, change: "unknown" }
-        if (prevVal === currVal) return { label, prev: prevVal, curr: currVal, change: "same" }
-        return { label, prev: prevVal, curr: currVal, change: "changed" }
-    })
+        battery: { prev: prevBat, curr: currBat, changed: batteryChanged },
+        systemSerial: { prev: prevSerial, curr: currSerial, changed: serialChanged },
+        hasAnyChange: cpuChanged || driveHasChanges || ramHasChanges || batteryChanged || serialChanged,
+    }
 }
 
-// ── Components ────────────────────────────────────────────────────────────────
-
-function FieldChangePill({ diff }: { diff: FieldDiff }) {
-    if (diff.change === "unknown" || (diff.curr === null && diff.prev === null)) return null
-
-    const isChanged = diff.change === "changed"
-
-    return (
-        <div className="flex items-start gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide w-16 shrink-0 mt-0.5">
-                {diff.label}
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-                {diff.prev !== null && diff.prev !== diff.curr && (
-                    <>
-                        <span className="text-xs text-slate-400 line-through">{diff.prev}</span>
-                        <span className="text-slate-300 text-xs">→</span>
-                    </>
-                )}
-                <span className={`text-xs font-medium ${isChanged ? "text-slate-900" : "text-slate-600"}`}>
-                    {diff.curr ?? "—"}
-                </span>
-                {isChanged && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                        <TrendingUp className="h-3 w-3" /> Changed
-                    </span>
-                )}
-            </div>
-        </div>
-    )
-}
 
 export default function MachineDetailPage() {
     const { id } = useParams()
@@ -200,17 +283,15 @@ export default function MachineDetailPage() {
 
     const { machine, test_history } = data
 
-    // Build hardware diff timeline — test_history is DESC, we need chronological order to diff
+    // Build hardware diff timeline — test_history is DESC, reverse to get chronological
     const chronological = [...test_history].reverse()
     const diffs = chronological.map((test, i) => {
-        const snap = extractSnapshot(test)
-        const prevSnap = i > 0 ? extractSnapshot(chronological[i - 1]) : null
-        const fieldDiffs = diffSnapshots(prevSnap, snap)
-        const hasChanges = i > 0 && fieldDiffs.some(f => f.change === "changed")
-        return { test, snap, fieldDiffs, hasChanges, isFirst: i === 0 }
-    }).reverse() // back to newest-first for display
+        const prevTest = i > 0 ? chronological[i - 1] : null
+        const diff = computeHwDiff(prevTest, test)
+        return { test, diff, isFirst: i === 0 }
+    }).reverse() // newest-first for display
 
-    const totalChanges = diffs.filter(d => d.hasChanges).length
+    const totalChanges = diffs.filter(d => d.diff.hasAnyChange).length
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
@@ -394,64 +475,158 @@ export default function MachineDetailPage() {
                     <CardContent className="grid gap-0">
                         {diffs.map((d, idx) => {
                             const isLast = idx === diffs.length - 1
-                            // By default only show: first entry, entries with changes
-                            // When showAll = true show everything
-                            const shouldShow = showAll || d.isFirst || d.hasChanges
+                            const shouldShow = showAll || d.isFirst || d.diff.hasAnyChange
                             if (!shouldShow) return null
 
-                            const visibleFields = d.isFirst
-                                ? d.fieldDiffs.filter(f => f.curr !== null)
-                                : d.fieldDiffs.filter(f => f.change === "changed")
+                            const driveChanges = d.diff.drives
+                            const ramChanges = d.diff.ram.changes
+                            const changedDrives = driveChanges.filter(c => c.kind !== "same")
+                            const changedRam = ramChanges.filter(c => c.kind !== "same")
+                            const numChanges = changedDrives.length + changedRam.length +
+                                (d.diff.cpu.changed ? 1 : 0) + (d.diff.battery.changed ? 1 : 0) +
+                                (d.diff.systemSerial.changed ? 1 : 0)
 
                             return (
                                 <div key={d.test.id} className="flex gap-4">
-                                    {/* Timeline dot + line */}
                                     <div className="flex flex-col items-center">
                                         <div className={`mt-3.5 h-3 w-3 rounded-full shrink-0 border-2 ${
-                                            d.hasChanges
-                                                ? "border-amber-400 bg-amber-100"
-                                                : d.isFirst
-                                                ? "border-blue-400 bg-blue-100"
-                                                : "border-emerald-400 bg-emerald-50"
+                                            d.diff.hasAnyChange ? "border-amber-400 bg-amber-100"
+                                            : d.isFirst ? "border-blue-400 bg-blue-100"
+                                            : "border-emerald-400 bg-emerald-50"
                                         }`} />
                                         {!isLast && <div className="w-px flex-1 bg-slate-200 mt-1" />}
                                     </div>
 
-                                    {/* Entry content */}
                                     <div className={`flex-1 ${isLast ? "pb-2" : "pb-6"}`}>
                                         <div className="flex items-center gap-2 flex-wrap mb-2">
                                             <span className="text-sm font-semibold text-slate-900">
                                                 {formatDbDateTime(d.test.timestamp)}
                                             </span>
-                                            <span className="text-xs text-slate-400">
-                                                Report #{d.test.report_id}
-                                            </span>
+                                            <span className="text-xs text-slate-400">Report #{d.test.report_id}</span>
                                             {d.isFirst && (
-                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                                                    Baseline
-                                                </span>
+                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Baseline</span>
                                             )}
-                                            {!d.isFirst && d.hasChanges && (
+                                            {!d.isFirst && d.diff.hasAnyChange && (
                                                 <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                                                    <TrendingUp className="h-3 w-3" />
-                                                    {visibleFields.length} part{visibleFields.length === 1 ? "" : "s"} changed
+                                                    ⚠ {numChanges} change{numChanges === 1 ? "" : "s"} detected
                                                 </span>
                                             )}
-                                            {!d.isFirst && !d.hasChanges && (
+                                            {!d.isFirst && !d.diff.hasAnyChange && (
                                                 <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                                                     <Minus className="h-3 w-3" /> No changes
                                                 </span>
                                             )}
                                         </div>
 
-                                        {(d.isFirst || d.hasChanges) && (
-                                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 grid gap-2.5">
-                                                {visibleFields.length === 0 ? (
-                                                    <p className="text-xs text-slate-400 italic">No hardware data available for this report.</p>
-                                                ) : (
-                                                    visibleFields.map(f => (
-                                                        <FieldChangePill key={f.label} diff={f} />
-                                                    ))
+                                        {(d.isFirst || d.diff.hasAnyChange) && (
+                                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 grid gap-3">
+
+                                                {/* CPU */}
+                                                {d.diff.cpu.curr && (d.isFirst || d.diff.cpu.changed) && (
+                                                    <div className="flex items-start gap-2 flex-wrap">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">CPU</span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {!d.isFirst && d.diff.cpu.prev && (
+                                                                <><span className="text-xs text-slate-400 line-through">{d.diff.cpu.prev}</span><span className="text-slate-300">→</span></>
+                                                            )}
+                                                            <span className="text-xs font-medium text-slate-900">{d.diff.cpu.curr}</span>
+                                                            {d.diff.cpu.changed && <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Changed</span>}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Drives */}
+                                                {(d.isFirst ? driveChanges : changedDrives).length > 0 && (
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">Storage</span>
+                                                        <div className="grid gap-1 flex-1">
+                                                            {(d.isFirst ? driveChanges : changedDrives).map((dc, i) => (
+                                                                <div key={i} className="flex items-center gap-1.5 flex-wrap">
+                                                                    {dc.kind === "added" && !d.isFirst && (
+                                                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">Added</span>
+                                                                    )}
+                                                                    {dc.kind === "removed" && (
+                                                                        <span className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">Removed</span>
+                                                                    )}
+                                                                    <span className={`text-xs ${dc.kind === "removed" ? "line-through text-slate-400" : "font-medium text-slate-900"}`}>
+                                                                        {driveLabel(dc.drive)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* RAM */}
+                                                {(d.isFirst ? ramChanges : changedRam).length > 0 && (
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">RAM</span>
+                                                        <div className="grid gap-1 flex-1">
+                                                            {/* Show GB/count change summary if applicable */}
+                                                            {!d.isFirst && (d.diff.ram.totalGBChanged || d.diff.ram.countChanged) && (
+                                                                <div className="text-xs text-slate-500 mb-1">
+                                                                    {d.diff.ram.totalGBChanged && `Total: ${d.diff.ram.prevGB} GB → ${d.diff.ram.currGB} GB`}
+                                                                    {d.diff.ram.countChanged && ` · Sticks: ${d.diff.ram.prevCount} → ${d.diff.ram.currCount}`}
+                                                                </div>
+                                                            )}
+                                                            {(d.isFirst ? ramChanges : changedRam).map((rc, i) => (
+                                                                <div key={i} className="flex items-center gap-1.5 flex-wrap">
+                                                                    {rc.kind === "added" && !d.isFirst && (
+                                                                        <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">Added</span>
+                                                                    )}
+                                                                    {rc.kind === "removed" && (
+                                                                        <span className="inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">Removed</span>
+                                                                    )}
+                                                                    {rc.kind === "changed" && (
+                                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Changed</span>
+                                                                    )}
+                                                                    {rc.kind === "changed" ? (
+                                                                        <><span className="text-xs text-slate-400 line-through">{slotLabel(rc.prev)}</span><span className="text-slate-300">→</span><span className="text-xs font-medium text-slate-900">{slotLabel(rc.curr)}</span></>
+                                                                    ) : rc.kind === "removed" ? (
+                                                                        <span className="text-xs line-through text-slate-400">{slotLabel(rc.module)}</span>
+                                                                    ) : (
+                                                                        <span className="text-xs font-medium text-slate-900">{slotLabel(rc.module)}</span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Battery */}
+                                                {d.diff.battery.curr && (d.isFirst || d.diff.battery.changed) && (
+                                                    <div className="flex items-start gap-2 flex-wrap">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">Battery</span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {!d.isFirst && d.diff.battery.prev && (
+                                                                <><span className="text-xs text-slate-400 line-through">{batteryLabel(d.diff.battery.prev)}</span><span className="text-slate-300">→</span></>
+                                                            )}
+                                                            <span className="text-xs font-medium text-slate-900">{batteryLabel(d.diff.battery.curr)}</span>
+                                                            {d.diff.battery.changed && <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Replaced</span>}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* System Serial */}
+                                                {d.diff.systemSerial.curr && (d.isFirst || d.diff.systemSerial.changed) && (
+                                                    <div className="flex items-start gap-2 flex-wrap">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">S/N</span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {!d.isFirst && d.diff.systemSerial.prev && (
+                                                                <><span className="text-xs text-slate-400 line-through">{d.diff.systemSerial.prev}</span><span className="text-slate-300">→</span></>
+                                                            )}
+                                                            <span className="text-xs font-medium text-slate-900">{d.diff.systemSerial.curr}</span>
+                                                            {d.diff.systemSerial.changed && <span className="inline-flex items-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">⚠ Board changed?</span>}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* No data fallback */}
+                                                {!d.isFirst && !d.diff.hasAnyChange && (
+                                                    <p className="text-xs text-slate-400 italic">All hardware unchanged.</p>
+                                                )}
+                                                {d.isFirst && driveChanges.length === 0 && ramChanges.length === 0 && !d.diff.cpu.curr && (
+                                                    <p className="text-xs text-slate-400 italic">No hardware data available in this report.</p>
                                                 )}
                                             </div>
                                         )}

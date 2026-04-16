@@ -10,6 +10,104 @@ import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
 import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 
+// ── Shared hardware diff helpers (serial-number aware) ───────────────────────
+
+function parseJson(val: any): any {
+    if (!val) return null
+    try { return typeof val === "string" ? JSON.parse(val) : val } catch { return null }
+}
+
+interface DriveSnap { serial: string; model: string; sizeGB: number; isSsd: boolean; mediaType: string }
+function extractDrives(r: any): DriveSnap[] {
+    const s = parseJson(r.storage_details_json)
+    if (!s) return []
+    return (Array.isArray(s.devices) ? s.devices : [])
+        .filter((d: any) => d.serialNumber || d.model)
+        .map((d: any) => ({ serial: (d.serialNumber || "").trim(), model: (d.model || "Unknown").trim(), sizeGB: d.sizeGB ?? 0, isSsd: !!d.isSsd, mediaType: d.mediaType || "" }))
+}
+function driveLabel(d: DriveSnap): string {
+    const size = d.sizeGB > 0 ? ` ${Math.round(d.sizeGB)} GB` : ""
+    const type = d.isSsd ? " SSD" : d.mediaType ? ` ${d.mediaType}` : " HDD"
+    const serial = d.serial ? ` [${d.serial}]` : ""
+    return `${d.model}${size}${type}${serial}`
+}
+type DriveChange = { kind: "added"; drive: DriveSnap } | { kind: "removed"; drive: DriveSnap } | { kind: "same"; drive: DriveSnap }
+function diffDrives(prev: DriveSnap[], curr: DriveSnap[]): DriveChange[] {
+    const id = (d: DriveSnap) => d.serial || `${d.model}|${Math.round(d.sizeGB)}`
+    const pm = new Map(prev.map(d => [id(d), d])), cm = new Map(curr.map(d => [id(d), d]))
+    const out: DriveChange[] = []
+    for (const [k, d] of cm) out.push(pm.has(k) ? { kind: "same", drive: d } : { kind: "added", drive: d })
+    for (const [k, d] of pm) if (!cm.has(k)) out.push({ kind: "removed", drive: d })
+    return out.sort((a, b) => ({ added: 0, removed: 1, same: 2 }[a.kind] - { added: 0, removed: 1, same: 2 }[b.kind]))
+}
+
+interface RamModuleSnap { slot: number; capacityGB: number; speedMHz: number; memoryType: string; partNumber: string }
+function extractRamModules(r: any): { modules: RamModuleSnap[]; totalGB: number; usedSlots: number; totalSlots: number } {
+    const rd = parseJson(r.ram_details_json)
+    const totalGB = r.ram_total ? Math.round(r.ram_total / (1024 ** 3)) : (rd?.totalCapacityGB ?? 0)
+    if (!rd) return { modules: [], totalGB, usedSlots: 0, totalSlots: 0 }
+    const mods: RamModuleSnap[] = (Array.isArray(rd.modules) ? rd.modules : []).map((m: any, i: number) => ({
+        slot: typeof m.slot === "number" ? m.slot : i,
+        capacityGB: m.capacityGB ?? m.capacityGb ?? Math.round((m.capacityBytes ?? 0) / (1024 ** 3)),
+        speedMHz: m.speedMHz ?? m.speed ?? 0, memoryType: m.memoryType ?? m.type ?? "", partNumber: (m.partNumber || "").trim(),
+    }))
+    return { modules: mods, totalGB, usedSlots: rd.usedSlots ?? mods.length, totalSlots: rd.totalSlots ?? 0 }
+}
+function slotLabel(m: RamModuleSnap): string {
+    return `Slot ${m.slot}: ${m.capacityGB} GB${m.memoryType ? ` ${m.memoryType}` : ""}${m.speedMHz ? ` ${m.speedMHz}MHz` : ""}${m.partNumber ? ` (${m.partNumber})` : ""}`
+}
+type RamChange = { kind: "added"; module: RamModuleSnap } | { kind: "removed"; module: RamModuleSnap } | { kind: "changed"; prev: RamModuleSnap; curr: RamModuleSnap } | { kind: "same"; module: RamModuleSnap }
+function diffRam(p: ReturnType<typeof extractRamModules>, c: ReturnType<typeof extractRamModules>): RamChange[] {
+    const pm = new Map(p.modules.map(m => [m.slot, m])), cm = new Map(c.modules.map(m => [m.slot, m]))
+    const out: RamChange[] = []
+    for (const slot of new Set([...pm.keys(), ...cm.keys()])) {
+        const pv = pm.get(slot), cv = cm.get(slot)
+        if (pv && cv) out.push(pv.capacityGB !== cv.capacityGB || (pv.partNumber && cv.partNumber && pv.partNumber !== cv.partNumber) ? { kind: "changed", prev: pv, curr: cv } : { kind: "same", module: cv })
+        else if (cv) out.push({ kind: "added", module: cv })
+        else if (pv) out.push({ kind: "removed", module: pv })
+    }
+    return out.sort((a, b) => ({ added: 0, removed: 1, changed: 2, same: 3 }[a.kind] - { added: 0, removed: 1, changed: 2, same: 3 }[b.kind]))
+}
+
+interface BatterySnap { serial: string; brand: string; partNumber: string }
+function extractBattery(r: any): BatterySnap | null {
+    const b = parseJson(r.battery_details_json)
+    if (!b || b.isTampered || !b.isPresent) return null
+    return { serial: (b.serialNumber || "").trim(), brand: (b.manufactureName || b.name || "").trim(), partNumber: (b.partNumber || "").trim() }
+}
+function batteryLabel(b: BatterySnap): string {
+    const parts = [b.brand, b.partNumber].filter(Boolean)
+    return (parts.join(" ") || "Unknown battery") + (b.serial ? ` [S/N: ${b.serial}]` : "")
+}
+
+interface HwChangeSummary {
+    cpu: { prev: string | null; curr: string | null; changed: boolean }
+    drives: DriveChange[]
+    ram: { changes: RamChange[]; countChanged: boolean; totalGBChanged: boolean; prevGB: number; currGB: number; prevCount: number; currCount: number }
+    battery: { prev: BatterySnap | null; curr: BatterySnap | null; changed: boolean }
+    systemSerial: { prev: string | null; curr: string | null; changed: boolean }
+    hasAnyChange: boolean
+}
+function computeHwDiff(prev: any | null, curr: any): HwChangeSummary {
+    const currDrives = extractDrives(curr), prevDrives = prev ? extractDrives(prev) : []
+    const drives = prev ? diffDrives(prevDrives, currDrives) : currDrives.map(d => ({ kind: "same" as const, drive: d }))
+    const currRam = extractRamModules(curr), prevRam = prev ? extractRamModules(prev) : { modules: [], totalGB: 0, usedSlots: 0, totalSlots: 0 }
+    const ramChanges = prev ? diffRam(prevRam, currRam) : currRam.modules.map(m => ({ kind: "same" as const, module: m }))
+    const currBat = extractBattery(curr), prevBat = prev ? extractBattery(prev) : null
+    const batteryChanged = !!(prev && prevBat !== null && currBat !== null && ((prevBat.serial && currBat.serial && prevBat.serial !== currBat.serial) || (prevBat.partNumber && currBat.partNumber && prevBat.partNumber !== currBat.partNumber)))
+    const currCpu = curr.cpu_model || null, prevCpu = prev?.cpu_model || null
+    const currSerial = curr.system_serial || null, prevSerial = prev?.system_serial || null
+    return {
+        cpu: { prev: prevCpu, curr: currCpu, changed: !!prev && !!prevCpu && !!currCpu && prevCpu !== currCpu },
+        drives, ram: { changes: ramChanges, countChanged: prev ? prevRam.usedSlots !== currRam.usedSlots : false, totalGBChanged: prev ? prevRam.totalGB !== currRam.totalGB : false, prevGB: prevRam.totalGB, currGB: currRam.totalGB, prevCount: prevRam.usedSlots, currCount: currRam.usedSlots },
+        battery: { prev: prevBat, curr: currBat, changed: batteryChanged },
+        systemSerial: { prev: prevSerial, curr: currSerial, changed: !!prev && !!prevSerial && !!currSerial && prevSerial !== currSerial },
+        hasAnyChange: (!!prev && !!prevCpu && !!currCpu && prevCpu !== currCpu) || drives.some(d => d.kind !== "same") || ramChanges.some(r => r.kind !== "same") || batteryChanged || (!!prev && !!prevSerial && !!currSerial && prevSerial !== currSerial),
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 export default function ResultDetailPage() {
     const { id } = useParams()
@@ -390,63 +488,18 @@ export default function ResultDetailPage() {
                 const prev = safeData.previous_result
                 if (!prev) return null // first-ever report for this machine
 
-                // Extract hardware snapshot helpers (inline for this page)
-                function getRamGB(r: any): number | null {
-                    return r.ram_total && r.ram_total > 0 ? Math.round(r.ram_total / (1024 ** 3)) : null
-                }
-                function getStorageLabel(r: any): string | null {
-                    try {
-                        const s = typeof r.storage_details_json === "string" ? JSON.parse(r.storage_details_json) : r.storage_details_json
-                        if (!s) return null
-                        const vols: any[] = Array.isArray(s.volumes) ? s.volumes : []
-                        const bytes = vols.reduce((a: number, v: any) => a + (typeof v.totalBytes === "number" ? v.totalBytes : 0), 0)
-                        if (bytes > 0) return formatBytes(bytes)
-                        if (s.totalCapacityGB) return `${Math.round(s.totalCapacityGB)} GB`
-                    } catch { /* */ }
-                    return null
-                }
-                function getBattery(r: any): string | null {
-                    try {
-                        const b = typeof r.battery_details_json === "string" ? JSON.parse(r.battery_details_json) : r.battery_details_json
-                        if (!b || b.isTampered) return null
-                        return b.manufactureName || b.name || b.partNumber || null
-                    } catch { /* */ }
-                    return null
-                }
-                function getRamDetail(r: any): string | null {
-                    try {
-                        const rd = typeof r.ram_details_json === "string" ? JSON.parse(r.ram_details_json) : r.ram_details_json
-                        if (!rd) return null
-                        const mods: any[] = Array.isArray(rd.modules) ? rd.modules : []
-                        const parts = mods.filter((m: any) => m.capacityBytes || m.capacityGb).map((m: any) => {
-                            const gb = m.capacityGb ?? Math.round((m.capacityBytes ?? 0) / (1024 ** 3))
-                            return `${gb} GB${m.type ? ` ${m.type}` : ""}${m.speed ? ` ${m.speed}MHz` : ""}`
-                        })
-                        return parts.length > 0 ? `${mods.length}× ${parts[0]}` : null
-                    } catch { /* */ }
-                    return null
-                }
+                const diff = computeHwDiff(prev, safeData)
+                if (!diff.hasAnyChange && diff.drives.every(d => d.kind === "same") && diff.ram.changes.every(r => r.kind === "same")) return null
 
-                const fields: Array<{ label: string; prevVal: string | null; currVal: string | null }> = [
-                    { label: "CPU", prevVal: prev.cpu_model || null, currVal: safeData.cpu_model || null },
-                    {
-                        label: "RAM",
-                        prevVal: getRamDetail(prev) ?? (getRamGB(prev) != null ? `${getRamGB(prev)} GB` : null),
-                        currVal: getRamDetail(safeData) ?? (getRamGB(safeData) != null ? `${getRamGB(safeData)} GB` : null),
-                    },
-                    { label: "Storage", prevVal: getStorageLabel(prev), currVal: getStorageLabel(safeData) },
-                    { label: "Battery", prevVal: getBattery(prev), currVal: getBattery(safeData) },
-                    { label: "Serial", prevVal: prev.system_serial || null, currVal: safeData.system_serial || null },
-                ]
+                const changedDrives = diff.drives.filter(d => d.kind !== "same")
+                const changedRam = diff.ram.changes.filter(r => r.kind !== "same")
+                const totalChanges = changedDrives.length + changedRam.length +
+                    (diff.cpu.changed ? 1 : 0) + (diff.battery.changed ? 1 : 0) + (diff.systemSerial.changed ? 1 : 0)
 
-                const changed = fields.filter(f => f.prevVal !== null && f.currVal !== null && f.prevVal !== f.currVal)
-                const unchanged = fields.filter(f => f.prevVal !== null && f.currVal !== null && f.prevVal === f.currVal)
-                const noData = fields.filter(f => f.prevVal === null || f.currVal === null)
-
-                if (changed.length === 0 && unchanged.length === 0) return null
+                const hasChanges = totalChanges > 0
 
                 return (
-                    <Card className={`border-t-4 ${changed.length > 0 ? "border-t-amber-500" : "border-t-emerald-500"}`}>
+                    <Card className={`border-t-4 ${hasChanges ? "border-t-amber-500" : "border-t-emerald-500"}`}>
                         <CardContent className="p-8">
                             <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
                                 <div>
@@ -457,9 +510,9 @@ export default function ResultDetailPage() {
                                         {" "}(#{prev.report_id})
                                     </p>
                                 </div>
-                                {changed.length > 0 ? (
+                                {hasChanges ? (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-700">
-                                        ⚠ {changed.length} part{changed.length === 1 ? "" : "s"} changed
+                                        ⚠ {totalChanges} change{totalChanges === 1 ? "" : "s"} detected
                                     </span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-700">
@@ -469,36 +522,113 @@ export default function ResultDetailPage() {
                             </div>
 
                             <div className="grid gap-3 mt-4">
-                                {changed.map(f => (
-                                    <div key={f.label} className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide w-16 shrink-0 mt-0.5">{f.label}</span>
+                                {/* CPU */}
+                                {diff.cpu.changed && (
+                                    <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide w-16 shrink-0 mt-0.5">CPU</span>
                                         <div className="flex items-center gap-2 flex-wrap text-sm">
-                                            <span className="text-slate-400 line-through">{f.prevVal}</span>
+                                            <span className="text-slate-400 line-through">{diff.cpu.prev}</span>
                                             <span className="text-slate-400">→</span>
-                                            <span className="font-semibold text-slate-900">{f.currVal}</span>
-                                            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                                                Changed
-                                            </span>
+                                            <span className="font-semibold text-slate-900">{diff.cpu.curr}</span>
+                                            <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">Changed</span>
                                         </div>
                                     </div>
-                                ))}
-                                {unchanged.map(f => (
-                                    <div key={f.label} className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide w-16 shrink-0 mt-0.5">{f.label}</span>
-                                        <span className="text-sm text-slate-600">{f.currVal}</span>
-                                        <span className="ml-auto inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Unchanged</span>
+                                )}
+
+                                {/* Drives — per-drive by serial */}
+                                {changedDrives.length > 0 && (
+                                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 grid gap-2">
+                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Storage Changes</span>
+                                        {changedDrives.map((dc, i) => (
+                                            <div key={i} className="flex items-center gap-2 flex-wrap pl-1">
+                                                {dc.kind === "added" && <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Added</span>}
+                                                {dc.kind === "removed" && <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Removed</span>}
+                                                <span className={`text-sm ${dc.kind === "removed" ? "line-through text-slate-400" : "font-medium text-slate-900"}`}>
+                                                    {driveLabel(dc.drive)}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                                {noData.length > 0 && (
-                                    <p className="text-xs text-slate-400 italic">
-                                        {noData.map(f => f.label).join(", ")} — data not available in one or both reports.
-                                    </p>
+                                )}
+
+                                {/* RAM — per-slot */}
+                                {changedRam.length > 0 && (
+                                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 grid gap-2">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">RAM Changes</span>
+                                            {(diff.ram.totalGBChanged || diff.ram.countChanged) && (
+                                                <span className="text-xs text-slate-500">
+                                                    {diff.ram.totalGBChanged && `${diff.ram.prevGB} GB → ${diff.ram.currGB} GB`}
+                                                    {diff.ram.countChanged && ` · ${diff.ram.prevCount} → ${diff.ram.currCount} sticks`}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {changedRam.map((rc, i) => (
+                                            <div key={i} className="flex items-center gap-2 flex-wrap pl-1">
+                                                {rc.kind === "added" && <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Added</span>}
+                                                {rc.kind === "removed" && <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Removed</span>}
+                                                {rc.kind === "changed" && <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">Changed</span>}
+                                                {rc.kind === "changed" ? (
+                                                    <><span className="text-sm text-slate-400 line-through">{slotLabel(rc.prev)}</span><span className="text-slate-400">→</span><span className="text-sm font-medium text-slate-900">{slotLabel(rc.curr)}</span></>
+                                                ) : rc.kind === "removed" ? (
+                                                    <span className="text-sm line-through text-slate-400">{slotLabel(rc.module)}</span>
+                                                ) : (
+                                                    <span className="text-sm font-medium text-slate-900">{slotLabel(rc.module)}</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Battery */}
+                                {diff.battery.changed && (
+                                    <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide w-16 shrink-0 mt-0.5">Battery</span>
+                                        <div className="flex items-center gap-2 flex-wrap text-sm">
+                                            {diff.battery.prev && <span className="text-slate-400 line-through">{batteryLabel(diff.battery.prev)}</span>}
+                                            <span className="text-slate-400">→</span>
+                                            {diff.battery.curr && <span className="font-semibold text-slate-900">{batteryLabel(diff.battery.curr)}</span>}
+                                            <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">Replaced</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* System Serial change — possible board swap */}
+                                {diff.systemSerial.changed && (
+                                    <div className="flex items-start gap-3 rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
+                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide w-16 shrink-0 mt-0.5">S/N</span>
+                                        <div className="flex items-center gap-2 flex-wrap text-sm">
+                                            <span className="text-slate-400 line-through">{diff.systemSerial.prev}</span>
+                                            <span className="text-slate-400">→</span>
+                                            <span className="font-semibold text-slate-900">{diff.systemSerial.curr}</span>
+                                            <span className="inline-flex items-center rounded-full bg-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-800">⚠ Board changed?</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Unchanged drives */}
+                                {diff.drives.filter(d => d.kind === "same").length > 0 && (
+                                    <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 grid gap-2">
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Unchanged Drives</span>
+                                        {diff.drives.filter(d => d.kind === "same").map((dc, i) => (
+                                            <div key={i} className="flex items-center gap-2 pl-1">
+                                                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Unchanged</span>
+                                                <span className="text-sm text-slate-600">{driveLabel(dc.drive)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {!hasChanges && (
+                                    <p className="text-sm text-slate-500 italic">All hardware components match the previous report.</p>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
                 )
             })()}
+
+
 
 
 
