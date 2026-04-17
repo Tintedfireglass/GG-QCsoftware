@@ -347,7 +347,7 @@ public partial class QCWizardViewModel : ObservableObject
                 try
                 {
                     using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-                    var response = await http.GetAsync("https://www.google.com");
+                    var response = await http.GetAsync("http://www.msftconnecttest.com/connecttest.txt");
                     internetReachable = response.IsSuccessStatusCode;
                 }
                 catch

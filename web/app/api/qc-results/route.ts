@@ -174,6 +174,48 @@ export async function POST(request: NextRequest) {
 
         const body: SubmitQCResultRequest = await request.json();
 
+        // Intercept and mark storage as tampered if it has 0% health but passed the SMART self-test
+        if (body.storageDetails?.devices && Array.isArray(body.storageDetails.devices)) {
+            const smartTest = body.testResults?.find(t => t.testType === 'SMART' || t.testType === 'Smart');
+            const smartDetails = Array.isArray(smartTest?.details) ? smartTest.details : [];
+
+            let tamperedFound = false;
+
+            for (const device of body.storageDetails.devices) {
+                if (device.healthPercent === 0) {
+                    const passedSelfTest = smartDetails.some((d: any) => 
+                        typeof d === 'string' && d.includes('Self-Test Passed') && device.model && d.includes(device.model)
+                    );
+                    
+                    if (passedSelfTest) {
+                        device.isTampered = true;
+                        device.tamperReason = "Storage Tampered - Unable to read data";
+                        tamperedFound = true;
+                    }
+                }
+            }
+
+            if (tamperedFound) {
+                body.storageDetails.isTampered = true;
+                body.storageDetails.tamperReason = "Storage Tampered - Unable to read data";
+
+                const storageTest = body.testResults?.find(t => t.testType === 'Storage');
+                if (storageTest) {
+                    storageTest.passed = false;
+                    storageTest.score = 0;
+                    storageTest.grade = 'F';
+                    storageTest.message = "Storage Tampered - Unable to read data";
+                    storageTest.details = ["Storage Tampered - Unable to read data"];
+                }
+                
+                body.overallPass = false;
+                if (body.overallScore !== undefined && body.overallScore > 0) {
+                    body.overallGrade = 'F';
+                }
+            }
+        }
+
+
         const forwardedFor = request.headers.get('x-forwarded-for') || request.headers.get('x-vercel-forwarded-for');
         const forwarded = request.headers.get('forwarded');
         const forwardedIp = forwarded?.match(/for="?([^;,"]+)"?/i)?.[1];

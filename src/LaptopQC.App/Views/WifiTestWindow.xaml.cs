@@ -85,7 +85,7 @@ public partial class WifiTestWindow : Window
                 try
                 {
                     using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-                    var response = await http.GetAsync("https://www.google.com");
+                    var response = await http.GetAsync("http://www.msftconnecttest.com/connecttest.txt");
                     internetReachable = response.IsSuccessStatusCode;
                 }
                 catch
