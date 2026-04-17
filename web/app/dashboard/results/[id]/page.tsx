@@ -635,7 +635,8 @@ export default function ResultDetailPage() {
 
             {/* Issues Summary Banner */}
             {(() => {
-                const issueTests = test_results.filter((t: any) => isIssue(t))
+                const batteryPresent = safeData?.battery_details_json?.isPresent !== false
+                const issueTests = test_results.filter((t: any) => isIssue(t, batteryPresent))
                 if (issueTests.length === 0) return null
                 return (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
@@ -643,7 +644,7 @@ export default function ResultDetailPage() {
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
                                 ⚠ {issueTests.length} {issueTests.length === 1 ? 'Issue' : 'Issues'} Detected
                             </span>
-                            <span className="text-xs text-slate-500">Non-peripheral components scoring below 70</span>
+                            <span className="text-xs text-slate-500">Core components (CPU/GPU/Memory/Storage/Battery) scoring below 70</span>
                         </div>
                         <ul className="grid gap-1">
                             {issueTests.map((t: any) => (
@@ -730,7 +731,8 @@ export default function ResultDetailPage() {
                     sortedTests.map((test: any) => {
                         const s = getGradeStyle(test.grade);
                         const borderClass = s.border;
-                        const isTestIssue = isIssue(test);
+                        const batteryPresent = safeData?.battery_details_json?.isPresent !== false
+                        const isTestIssue = isIssue(test, batteryPresent);
                         return (
                             <Card key={test.id} className={`border-l-4 ${borderClass}`}>
                                 <CardHeader className="py-4">

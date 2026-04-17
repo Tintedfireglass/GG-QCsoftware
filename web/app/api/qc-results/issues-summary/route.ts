@@ -3,43 +3,25 @@ import { query } from "@/lib/db"
 import { authenticateRequest } from "@/lib/auth-middleware"
 import { ApiError } from "@/lib/types"
 
-// Peripheral test types that are EXCLUDED from issue detection (server-side mirror of lib/issues.ts)
-const PERIPHERAL_PREFIXES = [
-    "keyboard",
-    "touchpad",
-    "trackpad",
-    "webcam",
-    "camera",
-    "speakers",
-    "speaker",
-    "microphone",
-    "mic",
-    "screen",
-    "display",
-    "usb",
-    "thunderbolt",
-    "hdmi",
-    "sd card",
-    "sdcard",
-    "ethernet",
-    "lan",
-    "bluetooth",
-    "wifi",
-    "wi-fi",
-    "wireless",
-    "ports",
-    "physical ports",
-    "fingerprint",
-    "numpad",
-    "number pad",
-]
+// Core test type prefixes — only these 5 categories count as issues (server-side mirror of lib/issues.ts)
+const CORE_PREFIXES = ["cpu", "gpu", "graphics", "memory", "ram", "storage", "nvme", "ssd", "smart", "battery"]
 
-// Build a SQL expression that returns true for peripheral test types
-// Uses LOWER() + LIKE to match the same logic as the client-side isPeripheral()
-function buildPeripheralExclusionSql(): string {
-    return PERIPHERAL_PREFIXES.map(
-        (p) => `LOWER(tr.test_type) LIKE '${p.replace(/'/g, "''")}%'`
-    ).join(" OR ")
+function buildCoreTestSql(trAlias = "tr", qrAlias = "qr"): string {
+    // Matches any core test type prefix. Battery is only an issue if the device has a battery.
+    const nonBatteryClauses = CORE_PREFIXES.filter((p) => p !== "battery")
+        .map((p) => `LOWER(${trAlias}.test_type) LIKE '${p}%'`)
+        .join("\n        OR ")
+
+    return `(
+        (
+          ${nonBatteryClauses}
+        )
+        OR (
+          LOWER(${trAlias}.test_type) LIKE 'battery%'
+          AND ${qrAlias}.battery_details_json IS NOT NULL
+          AND (${qrAlias}.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+        )
+    )`
 }
 
 /**
@@ -49,7 +31,8 @@ function buildPeripheralExclusionSql(): string {
  *   { devicesWithIssues: number, totalDevices: number }
  *
  * Considers only the LATEST QC report per machine (scoped by role).
- * A device has an "issue" if any of its non-peripheral test results have score < 70.
+ * A device has an "issue" if any core test (CPU/GPU/Memory/Storage/Battery)
+ * in its latest report has score < 70. Battery tests are skipped for desktops.
  */
 export async function GET(request: NextRequest) {
     try {
@@ -88,15 +71,14 @@ export async function GET(request: NextRequest) {
         }
 
         const whereSql = whereClauses.join(" AND ")
-        const peripheralExclusion = buildPeripheralExclusionSql()
+        const coreTestSql = buildCoreTestSql("tr", "lpm")
 
-        // Step 1: Get the latest report ID per machine (within the user's scope)
-        // Step 2: For those reports, count how many have ≥1 non-peripheral test with score < 70
         const sql = `
       WITH latest_per_machine AS (
         SELECT DISTINCT ON (qr.machine_id)
-          qr.id AS result_id,
-          qr.machine_id
+          qr.id               AS result_id,
+          qr.machine_id,
+          qr.battery_details_json
         FROM qc_results qr
         WHERE ${whereSql}
         ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
@@ -106,7 +88,7 @@ export async function GET(request: NextRequest) {
         FROM latest_per_machine lpm
         JOIN test_results tr ON tr.qc_result_id = lpm.result_id
         WHERE tr.score < 70
-          AND NOT (${peripheralExclusion})
+          AND ${coreTestSql}
       )
       SELECT
         (SELECT COUNT(*) FROM latest_per_machine) AS total_devices,
