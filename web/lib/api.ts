@@ -58,6 +58,12 @@ export async function getMachineHistoryAlerts() {
     return res.json();
 }
 
+export async function getIssuesSummary(): Promise<{ devicesWithIssues: number; totalDevices: number }> {
+    const res = await fetchWithAuth("/api/qc-results/issues-summary");
+    if (!res.ok) throw new Error("Failed to fetch issues summary");
+    return res.json();
+}
+
 export async function getMachine(id: string) {
     const res = await fetchWithAuth(`/api/machines/${id}`);
     if (!res.ok) throw new Error("Failed to fetch machine details");

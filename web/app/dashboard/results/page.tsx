@@ -26,8 +26,8 @@ export default function ResultsPage() {
     const [exportingPdf, setExportingPdf] = useState(false)
     const limit = 20
 
-    // Show technician column for admins/superadmins
-    const showTechnicianColumn = isSuperAdmin() || isAdmin()
+    // Show user/technician column for all roles
+    const showTechnicianColumn = true
 
     async function loadData(pageToLoad = page, searchTerm = appliedSearch) {
         setLoading(true)

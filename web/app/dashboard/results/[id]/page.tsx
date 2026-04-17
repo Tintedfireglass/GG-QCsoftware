@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
 import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
+import { isIssue } from "@/lib/issues"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
 
@@ -632,6 +633,34 @@ export default function ResultDetailPage() {
 
 
 
+            {/* Issues Summary Banner */}
+            {(() => {
+                const issueTests = test_results.filter((t: any) => isIssue(t))
+                if (issueTests.length === 0) return null
+                return (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+                                ⚠ {issueTests.length} {issueTests.length === 1 ? 'Issue' : 'Issues'} Detected
+                            </span>
+                            <span className="text-xs text-slate-500">Non-peripheral components scoring below 70</span>
+                        </div>
+                        <ul className="grid gap-1">
+                            {issueTests.map((t: any) => (
+                                <li key={t.id} className="flex items-center gap-2 text-sm text-red-800">
+                                    <span className="font-semibold">{t.test_type}</span>
+                                    <span className="text-red-400">—</span>
+                                    <span className="font-mono font-bold">{t.score}/100</span>
+                                    {t.message && (
+                                        <span className="text-red-600 text-xs truncate max-w-[400px]">{t.message}</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )
+            })()}
+
             {/* Test Results List */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
                 <div>
@@ -701,11 +730,19 @@ export default function ResultDetailPage() {
                     sortedTests.map((test: any) => {
                         const s = getGradeStyle(test.grade);
                         const borderClass = s.border;
+                        const isTestIssue = isIssue(test);
                         return (
                             <Card key={test.id} className={`border-l-4 ${borderClass}`}>
                                 <CardHeader className="py-4">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-base font-semibold">{test.test_type}</CardTitle>
+                                        <div className="flex items-center gap-2">
+                                            <CardTitle className="text-base font-semibold">{test.test_type}</CardTitle>
+                                            {isTestIssue && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 whitespace-nowrap">
+                                                    ⚠ Issue
+                                                </span>
+                                            )}
+                                        </div>
                                         <GradeBadge grade={test.grade} score={test.score} />
                                     </div>
                                 </CardHeader>

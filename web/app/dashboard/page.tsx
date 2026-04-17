@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { getMachineHistoryAlerts, getMachines, getQCResults, getUsers } from "@/lib/api"
+import { getMachineHistoryAlerts, getMachines, getQCResults, getUsers, getIssuesSummary } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,8 @@ import {
     UserCheck,
     TrendingUp,
     Download,
-    AlertTriangle
+    AlertTriangle,
+    AlertOctagon
 } from "lucide-react"
 
 export default function DashboardPage() {
@@ -35,16 +36,18 @@ export default function DashboardPage() {
         recentTests: [] as any[]
     })
     const [alerts, setAlerts] = useState<any[]>([])
+    const [issueStats, setIssueStats] = useState<{ devicesWithIssues: number; totalDevices: number }>({ devicesWithIssues: 0, totalDevices: 0 })
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
     async function loadData(query = "") {
         setLoading(true)
         try {
-            const [resultsData, machinesData, alertsData] = await Promise.all([
+            const [resultsData, machinesData, alertsData, issueData] = await Promise.all([
                 getQCResults(1, 10, { search: query }),
                 getMachines(),
-                getMachineHistoryAlerts().catch(() => ({ alerts: [] }))
+                getMachineHistoryAlerts().catch(() => ({ alerts: [] })),
+                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 }))
             ])
 
             const total = resultsData.pagination.total
@@ -77,6 +80,7 @@ export default function DashboardPage() {
                 recentTests: resultsData.results
             })
             setAlerts(alertsData.alerts || [])
+            setIssueStats(issueData)
         } catch (error) {
             console.error("Failed to load dashboard data", error)
         } finally {
@@ -139,6 +143,44 @@ export default function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
+
+                {/* Issues Card — always visible, all roles */}
+                <Link href="/dashboard/results">
+                    <Card className={cn(
+                        "shadow-none cursor-pointer transition-colors",
+                        issueStats.devicesWithIssues > 0
+                            ? "border-red-200 hover:border-red-400 bg-red-50/40"
+                            : "border-emerald-200 hover:border-emerald-400 bg-emerald-50/30"
+                    )}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-600">
+                                {isUser() ? "My Systems with Issues" : "Systems with Issues"}
+                            </CardTitle>
+                            <div className={cn(
+                                "h-8 w-8 rounded-lg flex items-center justify-center",
+                                issueStats.devicesWithIssues > 0 ? "bg-red-100" : "bg-emerald-100"
+                            )}>
+                                <AlertOctagon className={cn(
+                                    "h-4 w-4",
+                                    issueStats.devicesWithIssues > 0 ? "text-red-600" : "text-emerald-600"
+                                )} />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={cn(
+                                "text-2xl font-bold",
+                                issueStats.devicesWithIssues > 0 ? "text-red-600" : "text-emerald-600"
+                            )}>
+                                {issueStats.devicesWithIssues}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                {issueStats.devicesWithIssues > 0
+                                    ? `of ${issueStats.totalDevices} ${issueStats.totalDevices === 1 ? 'system' : 'systems'} tested`
+                                    : "All systems healthy"}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </Link>
 
                 {/* Show different stats based on role */}
                 {(isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) && (
