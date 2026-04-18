@@ -368,8 +368,6 @@ export default function ResultsPage() {
                                     <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
                                 )}
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 max-w-[200px]">Model</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">CPU</th>
-                                <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[50px]">RAM</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Serial No.</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Date</th>
@@ -449,18 +447,10 @@ export default function ResultsPage() {
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="p-2 align-middle text-slate-900 leading-tight max-w-[180px]">
-                                                <div className="truncate max-w-[180px]" title={`${test.system_manufacturer} ${test.system_model}`}>
+                                            <td className="p-2 align-middle text-slate-900 leading-tight max-w-[200px]">
+                                                <div className="truncate max-w-[200px]" title={`${test.system_manufacturer} ${test.system_model}`}>
                                                     {test.system_manufacturer} {test.system_model}
                                                 </div>
-                                            </td>
-                                            <td className="p-2 align-middle text-slate-500 text-xs break-words w-[90px]">
-                                                <div className="truncate" title={test.cpu_model || ''}>
-                                                    {test.cpu_model ? test.cpu_model.split(' ').slice(0, 4).join(' ') : '—'}
-                                                </div>
-                                            </td>
-                                            <td className="p-2 align-middle text-slate-500 text-xs w-[50px]">
-                                                {test.ram_total ? `${Math.round(Number(test.ram_total) / (1024 ** 3))} GB` : '—'}
                                             </td>
                                             <td className="p-2 align-middle text-slate-500 break-words">{formatAppVersion(test.app_version)}</td>
                                             <td className="p-2 align-middle text-slate-500 break-words">
