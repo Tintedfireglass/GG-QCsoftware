@@ -387,7 +387,6 @@ public class ReportGenerator
         AppendTestRow(sb, "CPU", report.CpuTest);
         AppendTestRow(sb, "RAM", report.RamTest);
         AppendTestRow(sb, "Storage", report.StorageTest);
-        AppendTestRow(sb, "SMART Health", report.SmartTest);
         AppendTestRow(sb, "Battery", report.BatteryTest);
         AppendTestRow(sb, "Keyboard", report.KeyboardTest);
         AppendTestRow(sb, "Trackpad", report.TrackpadTest);

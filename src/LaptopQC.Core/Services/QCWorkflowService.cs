@@ -229,9 +229,6 @@ public class QCWorkflowService
             if (_smartTestService.IsAvailable)
             {
                 var healthCheck = await Task.Run(() => _smartTestService.QuickHealthCheck());
-                Report.SmartTest.Tested = true;
-                Report.SmartTest.Passed = healthCheck.OverallHealthy;
-                Report.SmartTest.Message = healthCheck.Message;
 
                 int selfTestPassedCount = 0;
                 int selfTestFailedCount = 0;
@@ -239,7 +236,7 @@ public class QCWorkflowService
                 
                 foreach (var device in healthCheck.Devices)
                 {
-                    Report.SmartTest.Details.Add($"{device.Model}: {device.HealthStatus} ({device.HealthScore}%)");
+                    Report.StorageTest.Details.Add($"[SMART] {device.Model}: {device.HealthStatus} ({device.HealthScore}%)");
                     
                     // Sync SMART data to StorageDetails for the report
                     var storageDevice = Report.StorageDetails?.Devices.FirstOrDefault(d => 
@@ -268,18 +265,18 @@ public class QCWorkflowService
                             {
                                 selfTestInconclusiveCount++;
                                 var reason = GetInconclusiveReason(testResult.Message);
-                                Report.SmartTest.Details.Add($"Self-Test Inconclusive: {device.Model} ({reason})");
+                                Report.StorageTest.Details.Add($"Self-Test Inconclusive: {device.Model} ({reason})");
                             }
                             else
                             {
                                 selfTestFailedCount++;
-                                Report.SmartTest.Details.Add($"Self-Test Failed: {device.Model} ({testResult.Message})");
+                                Report.StorageTest.Details.Add($"Self-Test Failed: {device.Model} ({testResult.Message})");
                             }
                         }
                         else
                         {
                             selfTestPassedCount++;
-                            Report.SmartTest.Details.Add($"Self-Test Passed: {device.Model}");
+                            Report.StorageTest.Details.Add($"Self-Test Passed: {device.Model}");
                         }
                     }
                 }
@@ -318,43 +315,24 @@ public class QCWorkflowService
 
                 if (selfTestPassedCount + selfTestFailedCount + selfTestInconclusiveCount > 0)
                 {
-                    Report.SmartTest.Details.Add(
+                    Report.StorageTest.Details.Add(
                         $"Self-Test Summary: {selfTestPassedCount} passed, {selfTestFailedCount} failed, {selfTestInconclusiveCount} inconclusive");
                 }
 
                 if (!healthCheck.OverallHealthy)
                 {
-                    Report.SmartTest.Passed = false;
-                    Report.SmartTest.Message = healthCheck.Message;
+                    Report.StorageTest.Passed = false;
+                    Report.StorageTest.Message += " (SMART Warning)";
                 }
                 else if (selfTestFailedCount > 0)
                 {
-                    Report.SmartTest.Passed = false;
-                    Report.SmartTest.Message = "SMART self-test failed on one or more drives";
-                }
-                else if (selfTestInconclusiveCount > 0 && selfTestPassedCount == 0)
-                {
-                    // All self-tests were inconclusive — driver incompatibility, not a drive failure.
-                    Report.SmartTest.Passed = true;
-                    Report.SmartTest.Message = "SMART health check passed (self-test skipped — driver incompatibility on one or more drives)";
-                }
-                else if (selfTestInconclusiveCount > 0)
-                {
-                    // Mix of passed and inconclusive — not a failure
-                    Report.SmartTest.Passed = true;
-                    Report.SmartTest.Message = $"SMART health passed ({selfTestPassedCount} self-test(s) passed, {selfTestInconclusiveCount} skipped due to driver incompatibility)";
-                }
-                else
-                {
-                    Report.SmartTest.Passed = true;
-                    Report.SmartTest.Message = "SMART health and self-test passed on all drives";
+                    Report.StorageTest.Passed = false;
+                    Report.StorageTest.Message += " (Self-Test Failed)";
                 }
             }
             else
             {
-                Report.SmartTest.Tested = true;
-                Report.SmartTest.Passed = false;
-                Report.SmartTest.Message = "SMART tools not available";
+                Report.StorageTest.Details.Add("SMART tools not available for self-test");
             }
 
             if (!skipStressTests)

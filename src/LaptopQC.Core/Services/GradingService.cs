@@ -56,13 +56,13 @@ public class GradingService
     public static readonly List<TestDefinition> TestDefinitions = new()
     {
         new() { Name = "Battery",    Weight = 25, GetResult = r => r.BatteryTest,    ScoreFunc = ScoreBattery },
-        new() { Name = "SMART",      Weight = 20, GetResult = r => r.SmartTest,      ScoreFunc = ScoreSmart },
+        new() { Name = "SMART",      Weight = 0,  GetResult = r => r.SmartTest,      ScoreFunc = (_, _) => null }, // Deprecated, merged into Storage
         new() { Name = "CPU",        Weight = 15, GetResult = r => r.CpuTest,        ScoreFunc = ScoreCpu },
         new() { Name = "GPU",        Weight = 10, GetResult = r => r.GpuTest,        ScoreFunc = ScoreGpu },
         new() { Name = "Keyboard",   Weight = 10, GetResult = r => r.KeyboardTest,   ScoreFunc = ScoreBinary },
         new() { Name = "RAM",        Weight = 5,  GetResult = r => r.RamTest,        ScoreFunc = ScoreRam },
         new() { Name = "Trackpad",   Weight = 5,  GetResult = r => r.TrackpadTest,   ScoreFunc = ScoreBinary },
-        new() { Name = "Storage",    Weight = 4,  GetResult = r => r.StorageTest,    ScoreFunc = ScoreStorage },
+        new() { Name = "Storage",    Weight = 24, GetResult = r => r.StorageTest,    ScoreFunc = ScoreStorage },
         new() { Name = "USB",        Weight = 4,  GetResult = r => r.UsbTest,        ScoreFunc = ScoreBinary },
         new() { Name = "AudioVideo", Weight = 4,  GetResult = r => r.AudioVideoTest, ScoreFunc = ScoreBinary },
         new() { Name = "AudioJack",  Weight = 2,  GetResult = r => r.AudioJackTest,  ScoreFunc = ScoreBinary },
@@ -80,9 +80,6 @@ public class GradingService
     /// </summary>
     public void GradeReport(QCReport report, PramaanScoringConfig? pramaanConfig = null)
     {
-        double totalWeightedScore = 0;
-        double totalWeight = 0;
-
         foreach (var def in TestDefinitions)
         {
             var testResult = def.GetResult(report);
@@ -98,21 +95,11 @@ public class GradingService
             int clamped = Math.Clamp(score.Value, 0, 100);
             testResult.Score = clamped;
             testResult.Grade = ScoreToGrade(clamped).ToString();
-
-            totalWeightedScore += clamped * def.Weight;
-            totalWeight += def.Weight;
         }
 
-        if (totalWeight > 0)
-        {
-            report.OverallScore = (int)Math.Round(totalWeightedScore / totalWeight);
-            report.OverallGrade = ScoreToGrade(report.OverallScore).ToString();
-        }
-        else
-        {
-            report.OverallScore = 0;
-            report.OverallGrade = DeviceGrade.F.ToString();
-        }
+        // PRAMAAN has entirely replaced the legacy overall score logic
+        report.OverallScore = 0; 
+        report.OverallGrade = "PRAMAAN";
 
         // ── PRAMAAN scoring ──
         var pramaanEngine = new PramaanScoringEngine(pramaanConfig);
@@ -219,28 +206,7 @@ public class GradingService
         return Math.Max(0, score);
     }
 
-    /// <summary>SMART: uses health score from SMART data. Penalizes self-test failure.</summary>
-    private static int? ScoreSmart(QCReport report, TestResult result)
-    {
-        if (!result.Tested) return null;
 
-        // Extract health scores from detail strings like "ModelName: Excellent (95%)"
-        var scores = new List<int>();
-        foreach (var detail in result.Details)
-        {
-            var match = Regex.Match(detail, @"\((\d+)%\)");
-            if (match.Success && int.TryParse(match.Groups[1].Value, out int pct))
-                scores.Add(pct);
-        }
-
-        int score = scores.Count > 0 ? (int)scores.Average() : (result.Passed ? 80 : 30);
-
-        // Self-test failure caps the score
-        if (result.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
-            score = Math.Min(score, 30);
-
-        return Math.Clamp(score, 0, 100);
-    }
 
     /// <summary>CPU: scored by throttle verdict keywords in test message.</summary>
     private static int? ScoreCpu(QCReport report, TestResult result)
@@ -315,7 +281,7 @@ public class GradingService
     }
 
     /// <summary>
-    /// Storage: three trust tiers.
+    /// Storage: integrates physical health and SMART self-test results.
     /// Tampered = hard fail, Inconclusive = soft fail, Suspicious = penalty.
     /// </summary>
     private static int? ScoreStorage(QCReport report, TestResult result)
@@ -328,10 +294,21 @@ public class GradingService
         if (report.StorageDetails?.IsInconclusive == true)
             return 35;
 
-        int score = result.Passed ? 100 : 0;
+        int score = result.Passed ? 100 : 20;
+
+        // Self-test failure or generic failure strings
+        if (result.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
+            score = Math.Min(score, 30);
 
         if (report.StorageDetails?.IsSuspicious == true)
             score -= 25;
+
+        // If the primary/only driver is eMMC and lacks definitive health telemetry, cap to 80 (Pass - Unverified Life)
+        if (report.StorageDetails != null && report.StorageDetails.Devices.Any() &&
+            report.StorageDetails.Devices.All(d => d.IsEMMC && !d.HealthPercent.HasValue))
+        {
+            score = Math.Min(score, 80);
+        }
 
         return Math.Clamp(score, 0, 100);
     }

@@ -44,6 +44,7 @@ public class StorageDevice
     public ulong SizeBytes { get; set; }
     public double SizeGB { get; set; }
     public bool IsSsd { get; set; }
+    public bool IsEMMC { get; set; }
     
     // SMART data
     public int? HealthPercent { get; set; }

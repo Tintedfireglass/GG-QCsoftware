@@ -62,19 +62,23 @@ export function isGpuTestType(testType: string): boolean {
  * - GPU skipped when score === 0 ("No discrete GPU detected" — not a fault)
  */
 export function isIssue(
-    test: { test_type?: string; score?: number },
+    test: { test_type?: string; score?: number; passed?: boolean },
     batteryPresent?: boolean
 ): boolean {
     if (!test.test_type) return false
     if (!isCoreTestType(test.test_type)) return false
 
     const score = typeof test.score === "number" ? test.score : 0
+    const passed = test.passed
 
     // Skip battery issues for desktops (no battery)
     if (isBatteryTestType(test.test_type) && batteryPresent === false) return false
 
     // Skip GPU score=0: means "no discrete GPU present", not a failing GPU
-    if (isGpuTestType(test.test_type) && score === 0) return false
+    if (isGpuTestType(test.test_type) && score === 0 && (passed === true || passed === undefined)) return false
+
+    // If a test explicitly failed, it's always an issue regardless of score
+    if (passed === false) return true
 
     return score < ISSUE_SCORE_THRESHOLD
 }

@@ -40,8 +40,11 @@ public class StorageDiagnostic : IStorageDiagnostic
                 DeviceId = _wmi.GetValue<string>(obj, "DeviceID", "") ?? ""
             };
 
-            // Determine if SSD or HDD
-            device.IsSsd = DetectSsd(device);
+            // Determine if SSD, HDD, or eMMC
+            device.IsEMMC = device.Model.Contains("emmc", StringComparison.OrdinalIgnoreCase) || 
+                            device.MediaType.Contains("emmc", StringComparison.OrdinalIgnoreCase) || 
+                            device.InterfaceType.Equals("MMC", StringComparison.OrdinalIgnoreCase);
+            device.IsSsd = device.IsEMMC || DetectSsd(device);
             device.SizeGB = device.SizeBytes / (1024.0 * 1024 * 1024);
 
             info.Devices.Add(device);
@@ -168,19 +171,47 @@ public class StorageDiagnostic : IStorageDiagnostic
         foreach (var device in info.Devices)
         {
             bool hasSmartTelemetry = device.HealthPercent.HasValue || device.Temperature.HasValue || device.PowerOnHours.HasValue || device.TotalBytesWritten.HasValue;
-            allMissingSmartTelemetry &= !hasSmartTelemetry;
+            
+            // Skip eMMC drives when checking for missing telemetry since they rarely support SMART
+            if (!device.IsEMMC)
+            {
+                allMissingSmartTelemetry &= !hasSmartTelemetry;
+            }
+            else if (info.Devices.Count == 1)
+            {
+                // If the only drive is eMMC, it is definitely not "missing/inconclusive"
+                allMissingSmartTelemetry = false;
+            }
 
             bool invalidHealth = device.HealthPercent.HasValue && (device.HealthPercent.Value < 0 || device.HealthPercent.Value > 100);
             bool invalidTemp = device.Temperature.HasValue && (device.Temperature.Value < -10 || device.Temperature.Value > 120);
             bool invalidPowerHours = device.PowerOnHours.HasValue && device.PowerOnHours.Value < 0;
             bool invalidSize = device.SizeGB <= 0;
 
-            if (invalidHealth || invalidTemp || invalidPowerHours || invalidSize)
+            // Anti-Tamper: High bytes/data written but practically 0 power on hours
+            bool tbwParadox = device.TotalBytesWritten.HasValue && device.TotalBytesWritten.Value > 100 && 
+                              device.PowerOnHours.HasValue && device.PowerOnHours.Value < 10;
+
+            // Anti-Tamper: Faked OEM strings / generic bulk flashing
+            string sn = (device.SerialNumber ?? "").Trim();
+            bool genericSerial = sn == "000000000000" || sn == "11111111" || sn == "1234567890" || (sn.Length > 0 && sn.Replace("0", "").Length == 0);
+            
+            string mod = (device.Model ?? "").ToLowerInvariant();
+            bool isGenericModel = mod.Equals("ssd") || mod.Equals("nvme") || mod.Contains("sata ssd") || mod.Contains("nvme ssd");
+            bool fakeTemp = device.IsSsd && device.Temperature.HasValue && device.Temperature.Value == 40 && isGenericModel;
+
+            if (invalidHealth || invalidTemp || invalidPowerHours || invalidSize || tbwParadox || genericSerial || fakeTemp)
             {
                 device.IsTampered = true;
-                device.TamperReason = "Storage Tampered - Unable to read data";
+                device.TamperReason = tbwParadox ? "SMART Tampered - Improbable TBW/Power Ratio" :
+                                      genericSerial ? "Storage Tampered - Counterfeit Serial Number" :
+                                      fakeTemp ? "Sensor Tampered - Hardcoded Thermal Output" :
+                                      "Storage Tampered - Inconsistent drive telemetry";
+                
                 info.IsTampered = true;
-                info.TamperReason = "Storage Tampered - Unable to read data";
+                // Keep the first tamper reason found
+                if (string.IsNullOrWhiteSpace(info.TamperReason))
+                    info.TamperReason = device.TamperReason;
             }
 
             bool suspiciousPlaceholderTemp =

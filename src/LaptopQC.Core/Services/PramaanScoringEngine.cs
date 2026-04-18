@@ -116,11 +116,12 @@ public class PramaanScoringEngine
 
         var scores = new List<int>();
 
-        // SMART test (primary signal — raw SMART health %)
-        if (report.SmartTest.Tested)
+        // SMART test (raw SMART health % integrated in StorageTest details)
+        if (report.StorageTest.Tested)
         {
-            int smartScore = ExtractSmartScore(report.SmartTest);
-            scores.Add(smartScore);
+            int smartScore = ExtractSmartScore(report.StorageTest);
+            if (smartScore >= 0)
+                scores.Add(smartScore);
         }
 
         // Storage health from detailed info
@@ -160,6 +161,19 @@ public class PramaanScoringEngine
 
         if (report.StorageDetails?.IsSuspicious == true)
             finalScore -= 20;
+
+        // Self-test failure is a hard penalty
+        if (report.StorageTest.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
+        {
+            finalScore = Math.Min(finalScore, 30);
+        }
+
+        // eMMC capping: untested long-term health
+        if (report.StorageDetails != null && report.StorageDetails.Devices.Any() &&
+            report.StorageDetails.Devices.All(d => d.IsEMMC && !d.HealthPercent.HasValue))
+        {
+            finalScore = Math.Min(finalScore, 80);
+        }
 
         return Math.Clamp(finalScore, 0, 100);
     }
@@ -374,6 +388,7 @@ public class PramaanScoringEngine
 
     /// <summary>
     /// Extract health % from SMART test details strings like "ModelName: Excellent (95%)"
+    /// Returns -1 if no regex match is found.
     /// </summary>
     private int ExtractSmartScore(TestResult smartResult)
     {
@@ -388,12 +403,7 @@ public class PramaanScoringEngine
         if (scores.Count > 0)
             return (int)scores.Average();
 
-        // Self-test failure
-        if (smartResult.Details.Any(d =>
-                d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
-            return 25;
-
-        return smartResult.Passed ? 80 : 30;
+        return -1; // Ignore if no percentages printed
     }
 
     /// <summary>Check if the storage binary test passed (helper to avoid confusion with SMART).</summary>
