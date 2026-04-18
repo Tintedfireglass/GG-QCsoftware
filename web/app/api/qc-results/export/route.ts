@@ -10,7 +10,7 @@ import path from 'node:path';
 
 type SqlParam = string | number | boolean | null;
 
-type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal';
+type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
 type JsonRecord = Record<string, unknown>;
 type StorageVolume = { totalBytes?: number; freeBytes?: number };
 type StorageDevice = { deviceName?: string; healthPercent?: number; isTampered?: boolean };
@@ -22,9 +22,13 @@ type ExportRow = {
     isWindowsInactive: boolean;
     isTampered: boolean;
     hasThermalIssue: boolean;
+    isStale: boolean;        // QC test not run in over 30 days
     computerName: string;
     compactProcessor: string;
+    serialNo: string;
 };
+
+const STALE_DAYS = 30;
 
 function formatBytes(bytes: number): string {
     if (!bytes || bytes <= 0) return '';
@@ -176,6 +180,7 @@ function getStorageHealthSummary(storageInfo: StorageInfo): { label: string; isT
 
 function getIssueSummaryRows(issueMap: Record<IssueKey, Set<string>>) {
     const issueRows: { label: string; key: IssueKey }[] = [
+        { label: `Stale Reports (>${STALE_DAYS} days)`, key: 'stale' },
         { label: 'Critical Storage (<=10% free)', key: 'criticalStorage' },
         { label: 'Low Storage (<25% free)', key: 'lowStorage' },
         { label: 'Storage Tamper Flags', key: 'tampered' },
@@ -246,13 +251,18 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
     const logoBytes = await loadPramaanLogoBytes();
     const logoImage = logoBytes ? await pdf.embedPng(logoBytes) : null;
 
-    const pageWidth = 595;
-    const pageHeight = 842;
-    const margin = 32;
+    // Use A4 landscape for more column space
+    const pageWidth = 842;
+    const pageHeight = 595;
+    const margin = 28;
     const lineHeight = 14;
     let page = pdf.addPage([pageWidth, pageHeight]);
     let y = pageHeight - margin;
     let pageNumber = 1;
+
+    const RED = rgb(0.78, 0.10, 0.10);
+    const RED_BG = rgb(1.0, 0.91, 0.91);
+    const AMBER = rgb(0.75, 0.45, 0.07);
 
     const drawPageFooter = () => {
         page.drawLine({
@@ -304,92 +314,94 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
     // Header band
     page.drawRectangle({
         x: 0,
-        y: pageHeight - 98,
+        y: pageHeight - 88,
         width: pageWidth,
-        height: 98,
+        height: 88,
         color: rgb(0.10, 0.24, 0.44),
     });
     if (logoImage) {
-        const logoHeight = 42;
+        const logoHeight = 38;
         const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
         page.drawImage(logoImage, {
             x: margin,
-            y: pageHeight - 70,
+            y: pageHeight - 64,
             width: logoWidth,
             height: logoHeight,
         });
     }
     page.drawText('PRAAMAAN', {
-        x: margin + 64,
-        y: pageHeight - 48,
+        x: margin + 60,
+        y: pageHeight - 42,
         size: 20,
         font: boldFont,
         color: rgb(1, 1, 1),
     });
     page.drawText('Professional Device Quality Assessment', {
-        x: margin + 64,
-        y: pageHeight - 66,
+        x: margin + 60,
+        y: pageHeight - 58,
         size: 10,
         font,
         color: rgb(0.88, 0.92, 0.98),
     });
     page.drawText(`Generated: ${formatGeneratedDateTime(timeZone)}`, {
-        x: pageWidth - 190,
-        y: pageHeight - 52,
+        x: pageWidth - 220,
+        y: pageHeight - 46,
         size: 9,
         font,
         color: rgb(0.93, 0.95, 0.99),
     });
 
-    y = pageHeight - 122;
+    y = pageHeight - 108;
     page.drawText('Executive Summary', { x: margin, y, size: 13, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
-    y -= 20;
+    y -= 18;
 
+    const staleCount = Number(issueRows[0]?.[1] || 0);
     const summaryTotalIssues = issueRows.reduce((sum, row) => sum + Number(row[1]), 0);
     const cards = [
         { title: 'Systems Analyzed', value: String(rows.length), color: rgb(0.13, 0.45, 0.75) },
         { title: 'Issue Flags Raised', value: String(summaryTotalIssues), color: rgb(0.75, 0.27, 0.24) },
-        { title: 'Tampered Systems', value: issueRows[2]?.[1] || '0', color: rgb(0.53, 0.19, 0.64) },
+        { title: 'Tampered Systems', value: issueRows[3]?.[1] || '0', color: rgb(0.53, 0.19, 0.64) },
+        { title: `Stale Reports (>${STALE_DAYS}d)`, value: String(staleCount), color: staleCount > 0 ? rgb(0.78, 0.10, 0.10) : rgb(0.22, 0.58, 0.26) },
     ];
-    const cardWidth = (pageWidth - margin * 2 - 16) / 3;
+    const cardWidth = (pageWidth - margin * 2 - 24) / 4;
     cards.forEach((card, index) => {
         const x = margin + index * (cardWidth + 8);
         page.drawRectangle({
             x,
-            y: y - 50,
+            y: y - 48,
             width: cardWidth,
-            height: 50,
+            height: 48,
             color: rgb(0.97, 0.98, 1),
             borderColor: rgb(0.88, 0.90, 0.94),
             borderWidth: 1,
         });
         page.drawRectangle({
             x,
-            y: y - 50,
+            y: y - 48,
             width: 4,
-            height: 50,
+            height: 48,
             color: card.color,
         });
         page.drawText(card.title, {
             x: x + 10,
-            y: y - 20,
-            size: 9,
+            y: y - 18,
+            size: 8.5,
             font,
             color: rgb(0.38, 0.42, 0.48),
         });
         page.drawText(card.value, {
             x: x + 10,
-            y: y - 40,
+            y: y - 38,
             size: 16,
             font: boldFont,
             color: rgb(0.14, 0.18, 0.24),
         });
     });
-    y -= 70;
+    y -= 66;
 
     page.drawText('Issue Breakdown', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
     y -= 8;
-    const issueCols = { issue: 184, count: 56, systems: pageWidth - margin * 2 - 240 };
+    const issueCols = { issue: 200, count: 56, systems: pageWidth - margin * 2 - 256 };
     page.drawRectangle({ x: margin, y: y - 14, width: pageWidth - margin * 2, height: 14, color: rgb(0.15, 0.32, 0.54) });
     page.drawText('Issue', { x: margin + 6, y: y - 10, size: 8, font: boldFont, color: rgb(1, 1, 1) });
     page.drawText('Count', { x: margin + issueCols.issue + 6, y: y - 10, size: 8, font: boldFont, color: rgb(1, 1, 1) });
@@ -413,24 +425,26 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
         if (line) lines.push(line);
         const rowHeight = Math.max(14, lines.length * 10 + 4);
         if (y < margin + rowHeight + 28) addNewPage();
+        const isStaleRow = index === 0;
         page.drawRectangle({
             x: margin,
             y: y - rowHeight,
             width: pageWidth - margin * 2,
             height: rowHeight,
-            color: index % 2 === 0 ? rgb(0.985, 0.992, 1) : rgb(1, 1, 1),
+            color: isStaleRow && Number(count) > 0 ? RED_BG : index % 2 === 0 ? rgb(0.985, 0.992, 1) : rgb(1, 1, 1),
             borderColor: rgb(0.88, 0.90, 0.94),
             borderWidth: 0.6,
         });
-        page.drawText(issue, { x: margin + 6, y: y - 10, size: 8, font, color: rgb(0.17, 0.2, 0.25) });
-        page.drawText(count, { x: margin + issueCols.issue + 10, y: y - 10, size: 8, font: boldFont, color: rgb(0.17, 0.2, 0.25) });
+        const issueColor = isStaleRow && Number(count) > 0 ? RED : rgb(0.17, 0.2, 0.25);
+        page.drawText(issue, { x: margin + 6, y: y - 10, size: 8, font, color: issueColor });
+        page.drawText(count, { x: margin + issueCols.issue + 10, y: y - 10, size: 8, font: boldFont, color: issueColor });
         lines.forEach((ln, i) => {
             page.drawText(ln, {
                 x: margin + issueCols.issue + issueCols.count + 6,
                 y: y - 10 - i * 10,
                 size: 8,
                 font,
-                color: rgb(0.17, 0.2, 0.25),
+                color: issueColor,
             });
         });
         y -= rowHeight + 2;
@@ -439,17 +453,27 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
     y -= 8;
     if (y < margin + 170) addNewPage();
     page.drawText('Detailed Device Assessment', { x: margin, y, size: 12, font: boldFont, color: rgb(0.1, 0.2, 0.3) });
+    y -= 4;
+
+    // Legend for stale rows
+    page.drawRectangle({ x: margin, y: y - 12, width: 10, height: 10, color: RED_BG, borderColor: RED, borderWidth: 0.6 });
+    page.drawText('Red row = QC not run in over 30 days', { x: margin + 14, y: y - 10, size: 7.5, font, color: RED });
     y -= 18;
 
+    // ── Columns (landscape: more space) ──────────────────────────────────────
     const columns = [
-        { key: 'computer', title: 'Computer', width: 116 },
-        { key: 'date', title: 'Shift Date', width: 64 },
-        { key: 'proc', title: 'Processor', width: 76 },
-        { key: 'ram', title: 'RAM', width: 36 },
-        { key: 'free', title: 'Free %', width: 40 },
-        { key: 'windows', title: 'Windows', width: 52 },
-        { key: 'tamper', title: 'Tamper', width: 44 },
-        { key: 'thermal', title: 'Thermal', width: 44 },
+        { key: 'serial',   title: 'Serial No.',  width: 90  },
+        { key: 'computer', title: 'Computer',     width: 100 },
+        { key: 'date',     title: 'Shift Date',   width: 60  },
+        { key: 'proc',     title: 'Processor',    width: 88  },
+        { key: 'ram',      title: 'RAM',          width: 34  },
+        { key: 'os',       title: 'OS',           width: 58  },
+        { key: 'windows',  title: 'Windows',      width: 52  },
+        { key: 'free',     title: 'Free %',       width: 40  },
+        { key: 'tamper',   title: 'Tamper',       width: 46  },
+        { key: 'thermal',  title: 'Thermal',      width: 44  },
+        { key: 'grade',    title: 'Grade',        width: 38  },
+        { key: 'user',     title: 'User',         width: 80  },
     ];
     const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
@@ -466,7 +490,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
             page.drawText(col.title, {
                 x,
                 y: y - 12,
-                size: 8,
+                size: 7.5,
                 font: boldFont,
                 color: rgb(1, 1, 1),
             });
@@ -484,53 +508,85 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
             drawTableHeader();
         }
         const values = entry.rowValues;
-        const rowColor = index % 2 === 0 ? rgb(0.99, 0.995, 1) : rgb(1, 1, 1);
+
+        // Stale rows get a red-tinted background
+        const baseRowColor = entry.isStale
+            ? RED_BG
+            : index % 2 === 0 ? rgb(0.99, 0.995, 1) : rgb(1, 1, 1);
+
         page.drawRectangle({
             x: margin,
             y: y - 14,
             width: tableWidth,
             height: 14,
-            color: rowColor,
-            borderColor: rgb(0.90, 0.92, 0.95),
-            borderWidth: 0.5,
+            color: baseRowColor,
+            borderColor: entry.isStale ? rgb(0.88, 0.22, 0.22) : rgb(0.90, 0.92, 0.95),
+            borderWidth: entry.isStale ? 0.8 : 0.5,
         });
+
         const freePercentLabel = entry.freePercent == null ? '-' : `${entry.freePercent.toFixed(1)}%`;
+
+        // Cells in order matching `columns`
         const cells = [
-            String(values[1] || '-'),
-            String(values[2] || '-'),
-            String(entry.compactProcessor || '-'),
-            String(values[7] || '-'),
-            freePercentLabel,
-            String(values[4] || '-'),
-            entry.isTampered ? 'Tampered' : 'Clean',
-            entry.hasThermalIssue ? 'Risk' : 'OK',
+            entry.serialNo || String(values[15] || '-'),          // Serial No. (FIRST)
+            String(values[1] || '-'),                              // Computer Name
+            String(values[2] || '-'),                              // Shift Date
+            String(entry.compactProcessor || '-'),                 // Processor
+            String(values[7] || '-'),                              // RAM
+            String(values[3] || '-'),                              // OS Edition
+            String(values[4] || '-'),                              // Windows
+            freePercentLabel,                                      // Free %
+            entry.isTampered ? 'Tampered' : 'Clean',              // Tamper
+            entry.hasThermalIssue ? 'Risk' : 'OK',                // Thermal
+            String(values[13] || '-'),                             // Grade
+            String(values[19] || '-'),                             // User
         ];
+
         let x = margin + 4;
         cells.forEach((cell, cellIndex) => {
             const colWidth = columns[cellIndex].width - 6;
-            const txtColor = cellIndex === 6 && entry.isTampered
-                ? rgb(0.78, 0.14, 0.14)
-                : cellIndex === 7 && entry.hasThermalIssue
-                    ? rgb(0.75, 0.45, 0.07)
-                    : rgb(0.15, 0.19, 0.24);
-            const finalText = truncateToWidth(cell, colWidth, 7.8, font);
-            if (cellIndex === 4 && entry.freePercent != null) {
-                const fillColor = entry.freePercent <= 10
-                    ? rgb(0.91, 0.20, 0.16)
-                    : entry.freePercent < 25
-                        ? rgb(0.98, 0.90, 0.25)
-                        : null;
-                if (fillColor) {
-                    page.drawRectangle({
-                        x: x - 2,
-                        y: y - 13,
-                        width: columns[cellIndex].width - 2,
-                        height: 12,
-                        color: fillColor,
-                    });
+
+            // Per-cell highlight logic
+            let fillColor: ReturnType<typeof rgb> | null = null;
+            let txtColor = entry.isStale ? RED : rgb(0.15, 0.19, 0.24);
+
+            if (cellIndex === 7 && entry.freePercent != null) {
+                // Free %
+                if (entry.freePercent <= 10) {
+                    fillColor = rgb(0.91, 0.20, 0.16);
+                    txtColor = rgb(1, 1, 1);
+                } else if (entry.freePercent < 25) {
+                    fillColor = rgb(0.98, 0.90, 0.25);
+                    txtColor = rgb(0.3, 0.2, 0.0);
                 }
+            } else if (cellIndex === 8 && entry.isTampered) {
+                // Tamper
+                fillColor = rgb(0.91, 0.20, 0.16);
+                txtColor = rgb(1, 1, 1);
+            } else if (cellIndex === 9 && entry.hasThermalIssue) {
+                // Thermal
+                fillColor = rgb(0.98, 0.90, 0.25);
+                txtColor = AMBER;
+            } else if (cellIndex === 6 && entry.isWindowsInactive) {
+                // Windows not activated
+                fillColor = rgb(0.91, 0.20, 0.16);
+                txtColor = rgb(1, 1, 1);
             }
-            page.drawText(finalText, { x, y: y - 10, size: 7.8, font, color: txtColor });
+
+            if (fillColor) {
+                page.drawRectangle({
+                    x: x - 2,
+                    y: y - 13,
+                    width: columns[cellIndex].width - 2,
+                    height: 12,
+                    color: fillColor,
+                });
+            }
+
+            // Smaller font for computer name (index 1) to fit long names
+            const fontSize = cellIndex === 1 ? 6.8 : 7.5;
+            const finalText = truncateToWidth(cell, colWidth, fontSize, font);
+            page.drawText(finalText, { x, y: y - 10, size: fontSize, font, color: txtColor });
             x += columns[cellIndex].width;
         });
         y -= 14;
@@ -602,7 +658,7 @@ export async function GET(request: NextRequest) {
             SELECT *
             FROM numbered
             WHERE ${searchWhereSql} AND scoped_test_id = 1
-            ORDER BY timestamp DESC, id DESC
+            ORDER BY LOWER(COALESCE(computer_name, machine_identifier, '')), timestamp DESC
         `;
 
         const results = await query(queryText, params);
@@ -631,12 +687,16 @@ export async function GET(request: NextRequest) {
         ];
 
         const issueMap: Record<IssueKey, Set<string>> = {
+            stale: new Set<string>(),
             criticalStorage: new Set<string>(),
             lowStorage: new Set<string>(),
             tampered: new Set<string>(),
             inactiveWindows: new Set<string>(),
             thermal: new Set<string>(),
         };
+
+        const now = new Date();
+        const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
 
         const exportRows: ExportRow[] = results.map((resultRow: JsonRecord, index: number) => {
             const r = resultRow;
@@ -676,7 +736,13 @@ export async function GET(request: NextRequest) {
             const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
             const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
             const hasThermalIssue = riskFlags.thermal === true;
+            const serialNo = (r.system_serial as string | undefined) || '';
 
+            // Stale: last QC was more than STALE_DAYS ago
+            const lastReportDate = r.timestamp ? new Date(r.timestamp as string) : null;
+            const isStale = lastReportDate ? (now.getTime() - lastReportDate.getTime()) > staleThresholdMs : false;
+
+            if (isStale) issueMap.stale.add(computerName);
             if (freePercent != null && freePercent <= 10) issueMap.criticalStorage.add(computerName);
             if (freePercent != null && freePercent < 25) issueMap.lowStorage.add(computerName);
             if (isTampered) issueMap.tampered.add(computerName);
@@ -699,7 +765,7 @@ export async function GET(request: NextRequest) {
                 isTampered ? 'Tampered' : 'Clean',
                 (r.pramaan_grade as string | undefined) || '',
                 r.pramaan_score != null ? String(r.pramaan_score) : '',
-                (r.system_serial as string | undefined) || '',
+                serialNo,
                 (r.mac_address as string | undefined) || '',
                 (r.system_manufacturer as string | undefined) || '',
                 (r.system_model as string | undefined) || '',
@@ -712,8 +778,10 @@ export async function GET(request: NextRequest) {
                 isWindowsInactive,
                 isTampered,
                 hasThermalIssue,
+                isStale,
                 computerName,
                 compactProcessor,
+                serialNo,
             };
         });
 
@@ -781,7 +849,17 @@ export async function GET(request: NextRequest) {
                 cell.alignment = { vertical: 'middle', wrapText: true };
             });
 
-            if (row.number % 2 === 0) {
+            // Stale rows: red entire row background in XLSX
+            if (entry.isStale) {
+                row.eachCell((cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFFCE4E4' },
+                    };
+                    cell.font = { color: { argb: 'FF8B0000' } };
+                });
+            } else if (row.number % 2 === 0) {
                 row.eachCell((cell) => {
                     cell.fill = {
                         type: 'pattern',

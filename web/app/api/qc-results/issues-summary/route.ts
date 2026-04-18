@@ -4,10 +4,10 @@ import { authenticateRequest } from "@/lib/auth-middleware"
 import { ApiError } from "@/lib/types"
 
 // Core test type prefixes — only these 5 categories count as issues (server-side mirror of lib/issues.ts)
-const CORE_PREFIXES = ["cpu", "gpu", "graphics", "memory", "ram", "storage", "nvme", "ssd", "smart", "battery"]
+const CORE_PREFIXES = ["cpu", "memory", "ram", "storage", "nvme", "ssd", "smart", "battery"]
 
 function buildCoreTestSql(trAlias = "tr", qrAlias = "qr"): string {
-    // Matches any core test type prefix. Battery is only an issue if the device has a battery.
+    // Non-battery, non-GPU prefixes — just need score < 70
     const nonBatteryClauses = CORE_PREFIXES.filter((p) => p !== "battery")
         .map((p) => `LOWER(${trAlias}.test_type) LIKE '${p}%'`)
         .join("\n        OR ")
@@ -17,12 +17,18 @@ function buildCoreTestSql(trAlias = "tr", qrAlias = "qr"): string {
           ${nonBatteryClauses}
         )
         OR (
+          -- GPU score=0 means "no discrete GPU present" — not an issue; only flag when score > 0
+          (LOWER(${trAlias}.test_type) LIKE 'gpu%' OR LOWER(${trAlias}.test_type) LIKE 'graphics%')
+          AND ${trAlias}.score > 0
+        )
+        OR (
           LOWER(${trAlias}.test_type) LIKE 'battery%'
           AND ${qrAlias}.battery_details_json IS NOT NULL
           AND (${qrAlias}.battery_details_json->>'isPresent')::boolean IS NOT FALSE
         )
     )`
 }
+
 
 /**
  * GET /api/qc-results/issues-summary

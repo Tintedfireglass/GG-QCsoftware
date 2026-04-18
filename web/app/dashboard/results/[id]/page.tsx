@@ -19,11 +19,17 @@ function parseJson(val: any): any {
 }
 
 interface DriveSnap { serial: string; model: string; sizeGB: number; isSsd: boolean; mediaType: string }
+function isUsbDrive(d: any): boolean {
+    const busType = (d.busType || "").toLowerCase()
+    const mediaType = (d.mediaType || "").toLowerCase()
+    const model = (d.model || "").toLowerCase()
+    return busType === "usb" || mediaType === "usb" || model.includes("usb") || d.isRemovable === true
+}
 function extractDrives(r: any): DriveSnap[] {
     const s = parseJson(r.storage_details_json)
     if (!s) return []
     return (Array.isArray(s.devices) ? s.devices : [])
-        .filter((d: any) => d.serialNumber || d.model)
+        .filter((d: any) => (d.serialNumber || d.model) && !isUsbDrive(d))
         .map((d: any) => ({ serial: (d.serialNumber || "").trim(), model: (d.model || "Unknown").trim(), sizeGB: d.sizeGB ?? 0, isSsd: !!d.isSsd, mediaType: d.mediaType || "" }))
 }
 function driveLabel(d: DriveSnap): string {

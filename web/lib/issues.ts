@@ -6,6 +6,7 @@
  *      CPU, GPU/Graphics, Memory/RAM, Storage, Battery
  *   2. Its score is less than 70
  *   3. For Battery: only if the device actually has a battery (desktops are excluded)
+ *   4. For GPU: a score of 0 means "no discrete GPU detected" (not a fault) — excluded
  */
 
 /**
@@ -35,23 +36,30 @@ export const ISSUE_SCORE_THRESHOLD = 70
 export function isCoreTestType(testType: string): boolean {
     if (!testType) return false
     const t = testType.trim().toLowerCase()
-    return CORE_TEST_PREFIXES.some((prefix) => t === prefix || t.startsWith(prefix + " ") || t.startsWith(prefix + "_") || t.startsWith(prefix + "/") || t === prefix)
+    return CORE_TEST_PREFIXES.some(
+        (prefix) => t === prefix || t.startsWith(prefix + " ") || t.startsWith(prefix + "_") || t.startsWith(prefix + "/")
+    )
 }
 
-/**
- * Returns true if the test type is a battery test.
- */
+/** Returns true if the test type is a battery test. */
 export function isBatteryTestType(testType: string): boolean {
     if (!testType) return false
     return testType.trim().toLowerCase().startsWith("battery")
+}
+
+/** Returns true if the test type is a GPU/graphics test. */
+export function isGpuTestType(testType: string): boolean {
+    if (!testType) return false
+    const t = testType.trim().toLowerCase()
+    return t.startsWith("gpu") || t.startsWith("graphics")
 }
 
 /**
  * Returns true if the test result is an "issue":
  * - test_type is one of the 5 core categories (CPU/GPU/Memory/Storage/Battery)
  * - score < 70
- * - if it's a Battery test, batteryPresent must not be explicitly false
- *   (pass undefined if unknown — it will be treated as potentially present)
+ * - Battery skipped when batteryPresent === false (desktops)
+ * - GPU skipped when score === 0 ("No discrete GPU detected" — not a fault)
  */
 export function isIssue(
     test: { test_type?: string; score?: number },
@@ -60,9 +68,13 @@ export function isIssue(
     if (!test.test_type) return false
     if (!isCoreTestType(test.test_type)) return false
 
+    const score = typeof test.score === "number" ? test.score : 0
+
     // Skip battery issues for desktops (no battery)
     if (isBatteryTestType(test.test_type) && batteryPresent === false) return false
 
-    const score = typeof test.score === "number" ? test.score : 0
+    // Skip GPU score=0: means "no discrete GPU present", not a failing GPU
+    if (isGpuTestType(test.test_type) && score === 0) return false
+
     return score < ISSUE_SCORE_THRESHOLD
 }
