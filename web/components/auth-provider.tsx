@@ -82,7 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isPublicRoute =
             pathname.startsWith("/login") ||
             pathname.startsWith("/report") ||
-            pathname.startsWith("/customer")
+            pathname.startsWith("/customer") ||
+            pathname.startsWith("/verify")
 
         if (!token && !isPublicRoute) {
             router.push("/login")
