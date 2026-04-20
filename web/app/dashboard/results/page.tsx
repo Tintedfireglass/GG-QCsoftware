@@ -303,11 +303,6 @@ export default function ResultsPage() {
                                                         <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap ${s.bg} ${s.text}`}>
                                                             {test.pramaan_grade}-{test.pramaan_score}
                                                         </span>
-                                                        {test.has_issues && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                                                                ⚠ Issues
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 );
                                             })() : (
@@ -415,11 +410,6 @@ export default function ResultsPage() {
                                                                     {test.pramaan_score}
                                                                 </span>
                                                             </div>
-                                                            {test.has_issues && (
-                                                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 w-fit">
-                                                                    ⚠ Issues
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     );
                                                 })() : (
