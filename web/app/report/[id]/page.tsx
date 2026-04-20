@@ -115,7 +115,7 @@ export default function DedicatedReportPage() {
                     {data.health_id && (
                         <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex flex-col items-center">
                             <QRCodeSVG
-                                value={`https://gg-qcsoftware.vercel.app/verify/${data.health_id}`}
+                                value={`https://pramaan-dashboard.gadgetguruz.com/verify/${data.health_id}`}
                                 size={80}
                             />
                         </div>
