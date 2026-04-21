@@ -314,10 +314,26 @@ export async function POST(request: NextRequest) {
                 [machineIdRaw]
             );
 
+            let licenseError: string | null = null;
+            let license = activationRes.rows.length > 0 ? activationRes.rows[0] : null;
+
+            if (!license) {
+                licenseError = 'NO_ACTIVATION';
+            } else if (!license.is_active) {
+                licenseError = 'KEY_DISABLED';
+            } else if (license.expires_at && new Date(license.expires_at) < new Date()) {
+                licenseError = 'KEY_EXPIRED';
+            } else if (license.type === 'demo') {
+                const maxRuns = license.demo_max_runs || 1;
+                if (license.demo_runs_used >= maxRuns) {
+                    licenseError = 'DEMO_USED';
+                }
+            }
+
             let isTrialSubmission = false;
 
-            if (activationRes.rows.length === 0) {
-                // Not a licensed machine — check if it has an active free trial
+            // If there's no valid license, fallback to checking if an active free trial exists
+            if (licenseError !== null) {
                 const trialRes = await client.query(
                     `SELECT id FROM free_trials
                      WHERE machine_serial = $1
@@ -325,26 +341,21 @@ export async function POST(request: NextRequest) {
                        AND trial_end_utc > NOW()`,
                     [machineIdRaw]
                 );
-                if (trialRes.rows.length === 0) {
-                    throw new Error('NO_ACTIVATION');
+
+                if (trialRes.rows.length > 0) {
+                    // Valid active free trial found! Override the license error.
+                    isTrialSubmission = true;
+                    licenseError = null;
+                    license = null;
+                } else {
+                    // No trial found, throw the original license error
+                    throw new Error(licenseError);
                 }
-                isTrialSubmission = true;
             }
 
-            const license = isTrialSubmission ? null : activationRes.rows[0];
-
-            if (!isTrialSubmission) {
-                if (!license.is_active) throw new Error('KEY_DISABLED');
-
-                if (license.expires_at && new Date(license.expires_at) < new Date()) {
-                    throw new Error('KEY_EXPIRED');
-                }
-
+            if (!isTrialSubmission && license) {
                 if (license.type === 'demo') {
                     const maxRuns = license.demo_max_runs || 1;
-                    if (license.demo_runs_used >= maxRuns) {
-                        throw new Error('DEMO_USED');
-                    }
                     isDemo = true;
                     demoKeyId = license.id;
                     demoExhausted = license.demo_runs_used + 1 >= maxRuns;

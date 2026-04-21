@@ -483,8 +483,8 @@ public partial class QCWizardViewModel : ObservableObject
         else
         {
             SubmissionStatus = submitResult.IsAuthError
-                ? "✗ Activation required to submit"
-                : "✗ Failed to Submit (Saved Locally)";
+                ? $"✗ Activation required to submit ({submitResult.ErrorMessage})"
+                : $"✗ Failed to Submit: {submitResult.ErrorMessage}";
         }
     }
 
