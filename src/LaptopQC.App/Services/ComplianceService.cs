@@ -10,6 +10,29 @@ public static class ComplianceService
 
     public static async Task<bool> EnsureOnlineComplianceAsync(Window owner, bool force = false)
     {
+        // ── Trial expiry check ───────────────────────────────────────────────────
+        // Run this before the license compliance block so an expired trial is
+        // revoked immediately regardless of whether a force-check was requested.
+        if (App.AuthService.IsTrialSession)
+        {
+            if (App.TrialService.IsTrialExpired)
+            {
+                App.PerformTrialLogout();
+                if (owner is MainWindow mw)
+                    mw.RefreshActivationUi();
+                MessageBox.Show(owner,
+                    "Your 7-day free trial has expired.\n\nPlease activate with a license key to continue using PRAMAAN.",
+                    "Free Trial Expired",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                App.SetComplianceLocked(false);
+                return false;
+            }
+            // Trial is still active — skip the license compliance check
+            App.SetComplianceLocked(false);
+            return true;
+        }
+
         if (!force && !App.AuthService.IsOnlineCheckRequired(MaxDaysWithoutCheck))
         {
             App.SetComplianceLocked(false);

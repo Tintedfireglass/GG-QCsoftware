@@ -25,3 +25,6 @@ Reports/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Ignore generated project report
+project_report.md

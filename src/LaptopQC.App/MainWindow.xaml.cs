@@ -107,6 +107,19 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (App.IsLoggedIn && App.AuthService.IsTrialSession)
+        {
+            var days = App.TrialService.DaysRemaining;
+            var dayLabel = days == 1 ? "day" : "days";
+            UserStatusIcon.Text = "⏱";
+            UserStatusText.Text = $"Trial – {days} {dayLabel} left";
+            UserStatusText.FontWeight = FontWeights.SemiBold;
+            UserStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#b45309"));
+            UserStatusBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#fef3c7"));
+            UserStatusBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#fcd34d"));
+            return;
+        }
+
         if (App.IsLoggedIn)
         {
             UserStatusIcon.Text = "✓";

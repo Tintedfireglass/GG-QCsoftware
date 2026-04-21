@@ -19,6 +19,7 @@ public class AuthService
     public string? Token { get; private set; }
     public string? LicenseKey { get; private set; }
     public int? MachineId { get; private set; }
+    public bool IsTrialSession { get; private set; }
     public DateTime? LastOnlineCheckUtc { get; private set; }
     public event Action? LoggedOut;
 
@@ -155,8 +156,31 @@ public class AuthService
         LicenseKey = null;
         MachineId = null;
         LastOnlineCheckUtc = null;
+        IsTrialSession = false;
         ClearSession();
         LoggedOut?.Invoke();
+    }
+
+    /// <summary>
+    /// Activates a trial session using credentials returned from the server's /api/auth/trial endpoint.
+    /// Sets the app into a logged-in state identical to license login, but with no LicenseKey stored.
+    /// The trial session is NOT persisted to auth_session.json — TrialService manages its own file.
+    /// </summary>
+    public void StartTrialSession(string email, string token, int machineId, DateTime trialEndsAtUtc)
+    {
+        CurrentUser = new UserInfo
+        {
+            Id       = 0,
+            Username = email,
+            Role     = "TrialUser",
+            Email    = email
+        };
+        Token              = token;
+        LicenseKey         = null;   // Trials have no license key
+        MachineId          = machineId;
+        LastOnlineCheckUtc = DateTime.UtcNow;
+        IsTrialSession     = true;
+        // Do NOT call SaveSession() — trial state is managed by TrialService
     }
 
     /// <summary>

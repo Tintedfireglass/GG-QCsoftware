@@ -1,7 +1,7 @@
 <Window x:Class="LaptopQC.App.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Activation - PRAMAAN" Width="400"
+        Title="Activation - PRAMAAN" Width="420"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -17,31 +17,32 @@
                 Effect="{StaticResource CardShadow}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>  <!-- 0: Header -->
+                    <RowDefinition Height="Auto"/>  <!-- 1: Input panel (license or trial) -->
+                    <RowDefinition Height="Auto"/>  <!-- 2: Error message -->
+                    <RowDefinition Height="Auto"/>  <!-- 3: Action button -->
+                    <RowDefinition Height="Auto"/>  <!-- 4: Loading text -->
+                    <RowDefinition Height="Auto"/>  <!-- 5: OR divider -->
+                    <RowDefinition Height="Auto"/>  <!-- 6: Start trial button -->
+                    <RowDefinition Height="*"/>     <!-- 7: Spacer -->
+                    <RowDefinition Height="Auto"/>  <!-- 8: Skip button -->
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
+                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,20">
                     <Border Background="#dcfce7" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
                         <TextBlock Text="🔑" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock Text="Activate PRAMAAN" FontSize="20" FontWeight="Bold" 
                                HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI"/>
-                    <TextBlock Text="Enter your 16-digit license key to unlock features" 
+                    <TextBlock Text="Enter your license key or start a free 7-day trial" 
                                FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI"
                                HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
-                <!-- License Key Stack -->
-                <StackPanel x:Name="LicenseLoginPanel" Grid.Row="2" Visibility="Visible">
-                    <StackPanel Margin="0,0,0,16">
+                <!-- ─────── LICENSE PANEL (default visible) ─────── -->
+                <StackPanel x:Name="LicenseLoginPanel" Grid.Row="1" Visibility="Visible">
+                    <StackPanel Margin="0,0,0,4">
                         <TextBlock Text="16-Digit License Key" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
                         <TextBox x:Name="LicenseBox" 
                                  Padding="12,10" 
@@ -57,19 +58,59 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Error Message -->
+                <!-- ─────── TRIAL EMAIL PANEL (collapsed by default) ─────── -->
+                <StackPanel x:Name="TrialEmailPanel" Grid.Row="1" Visibility="Collapsed">
+                    <!-- Back link -->
+                    <Button x:Name="BackToLicenseButton"
+                            Content="← Back to license key"
+                            Click="BackToLicense_Click"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#6b7280"
+                            Cursor="Hand"
+                            FontSize="12"
+                            FontFamily="Segoe UI"
+                            HorizontalAlignment="Left"
+                            Margin="0,0,0,14"
+                            Padding="0"/>
+
+                    <!-- Trial info banner -->
+                    <Border Background="#fef3c7" CornerRadius="6" Padding="12,10" Margin="0,0,0,14" BorderBrush="#fcd34d" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="⏱  7 days of full access — no credit card required"
+                                       FontSize="12" Foreground="#92400e" FontFamily="Segoe UI"/>
+                            <TextBlock Text="✓  One trial per email address and per device"
+                                       FontSize="12" Foreground="#92400e" FontFamily="Segoe UI" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Email input -->
+                    <StackPanel Margin="0,0,0,4">
+                        <TextBlock Text="Email Address" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
+                        <TextBox x:Name="EmailBox"
+                                 Padding="12,10"
+                                 FontSize="14"
+                                 FontFamily="Segoe UI"
+                                 Background="#f9fafb"
+                                 BorderBrush="#d1d5db"
+                                 BorderThickness="1"
+                                 KeyDown="EmailBox_KeyDown"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Error Message (shared) -->
                 <TextBlock x:Name="ErrorMessage" 
-                           Grid.Row="3" 
+                           Grid.Row="2" 
                            Foreground="#dc2626" 
                            FontFamily="Segoe UI"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"
-                           Margin="0,0,0,12"/>
+                           Margin="0,8,0,0"/>
 
-                <!-- Login Button -->
+                <!-- ─────── ACTIVATE button (license mode) ─────── -->
                 <Button x:Name="LoginButton"
-                        Grid.Row="4" 
-                        Content="Activate" 
+                        Grid.Row="3"
+                        Content="Activate"
                         Click="LoginButton_Click"
                         Padding="12,12"
                         FontSize="14"
@@ -77,7 +118,8 @@
                         FontFamily="Segoe UI"
                         Foreground="White"
                         BorderThickness="0"
-                        Cursor="Hand">
+                        Cursor="Hand"
+                        Margin="0,12,0,0">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#8B3D88"/>
@@ -101,19 +143,105 @@
                     </Button.Style>
                 </Button>
 
+                <!-- ─────── START TRIAL button (trial mode, collapsed by default) ─────── -->
+                <Button x:Name="TrialConfirmButton"
+                        Grid.Row="3"
+                        Content="Start 7-Day Free Trial"
+                        Click="TrialConfirmButton_Click"
+                        Padding="12,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        FontFamily="Segoe UI"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Visibility="Collapsed"
+                        Margin="0,12,0,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#d97706"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#b45309"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
-                <!-- Loading indicator -->
+                <!-- Loading indicator (shared) -->
                 <TextBlock x:Name="LoadingText" 
-                           Grid.Row="5" 
-                           Text="Activating..." 
+                           Grid.Row="4"
+                           Text="Activating..."
                            HorizontalAlignment="Center"
                            Foreground="#6b7280"
                            FontFamily="Segoe UI"
                            Visibility="Collapsed"
-                           Margin="0,12,0,0"/>
+                           Margin="0,10,0,0"/>
+
+                <!-- OR Divider (hidden in trial mode) -->
+                <Grid x:Name="OrDivider" Grid.Row="5" Margin="0,20,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Height="1" Background="#e5e7eb" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="or" Foreground="#9ca3af" FontSize="12" FontFamily="Segoe UI" Margin="12,0"/>
+                    <Border Grid.Column="2" Height="1" Background="#e5e7eb" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- "Start Free Trial" link button (hidden in trial mode) -->
+                <Button x:Name="StartTrialButton"
+                        Grid.Row="6"
+                        Click="StartTrialButton_Click"
+                        Cursor="Hand"
+                        Padding="12,10"
+                        BorderThickness="1"
+                        Margin="0,0,0,4">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="#d97706"/>
+                            <Setter Property="Foreground" Value="#b45309"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <TextBlock Text="⏱ " FontSize="14" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Start 7-Day Free Trial" FontFamily="Segoe UI" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#fef3c7"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
                 <!-- Skip link -->
-                <Button Grid.Row="7" 
+                <Button Grid.Row="8"
                         Content="Skip - Work Offline" 
                         Click="SkipButton_Click"
                         Background="Transparent"
@@ -123,7 +251,7 @@
                         FontSize="12"
                         FontFamily="Segoe UI"
                         HorizontalAlignment="Center"
-                        Margin="0,16,0,0"/>
+                        Margin="0,14,0,0"/>
             </Grid>
         </Border>
     </Grid>

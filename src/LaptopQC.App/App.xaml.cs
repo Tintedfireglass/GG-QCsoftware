@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 using System.Data;
 using System.Linq;
 using System.Windows;
@@ -62,6 +62,11 @@ public partial class App : Application
     /// This is used to track logged-in technician across windows.
     /// </summary>
     public static AuthService AuthService { get; } = new AuthService();
+
+    /// <summary>
+    /// Shared TrialService instance — manages the 7-day free trial lifecycle.
+    /// </summary>
+    public static TrialService TrialService { get; } = new TrialService();
     
     /// <summary>
     /// Convenience property to get the current technician ID (null if not logged in)
@@ -91,6 +96,16 @@ public partial class App : Application
     public static void SetComplianceLocked(bool locked)
     {
         IsComplianceLocked = locked;
+    }
+
+    /// <summary>
+    /// Clears both the trial session file and the auth session, then fires LoggedOut.
+    /// Call this instead of AuthService.Logout() when revoking a trial.
+    /// </summary>
+    public static void PerformTrialLogout()
+    {
+        TrialService.ClearTrial();
+        AuthService.Logout();
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -140,6 +155,22 @@ public partial class App : Application
         Task.Run(() => ReminderTaskService.EnsureRegistered());
         Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
         Task.Run(() => HeartbeatTaskService.EnsureRegistered());
+
+        // Restore trial session if no license session is active
+        if (!IsLoggedIn)
+        {
+            if (TrialService.IsTrialExpired)
+            {
+                // Expired trial — wipe the local file so the UI shows "Click to Activate"
+                TrialService.ClearTrial();
+            }
+            else if (TrialService.IsTrialActive)
+            {
+                var trial = TrialService.CurrentTrial!;
+                AuthService.StartTrialSession(
+                    trial.Email, trial.Token, trial.MachineId, trial.TrialEndsAtUtc);
+            }
+        }
     }
 
     private async Task RunAutoBasicQcAsync()
