@@ -23,7 +23,7 @@ public class AuthService
     public DateTime? LastOnlineCheckUtc { get; private set; }
     public event Action? LoggedOut;
 
-    public AuthService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
+    public AuthService(string apiUrl = "https://pramaan-dashboard.gadgetguruz.com/api")
     {
         _apiUrl = apiUrl.TrimEnd('/');
         _httpClient = new HttpClient

@@ -265,7 +265,7 @@ public class ReportGenerator
         {
             try
             {
-                var verificationUrl = $"https://gg-qcsoftware.vercel.app/verify/{report.HealthId}";
+                var verificationUrl = $"https://pramaan-dashboard.gadgetguruz.com/verify/{report.HealthId}";
                 using var qrGenerator = new QRCodeGenerator();
                 using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCodeGenerator.ECCLevel.M);
                 using var qrCode = new PngByteQRCode(qrCodeData);

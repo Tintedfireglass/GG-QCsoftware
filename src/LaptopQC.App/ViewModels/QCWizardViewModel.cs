@@ -493,7 +493,7 @@ public partial class QCWizardViewModel : ObservableObject
         try
         {
             // Use the dev URL
-            string verificationUrl = $"https://gg-qcsoftware.vercel.app/verify/{healthId}";
+            string verificationUrl = $"https://pramaan-dashboard.gadgetguruz.com/verify/{healthId}";
             
             using var qrGenerator = new QRCodeGenerator();
             using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCodeGenerator.ECCLevel.M);

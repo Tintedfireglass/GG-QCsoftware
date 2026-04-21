@@ -37,7 +37,7 @@ public class TrialService
             ? Math.Max(0, (int)Math.Ceiling((CurrentTrial!.TrialEndsAtUtc - DateTime.UtcNow).TotalDays))
             : 0;
 
-    public TrialService(string apiUrl = "https://gg-qcsoftware.vercel.app/api")
+    public TrialService(string apiUrl = "https://pramaan-dashboard.gadgetguruz.com/api")
     {
         _apiUrl = apiUrl.TrimEnd('/');
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
