@@ -42,6 +42,19 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
 
     if (payload.scope === 'license_device') {
+        // TrialUser tokens: issued by /api/auth/trial, treated as device-scoped sessions.
+        // They carry role='TrialUser' and no customerUserId — map them through as B2CDevice.
+        if (payload.role === 'TrialUser') {
+            return {
+                user: {
+                    id: payload.userId,
+                    username: payload.username,
+                    role: 'B2CDevice' as UserRole,
+                },
+                error: null,
+            };
+        }
+
         if (payload.role !== 'B2CDevice' || !payload.customerUserId) {
             return {
                 user: null,
@@ -91,17 +104,10 @@ export function hasRole(user: AuthenticatedUser, allowedRoles: UserRole[]): bool
 
 // Check if user can manage another user (based on hierarchy)
 export function canManageUser(manager: AuthenticatedUser, targetUserId: number, targetCreatedBy?: number): boolean {
-    // SuperAdmin can manage anyone
-    if (manager.role === 'SuperAdmin') {
-        return true;
-    }
-
-    // Refurbisher, Enterprise, and Reseller can manage users they created
+    if (manager.role === 'SuperAdmin') return true;
     if (manager.role === 'Refurbisher' || manager.role === 'Enterprise' || manager.role === 'Reseller') {
         return targetCreatedBy === manager.id;
     }
-
-    // Technicians and clients cannot manage anyone
     return false;
 }
 
@@ -111,15 +117,15 @@ export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
         case 'SuperAdmin':
             return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
         case 'Refurbisher':
-            return ['Technician']; // Refurbisher can create their own technicians
+            return ['Technician'];
         case 'Enterprise':
-            return ['Technician']; // Enterprise can create their own IT technicians
+            return ['Technician'];
         case 'Reseller':
-            return ['Technician', 'Client']; // Reseller can create their own technicians and clients
+            return ['Technician', 'Client'];
         case 'Employee':
-            return []; // Employees cannot create users
+            return [];
         default:
-            return []; // Technicians cannot create anyone
+            return [];
     }
 }
 
@@ -137,18 +143,15 @@ export function requireRole(user: AuthenticatedUser, allowedRoles: UserRole[]): 
 // Get users that the authenticated user can see
 export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]> {
     if (user.role === 'SuperAdmin') {
-        // SuperAdmin can see all users
         const users = await query('SELECT id FROM users');
         return users.map((u: any) => u.id);
     } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'Reseller') {
-        // Refurbisher/Enterprise can see users they created + themselves
         const users = await query(
             'SELECT id FROM users WHERE created_by = $1 OR id = $1',
             [user.id]
         );
         return users.map((u: any) => u.id);
     } else {
-        // Technicians/clients can only see themselves
         return [user.id];
     }
 }

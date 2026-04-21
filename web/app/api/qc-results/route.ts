@@ -314,28 +314,41 @@ export async function POST(request: NextRequest) {
                 [machineIdRaw]
             );
 
+            let isTrialSubmission = false;
+
             if (activationRes.rows.length === 0) {
-                throw new Error('NO_ACTIVATION');
-            }
-
-            const license = activationRes.rows[0];
-
-            if (!license.is_active) {
-                throw new Error('KEY_DISABLED');
-            }
-
-            if (license.expires_at && new Date(license.expires_at) < new Date()) {
-                throw new Error('KEY_EXPIRED');
-            }
-
-            if (license.type === 'demo') {
-                const maxRuns = license.demo_max_runs || 1;
-                if (license.demo_runs_used >= maxRuns) {
-                    throw new Error('DEMO_USED');
+                // Not a licensed machine — check if it has an active free trial
+                const trialRes = await client.query(
+                    `SELECT id FROM free_trials
+                     WHERE machine_serial = $1
+                       AND is_active = true
+                       AND trial_end_utc > NOW()`,
+                    [machineIdRaw]
+                );
+                if (trialRes.rows.length === 0) {
+                    throw new Error('NO_ACTIVATION');
                 }
-                isDemo = true;
-                demoKeyId = license.id;
-                demoExhausted = license.demo_runs_used + 1 >= maxRuns;
+                isTrialSubmission = true;
+            }
+
+            const license = isTrialSubmission ? null : activationRes.rows[0];
+
+            if (!isTrialSubmission) {
+                if (!license.is_active) throw new Error('KEY_DISABLED');
+
+                if (license.expires_at && new Date(license.expires_at) < new Date()) {
+                    throw new Error('KEY_EXPIRED');
+                }
+
+                if (license.type === 'demo') {
+                    const maxRuns = license.demo_max_runs || 1;
+                    if (license.demo_runs_used >= maxRuns) {
+                        throw new Error('DEMO_USED');
+                    }
+                    isDemo = true;
+                    demoKeyId = license.id;
+                    demoExhausted = license.demo_runs_used + 1 >= maxRuns;
+                }
             }
 
             let machineDbId: number;
