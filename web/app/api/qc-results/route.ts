@@ -6,6 +6,25 @@ import { SubmitQCResultRequest, ApiError } from '@/lib/types';
 
 type SqlParam = string | number | boolean | null;
 
+function normalizeDbGrade(rawGrade?: string | null): string {
+    if (!rawGrade) return '';
+    const trimmed = rawGrade.trim();
+    if (!trimmed) return '';
+
+    const normalized = trimmed.toUpperCase();
+    if (normalized === 'N/A' || normalized === 'NA' || normalized === 'NONE' || normalized === '-') {
+        return '';
+    }
+    if (normalized === 'REJECT' || normalized === 'FAIL' || normalized === 'FAILED') {
+        return 'F';
+    }
+    if (normalized === 'PASS' || normalized === 'PASSED') {
+        return 'A';
+    }
+
+    return trimmed.length <= 2 ? trimmed : trimmed.slice(0, 2);
+}
+
 // GET all QC results (requires JWT authentication)
 export async function GET(request: NextRequest) {
     try {
@@ -434,7 +453,7 @@ export async function POST(request: NextRequest) {
                     body.appVersion || null,
                     body.overallPass,
                     body.overallScore || 0,
-                    body.overallGrade || '',
+                    normalizeDbGrade(body.overallGrade),
                     body.systemInfo?.manufacturer || null,
                     body.systemInfo?.model || null,
                     body.systemInfo?.serialNumber || null,
@@ -474,7 +493,7 @@ export async function POST(request: NextRequest) {
                             test.tested,
                             test.passed,
                             test.score || 0,
-                            test.grade || '',
+                            normalizeDbGrade(test.grade),
                             test.message || null,
                             test.details ? JSON.stringify(test.details) : null,
                         ]

@@ -38,7 +38,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (App.IsLoggedIn)
+        if (App.IsLoggedIn && !App.AuthService.IsTrialSession)
         {
             // If already activated but missing the Device ID (legacy session), fetch it now
             if (App.MachineId == null && !string.IsNullOrEmpty(App.AuthService.LicenseKey))

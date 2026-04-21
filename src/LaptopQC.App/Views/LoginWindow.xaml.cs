@@ -19,6 +19,13 @@ public partial class LoginWindow : Window
         InitializeComponent();
         _authService = authService;
         LicenseBox.Focus();
+
+        // Hide "Start Free Trial" if we already had a trial (active or expired)
+        if (App.TrialService.CurrentTrial != null)
+        {
+            OrDivider.Visibility = Visibility.Collapsed;
+            StartTrialButton.Visibility = Visibility.Collapsed;
+        }
     }
 
     // ─── License Activation ───────────────────────────────────────────────────

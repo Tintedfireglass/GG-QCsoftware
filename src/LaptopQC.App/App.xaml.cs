@@ -104,7 +104,6 @@ public partial class App : Application
     /// </summary>
     public static void PerformTrialLogout()
     {
-        TrialService.ClearTrial();
         AuthService.Logout();
     }
 
