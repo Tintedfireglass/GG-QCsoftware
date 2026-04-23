@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { getMachineHistoryAlerts, getMachines, getQCResults, getUsers, getIssuesSummary } from "@/lib/api"
+import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCount, getUserStats, getIssuesSummary } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -38,19 +38,21 @@ export default function DashboardPage() {
     const [alerts, setAlerts] = useState<any[]>([])
     const [issueStats, setIssueStats] = useState<{ devicesWithIssues: number; totalDevices: number }>({ devicesWithIssues: 0, totalDevices: 0 })
     const [loading, setLoading] = useState(true)
+    const [secondaryLoading, setSecondaryLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+    const countRequestId = useRef(0)
 
-    async function loadData(query = "") {
+    async function loadRecentTests(query = "") {
         setLoading(true)
         try {
-            const [resultsData, machinesData, alertsData, issueData] = await Promise.all([
-                getQCResults(1, 10, { search: query }),
-                getMachines(),
-                getMachineHistoryAlerts().catch(() => ({ alerts: [] })),
-                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 }))
-            ])
-
-            const total = resultsData.pagination.total
+            const searchTerm = query.trim()
+            const requestId = ++countRequestId.current
+            const resultsData = await getQCResults(
+                1,
+                10,
+                searchTerm ? { search: searchTerm } : {},
+                { includeTotal: false }
+            )
 
             // Calculate average score from recent tests
             const scoredTests = resultsData.results.filter((t: any) => t.pramaan_score > 0)
@@ -58,29 +60,22 @@ export default function DashboardPage() {
                 ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.pramaan_score, 0) / scoredTests.length)
                 : 0
 
-            let userStats = { totalUsers: 0, totalAdmins: 0, totalTechnicians: 0 }
-
-            // Load user stats for admins
-            if (isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) {
-                try {
-                    const usersData = await getUsers(1, 100)
-                    userStats.totalUsers = usersData.pagination.total
-                    userStats.totalAdmins = usersData.users.filter((u: any) => u.role === 'Refurbisher' || u.role === 'Enterprise' || u.role === 'Reseller').length
-                    userStats.totalTechnicians = usersData.users.filter((u: any) => u.role === 'Technician').length
-                } catch (err) {
-                    console.error("Failed to load user stats", err)
-                }
-            }
-
             setStats({
-                totalTests: total,
+                totalTests: 0,
                 passRate: avgScore,
-                activeMachines: machinesData.machines.length,
-                ...userStats,
+                activeMachines: 0,
+                totalUsers: 0,
+                totalAdmins: 0,
+                totalTechnicians: 0,
                 recentTests: resultsData.results
             })
-            setAlerts(alertsData.alerts || [])
-            setIssueStats(issueData)
+
+            getQCResultsCount(searchTerm ? { search: searchTerm } : {})
+                .then((countData) => {
+                    if (requestId !== countRequestId.current) return
+                    setStats((prev) => ({ ...prev, totalTests: countData.total ?? 0 }))
+                })
+                .catch((err) => console.error("Failed to count QC results", err))
         } catch (error) {
             console.error("Failed to load dashboard data", error)
         } finally {
@@ -88,13 +83,46 @@ export default function DashboardPage() {
         }
     }
 
-    useEffect(() => {
-        loadData()
-    }, [])
+    async function loadSecondary() {
+        setSecondaryLoading(true)
+        try {
+            const [machinesCount, alertsData, issueData] = await Promise.all([
+                getMachinesCount().catch(() => ({ total: 0 })),
+                getMachineHistoryAlerts().catch(() => ({ alerts: [] })),
+                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 }))
+            ])
 
-    if (loading) {
-        return <div className="p-8 text-center text-slate-500">Loading dashboard...</div>
+            setStats((prev) => ({
+                ...prev,
+                activeMachines: machinesCount.total ?? 0,
+            }))
+            setAlerts(alertsData.alerts || [])
+            setIssueStats(issueData)
+
+            if (isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) {
+                try {
+                    const userStats = await getUserStats()
+                    setStats((prev) => ({
+                        ...prev,
+                        totalUsers: userStats.totalUsers ?? 0,
+                        totalAdmins: userStats.totalAdmins ?? 0,
+                        totalTechnicians: userStats.totalTechnicians ?? 0,
+                    }))
+                } catch (err) {
+                    console.error("Failed to load user stats", err)
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load secondary dashboard data", err)
+        } finally {
+            setSecondaryLoading(false)
+        }
     }
+
+    useEffect(() => {
+        loadRecentTests()
+        loadSecondary()
+    }, [])
 
     return (
         <div className="space-y-6">
@@ -122,7 +150,7 @@ export default function DashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-slate-900">{stats.totalTests}</div>
+                        <div className="text-2xl font-bold text-slate-900">{loading ? "—" : stats.totalTests}</div>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                             {isUser() ? "Your tests" : "All time records"}
                         </p>
@@ -137,7 +165,7 @@ export default function DashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-slate-900">{stats.passRate}/100</div>
+                        <div className="text-2xl font-bold text-slate-900">{loading ? "—" : `${stats.passRate}/100`}</div>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                             From recent tests
                         </p>
@@ -171,10 +199,12 @@ export default function DashboardPage() {
                                 "text-2xl font-bold",
                                 issueStats.devicesWithIssues > 0 ? "text-red-600" : "text-emerald-600"
                             )}>
-                                {issueStats.devicesWithIssues}
+                                {secondaryLoading ? "—" : issueStats.devicesWithIssues}
                             </div>
                             <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                {issueStats.devicesWithIssues > 0
+                                {secondaryLoading
+                                    ? "Loading issue stats..."
+                                    : issueStats.devicesWithIssues > 0
                                     ? `of ${issueStats.totalDevices} ${issueStats.totalDevices === 1 ? 'system' : 'systems'} tested`
                                     : "All systems healthy"}
                             </p>
@@ -195,7 +225,7 @@ export default function DashboardPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-slate-900">{stats.totalUsers}</div>
+                                <div className="text-2xl font-bold text-slate-900">{secondaryLoading ? "—" : stats.totalUsers}</div>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                                 {isSuperAdmin()
                                     ? `${stats.totalAdmins} refurb/enterprise/reseller, ${stats.totalTechnicians} technicians`
@@ -335,10 +365,10 @@ export default function DashboardPage() {
                                 placeholder="Search Test ID, Serial..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && loadData(searchQuery)}
+                                onKeyDown={(e) => e.key === 'Enter' && loadRecentTests(searchQuery)}
                                 className="border-slate-200 focus-visible:ring-[var(--brand-purple)]"
                             />
-                            <Button size="icon" onClick={() => loadData(searchQuery)} className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)]">
+                            <Button size="icon" onClick={() => loadRecentTests(searchQuery)} className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)]">
                                 <Search className="h-4 w-4" />
                             </Button>
                         </div>
@@ -347,7 +377,9 @@ export default function DashboardPage() {
                 <CardContent className="px-0">
                     {/* Mobile Card View */}
                     <div className="md:hidden flex flex-col gap-4 p-4">
-                        {stats.recentTests.map((test) => {
+                        {loading ? (
+                            <div className="p-8 text-center text-slate-500">Loading...</div>
+                        ) : stats.recentTests.map((test) => {
                             const dateObj = new Date(test.timestamp);
                             const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -380,7 +412,7 @@ export default function DashboardPage() {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="mb-4">
                                         <div className="font-bold text-slate-900 text-base leading-tight mb-1">{test.system_model}</div>
                                         <div className="text-xs text-slate-500">
@@ -397,7 +429,7 @@ export default function DashboardPage() {
                                 </div>
                             )
                         })}
-                        {stats.recentTests.length === 0 && (
+                        {!loading && stats.recentTests.length === 0 && (
                             <div className="text-center text-slate-500 py-6">No test results found</div>
                         )}
                     </div>
@@ -416,7 +448,11 @@ export default function DashboardPage() {
                                 </tr>
                             </thead>
                             <tbody className="[&_tr:last-child]:border-0">
-                                {stats.recentTests.map((test) => {
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={6} className="p-8 text-center text-slate-500">Loading...</td>
+                                    </tr>
+                                ) : stats.recentTests.map((test) => {
                                     const dateObj = new Date(test.timestamp);
                                     const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -466,7 +502,7 @@ export default function DashboardPage() {
                                         </tr>
                                     )
                                 })}
-                                {stats.recentTests.length === 0 && (
+                                {!loading && stats.recentTests.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="p-8 text-center text-slate-500">No test results found</td>
                                     </tr>

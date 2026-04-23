@@ -33,6 +33,10 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const { searchParams } = new URL(request.url);
+        const recentDays = Math.max(1, Math.min(parseInt(searchParams.get("recentDays") || "30", 10) || 30, 365));
+        const limit = Math.max(1, Math.min(parseInt(searchParams.get("limit") || "10", 10) || 10, 50));
+
         const params: SqlParam[] = [];
         let whereClause = '';
 
@@ -44,13 +48,20 @@ export async function GET(request: NextRequest) {
             params.push(authUser.id);
         }
 
-        const whereSql = whereClause ? `WHERE ${whereClause}` : '';
+        const whereParts: string[] = [];
+        if (whereClause) whereParts.push(`(${whereClause})`);
+        // Matches downstream JS behavior (drops anything older than 30 days), but filters early in SQL.
+        whereParts.push(`mh.timestamp >= NOW() - make_interval(days => $${params.length + 1})`);
+        params.push(recentDays);
+        const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : '';
 
         const rows = await query(
             `
             WITH scoped AS (
                 SELECT
-                    mh.*,
+                    mh.machine_id,
+                    mh.timestamp,
+                    mh.component_grades,
                     m.machine_id as machine_identifier,
                     m.custom_name as custom_name,
                     ROW_NUMBER() OVER (PARTITION BY mh.machine_id ORDER BY mh.timestamp DESC, mh.id DESC) AS rn
@@ -110,7 +121,8 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({ alerts });
+        alerts.sort((a, b) => (Date.parse(b.latest_timestamp || "") || 0) - (Date.parse(a.latest_timestamp || "") || 0));
+        return NextResponse.json({ alerts: alerts.slice(0, limit) });
     } catch (error) {
         console.error('Error fetching machine history alerts:', error);
         return NextResponse.json(

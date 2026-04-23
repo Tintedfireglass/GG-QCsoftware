@@ -47,7 +47,23 @@ export async function GET(
         }
 
         const machines = await query(
-            `SELECT * FROM machines m WHERE m.id = $1${accessClause}`,
+            `SELECT
+                m.id,
+                m.machine_id,
+                m.serial_number,
+                m.mac_address,
+                m.manufacturer,
+                m.model,
+                m.computer_name,
+                m.custom_name,
+                m.last_seen,
+                m.location,
+                m.created_at,
+                m.asset_tag,
+                m.owner_user_id,
+                m.group_id
+              FROM machines m
+              WHERE m.id = $1${accessClause}`,
             machineParams
         );
 
@@ -173,7 +189,23 @@ export async function PATCH(
         }
 
         const machines = await query(
-            `SELECT * FROM machines m WHERE m.id = $1${accessClause}`,
+            `SELECT
+                m.id,
+                m.machine_id,
+                m.serial_number,
+                m.mac_address,
+                m.manufacturer,
+                m.model,
+                m.computer_name,
+                m.custom_name,
+                m.last_seen,
+                m.location,
+                m.created_at,
+                m.asset_tag,
+                m.owner_user_id,
+                m.group_id
+              FROM machines m
+              WHERE m.id = $1${accessClause}`,
             machineParams
         );
 
@@ -185,7 +217,24 @@ export async function PATCH(
         }
 
         const updated = await query(
-            'UPDATE machines SET custom_name = $1 WHERE id = $2 RETURNING *',
+            `UPDATE machines
+             SET custom_name = $1
+             WHERE id = $2
+             RETURNING
+               id,
+               machine_id,
+               serial_number,
+               mac_address,
+               manufacturer,
+               model,
+               computer_name,
+               custom_name,
+               last_seen,
+               location,
+               created_at,
+               asset_tag,
+               owner_user_id,
+               group_id`,
             [customName, id]
         );
 

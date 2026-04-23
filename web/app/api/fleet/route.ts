@@ -51,14 +51,26 @@ export async function GET(request: NextRequest) {
 
         const machines = await query(
             `SELECT
-                m.*,
+                m.id,
+                m.machine_id,
+                m.serial_number,
+                m.manufacturer,
+                m.model,
+                m.asset_tag,
+                m.group_id,
+                m.last_seen,
                 mg.name as group_name,
                 latest_qr.pramaan_score as latest_score,
                 latest_qr.pramaan_grade as latest_grade,
                 latest_qr.timestamp as latest_test_date,
-                (SELECT COUNT(*) FROM machine_lifecycle_events mle WHERE mle.machine_id = m.id) as lifecycle_event_count
+                COALESCE(mle.lifecycle_event_count, 0) as lifecycle_event_count
             FROM machines m
             LEFT JOIN machine_groups mg ON m.group_id = mg.id
+            LEFT JOIN (
+                SELECT machine_id, COUNT(*)::int as lifecycle_event_count
+                FROM machine_lifecycle_events
+                GROUP BY machine_id
+            ) mle ON mle.machine_id = m.id
             LEFT JOIN LATERAL (
                 SELECT pramaan_score, pramaan_grade, timestamp
                 FROM qc_results

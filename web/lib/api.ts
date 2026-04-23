@@ -27,16 +27,37 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     return response;
 }
 
-export async function getQCResults(page = 1, limit = 20, filters = {}) {
+export async function getQCResults(
+    page = 1,
+    limit = 20,
+    filters: Record<string, string | undefined> = {},
+    options: { includeTotal?: boolean } = {}
+) {
     const offset = (page - 1) * limit;
     const params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
 
     Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value as string);
+        if (value != null && value !== "") params.append(key, value);
     });
+
+    if (options.includeTotal === false) {
+        params.append("includeTotal", "0");
+    }
 
     const res = await fetchWithAuth(`/api/qc-results?${params.toString()}`);
     if (!res.ok) throw new Error("Failed to fetch results");
+    return res.json();
+}
+
+export async function getQCResultsCount(filters: Record<string, string | undefined> = {}): Promise<{ total: number }> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value != null && value !== "") params.append(key, value);
+    });
+
+    const queryStr = params.toString();
+    const res = await fetchWithAuth(`/api/qc-results/count${queryStr ? `?${queryStr}` : ""}`);
+    if (!res.ok) throw new Error("Failed to fetch results count");
     return res.json();
 }
 
@@ -52,8 +73,14 @@ export async function getMachines() {
     return res.json();
 }
 
+export async function getMachinesCount(): Promise<{ total: number }> {
+    const res = await fetchWithAuth("/api/machines?countOnly=1");
+    if (!res.ok) throw new Error("Failed to fetch machine count");
+    return res.json();
+}
+
 export async function getMachineHistoryAlerts() {
-    const res = await fetchWithAuth("/api/machine-history/alerts");
+    const res = await fetchWithAuth("/api/machine-history/alerts?recentDays=30&limit=10");
     if (!res.ok) throw new Error("Failed to fetch machine history alerts");
     return res.json();
 }
@@ -138,6 +165,15 @@ export async function getUsers(page = 1, limit = 20, filters: { search?: string;
     if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to fetch users");
+    }
+    return res.json();
+}
+
+export async function getUserStats(): Promise<{ totalUsers: number; totalAdmins: number; totalTechnicians: number }> {
+    const res = await fetchWithAuth("/api/users/stats");
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to fetch user stats");
     }
     return res.json();
 }

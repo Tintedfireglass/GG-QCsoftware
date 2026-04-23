@@ -73,9 +73,15 @@ export async function GET(request: NextRequest) {
                 u.is_active, 
                 u.created_at,
                 creator.username as creator_username,
-                (SELECT COUNT(*) FROM users WHERE created_by = u.id) as team_size
+                COALESCE(team.team_size, 0) as team_size
              FROM users u
              LEFT JOIN users creator ON u.created_by = creator.id
+             LEFT JOIN (
+                 SELECT created_by, COUNT(*)::int as team_size
+                 FROM users
+                 WHERE created_by IS NOT NULL
+                 GROUP BY created_by
+             ) team ON team.created_by = u.id
              ${whereClause}
              ORDER BY u.created_at DESC
              LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,

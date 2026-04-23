@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         const refurbishId = searchParams.get('refurbishId');
         const overallPass = searchParams.get('overallPass');
         const search = searchParams.get('search')?.trim();
+        const includeTotal = searchParams.get('includeTotal') !== '0' && searchParams.get('includeTotal') !== 'false';
 
         const baseWhereClauses: string[] = ['1=1'];
         const params: SqlParam[] = [];
@@ -60,11 +61,7 @@ export async function GET(request: NextRequest) {
             paramCount++;
         }
 
-        if (machineId) {
-            baseWhereClauses.push(`m.machine_id = $${paramCount}`);
-            params.push(machineId);
-            paramCount++;
-        }
+        const needsMachineJoin = !!machineId || !!search;
 
         if (refurbishId) {
             baseWhereClauses.push(`qr.refurbish_id = $${paramCount}`);
@@ -75,6 +72,12 @@ export async function GET(request: NextRequest) {
         if (overallPass !== null && overallPass !== undefined) {
             baseWhereClauses.push(`qr.overall_pass = $${paramCount}`);
             params.push(overallPass === 'true');
+            paramCount++;
+        }
+
+        if (machineId) {
+            baseWhereClauses.push(`m.machine_id = $${paramCount}`);
+            params.push(machineId);
             paramCount++;
         }
 
@@ -110,7 +113,6 @@ export async function GET(request: NextRequest) {
           qr.system_serial,
           qr.app_version,
           m.machine_id as machine_identifier,
-          m.location as machine_location,
           m.computer_name,
           u.username as technician_username,
           u.display_name as technician_name,
@@ -153,27 +155,60 @@ export async function GET(request: NextRequest) {
       ORDER BY timestamp DESC, id DESC
     `;
 
-        const results = await query(queryText, [...params, limit, offset]);
+        if (!includeTotal) {
+            // Used by dashboards/quick views; avoids a potentially expensive COUNT(*).
+            const results = await query(queryText, [...params, limit, offset]);
+            return NextResponse.json(
+                {
+                    results,
+                    pagination: {
+                        total: null,
+                        limit,
+                        offset,
+                        hasMore: results.length === limit,
+                    },
+                },
+                {
+                    headers: {
+                        // Short private cache to speed back/forward navigation without cross-user leakage.
+                        "Cache-Control": "private, max-age=5, stale-while-revalidate=25",
+                    },
+                }
+            );
+        }
 
-        const countQuery = `
-      SELECT COUNT(*) as total
-      FROM qc_results qr
-      LEFT JOIN machines m ON qr.machine_id = m.id
-      WHERE ${baseWhereSql}
-    `;
+        const countQuery = needsMachineJoin
+            ? `SELECT COUNT(*) as total
+               FROM qc_results qr
+               LEFT JOIN machines m ON qr.machine_id = m.id
+               WHERE ${baseWhereSql}`
+            : `SELECT COUNT(*) as total
+               FROM qc_results qr
+               WHERE ${baseWhereSql}`;
 
-        const countResult = await query(countQuery, params);
+        // Run list + count in parallel to reduce endpoint wall time.
+        const [results, countResult] = await Promise.all([
+            query(queryText, [...params, limit, offset]),
+            query(countQuery, params),
+        ]);
         const total = parseInt(countResult[0]?.total || '0', 10);
 
-        return NextResponse.json({
-            results,
-            pagination: {
-                total,
-                limit,
-                offset,
-                hasMore: offset + limit < total,
+        return NextResponse.json(
+            {
+                results,
+                pagination: {
+                    total,
+                    limit,
+                    offset,
+                    hasMore: offset + limit < total,
+                },
             },
-        });
+            {
+                headers: {
+                    "Cache-Control": "private, max-age=5, stale-while-revalidate=25",
+                },
+            }
+        );
     } catch (error) {
         console.error('Error fetching QC results:', error);
         return NextResponse.json(
