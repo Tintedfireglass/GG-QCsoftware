@@ -59,6 +59,7 @@ public class AuthService
                     CurrentUser = result.User;
                     Token = result.Token;
                     LicenseKey = null;
+                    IsTrialSession = false;
                     LastOnlineCheckUtc = DateTime.UtcNow;
                     SaveSession();
                     return new LoginResult { Success = true, Message = "Login successful" };
@@ -115,6 +116,7 @@ public class AuthService
                     Token = result.Token;
                     LicenseKey = licenseKey;
                     MachineId = result.MachineId;
+                    IsTrialSession = false;
                     LastOnlineCheckUtc = DateTime.UtcNow;
                     SaveSession();
                     return new LoginResult { Success = true, Message = "License Login successful" };

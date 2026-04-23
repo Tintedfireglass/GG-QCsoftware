@@ -182,7 +182,6 @@ public class QCSubmissionService
         AddResult("CPU", report.CpuTest);
         AddResult("RAM", report.RamTest);
         AddResult("Storage", report.StorageTest);
-        AddResult("SMART", report.SmartTest);
         AddResult("Battery", report.BatteryTest);
         AddResult("Keyboard", report.KeyboardTest);
         AddResult("Trackpad", report.TrackpadTest);

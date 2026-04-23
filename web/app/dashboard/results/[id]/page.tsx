@@ -142,7 +142,14 @@ export default function ResultDetailPage() {
     }, [id])
 
     const safeData = data ?? {}
-    const { test_results = [] } = safeData as any
+    const rawTestResults = Array.isArray((safeData as any)?.test_results)
+        ? (safeData as any).test_results
+        : []
+    const hasStorageResult = rawTestResults.some((t: any) => String(t?.test_type || "").toLowerCase() === "storage")
+    const test_results = rawTestResults.filter((t: any) => {
+        const type = String(t?.test_type || "").toLowerCase()
+        return !(hasStorageResult && type === "smart")
+    })
     const batteryBrand = safeData?.battery_details_json
         ? (safeData.battery_details_json.manufactureName || safeData.battery_details_json.name || safeData.battery_details_json.partNumber)
         : null

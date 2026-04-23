@@ -39,7 +39,12 @@ export default function DedicatedReportPage() {
     if (loading) return <div className="p-10 font-sans text-center">Loading Report...</div>
     if (!data) return <div className="p-10 font-sans text-center text-red-600">Report not found.</div>
 
-    const { test_results = [] } = data
+    const rawTestResults = Array.isArray(data?.test_results) ? data.test_results : []
+    const hasStorageResult = rawTestResults.some((test: any) => String(test?.test_type || "").toLowerCase() === "storage")
+    const test_results = rawTestResults.filter((test: any) => {
+        const type = String(test?.test_type || "").toLowerCase()
+        return !(hasStorageResult && type === "smart")
+    })
     const batteryBrand = data?.battery_details_json
         ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
         : null

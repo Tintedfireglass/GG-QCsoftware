@@ -281,8 +281,13 @@ public class GradingService
     }
 
     /// <summary>
-    /// Storage: integrates physical health and SMART self-test results.
-    /// Tampered = hard fail, Inconclusive = soft fail, Suspicious = penalty.
+    /// Storage scoring is built bottom-up:
+    /// 1. Score each drive from health telemetry first.
+    /// 2. Weight drives by capacity to get one machine-level storage score.
+    /// 3. Apply trust penalties for self-test failures, suspicious data, and
+    ///    other verification issues.
+    /// This keeps SMART health central instead of letting a clean pass
+    /// automatically inflate the score to 100.
     /// </summary>
     private static int? ScoreStorage(QCReport report, TestResult result)
     {
@@ -294,21 +299,102 @@ public class GradingService
         if (report.StorageDetails?.IsInconclusive == true)
             return 35;
 
-        int score = result.Passed ? 100 : 20;
+        int score = ScoreStorageFromDrives(report) ?? (result.Passed ? 70 : 25);
 
-        // Self-test failure or generic failure strings
-        if (result.Details.Any(d => d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) && !d.Contains("Skipped")))
-            score = Math.Min(score, 30);
+        bool hasSelfTestFailure = result.Details.Any(d =>
+            d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) &&
+            !d.Contains("Skipped", StringComparison.OrdinalIgnoreCase));
+        bool hasSelfTestInconclusive = result.Details.Any(d =>
+            d.Contains("Self-Test Inconclusive", StringComparison.OrdinalIgnoreCase));
+
+        if (hasSelfTestFailure)
+        {
+            score -= 30;
+            score = Math.Min(score, 45);
+        }
+        else if (hasSelfTestInconclusive)
+        {
+            score -= 10;
+        }
+
+        if (!result.Passed)
+            score = Math.Min(score, 45);
 
         if (report.StorageDetails?.IsSuspicious == true)
-            score -= 25;
+            score -= 15;
 
-        // If the primary/only driver is eMMC and lacks definitive health telemetry, cap to 80 (Pass - Unverified Life)
+        // If the primary/only drive is eMMC and lacks definitive health telemetry,
+        // keep it passable but never premium.
         if (report.StorageDetails != null && report.StorageDetails.Devices.Any() &&
             report.StorageDetails.Devices.All(d => d.IsEMMC && !d.HealthPercent.HasValue))
         {
             score = Math.Min(score, 80);
         }
+
+        return Math.Clamp(score, 0, 100);
+    }
+
+    private static int? ScoreStorageFromDrives(QCReport report)
+    {
+        if (report.StorageDetails == null || report.StorageDetails.Devices.Count == 0)
+            return null;
+
+        double weightedTotal = 0;
+        double totalWeight = 0;
+
+        foreach (var drive in report.StorageDetails.Devices)
+        {
+            int driveScore = ScoreSingleDrive(drive);
+            double weight = drive.SizeGB > 0 ? drive.SizeGB : 1;
+
+            weightedTotal += driveScore * weight;
+            totalWeight += weight;
+        }
+
+        if (totalWeight <= 0)
+            return null;
+
+        return (int)Math.Round(weightedTotal / totalWeight);
+    }
+
+    private static int ScoreSingleDrive(LaptopQC.Core.Diagnostics.StorageDevice drive)
+    {
+        int score;
+
+        if (drive.HealthPercent.HasValue)
+        {
+            // SMART health is the primary signal.
+            score = drive.HealthPercent.Value;
+        }
+        else if (drive.IsEMMC)
+        {
+            // eMMC often lacks reliable SMART-style wear telemetry.
+            score = 80;
+        }
+        else if (drive.Temperature.HasValue || drive.PowerOnHours.HasValue || drive.TotalBytesWritten.HasValue)
+        {
+            // Some telemetry exists, but not enough to trust it fully.
+            score = 65;
+        }
+        else
+        {
+            score = 55;
+        }
+
+        if (drive.Temperature.HasValue)
+        {
+            score -= drive.Temperature.Value switch
+            {
+                <= 45 => 0,
+                <= 50 => 4,
+                <= 55 => 10,
+                <= 60 => 20,
+                _     => 35
+            };
+        }
+
+        if (drive.IsSuspicious)
+            score -= 10;
 
         return Math.Clamp(score, 0, 100);
     }

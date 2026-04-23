@@ -78,116 +78,88 @@ export async function GET(request: NextRequest) {
             paramCount++;
         }
 
-        const baseWhereSql = baseWhereClauses.join(' AND ');
-        let searchWhereSql = '1=1';
-
         if (search) {
-            searchWhereSql = `(
-                COALESCE(numbered.computer_name, '') ILIKE $${paramCount} OR
-                COALESCE(numbered.machine_identifier, '') ILIKE $${paramCount} OR
-                CAST(numbered.machine_id AS TEXT) ILIKE $${paramCount}
-            )`;
+            baseWhereClauses.push(`(
+                COALESCE(m.computer_name, '') ILIKE $${paramCount} OR
+                COALESCE(m.machine_id, '') ILIKE $${paramCount} OR
+                CAST(qr.machine_id AS TEXT) ILIKE $${paramCount} OR
+                CAST(qr.id AS TEXT) ILIKE $${paramCount}
+            )`);
             params.push(`%${search}%`);
             paramCount++;
         }
 
+        const baseWhereSql = baseWhereClauses.join(' AND ');
+
+        // Performance notes:
+        // - Avoid selecting qr.* (large JSON columns) for list views.
+        // - Apply search before pagination; avoid window functions over the full filtered set.
+        // - Compute expensive "has_issues" only for the paginated rows.
         const queryText = `
-      WITH filtered AS (
+      WITH page_rows AS (
         SELECT
-          qr.*,
+          qr.id,
+          qr.report_id,
+          qr.machine_id,
+          qr.timestamp,
+          qr.overall_pass,
+          qr.pramaan_score,
+          qr.pramaan_grade,
+          qr.system_manufacturer,
+          qr.system_model,
+          qr.system_serial,
+          qr.app_version,
           m.machine_id as machine_identifier,
           m.location as machine_location,
           m.computer_name,
           u.username as technician_username,
           u.display_name as technician_name,
-          EXISTS (
-            SELECT 1 FROM test_results tr
-            WHERE tr.qc_result_id = qr.id
-              AND tr.score < 70
-              AND (
-                LOWER(tr.test_type) LIKE 'cpu%'
-                OR LOWER(tr.test_type) LIKE 'memory%'
-                OR LOWER(tr.test_type) LIKE 'ram%'
-                OR LOWER(tr.test_type) LIKE 'storage%'
-                OR LOWER(tr.test_type) LIKE 'nvme%'
-                OR LOWER(tr.test_type) LIKE 'ssd%'
-                OR LOWER(tr.test_type) LIKE 'smart%'
-                OR (
-                  (LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%')
-                  AND tr.score > 0
-                )
-                OR (
-                  LOWER(tr.test_type) LIKE 'battery%'
-                  AND qr.battery_details_json IS NOT NULL
-                  AND (qr.battery_details_json->>'isPresent')::boolean IS NOT FALSE
-                )
-              )
-          ) AS has_issues
+          (
+            qr.battery_details_json IS NOT NULL
+            AND (qr.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+          ) AS battery_present
         FROM qc_results qr
         LEFT JOIN machines m ON qr.machine_id = m.id
         LEFT JOIN users u ON qr.technician_id = u.id
         WHERE ${baseWhereSql}
-      ),
-      numbered AS (
-        SELECT
-          filtered.*,
-          ROW_NUMBER() OVER (ORDER BY filtered.timestamp DESC, filtered.id DESC) AS scoped_test_id
-        FROM filtered
+        ORDER BY qr.timestamp DESC, qr.id DESC
+        LIMIT $${paramCount} OFFSET $${paramCount + 1}
       )
-      SELECT *
-      FROM numbered
-      WHERE ${searchWhereSql}
+      SELECT
+        page_rows.*,
+        EXISTS (
+          SELECT 1 FROM test_results tr
+          WHERE tr.qc_result_id = page_rows.id
+            AND tr.score < 70
+            AND (
+              LOWER(tr.test_type) LIKE 'cpu%'
+              OR LOWER(tr.test_type) LIKE 'memory%'
+              OR LOWER(tr.test_type) LIKE 'ram%'
+              OR LOWER(tr.test_type) LIKE 'storage%'
+              OR LOWER(tr.test_type) LIKE 'nvme%'
+              OR LOWER(tr.test_type) LIKE 'ssd%'
+              OR LOWER(tr.test_type) LIKE 'smart%'
+              OR (
+                (LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%')
+                AND tr.score > 0
+              )
+              OR (
+                LOWER(tr.test_type) LIKE 'battery%'
+                AND page_rows.battery_present
+              )
+            )
+        ) AS has_issues
+      FROM page_rows
       ORDER BY timestamp DESC, id DESC
-      LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
         const results = await query(queryText, [...params, limit, offset]);
 
         const countQuery = `
-      WITH filtered AS (
-        SELECT
-          qr.*,
-          m.machine_id as machine_identifier,
-          m.computer_name,
-          u.username as technician_username,
-          u.display_name as technician_name,
-          EXISTS (
-            SELECT 1 FROM test_results tr
-            WHERE tr.qc_result_id = qr.id
-              AND tr.score < 70
-              AND (
-                LOWER(tr.test_type) LIKE 'cpu%'
-                OR LOWER(tr.test_type) LIKE 'gpu%'
-                OR LOWER(tr.test_type) LIKE 'graphics%'
-                OR LOWER(tr.test_type) LIKE 'memory%'
-                OR LOWER(tr.test_type) LIKE 'ram%'
-                OR LOWER(tr.test_type) LIKE 'storage%'
-                OR LOWER(tr.test_type) LIKE 'nvme%'
-                OR LOWER(tr.test_type) LIKE 'ssd%'
-                OR LOWER(tr.test_type) LIKE 'smart%'
-                OR (LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%') -- gpu with score=0 means no GPU present
-                -- (handled below via AND NOT gpu=0)
-                OR (
-                  LOWER(tr.test_type) LIKE 'battery%'
-                  AND qr.battery_details_json IS NOT NULL
-                  AND (qr.battery_details_json->>'isPresent')::boolean IS NOT FALSE
-                )
-              )
-          ) AS has_issues
-        FROM qc_results qr
-        LEFT JOIN machines m ON qr.machine_id = m.id
-        LEFT JOIN users u ON qr.technician_id = u.id
-        WHERE ${baseWhereSql}
-      ),
-      numbered AS (
-        SELECT
-          filtered.*,
-          ROW_NUMBER() OVER (ORDER BY filtered.timestamp DESC, filtered.id DESC) AS scoped_test_id
-        FROM filtered
-      )
       SELECT COUNT(*) as total
-      FROM numbered
-      WHERE ${searchWhereSql}
+      FROM qc_results qr
+      LEFT JOIN machines m ON qr.machine_id = m.id
+      WHERE ${baseWhereSql}
     `;
 
         const countResult = await query(countQuery, params);
@@ -239,10 +211,16 @@ export async function POST(request: NextRequest) {
 
         const body: SubmitQCResultRequest = await request.json();
 
-        // Intercept and mark storage as tampered if it has 0% health but passed the SMART self-test
+        // Intercept and mark storage as tampered if it has 0% health but passed the SMART self-test.
+        // New executables fold SMART into Storage, while older ones may still submit SMART separately.
         if (body.storageDetails?.devices && Array.isArray(body.storageDetails.devices)) {
             const smartTest = body.testResults?.find(t => t.testType === 'SMART' || t.testType === 'Smart');
-            const smartDetails = Array.isArray(smartTest?.details) ? smartTest.details : [];
+            const storageTest = body.testResults?.find(t => t.testType === 'Storage');
+            const smartDetails = Array.isArray(smartTest?.details)
+                ? smartTest.details
+                : Array.isArray(storageTest?.details)
+                    ? storageTest.details
+                    : [];
 
             let tamperedFound = false;
 
@@ -264,7 +242,6 @@ export async function POST(request: NextRequest) {
                 body.storageDetails.isTampered = true;
                 body.storageDetails.tamperReason = "Storage Tampered - Unable to read data";
 
-                const storageTest = body.testResults?.find(t => t.testType === 'Storage');
                 if (storageTest) {
                     storageTest.passed = false;
                     storageTest.score = 0;

@@ -279,6 +279,7 @@
                     <Button Content="Full QC" 
                             Command="{Binding StartFullQcCommand}"
                             IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                            Visibility="{Binding IsFullQcVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                             Margin="0,0,10,0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
@@ -572,7 +573,7 @@
                                     <Button Content="Test" 
                                             Command="{Binding OpenTrackpadTestCommand}"
                                             Style="{StaticResource SmallTestButton}"
-                                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                            IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
                                             Margin="10,0,0,0"
                                             ToolTip="Test trackpad movement, clicks, and scroll"/>
                                 </StackPanel>
@@ -593,7 +594,7 @@
                                     <Button Content="Test A/V" 
                                             Command="{Binding OpenAudioVideoTestCommand}"
                                             Style="{StaticResource SmallTestButton}"
-                                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                            IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
                                             Margin="10,0,0,0"
                                             ToolTip="Test Speakers, Microphone, and Camera"/>
                                 </StackPanel>
@@ -608,7 +609,7 @@
                                 <Button Content="Test" 
                                         Command="{Binding OpenUsbPortTestCommand}"
                                         Style="{StaticResource SmallTestButton}"
-                                        IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                        IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
                                         Margin="15,0,0,0"
                                         ToolTip="Test each USB port by plugging in a device"/>
                                 <TextBlock Style="{StaticResource InfoLabel}" VerticalAlignment="Center" Margin="15,0,0,0">
@@ -669,7 +670,7 @@
             </Grid>
             
             <!-- Test Results List -->
-            <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,5,5,0" Visibility="{Binding IsLoggedIn, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
+            <Border Grid.Row="3" Style="{StaticResource CardPanel}" Margin="5,5,5,0" Visibility="{Binding IsResultsSectionVisible, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -678,8 +679,23 @@
                     
                     <TextBlock Grid.Row="0" Text="Test Results" Style="{StaticResource SectionTitle}" Margin="0,0,0,12"/>
                     
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="200">
-                        <ItemsControl ItemsSource="{Binding Results}">
+                    <Grid Grid.Row="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Effect" Value="{x:Null}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTrial}" Value="True">
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <BlurEffect Radius="12" RenderingBias="Quality"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <ItemsControl ItemsSource="{Binding Results}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="8,10">
@@ -725,7 +741,22 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
+                        </ScrollViewer>
+                        
+                        <!-- Overlay for Trial Mode -->
+                        <Border Visibility="{Binding IsTrial, Converter={StaticResource BoolToVisibilityConverter}}" 
+                                Background="#40FFFFFF" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" CornerRadius="4">
+                            <Border Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                                    Padding="24,16" CornerRadius="8" BorderBrush="#e5e7eb" BorderThickness="1"
+                                    Effect="{StaticResource CardShadow}">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="🔒 Results Locked" FontSize="16" FontWeight="SemiBold" Foreground="#8B3D88" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Activate PRAMAAN to unlock detailed test results." 
+                                               Foreground="#6b7280" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Border>
+                    </Grid>
                     
                 </Grid>
             </Border>

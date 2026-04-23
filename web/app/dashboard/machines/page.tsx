@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Monitor, ExternalLink } from "lucide-react"
+import { Monitor, ExternalLink, Search } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/machine-status"
@@ -16,6 +17,8 @@ export default function MachinesPage() {
     const [machines, setMachines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [navigating, setNavigating] = useState<number | null>(null)
+    const [searchInput, setSearchInput] = useState("")
+    const [appliedSearch, setAppliedSearch] = useState("")
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
@@ -102,9 +105,33 @@ export default function MachinesPage() {
         )
     }
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault()
+        setAppliedSearch(searchInput.trim())
+    }
+
     const filteredMachines = useMemo(() => {
-        return machines.filter((m) => isGradeSelected(getGradeKey(m?.latest_grade)))
-    }, [machines, selectedGrades])
+        const term = appliedSearch.trim().toLowerCase()
+
+        return machines.filter((m) => {
+            if (!isGradeSelected(getGradeKey(m?.latest_grade))) return false
+            if (!term) return true
+
+            const haystack = [
+                m?.id,
+                m?.custom_name,
+                m?.computer_name,
+                m?.serial_number,
+                m?.latest_ip,
+                m?.latest_grade,
+            ]
+                .filter(Boolean)
+                .map((v) => String(v).toLowerCase())
+                .join(" | ")
+
+            return haystack.includes(term)
+        })
+    }, [machines, selectedGrades, appliedSearch])
 
     const sortedMachines = useMemo(() => {
         const list = [...filteredMachines]
@@ -145,64 +172,78 @@ export default function MachinesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Registered Machines</h1>
                     <p className="text-xs text-slate-500 mt-1">
                         Showing {sortedMachines.length} of {machines.length} machines
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative" ref={gradeFilterRef}>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                            onClick={() => setIsGradeFilterOpen((v) => !v)}
-                        >
-                            Filter: {selectedGrades.length === 0 ? "All grades" : `${selectedGrades.length} selected`}
+                <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
+                    <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
+                        <Input
+                            placeholder="Search Device ID, Name, Serial..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full sm:w-[300px] border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                        />
+                        <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white sm:shrink-0 w-full sm:w-auto">
+                            <Search className="h-4 w-4 sm:mr-2" />
+                            <span className="inline">Search</span>
                         </Button>
-                        {isGradeFilterOpen && (
-                            <div className="absolute right-0 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-10">
-                                <div className="px-3 py-2 text-xs text-slate-500">Grades</div>
-                                <div className="px-3 text-[11px] text-slate-400">No selection = all grades</div>
-                                <div className="max-h-56 overflow-auto pb-1">
-                                    {gradeOptions.map((grade) => (
-                                        <label key={grade} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700">
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4"
-                                                checked={selectedGrades.includes(grade)}
-                                                onChange={() => toggleGrade(grade)}
-                                            />
-                                            <span>{grade}</span>
-                                        </label>
-                                    ))}
+                    </form>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative" ref={gradeFilterRef}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10"
+                                onClick={() => setIsGradeFilterOpen((v) => !v)}
+                            >
+                                Filter: {selectedGrades.length === 0 ? "All grades" : `${selectedGrades.length} selected`}
+                            </Button>
+                            {isGradeFilterOpen && (
+                                <div className="absolute right-0 mt-2 w-56 rounded-md border border-slate-200 bg-white shadow-lg z-10">
+                                    <div className="px-3 py-2 text-xs text-slate-500">Grades</div>
+                                    <div className="px-3 text-[11px] text-slate-400">No selection = all grades</div>
+                                    <div className="max-h-56 overflow-auto pb-1">
+                                        {gradeOptions.map((grade) => (
+                                            <label key={grade} className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4"
+                                                    checked={selectedGrades.includes(grade)}
+                                                    onChange={() => toggleGrade(grade)}
+                                                />
+                                                <span>{grade}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <div className="border-t border-slate-100 px-3 py-2">
+                                        <button
+                                            type="button"
+                                            className="text-xs text-slate-600 hover:text-slate-900"
+                                            onClick={() => setSelectedGrades([])}
+                                        >
+                                            Clear filters
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="border-t border-slate-100 px-3 py-2">
-                                    <button
-                                        type="button"
-                                        className="text-xs text-slate-600 hover:text-slate-900"
-                                        onClick={() => setSelectedGrades([])}
-                                    >
-                                        Clear filters
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
+                        <select
+                            value={machineSort}
+                            onChange={(e) => setMachineSort(e.target.value as typeof machineSort)}
+                            className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
+                            aria-label="Sort machines"
+                        >
+                            <option value="grade_desc">Sort: Grade high to low</option>
+                            <option value="grade_asc">Sort: Grade low to high</option>
+                            <option value="last_seen_desc">Sort: Last seen (newest)</option>
+                            <option value="last_seen_asc">Sort: Last seen (oldest)</option>
+                            <option value="id_asc">Sort: Device ID</option>
+                        </select>
                     </div>
-                    <select
-                        value={machineSort}
-                        onChange={(e) => setMachineSort(e.target.value as typeof machineSort)}
-                        className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
-                        aria-label="Sort machines"
-                    >
-                        <option value="grade_desc">Sort: Grade high to low</option>
-                        <option value="grade_asc">Sort: Grade low to high</option>
-                        <option value="last_seen_desc">Sort: Last seen (newest)</option>
-                        <option value="last_seen_asc">Sort: Last seen (oldest)</option>
-                        <option value="id_asc">Sort: Device ID</option>
-                    </select>
                 </div>
             </div>
 

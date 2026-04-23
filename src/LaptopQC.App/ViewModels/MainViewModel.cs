@@ -42,6 +42,8 @@ public partial class MainViewModel : ObservableObject
     private DevicesInfo? _devicesInfo;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsInteractionEnabled))]
+    [NotifyPropertyChangedFor(nameof(IsOtherDeviceTestsEnabled))]
     private bool _isScanning;
 
     [ObservableProperty]
@@ -81,11 +83,22 @@ public partial class MainViewModel : ObservableObject
     private string _antivirusStatus = "Not scanned";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSecurityRefreshEnabled))]
     private bool _isSecurityChecking;
 
     public bool IsComplianceLocked => App.IsComplianceLocked;
 
     public bool IsLoggedIn => App.IsLoggedIn;
+
+    public bool IsTrial => App.AuthService.IsTrialSession;
+
+    public bool IsFullQcVisible => true;
+
+    public bool IsResultsSectionVisible => IsLoggedIn;
+
+    public bool IsOtherDeviceTestsEnabled => IsInteractionEnabled && !IsTrial;
+
+    public bool IsSmartTelemetryVisible => !IsTrial;
 
     public bool IsInteractionEnabled => !IsScanning && !App.IsComplianceLocked;
 
@@ -94,6 +107,11 @@ public partial class MainViewModel : ObservableObject
     public void RefreshLoginState()
     {
         OnPropertyChanged(nameof(IsLoggedIn));
+        OnPropertyChanged(nameof(IsTrial));
+        OnPropertyChanged(nameof(IsFullQcVisible));
+        OnPropertyChanged(nameof(IsResultsSectionVisible));
+        OnPropertyChanged(nameof(IsOtherDeviceTestsEnabled));
+        OnPropertyChanged(nameof(IsSmartTelemetryVisible));
         OnPropertyChanged(nameof(IsComplianceLocked));
         OnPropertyChanged(nameof(IsInteractionEnabled));
         OnPropertyChanged(nameof(IsSecurityRefreshEnabled));
@@ -144,7 +162,7 @@ public partial class MainViewModel : ObservableObject
         if (!EnsureComplianceOrNotify())
             return;
 
-        if (!App.IsLoggedIn)
+        if (!App.IsLoggedIn || App.AuthService.IsTrialSession)
         {
             // Show WiFi test popup first
             var wifiTest = new Views.WifiTestWindow
@@ -170,8 +188,8 @@ public partial class MainViewModel : ObservableObject
                 mainWin.RefreshActivationUi();
             }
 
-            // If still not activated after login attempt, don't open QC wizard
-            if (!App.IsLoggedIn)
+            // If still not activated or still in trial after login attempt, don't open QC wizard
+            if (!App.IsLoggedIn || App.AuthService.IsTrialSession)
                 return;
         }
         else if (!string.IsNullOrWhiteSpace(App.AuthService.LicenseKey))
@@ -366,16 +384,29 @@ public partial class MainViewModel : ObservableObject
 
                     // Update Storage
                     StorageInfo = storageInfo;
-                    var storageValidation = _storageDiagnostic.ValidateStorage(storageInfo);
-                    StorageStatus = storageValidation.Message;
                     
-                    foreach (var device in storageInfo.Devices)
+                    if (IsTrial)
                     {
-                        var deviceType = device.IsSsd ? "SSD" : "HDD";
-                        var health = device.HealthPercent.HasValue ? $" ({device.HealthPercent}% health)" : "";
-                        AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB{health}");
+                        StorageStatus = $"{storageInfo.Devices.Count} drive(s) detected";
+                        foreach (var device in storageInfo.Devices)
+                        {
+                            var deviceType = device.IsSsd ? "SSD" : "HDD";
+                            AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB (SMART disabled in trial)");
+                        }
                     }
-                    AddResult("Storage", "Total", storageValidation.IsHealthy, $"{storageInfo.TotalCapacityGB:F0} GB");
+                    else
+                    {
+                        var storageValidation = _storageDiagnostic.ValidateStorage(storageInfo);
+                        StorageStatus = storageValidation.Message;
+                        
+                        foreach (var device in storageInfo.Devices)
+                        {
+                            var deviceType = device.IsSsd ? "SSD" : "HDD";
+                            var health = device.HealthPercent.HasValue ? $" ({device.HealthPercent}% health)" : "";
+                            AddResult("Storage", deviceType, true, $"{device.Model} - {device.SizeGB:F0}GB{health}");
+                        }
+                        AddResult("Storage", "Total", storageValidation.IsHealthy, $"{storageInfo.TotalCapacityGB:F0} GB");
+                    }
 
                     // Update Battery
                     BatteryInfo = batteryInfo;
@@ -711,6 +742,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunSmartTestAsync()
     {
+        if (IsTrial)
+        {
+            StatusMessage = "SMART self-tests are not available in trial mode.";
+            return;
+        }
+
         if (!EnsureComplianceOrNotify())
             return;
 
@@ -791,6 +828,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task QuickSmartCheckAsync()
     {
+        if (IsTrial) return;
+
         if (!EnsureComplianceOrNotify())
             return;
 
