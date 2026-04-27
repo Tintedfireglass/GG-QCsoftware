@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { enrollFleetMachine, getFleet } from "@/lib/api"
+import { enrollFleetMachine, getFleet, getMachine } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -394,11 +394,7 @@ export default function FleetPage() {
                                         onClick={async () => {
                                             setNavigating(machine.id)
                                             try {
-                                                const token = localStorage.getItem("qc_token")
-                                                const res = await fetch(`/api/machines/${machine.id}`, {
-                                                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                                                })
-                                                const data = await res.json()
+                                                const data = await getMachine(String(machine.id))
                                                 if (data.test_history?.length > 0) {
                                                     router.push(`/dashboard/results/${data.test_history[0].id}`)
                                                 }

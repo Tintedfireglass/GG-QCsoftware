@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { formatAppVersion } from "@/lib/utils"
+import { getPublicVerify } from "@/lib/api"
 
 export default function VerificationPage() {
     const { id } = useParams()
@@ -14,18 +15,11 @@ export default function VerificationPage() {
         async function load() {
             if (!id) return
             try {
-                // Fetch from the public verify API
-                const res = await fetch(`/api/verify/${id}`);
-                const result = await res.json();
-
-                if (!res.ok) {
-                    setError(result.message || "Failed to verify certificate");
-                } else {
-                    setData(result);
-                }
+                const result = await getPublicVerify(String(id))
+                setData(result)
             } catch (err) {
                 console.error(err)
-                setError("An error occurred during verification.");
+                setError(err instanceof Error ? err.message : "An error occurred during verification.")
             } finally {
                 setLoading(false)
             }

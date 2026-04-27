@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { getMachine } from "@/lib/api"
+import { getMachine, updateMachineCustomName } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -354,20 +354,7 @@ export default function MachineDetailPage() {
                                     if (!id) return
                                     setSavingName(true); setSaveError(null)
                                     try {
-                                        const token = localStorage.getItem("qc_token")
-                                        const res = await fetch(`/api/machines/${id}`, {
-                                            method: "PATCH",
-                                            headers: {
-                                                "Content-Type": "application/json",
-                                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                                            },
-                                            body: JSON.stringify({ customName }),
-                                        })
-                                        if (!res.ok) {
-                                            const err = await res.json()
-                                            throw new Error(err.message || "Failed to save name")
-                                        }
-                                        const updated = await res.json()
+                                        const updated = await updateMachineCustomName(String(id), customName)
                                         setData({ machine: updated.machine, test_history })
                                         setCustomName(updated.machine?.custom_name || "")
                                     } catch (err) {

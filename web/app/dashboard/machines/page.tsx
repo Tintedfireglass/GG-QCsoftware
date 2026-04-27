@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getMachines } from "@/lib/api"
+import { getMachine, getMachines } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -316,23 +316,19 @@ export default function MachinesPage() {
                                             View History
                                         </Button>
                                     </Link>
-                                    <Button
-                                        variant="outline"
-                                        className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-xs font-semibold"
-                                        disabled={navigating === machine.id || Number(machine.test_count) === 0}
-                                        onClick={async () => {
-                                            setNavigating(machine.id)
-                                            try {
-                                                const token = localStorage.getItem("qc_token")
-                                                const res = await fetch(`/api/machines/${machine.id}`, {
-                                                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                                                })
-                                                const data = await res.json()
-                                                if (data.test_history?.length > 0) {
-                                                    router.push(`/dashboard/results/${data.test_history[0].id}`)
-                                                }
-                                            } catch (err) {
-                                                console.error(err)
+                                            <Button
+                                                variant="outline"
+                                                className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-xs font-semibold"
+                                                disabled={navigating === machine.id || Number(machine.test_count) === 0}
+                                                onClick={async () => {
+                                                    setNavigating(machine.id)
+                                                    try {
+                                                        const data = await getMachine(String(machine.id))
+                                                        if (data.test_history?.length > 0) {
+                                                            router.push(`/dashboard/results/${data.test_history[0].id}`)
+                                                        }
+                                                    } catch (err) {
+                                                        console.error(err)
                                             } finally {
                                                 setNavigating(null)
                                             }

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getCustomerLicenses } from "@/lib/api"
+import { clearClientCache } from "@/lib/client-cache"
 
 type CustomerUser = {
     id: number
@@ -53,11 +55,8 @@ function CustomerAccountContent() {
 
         async function loadLicenses() {
             try {
-                const res = await fetch("/api/customer/licenses", {
-                    headers: { Authorization: `Bearer ${token}` },
-                })
-                const data = await res.json()
-                if (!res.ok) throw new Error(data.message || "Failed to load licenses")
+                if (status === "success") clearClientCache()
+                const data = await getCustomerLicenses()
                 setLicenses(data.licenses || [])
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load licenses")
@@ -66,7 +65,7 @@ function CustomerAccountContent() {
             }
         }
         loadLicenses()
-    }, [router])
+    }, [router, status])
 
     async function startCheckout() {
         const token = localStorage.getItem("qc_customer_token")

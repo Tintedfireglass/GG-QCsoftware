@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { createLicenseKey, getLicenses, toggleLicenseKeyActive } from "@/lib/api"
 import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2 } from "lucide-react"
 
 interface LicenseKey {
@@ -23,7 +24,7 @@ interface LicenseKey {
 }
 
 export default function LicensesPage() {
-    const { user, token } = useAuth()
+    const { user } = useAuth()
     const router = useRouter()
 
     const [keys, setKeys] = useState<LicenseKey[]>([])
@@ -58,13 +59,8 @@ export default function LicensesPage() {
     const fetchKeys = async () => {
         try {
             setLoading(true)
-            const res = await fetch("/api/licenses", {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            if (res.ok) {
-                const data = await res.json()
-                setKeys(data.keys)
-            }
+            const data = await getLicenses()
+            setKeys(data.keys)
         } catch (err) {
             console.error("Error connecting to the server.", err)
         } finally {
@@ -86,31 +82,18 @@ export default function LicensesPage() {
                 setGenerateError("Customer name is required for demo keys.")
                 return
             }
-            const res = await fetch("/api/licenses", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    type: newType,
-                    max_uses: newType === "demo" ? 1 : maxUsesValue,
-                    demo_customer_name: newType === "demo" ? demoCustomerName.trim() : undefined
-                })
+            const data = await createLicenseKey({
+                type: newType as any,
+                max_uses: newType === "demo" ? 1 : maxUsesValue,
+                demo_customer_name: newType === "demo" ? demoCustomerName.trim() : undefined,
             })
 
-            const data = await res.json()
-
-            if (res.ok) {
-                setGeneratedKeyString(data.key.key)
-                setIsGenerateModalOpen(false)     // Close generation modal
-                setIsSuccessModalOpen(true)       // Open success modal
-                fetchKeys()                       // Refresh list immediately
-            } else {
-                setGenerateError(data.message || data.error || "Failed to generate key.")
-            }
+            setGeneratedKeyString(data.key.key)
+            setIsGenerateModalOpen(false)
+            setIsSuccessModalOpen(true)
+            fetchKeys()
         } catch (err) {
-            setGenerateError("Server error while generating key.")
+            setGenerateError(err instanceof Error ? err.message : "Server error while generating key.")
         } finally {
             setIsGenerating(false)
         }
@@ -130,27 +113,11 @@ export default function LicensesPage() {
 
         try {
             setTogglingId(licenseKey.id)
-            const res = await fetch("/api/licenses", {
-                method: "PATCH",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    id: licenseKey.id,
-                    is_active: nextActive
-                })
-            })
-
-            const data = await res.json()
-            if (!res.ok) {
-                alert(data.message || data.error || "Failed to update license key.")
-                return
-            }
+            await toggleLicenseKeyActive({ id: licenseKey.id, is_active: nextActive })
 
             await fetchKeys()
         } catch (err) {
-            alert("Server error while updating license key.")
+            alert(err instanceof Error ? err.message : "Server error while updating license key.")
         } finally {
             setTogglingId(null)
         }

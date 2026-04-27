@@ -1,6 +1,13 @@
 // Client-side API helper
 
 import { CreateUserRequest, UpdateUserRequest, UserRole } from "./types";
+import { cachedJson, clearClientCache } from "./client-cache";
+
+const TTL = {
+    short: 60 * 1000,
+    medium: 5 * 60 * 1000,
+    long: 10 * 60 * 1000,
+}
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem("qc_token");
@@ -27,6 +34,99 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     return response;
 }
 
+async function fetchWithCustomerAuth(url: string, options: RequestInit = {}) {
+    const token = localStorage.getItem("qc_customer_token");
+
+    const headers = {
+        "Content-Type": "application/json",
+        ...options.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } as HeadersInit;
+
+    const response = await fetch(url, {
+        ...options,
+        headers,
+    });
+
+    if (response.status === 401) {
+        localStorage.removeItem("qc_customer_token");
+        localStorage.removeItem("qc_customer_user");
+        window.location.href = "/customer/login";
+        throw new Error("Unauthorized");
+    }
+
+    return response;
+}
+
+function getCustomerNamespace(): string {
+    try {
+        const raw = localStorage.getItem("qc_customer_user")
+        if (!raw) return "customer:anon"
+        const user = JSON.parse(raw) as { id?: number }
+        if (typeof user?.id !== "number") return "customer:anon"
+        return `customer:u${user.id}`
+    } catch {
+        return "customer:anon"
+    }
+}
+
+async function cachedGetJson<T = any>(url: string, ttlMs: number): Promise<T> {
+    return cachedJson(
+        `GET ${url}`,
+        async () => {
+            const res = await fetchWithAuth(url);
+            if (!res.ok) {
+                try {
+                    const error = await res.json();
+                    throw new Error(error?.message || error?.error || `Request failed: ${res.status}`);
+                } catch {
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+            }
+            return res.json() as Promise<T>;
+        },
+        { ttlMs, persist: "session" }
+    )
+}
+
+async function cachedGetCustomerJson<T = any>(url: string, ttlMs: number): Promise<T> {
+    return cachedJson(
+        `GET ${url}`,
+        async () => {
+            const res = await fetchWithCustomerAuth(url);
+            if (!res.ok) {
+                try {
+                    const error = await res.json();
+                    throw new Error(error?.message || error?.error || `Request failed: ${res.status}`);
+                } catch {
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+            }
+            return res.json() as Promise<T>;
+        },
+        { ttlMs, persist: "session", namespace: getCustomerNamespace() }
+    )
+}
+
+async function cachedGetPublicJson<T = any>(url: string, ttlMs: number): Promise<T> {
+    return cachedJson(
+        `GET ${url}`,
+        async () => {
+            const res = await fetch(url);
+            if (!res.ok) {
+                try {
+                    const error = await res.json();
+                    throw new Error(error?.message || error?.error || `Request failed: ${res.status}`);
+                } catch {
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+            }
+            return res.json() as Promise<T>;
+        },
+        { ttlMs, persist: "session", namespace: "public" }
+    )
+}
+
 export async function getQCResults(
     page = 1,
     limit = 20,
@@ -44,9 +144,7 @@ export async function getQCResults(
         params.append("includeTotal", "0");
     }
 
-    const res = await fetchWithAuth(`/api/qc-results?${params.toString()}`);
-    if (!res.ok) throw new Error("Failed to fetch results");
-    return res.json();
+    return cachedGetJson(`/api/qc-results?${params.toString()}`, TTL.short);
 }
 
 export async function getQCResultsCount(filters: Record<string, string | undefined> = {}): Promise<{ total: number }> {
@@ -56,45 +154,44 @@ export async function getQCResultsCount(filters: Record<string, string | undefin
     });
 
     const queryStr = params.toString();
-    const res = await fetchWithAuth(`/api/qc-results/count${queryStr ? `?${queryStr}` : ""}`);
-    if (!res.ok) throw new Error("Failed to fetch results count");
-    return res.json();
+    return cachedGetJson(`/api/qc-results/count${queryStr ? `?${queryStr}` : ""}`, TTL.short);
 }
 
 export async function getQCResult(id: string) {
-    const res = await fetchWithAuth(`/api/qc-results/${id}`);
-    if (!res.ok) throw new Error("Failed to fetch result details");
-    return res.json();
+    return cachedGetJson(`/api/qc-results/${id}`, TTL.long);
 }
 
 export async function getMachines() {
-    const res = await fetchWithAuth("/api/machines");
-    if (!res.ok) throw new Error("Failed to fetch machines");
-    return res.json();
+    return cachedGetJson("/api/machines", TTL.medium);
 }
 
 export async function getMachinesCount(): Promise<{ total: number }> {
-    const res = await fetchWithAuth("/api/machines?countOnly=1");
-    if (!res.ok) throw new Error("Failed to fetch machine count");
-    return res.json();
+    return cachedGetJson("/api/machines?countOnly=1", TTL.medium);
 }
 
 export async function getMachineHistoryAlerts() {
-    const res = await fetchWithAuth("/api/machine-history/alerts?recentDays=30&limit=10");
-    if (!res.ok) throw new Error("Failed to fetch machine history alerts");
-    return res.json();
+    return cachedGetJson("/api/machine-history/alerts?recentDays=30&limit=10", TTL.medium);
 }
 
 export async function getIssuesSummary(): Promise<{ devicesWithIssues: number; totalDevices: number }> {
-    const res = await fetchWithAuth("/api/qc-results/issues-summary");
-    if (!res.ok) throw new Error("Failed to fetch issues summary");
-    return res.json();
+    return cachedGetJson("/api/qc-results/issues-summary", TTL.medium);
 }
 
 export async function getMachine(id: string) {
-    const res = await fetchWithAuth(`/api/machines/${id}`);
-    if (!res.ok) throw new Error("Failed to fetch machine details");
-    return res.json();
+    return cachedGetJson(`/api/machines/${id}`, TTL.long);
+}
+
+export async function updateMachineCustomName(id: string, customName: string) {
+    const res = await fetchWithAuth(`/api/machines/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ customName }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        throw new Error(json?.message || json?.error || "Failed to save name");
+    }
+    clearClientCache();
+    return json;
 }
 
 export async function getFleet(params: { search?: string; groupId?: string } = {}) {
@@ -102,12 +199,7 @@ export async function getFleet(params: { search?: string; groupId?: string } = {
     if (params.search) searchParams.append("search", params.search);
     if (params.groupId) searchParams.append("group_id", params.groupId);
     const query = searchParams.toString();
-    const res = await fetchWithAuth(`/api/fleet${query ? `?${query}` : ""}`);
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to fetch fleet");
-    }
-    return res.json();
+    return cachedGetJson(`/api/fleet${query ? `?${query}` : ""}`, TTL.short);
 }
 
 export async function enrollFleetMachine(data: {
@@ -126,7 +218,9 @@ export async function enrollFleetMachine(data: {
         const error = await res.json();
         throw new Error(error.message || "Failed to enroll machine");
     }
-    return res.json();
+    const out = await res.json();
+    clearClientCache();
+    return out;
 }
 
 export async function getDashboardStats() {
@@ -161,30 +255,15 @@ export async function getUsers(page = 1, limit = 20, filters: { search?: string;
     if (filters.search) params.append('search', filters.search);
     if (filters.role) params.append('role', filters.role);
 
-    const res = await fetchWithAuth(`/api/users?${params.toString()}`);
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to fetch users");
-    }
-    return res.json();
+    return cachedGetJson(`/api/users?${params.toString()}`, TTL.short);
 }
 
 export async function getUserStats(): Promise<{ totalUsers: number; totalAdmins: number; totalTechnicians: number }> {
-    const res = await fetchWithAuth("/api/users/stats");
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to fetch user stats");
-    }
-    return res.json();
+    return cachedGetJson("/api/users/stats", TTL.medium);
 }
 
 export async function getUser(id: number) {
-    const res = await fetchWithAuth(`/api/users/${id}`);
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to fetch user");
-    }
-    return res.json();
+    return cachedGetJson(`/api/users/${id}`, TTL.long);
 }
 
 export async function createUser(data: CreateUserRequest) {
@@ -197,7 +276,9 @@ export async function createUser(data: CreateUserRequest) {
         const error = await res.json();
         throw new Error(error.message || "Failed to create user");
     }
-    return res.json();
+    const out = await res.json();
+    clearClientCache();
+    return out;
 }
 
 export async function updateUser(id: number, data: UpdateUserRequest) {
@@ -210,7 +291,9 @@ export async function updateUser(id: number, data: UpdateUserRequest) {
         const error = await res.json();
         throw new Error(error.message || "Failed to update user");
     }
-    return res.json();
+    const out = await res.json();
+    clearClientCache();
+    return out;
 }
 
 export async function deleteUser(id: number) {
@@ -222,6 +305,51 @@ export async function deleteUser(id: number) {
         const error = await res.json();
         throw new Error(error.message || "Failed to delete user");
     }
-    return res.json();
+    const out = await res.json();
+    clearClientCache();
+    return out;
+}
+
+export async function getLicenses(): Promise<{ keys: any[] }> {
+    return cachedGetJson("/api/licenses", TTL.short);
+}
+
+export async function createLicenseKey(data: {
+    type: "single_use" | "bulk" | "demo"
+    max_uses: number
+    expires_at?: string | null
+    demo_customer_name?: string
+}) {
+    const res = await fetchWithAuth("/api/licenses", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        throw new Error(json?.message || json?.error || "Failed to generate key");
+    }
+    clearClientCache();
+    return json;
+}
+
+export async function toggleLicenseKeyActive(data: { id: number; is_active: boolean }) {
+    const res = await fetchWithAuth("/api/licenses", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        throw new Error(json?.message || json?.error || "Failed to update key");
+    }
+    clearClientCache();
+    return json;
+}
+
+export async function getCustomerLicenses(): Promise<{ licenses: any[] }> {
+    return cachedGetCustomerJson("/api/customer/licenses", TTL.short);
+}
+
+export async function getPublicVerify(healthId: string) {
+    return cachedGetPublicJson(`/api/verify/${healthId}`, TTL.long);
 }
 
