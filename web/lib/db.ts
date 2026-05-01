@@ -4,6 +4,15 @@ import { Pool, PoolClient } from 'pg';
 const getConnectionString = () => {
     let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
 
+    // Vercel allows env var "references" like ${SOME_VAR}. DigitalOcean does not resolve these.
+    // Fail fast with a clear error instead of passing an invalid URL to the pg client.
+    if (connectionString && /\$\{[^}]+\}/.test(connectionString)) {
+        throw new Error(
+            `DATABASE_URL looks like an unresolved placeholder: "${connectionString}". ` +
+            `Set DATABASE_URL (or POSTGRES_URL) to a real Postgres connection string in your DigitalOcean environment.`
+        );
+    }
+
     // Remove sslmode from query params if present to avoid conflicts with our explicit ssl config
     if (connectionString) {
         try {
