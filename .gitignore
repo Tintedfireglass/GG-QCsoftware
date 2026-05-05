@@ -28,3 +28,6 @@ desktop.ini
 
 # Ignore generated project report
 project_report.md
+
+# Database exports
+web/db_export/

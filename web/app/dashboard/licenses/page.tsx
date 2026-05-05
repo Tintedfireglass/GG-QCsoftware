@@ -214,7 +214,7 @@ export default function LicensesPage() {
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </div>
-                                        {k.type === "demo" && (
+                                        {(k.type === "demo" || k.demo_customer_name) && (
                                             <div>
                                                 <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
                                                 <div className="text-xs text-slate-600 truncate">{k.demo_customer_name || "—"}</div>
@@ -277,7 +277,7 @@ export default function LicensesPage() {
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                         <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
                                             <div>{k.key}</div>
-                                            {k.type === "demo" && (
+                                            {(k.type === "demo" || k.demo_customer_name) && (
                                                 <div className="text-xs text-slate-400">Customer: {k.demo_customer_name || "—"}</div>
                                             )}
                                         </td>
@@ -372,7 +372,6 @@ export default function LicensesPage() {
                                         setNewType(e.target.value)
                                         if (e.target.value === "single_use") setNewMaxUses("1")
                                         if (e.target.value === "demo") setNewMaxUses("1")
-                                        if (e.target.value !== "demo") setDemoCustomerName("")
                                     }}
                                     className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer"
                                 >
@@ -401,23 +400,21 @@ export default function LicensesPage() {
                                 </p>
                             </div>
 
-                            {newType === "demo" && (
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
-                                        Customer Name
-                                    </label>
-                                    <Input
-                                        type="text"
-                                        value={demoCustomerName}
-                                        onChange={(e) => setDemoCustomerName(e.target.value)}
-                                        placeholder="Acme Retail"
-                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
-                                    />
-                                    <p className="mt-2 text-xs text-slate-500">
-                                        Required for demo keys.
-                                    </p>
-                                </div>
-                            )}
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                    Customer Name
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={demoCustomerName}
+                                    onChange={(e) => setDemoCustomerName(e.target.value)}
+                                    placeholder="Acme Retail"
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                />
+                                <p className="mt-2 text-xs text-slate-500">
+                                    {newType === "demo" ? "Required for demo keys." : "Optional identifier."}
+                                </p>
+                            </div>
 
                             <Button
                                 className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
