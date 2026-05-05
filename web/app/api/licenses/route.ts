@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
                 normalizedMaxUses,
                 authUser.id,
                 expires_at ? new Date(expires_at) : null,
-                type === 'demo' ? demo_customer_name?.trim() : null,
+                demo_customer_name?.trim() || null,
                 type === 'demo' ? 1 : null,
             ]);
 
