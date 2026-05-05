@@ -37,7 +37,7 @@ export async function GET(
                   AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))
             )`;
             machineParams.push(authUser.id);
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             accessClause = ` AND (m.owner_user_id = $2 OR EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id
@@ -84,7 +84,7 @@ export async function GET(
         } else if (authUser.role === 'Refurbisher') {
             historyClause = ' AND (technician_id = $2 OR technician_id IN (SELECT id FROM users WHERE created_by = $2))';
             historyParams.push(authUser.id);
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             historyClause = ` AND (
                 (technician_id = $2 OR technician_id IN (SELECT id FROM users WHERE created_by = $2))
                 OR machine_id IN (SELECT id FROM machines WHERE owner_user_id = $2)
@@ -113,7 +113,7 @@ export async function GET(
         } else if (authUser.role === 'Refurbisher') {
             machineHistoryClause = ' AND (created_by = $2 OR created_by IN (SELECT id FROM users WHERE created_by = $2))';
             historyParams2.push(authUser.id);
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             machineHistoryClause = ` AND (
                 created_by = $2 OR created_by IN (SELECT id FROM users WHERE created_by = $2)
                 OR $2 IN (SELECT owner_user_id FROM machines WHERE id = $1)
@@ -179,7 +179,7 @@ export async function PATCH(
                   AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))
             )`;
             machineParams.push(authUser.id);
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             accessClause = ` AND (m.owner_user_id = $2 OR EXISTS (
                 SELECT 1 FROM qc_results qr
                 WHERE qr.machine_id = m.id

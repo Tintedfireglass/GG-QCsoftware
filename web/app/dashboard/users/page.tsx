@@ -35,7 +35,7 @@ interface UserData {
 }
 
 export default function UsersPage() {
-    const { user: authUser, isSuperAdmin, isEnterprise, isReseller, canManageUsers } = useAuth()
+    const { user: authUser, isSuperAdmin, isEnterprise, isOEM, isInsurer, isReseller, canManageUsers } = useAuth()
     const [users, setUsers] = useState<UserData[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -107,9 +107,9 @@ export default function UsersPage() {
     }
 
     const getCreatableRoles = (): UserRole[] => {
-        if (isSuperAdmin()) return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client']
+        if (isSuperAdmin()) return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client']
         if (isReseller()) return ['Technician', 'Client']
-        if (isEnterprise()) return ['Technician']
+        if (isEnterprise() || isOEM() || isInsurer()) return ['Technician']
         return ['Technician']
     }
 
@@ -132,7 +132,7 @@ export default function UsersPage() {
                             ? "Manage all admins, technicians, and clients"
                             : isReseller()
                                 ? "Manage your team of technicians and clients"
-                                : isEnterprise()
+                                : isEnterprise() || isOEM() || isInsurer()
                                     ? "Manage your team of technicians"
                                     : "Manage your team of technicians"}
                     </p>
@@ -213,6 +213,8 @@ export default function UsersPage() {
                                 <option value="Reseller">Reseller</option>
                                 <option value="Technician">Technician</option>
                                 <option value="Enterprise">Enterprise</option>
+                                <option value="OEM">OEM</option>
+                                <option value="Insurer">Insurer</option>
                                 <option value="Client">Client</option>
                             </select>
                             <Button size="icon" onClick={() => loadUsers(1)} className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white">
@@ -242,7 +244,7 @@ export default function UsersPage() {
                                                     userItem.role === 'Employee' ? 'bg-rose-500' :
                                                         userItem.role === 'Refurbisher' ? 'bg-blue-500' :
                                                             userItem.role === 'Reseller' ? 'bg-indigo-500' :
-                                                                userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                userItem.role === 'Enterprise' || userItem.role === 'OEM' || userItem.role === 'Insurer' ? 'bg-amber-500' :
                                                                     userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                     }`}>
                                                     {userItem.username.charAt(0).toUpperCase()}
@@ -294,7 +296,7 @@ export default function UsersPage() {
                                             </div>
                                             <div>
                                                 <div className="text-xs text-slate-400 mb-1">Team Size</div>
-                                                <div className="font-medium text-slate-700">{(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}</div>
+                                                <div className="font-medium text-slate-700">{(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'OEM' || userItem.role === 'Insurer' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}</div>
                                             </div>
                                             <div>
                                                 <div className="text-xs text-slate-400 mb-1">Created By</div>
@@ -330,7 +332,7 @@ export default function UsersPage() {
                                                             userItem.role === 'Employee' ? 'bg-rose-500' :
                                                                 userItem.role === 'Refurbisher' ? 'bg-blue-500' :
                                                                     userItem.role === 'Reseller' ? 'bg-indigo-500' :
-                                                                        userItem.role === 'Enterprise' ? 'bg-amber-500' :
+                                                                        userItem.role === 'Enterprise' || userItem.role === 'OEM' || userItem.role === 'Insurer' ? 'bg-amber-500' :
                                                                             userItem.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                                                             }`}>
                                                             {userItem.username.charAt(0).toUpperCase()}
@@ -362,7 +364,7 @@ export default function UsersPage() {
                                                     )}
                                                 </td>
                                                 <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
-                                                    {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}
+                                                    {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'OEM' || userItem.role === 'Insurer' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}
                                                 </td>
                                                 <td className="p-4 align-middle text-right whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-2">

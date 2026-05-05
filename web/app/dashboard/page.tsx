@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const { user, isSuperAdmin, isEmployee, isRefurbisher, isReseller, isTechnician, isEnterprise, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
+    const { user, isSuperAdmin, isEmployee, isRefurbisher, isReseller, isTechnician, isEnterprise, isOEM, isInsurer, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
         passRate: 0,
@@ -99,7 +99,7 @@ export default function DashboardPage() {
             setAlerts(alertsData.alerts || [])
             setIssueStats(issueData)
 
-            if (isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) {
+            if (isSuperAdmin() || isAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()) {
                 try {
                     const userStats = await getUserStats()
                     setStats((prev) => ({
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
+                        Pramaan • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() || isOEM() || isInsurer() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>
@@ -213,7 +213,7 @@ export default function DashboardPage() {
                 </Link>
 
                 {/* Show different stats based on role */}
-                {(isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) && (
+                {(isSuperAdmin() || isAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()) && (
                     <>
                         <Card className="shadow-none border-slate-200">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -270,7 +270,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions for Admins */}
-            {(isSuperAdmin() || isAdmin() || isEnterprise() || isReseller()) && (
+            {(isSuperAdmin() || isAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()) && (
                 <div className="grid gap-4 md:grid-cols-3">
                     <Link href="/dashboard/users/new">
                         <Card className="cursor-pointer hover:border-[var(--brand-purple)] transition-colors shadow-none border border-slate-200">

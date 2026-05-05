@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         let paramIndex = 1;
 
         // SuperAdmin sees all users, Refurbisher/Enterprise see only their created users
-        if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             whereClause += ` AND (u.created_by = $${paramIndex} OR u.id = $${paramIndex})`;
             params.push(authUser.id);
             paramIndex++;

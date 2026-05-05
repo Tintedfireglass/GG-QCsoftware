@@ -195,7 +195,7 @@ export default function EditUserPage() {
                             userData.role === 'Employee' ? 'bg-rose-500' :
                                 userData.role === 'Refurbisher' ? 'bg-blue-500' :
                                     userData.role === 'Reseller' ? 'bg-indigo-500' :
-                                        userData.role === 'Enterprise' ? 'bg-amber-500' :
+                                        userData.role === 'Enterprise' || userData.role === 'OEM' || userData.role === 'Insurer' ? 'bg-amber-500' :
                                             userData.role === 'Client' ? 'bg-teal-500' : 'bg-green-500'
                             }`}>
                             {userData.username.charAt(0).toUpperCase()}
@@ -211,7 +211,7 @@ export default function EditUserPage() {
                                     <Calendar className="h-3 w-3" />
                                     Joined {new Date(userData.created_at).toLocaleDateString()}
                                 </span>
-                                {(userData.role === 'Refurbisher' || userData.role === 'Enterprise' || userData.role === 'Reseller') && (
+                                {(userData.role === 'Refurbisher' || userData.role === 'Enterprise' || userData.role === 'OEM' || userData.role === 'Insurer' || userData.role === 'Reseller') && (
                                     <span className="flex items-center gap-1">
                                         <Users className="h-3 w-3" />
                                         {userData.team_size || 0} team members
@@ -297,7 +297,7 @@ export default function EditUserPage() {
                                     Role
                                 </label>
                                 <div className="space-y-2">
-                                    {(['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'] as UserRole[]).map((role) => (
+                                    {(['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client'] as UserRole[]).map((role) => (
                                         <label
                                             key={role}
                                             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.role === role
@@ -319,7 +319,7 @@ export default function EditUserPage() {
                                                         role === 'Employee' ? 'text-rose-500' :
                                                             role === 'Refurbisher' ? 'text-blue-500' :
                                                                 role === 'Reseller' ? 'text-indigo-500' :
-                                                                    role === 'Enterprise' ? 'text-amber-500' :
+                                                                    role === 'Enterprise' || role === 'OEM' || role === 'Insurer' ? 'text-amber-500' :
                                                                         role === 'Client' ? 'text-teal-500' : 'text-green-500'
                                                         }`} />
                                                     <span className="font-medium">{UserRoleDisplayNames[role]}</span>
@@ -368,7 +368,7 @@ export default function EditUserPage() {
                         )}
 
                         {/* License Credits (SuperAdmin or Reseller-to-Client) */}
-                        {canEditCredits && (formData.role === 'Refurbisher' || formData.role === 'Enterprise' || formData.role === 'Reseller' || formData.role === 'Client') && (
+                        {canEditCredits && (formData.role === 'Refurbisher' || formData.role === 'Enterprise' || formData.role === 'OEM' || formData.role === 'Insurer' || formData.role === 'Reseller' || formData.role === 'Client') && (
                             <div className="pt-4 border-t">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     License Credits

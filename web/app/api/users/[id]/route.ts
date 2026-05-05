@@ -67,7 +67,7 @@ export async function GET(
             );
         }
 
-        if ((authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'Reseller') && !canManageUser(authUser, userId, targetUser.created_by)) {
+        if ((authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') && !canManageUser(authUser, userId, targetUser.created_by)) {
             return NextResponse.json(
                 { error: 'Authorization Error', message: 'You can only view users in your team' } as ApiError,
                 { status: 403 }
