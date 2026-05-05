@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
             joinCondition += ' AND (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))';
             params.push(authUser.id);
             havingClause = 'HAVING COUNT(qr.id) > 0';
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             // Enterprise sees machines they own or that their team tested
             whereClause = `WHERE (
                 m.owner_user_id = $1 OR EXISTS (
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
                 return NextResponse.json({ total: parseInt(countRows[0]?.total ?? '0', 10) });
             }
 
-            if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+            if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
                 const countRows = await query<{ total: string }>(
                     `SELECT COUNT(*) as total
            FROM machines m
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
             )`;
             aggWhere = `WHERE (qr.technician_id = $1 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $1))`;
             fullParams.push(authUser.id);
-        } else if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             // Keep the existing Enterprise/Reseller visibility logic (owner OR team-tested).
             visibilityWhere = `(
                 m.owner_user_id = $1 OR EXISTS (

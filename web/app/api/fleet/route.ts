@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         let paramCount = 1;
 
         // Enterprise/Reseller sees only their owned machines
-        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             whereClauses.push(`m.owner_user_id = $${paramCount}`);
             params.push(authUser.id);
             paramCount++;

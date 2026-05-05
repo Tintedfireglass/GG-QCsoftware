@@ -22,7 +22,7 @@ export async function GET(
         if (roleError) return roleError;
 
         // Verify this machine belongs to the Enterprise/Reseller user
-        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             const machineCheck = await query('SELECT id FROM machines WHERE id = $1 AND owner_user_id = $2', [id, authUser.id]);
             if (machineCheck.length === 0) {
                 return NextResponse.json({ error: 'Not Found', message: 'Machine not found in your fleet' } as ApiError, { status: 404 });
@@ -66,7 +66,7 @@ export async function POST(
         if (roleError) return roleError;
 
         // Verify ownership
-        if (authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        if (authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             const machineCheck = await query('SELECT id FROM machines WHERE id = $1 AND owner_user_id = $2', [id, authUser.id]);
             if (machineCheck.length === 0) {
                 return NextResponse.json({ error: 'Not Found', message: 'Machine not found in your fleet' } as ApiError, { status: 404 });

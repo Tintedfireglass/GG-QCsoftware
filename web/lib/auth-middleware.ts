@@ -105,7 +105,7 @@ export function hasRole(user: AuthenticatedUser, allowedRoles: UserRole[]): bool
 // Check if user can manage another user (based on hierarchy)
 export function canManageUser(manager: AuthenticatedUser, targetUserId: number, targetCreatedBy?: number): boolean {
     if (manager.role === 'SuperAdmin') return true;
-    if (manager.role === 'Refurbisher' || manager.role === 'Enterprise' || manager.role === 'Reseller') {
+    if (manager.role === 'Refurbisher' || manager.role === 'Enterprise' || manager.role === 'OEM' || manager.role === 'Insurer' || manager.role === 'Reseller') {
         return targetCreatedBy === manager.id;
     }
     return false;
@@ -115,10 +115,14 @@ export function canManageUser(manager: AuthenticatedUser, targetUserId: number, 
 export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
-            return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
+            return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client'];
         case 'Refurbisher':
             return ['Technician'];
         case 'Enterprise':
+            return ['Technician'];
+        case 'OEM':
+            return ['Technician'];
+        case 'Insurer':
             return ['Technician'];
         case 'Reseller':
             return ['Technician', 'Client'];
@@ -145,7 +149,7 @@ export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]
     if (user.role === 'SuperAdmin') {
         const users = await query('SELECT id FROM users');
         return users.map((u: any) => u.id);
-    } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'Reseller') {
+    } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'OEM' || user.role === 'Insurer' || user.role === 'Reseller') {
         const users = await query(
             'SELECT id FROM users WHERE created_by = $1 OR id = $1',
             [user.id]

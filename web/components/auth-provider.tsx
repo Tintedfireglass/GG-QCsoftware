@@ -24,6 +24,8 @@ interface AuthContextType {
     isReseller: () => boolean
     isTechnician: () => boolean
     isEnterprise: () => boolean
+    isOEM: () => boolean
+    isInsurer: () => boolean
     isClient: () => boolean
     // Legacy aliases (backward compat during transition)
     isAdmin: () => boolean
@@ -49,6 +51,8 @@ const AuthContext = createContext<AuthContextType>({
     isReseller: () => false,
     isTechnician: () => false,
     isEnterprise: () => false,
+    isOEM: () => false,
+    isInsurer: () => false,
     isClient: () => false,
     isAdmin: () => false,
     isUser: () => false,
@@ -117,6 +121,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isReseller = () => user?.role === "Reseller"
     const isTechnician = () => user?.role === "Technician"
     const isEnterprise = () => user?.role === "Enterprise"
+    const isOEM = () => user?.role === "OEM"
+    const isInsurer = () => user?.role === "Insurer"
     const isClient = () => user?.role === "Client"
 
     // Legacy aliases — point to new names for backward compat
@@ -124,11 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isUser = () => isTechnician() || isClient()
 
     // Permission checks
-    const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isReseller()
-    const canViewAllResults = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isReseller()
-    const canViewMachines = () => isSuperAdmin() || isEnterprise() || isReseller()  // Enterprise/Reseller + SA manage fleet
-    const canManageFleet = () => isEnterprise() || isReseller()
-    const canExportBulk = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isReseller()
+    const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
+    const canViewAllResults = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
+    const canViewMachines = () => isSuperAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()  // Enterprise/OEM/Insurer/Reseller + SA manage fleet
+    const canManageFleet = () => isEnterprise() || isOEM() || isInsurer() || isReseller()
+    const canExportBulk = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
 
     const getRoleDisplayName = () => {
         if (!user) return ""
@@ -148,6 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isReseller,
             isTechnician,
             isEnterprise,
+            isOEM,
+            isInsurer,
             isClient,
             isAdmin,
             isUser,

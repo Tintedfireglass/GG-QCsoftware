@@ -27,7 +27,7 @@ export async function GET(
         if (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') {
             roleClause = ' AND qr.technician_id = $2';
             queryParams.push(authUser.id);
-        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'Reseller') {
+        } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             roleClause = ' AND (qr.technician_id = $2 OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $2))';
             queryParams.push(authUser.id);
         }
