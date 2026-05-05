@@ -422,7 +422,7 @@ export default function UsersPage() {
                                         {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                                         {pagination.total} users
                                     </p>
-                                    <div className="flex items-center gap-2 bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white">
+                                    <div className="flex items-center gap-2">
                                         <Button
                                             variant="outline"
                                             size="sm"
