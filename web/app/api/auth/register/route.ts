@@ -39,17 +39,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate role
-        const validRoles: UserRole[] = ['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'Client'];
+        const validRoles: UserRole[] = ['SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client'];
         if (!role || !validRoles.includes(role)) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Employee, Refurbisher, Reseller, Technician, Enterprise, or Client)' } as ApiError,
+                { error: 'Validation Error', message: 'Valid role is required (SuperAdmin, Employee, Refurbisher, Reseller, Technician, Enterprise, OEM, Insurer, or Client)' } as ApiError,
                 { status: 400 }
             );
         }
 
-        if ((role === 'Enterprise' || role === 'Refurbisher' || role === 'Reseller') && !company_name?.trim()) {
+        if ((role === 'Enterprise' || role === 'OEM' || role === 'Insurer' || role === 'Refurbisher' || role === 'Reseller') && !company_name?.trim()) {
             return NextResponse.json(
-                { error: 'Validation Error', message: 'Company name is required for Enterprise, Refurbisher, and Reseller users' } as ApiError,
+                { error: 'Validation Error', message: 'Company name is required for Enterprise, OEM, Insurer, Refurbisher, and Reseller users' } as ApiError,
                 { status: 400 }
             );
         }
