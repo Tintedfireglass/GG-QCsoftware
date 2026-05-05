@@ -59,7 +59,7 @@ async function exportTable(tableName: string, outputPath: string) {
     console.log(`  -> Exported ${result.rows.length} rows to ${outputPath}`);
 }
 
-async function getTableSchema(tableName: string): Promise<string> {
+async function getTableSchema(tableName: string): Promise<any[]> {
     const result = await pool.query(`
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
