@@ -82,10 +82,11 @@ export default function LicensesPage() {
                 setGenerateError("Customer name is required for demo keys.")
                 return
             }
+            const trimmedCustomerName = demoCustomerName.trim()
             const data = await createLicenseKey({
                 type: newType as any,
                 max_uses: newType === "demo" ? 1 : maxUsesValue,
-                demo_customer_name: newType === "demo" ? demoCustomerName.trim() : undefined,
+                demo_customer_name: trimmedCustomerName ? trimmedCustomerName : undefined,
             })
 
             setGeneratedKeyString(data.key.key)

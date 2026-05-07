@@ -1,6 +1,5 @@
 using LaptopQC.Core.Models;
 using LaptopQC.Core.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace LaptopQC.Core.Services;
 
@@ -105,9 +104,8 @@ public class PramaanScoringEngine
     // ═══════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Storage: combines SMART health score and storage test result.
-    /// SSD wear → converted to % degradation (100 - health%).
-    /// SMART raw health % is already normalized.
+    /// Storage: combines SMART health % per device, temperature, and self-test result.
+    /// Health % is read directly from StorageDevice.HealthPercent (populated by smartctl).
     /// </summary>
     private int ScoreStorage(QCReport report)
     {
@@ -115,14 +113,6 @@ public class PramaanScoringEngine
             return 0;
 
         var scores = new List<int>();
-
-        // SMART test (raw SMART health % integrated in StorageTest details)
-        if (report.StorageTest.Tested)
-        {
-            int smartScore = ExtractSmartScore(report.StorageTest);
-            if (smartScore >= 0)
-                scores.Add(smartScore);
-        }
 
         // Storage health from detailed info
         if (report.StorageDetails != null)
@@ -196,8 +186,8 @@ public class PramaanScoringEngine
             else if (msg.Contains("CRITICAL"))  cpuThermalScore = 5;
             else if (msg.Contains("FAIL"))      cpuThermalScore = 20;
             else if (msg.Contains("WARNING"))   cpuThermalScore = 50;
-            else if (msg.Contains("PASS"))      cpuThermalScore = 90;
-            else                                cpuThermalScore = report.CpuTest.Passed ? 75 : 20;
+            else if (msg.Contains("PASS"))      cpuThermalScore = 100;
+            else                                cpuThermalScore = report.CpuTest.Passed ? 100 : 20;
 
             scores.Add(cpuThermalScore);
         }
@@ -303,7 +293,7 @@ public class PramaanScoringEngine
         // CPU stress
         if (report.CpuTest.Tested)
         {
-            scores.Add(report.CpuTest.Passed ? 90 : 25);
+            scores.Add(report.CpuTest.Passed ? 100 : 25);
         }
 
         // RAM stress
@@ -385,26 +375,6 @@ public class PramaanScoringEngine
     // ═══════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Extract health % from SMART test details strings like "ModelName: Excellent (95%)"
-    /// Returns -1 if no regex match is found.
-    /// </summary>
-    private int ExtractSmartScore(TestResult smartResult)
-    {
-        var scores = new List<int>();
-        foreach (var detail in smartResult.Details)
-        {
-            var match = Regex.Match(detail, @"\((\d+)%\)");
-            if (match.Success && int.TryParse(match.Groups[1].Value, out int pct))
-                scores.Add(pct);
-        }
-
-        if (scores.Count > 0)
-            return (int)scores.Average();
-
-        return -1; // Ignore if no percentages printed
-    }
 
     /// <summary>Check if the storage binary test passed (helper to avoid confusion with SMART).</summary>
     private bool StorageTestPassed(QCReport report)
