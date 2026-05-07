@@ -186,8 +186,8 @@ public class PramaanScoringEngine
             else if (msg.Contains("CRITICAL"))  cpuThermalScore = 5;
             else if (msg.Contains("FAIL"))      cpuThermalScore = 20;
             else if (msg.Contains("WARNING"))   cpuThermalScore = 50;
-            else if (msg.Contains("PASS"))      cpuThermalScore = 90;
-            else                                cpuThermalScore = report.CpuTest.Passed ? 75 : 20;
+            else if (msg.Contains("PASS"))      cpuThermalScore = 100;
+            else                                cpuThermalScore = report.CpuTest.Passed ? 100 : 20;
 
             scores.Add(cpuThermalScore);
         }
@@ -293,7 +293,7 @@ public class PramaanScoringEngine
         // CPU stress
         if (report.CpuTest.Tested)
         {
-            scores.Add(report.CpuTest.Passed ? 90 : 25);
+            scores.Add(report.CpuTest.Passed ? 100 : 25);
         }
 
         // RAM stress
