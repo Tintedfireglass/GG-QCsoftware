@@ -233,6 +233,9 @@ public class QCWorkflowService
                 int selfTestPassedCount = 0;
                 int selfTestFailedCount = 0;
                 int selfTestInconclusiveCount = 0;
+
+                // Collect per-drive self-test lines separately so they survive Details.Clear().
+                var selfTestLines = new List<string>();
                 
                 foreach (var device in healthCheck.Devices)
                 {
@@ -265,18 +268,24 @@ public class QCWorkflowService
                             {
                                 selfTestInconclusiveCount++;
                                 var reason = GetInconclusiveReason(testResult.Message);
-                                Report.StorageTest.Details.Add($"Self-Test Inconclusive: {device.Model} ({reason})");
+                                var incLine = $"Self-Test Inconclusive: {device.Model} ({reason})";
+                                Report.StorageTest.Details.Add(incLine);
+                                selfTestLines.Add(incLine);
                             }
                             else
                             {
                                 selfTestFailedCount++;
-                                Report.StorageTest.Details.Add($"Self-Test Failed: {device.Model} ({testResult.Message})");
+                                var failLine = $"Self-Test Failed: {device.Model} ({testResult.Message})";
+                                Report.StorageTest.Details.Add(failLine);
+                                selfTestLines.Add(failLine);
                             }
                         }
                         else
                         {
                             selfTestPassedCount++;
-                            Report.StorageTest.Details.Add($"Self-Test Passed: {device.Model}");
+                            var passLine = $"Self-Test Passed: {device.Model}";
+                            Report.StorageTest.Details.Add(passLine);
+                            selfTestLines.Add(passLine);
                         }
                     }
                 }
@@ -310,6 +319,10 @@ public class QCWorkflowService
                         }
                         foreach (var detail in BuildDriveDetails(Report.StorageDetails))
                             Report.StorageTest.Details.Add(detail);
+
+                        // Re-add per-drive self-test results after the drive list.
+                        foreach (var line in selfTestLines)
+                            Report.StorageTest.Details.Add(line);
                     }
                 }
 
@@ -490,7 +503,7 @@ public class QCWorkflowService
     }
 
     /// <summary>
-    /// Builds one detail line per physical drive: "Model (Size GB Type): X GB used / Y GB free".
+    /// Builds one detail line per physical drive: "Model (Size GB Type | Health X%): X GB used / Y GB free".
     /// Volume usage is distributed across drives proportionally by their reported size.
     /// For single-drive machines this is exact; for multi-drive it's a close estimate.
     /// </summary>
@@ -518,7 +531,12 @@ public class QCWorkflowService
                 spacePart = $"{drive.SizeGB:F0} GB total";
             }
 
-            yield return $"{drive.Model} ({drive.SizeGB:F0} GB {driveType}): {spacePart}";
+            // Append health % if SMART data is available for this drive.
+            var healthPart = drive.HealthPercent.HasValue
+                ? $" | Health {drive.HealthPercent.Value}%"
+                : "";
+
+            yield return $"{drive.Model} ({drive.SizeGB:F0} GB {driveType}{healthPart}): {spacePart}";
         }
     }
 

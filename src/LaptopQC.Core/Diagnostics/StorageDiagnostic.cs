@@ -47,6 +47,13 @@ public class StorageDiagnostic : IStorageDiagnostic
             device.IsSsd = device.IsEMMC || DetectSsd(device);
             device.SizeGB = device.SizeBytes / (1024.0 * 1024 * 1024);
 
+            // Skip removable media (USB flash drives, SD cards, external drives).
+            // These never report SMART health data and would incorrectly penalize the score.
+            bool isRemovable = device.MediaType.Contains("Removable", StringComparison.OrdinalIgnoreCase) ||
+                               device.InterfaceType.Equals("USB", StringComparison.OrdinalIgnoreCase);
+            if (isRemovable)
+                continue;
+
             info.Devices.Add(device);
         }
 
