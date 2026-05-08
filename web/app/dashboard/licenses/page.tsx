@@ -181,6 +181,7 @@ export default function LicensesPage() {
                     ) : (
                         filteredKeys.map((k) => {
                             const usagePercent = Math.min(100, Math.round(((k.current_uses || 0) / k.max_uses) * 100));
+                            const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
 
                             return (
                                 <div key={k.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
@@ -216,10 +217,12 @@ export default function LicensesPage() {
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </div>
-                                        <div>
-                                            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
-                                            <div className="text-xs text-slate-600 truncate">{k.customer_name || k.demo_customer_name || ""}</div>
-                                        </div>
+                                        {customerLabel ? (
+                                            <div>
+                                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
+                                                <div className="text-xs text-slate-600 truncate">{customerLabel}</div>
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <div className="mb-4">
@@ -273,11 +276,15 @@ export default function LicensesPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredKeys.map((k) => (
+                                filteredKeys.map((k) => {
+                                    const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
+                                    return (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                         <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
                                             <div>{k.key}</div>
-                                            <div className="text-xs text-slate-400">Customer: {k.customer_name || k.demo_customer_name || ""}</div>
+                                            {customerLabel ? (
+                                                <div className="text-xs text-slate-400">Customer: {customerLabel}</div>
+                                            ) : null}
                                         </td>
                                         <td className="p-6 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
@@ -328,7 +335,8 @@ export default function LicensesPage() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))
+                                    )
+                                })
                             )}
                         </tbody>
                     </table>
