@@ -215,12 +215,10 @@ export default function LicensesPage() {
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </div>
-                                        {(k.type === "demo" || k.demo_customer_name) && (
-                                            <div>
-                                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
-                                                <div className="text-xs text-slate-600 truncate">{k.demo_customer_name || "—"}</div>
-                                            </div>
-                                        )}
+                                        <div>
+                                            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Customer</div>
+                                            <div className="text-xs text-slate-600 truncate">{k.demo_customer_name || "—"}</div>
+                                        </div>
                                     </div>
 
                                     <div className="mb-4">
@@ -278,9 +276,7 @@ export default function LicensesPage() {
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                         <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
                                             <div>{k.key}</div>
-                                            {(k.type === "demo" || k.demo_customer_name) && (
-                                                <div className="text-xs text-slate-400">Customer: {k.demo_customer_name || "—"}</div>
-                                            )}
+                                            <div className="text-xs text-slate-400">Customer: {k.demo_customer_name || "—"}</div>
                                         </td>
                                         <td className="p-6 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">

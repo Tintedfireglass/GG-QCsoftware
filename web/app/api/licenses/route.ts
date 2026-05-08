@@ -24,10 +24,15 @@ export async function GET(request: NextRequest) {
         if (roleError) return roleError;
 
         let queryStr = `
-            SELECT lk.*, 
-                   COUNT(lka.id) as activations_count
+            SELECT
+                lk.*,
+                COUNT(lka.id) as activations_count,
+                cu.full_name as customer_full_name,
+                cu.email as customer_email,
+                COALESCE(NULLIF(lk.demo_customer_name, ''), cu.full_name, cu.email) as customer_name
             FROM license_keys lk
             LEFT JOIN license_key_activations lka ON lk.id = lka.license_key_id
+            LEFT JOIN customer_users cu ON lk.customer_user_id = cu.id
         `;
         const params: any[] = [];
 
@@ -36,7 +41,10 @@ export async function GET(request: NextRequest) {
             params.push(authUser.id);
         }
 
-        queryStr += ` GROUP BY lk.id ORDER BY lk.created_at DESC`;
+        queryStr += `
+            GROUP BY lk.id, cu.full_name, cu.email
+            ORDER BY lk.created_at DESC
+        `;
 
         const keys = await query(queryStr, params);
 
