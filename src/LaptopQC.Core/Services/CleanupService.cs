@@ -1,3 +1,4 @@
+#if WINDOWS
 using System.Security.Principal;
 using System.Threading;
 using System.Text.Json;
@@ -1044,3 +1045,5 @@ public class CleanupProgress
     public string? Target { get; set; }
     public string Message { get; set; } = "";
 }
+#endif
+

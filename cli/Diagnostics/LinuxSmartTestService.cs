@@ -224,6 +224,12 @@ public class LinuxSmartTestService : ISmartTestService
             var raw = LinuxCommandRunner.TryRun(_smartctlPath, $"-a {devicePath}");
             if (string.IsNullOrWhiteSpace(raw)) return null;
 
+            if (raw.Contains("Permission denied", StringComparison.OrdinalIgnoreCase) ||
+                raw.Contains("requires root", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
             var model = ParseField(raw, "Device Model")
                      ?? ParseField(raw, "Model Number")
                      ?? ParseField(raw, "Model Family")

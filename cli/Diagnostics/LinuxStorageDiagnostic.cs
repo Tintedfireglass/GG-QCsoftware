@@ -98,12 +98,12 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
             }
         }
 
-        EvaluateTamperState(info);
         return info;
     }
 
     public (bool IsHealthy, string Message) ValidateStorage(StorageInfo info)
     {
+        EvaluateTamperState(info);
         if (info.Devices.Count == 0) return (false, "No storage devices detected");
         if (info.IsTampered) return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered" : info.TamperReason);
         if (info.IsInconclusive) return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage health could not be determined" : info.InconclusiveReason);
@@ -113,6 +113,11 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
 
     private static void EvaluateTamperState(StorageInfo info)
     {
+        info.IsTampered = false;
+        info.IsInconclusive = false;
+        info.TamperReason = null;
+        info.InconclusiveReason = null;
+        
         bool hasHealthData = false;
         foreach (var device in info.Devices)
         {
@@ -128,7 +133,7 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
         if (!hasHealthData && info.Devices.Count > 0)
         {
             info.IsInconclusive = true;
-            info.InconclusiveReason = "Storage health inconclusive — smartctl not available";
+            info.InconclusiveReason = "Storage health inconclusive — run with sudo to enable SMART";
         }
     }
 }

@@ -245,11 +245,19 @@ class Program
                 report.StorageTest.Passed = false;
                 report.StorageTest.Message += " (SMART Warning/Fail)";
             }
+            
+            var finalStorageVal = new LinuxStorageDiagnostic().ValidateStorage(report.StorageDetails);
+            report.StorageTest.Passed &= finalStorageVal.IsHealthy;
+            report.StorageTest.Message = finalStorageVal.Message + (healthCheck.OverallHealthy ? "" : " (SMART Warning/Fail)");
         }
         else
         {
             AnsiConsole.MarkupLine("[yellow]smartctl not available, skipping SMART checks.[/]");
             report.StorageTest.Details.Add("SMART tools not available for self-test");
+            
+            var finalStorageVal = new LinuxStorageDiagnostic().ValidateStorage(report.StorageDetails);
+            report.StorageTest.Passed &= finalStorageVal.IsHealthy;
+            report.StorageTest.Message = finalStorageVal.Message;
         }
 
         // ── Stress Tests ──
@@ -386,12 +394,14 @@ class Program
             pTable.AddColumn("Score");
             foreach (var cat in report.PramaanResult.CategoryScores)
             {
-                pTable.AddRow(cat.Key.Replace("_", " ").ToUpper(), cat.Value.ToString() + "/100");
+                string label = cat.Key.Replace("_", " ").ToUpper();
+                if (label == "THERMAL") label = "THERMAL (CPU/GPU)";
+                pTable.AddRow(label, cat.Value.ToString() + "/100");
             }
             AnsiConsole.Write(pTable);
         }
 
-        AnsiConsole.MarkupLine($"\n[bold white]Overall Health Score:[/] [bold yellow]{report.OverallScore}[/] (Grade: [bold green]{report.OverallGrade}[/])");
+        AnsiConsole.MarkupLine($"\n[bold white]Overall Health Score:[/] [bold yellow]{report.PramaanResult?.OverallHealthScore ?? report.OverallScore}[/] (Grade: [bold green]{report.PramaanResult?.GradeLabel ?? report.OverallGrade}[/])");
         
         if (submitSuccess)
         {

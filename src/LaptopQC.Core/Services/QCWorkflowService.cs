@@ -348,8 +348,7 @@ public class QCWorkflowService
                 Report.StorageTest.Details.Add("SMART tools not available for self-test");
             }
 
-            if (!skipStressTests)
-            {
+#if WINDOWS
                 // 4. Stress Tests
             UpdateStatus("Running CPU Stress Test...", 60);
             var cpuStress = new CpuStressTest(durationSeconds: 15);
@@ -412,8 +411,10 @@ public class QCWorkflowService
                     Report.GpuTest.Details.Add($"Clock Range: {gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
                 }
             }
+#else
+            UpdateStatus("Stress tests skipped on non-Windows platforms in WorkflowService", 90);
+#endif
 
-            }
 
             UpdateStatus("Automated Checks Complete", 100);
             CurrentStep = QCWorkflowStep.InteractiveTests;

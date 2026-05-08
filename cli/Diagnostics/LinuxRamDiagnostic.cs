@@ -17,7 +17,20 @@ public class LinuxRamDiagnostic : IRamDiagnostic
             var meminfo = LinuxCommandRunner.ReadFile("/proc/meminfo");
             var totalMatch = Regex.Match(meminfo, @"^MemTotal:\s+(\d+)\s+kB", RegexOptions.Multiline);
             if (totalMatch.Success && long.TryParse(totalMatch.Groups[1].Value, out long kB))
-                info.TotalCapacityGB = kB / (1024 * 1024);
+            {
+                long gb = (long)Math.Ceiling(kB / (1024.0 * 1024.0));
+                long[] standardSizes = { 2, 4, 6, 8, 12, 16, 20, 24, 32, 48, 64, 96, 128, 256 };
+                foreach (var size in standardSizes)
+                {
+                    // Allow up to 3GB of hardware reserved memory (iGPUs reserve a lot)
+                    if (gb <= size && gb >= size - 3)
+                    {
+                        gb = size;
+                        break;
+                    }
+                }
+                info.TotalCapacityGB = gb;
+            }
 
             // DIMM slots from dmidecode
             var dmi = LinuxCommandRunner.TryRun("dmidecode", "-t memory");
@@ -60,9 +73,16 @@ public class LinuxRamDiagnostic : IRamDiagnostic
                     slot++;
                 }
 
-                // If dmidecode gave no modules (no sudo), synthesize one virtual module
-                if (info.Modules.Count == 0 && info.TotalCapacityGB > 0)
+                // If dmidecode gave modules, sum them up for exact physical capacity
+                if (info.Modules.Count > 0)
                 {
+                    long trueCapacity = info.Modules.Sum(m => m.CapacityGB);
+                    if (trueCapacity > 0)
+                        info.TotalCapacityGB = trueCapacity;
+                }
+                else if (info.TotalCapacityGB > 0)
+                {
+                    // Synthesize one virtual module
                     info.Modules.Add(new RamModule
                     {
                         Slot = 0,
