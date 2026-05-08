@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const fingerprint = buildFingerprint(machineSerial, macAddress, computerName);
+        const normalizedMachineSerial = String(machineSerial).trim();
+        const fingerprint = buildFingerprint(normalizedMachineSerial, macAddress, computerName);
 
         let loginResponse: (LoginResponse & { machineId?: number }) | null = null;
 
@@ -117,30 +118,37 @@ export async function POST(request: NextRequest) {
             // 2. Check if this machine is already activated for this key
             const activationRes = await client.query(
                 'SELECT * FROM license_key_activations WHERE license_key_id = $1 AND machine_serial = $2',
-                [license.id, machineSerial]
+                [license.id, normalizedMachineSerial]
             );
 
             const isAlreadyActivated = activationRes.rows.length > 0;
 
             if (!isAlreadyActivated) {
-                if (license.current_uses >= license.max_uses) {
+                if (typeof license.current_uses !== 'number' && process.env.NODE_ENV !== 'production') {
+                    console.warn('License key has non-numeric current_uses; treating as 0', {
+                        licenseKeyId: license.id,
+                        current_uses: license.current_uses,
+                    });
+                }
+                const currentUses = typeof license.current_uses === 'number' ? license.current_uses : 0;
+                if (currentUses >= license.max_uses) {
                     throw new Error('This license key has reached its maximum machine activation limit');
                 }
 
                 await client.query(
                     'INSERT INTO license_key_activations (license_key_id, machine_serial) VALUES ($1, $2)',
-                    [license.id, machineSerial]
+                    [license.id, normalizedMachineSerial]
                 );
 
                 await client.query(
-                    'UPDATE license_keys SET current_uses = current_uses + 1 WHERE id = $1',
+                    'UPDATE license_keys SET current_uses = COALESCE(current_uses, 0) + 1 WHERE id = $1',
                     [license.id]
                 );
             }
 
             // 3. Find or create machine → allocate server-side Machine ID
             const machineId = await findOrCreateMachine(
-                client, fingerprint, machineSerial, macAddress, computerName
+                client, fingerprint, normalizedMachineSerial, macAddress, computerName
             );
 
             // 4. For customer-owned (B2C) keys, issue a restricted device token

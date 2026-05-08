@@ -24,10 +24,15 @@ export async function GET(request: NextRequest) {
         if (roleError) return roleError;
 
         let queryStr = `
-            SELECT lk.*, 
-                   COUNT(lka.id) as activations_count
+            SELECT
+                lk.*,
+                COUNT(lka.id) as activations_count,
+                cu.full_name as customer_full_name,
+                cu.email as customer_email,
+                COALESCE(NULLIF(lk.demo_customer_name, ''), cu.full_name, cu.email) as customer_name
             FROM license_keys lk
             LEFT JOIN license_key_activations lka ON lk.id = lka.license_key_id
+            LEFT JOIN customer_users cu ON lk.customer_user_id = cu.id
         `;
         const params: any[] = [];
 
@@ -36,7 +41,10 @@ export async function GET(request: NextRequest) {
             params.push(authUser.id);
         }
 
-        queryStr += ` GROUP BY lk.id ORDER BY lk.created_at DESC`;
+        queryStr += `
+            GROUP BY lk.id, cu.full_name, cu.email
+            ORDER BY lk.created_at DESC
+        `;
 
         const keys = await query(queryStr, params);
 
@@ -101,8 +109,8 @@ export async function POST(request: NextRequest) {
 
             // Insert new key
             const insertQuery = `
-                INSERT INTO license_keys (key, type, max_uses, created_by, is_active, expires_at, demo_customer_name, demo_max_runs)
-                VALUES ($1, $2, $3, $4, true, $5, $6, $7)
+                INSERT INTO license_keys (key, type, max_uses, current_uses, created_by, is_active, expires_at, demo_customer_name, demo_max_runs)
+                VALUES ($1, $2, $3, 0, $4, true, $5, $6, $7)
                 RETURNING *
             `;
             const result = await client.query(insertQuery, [
