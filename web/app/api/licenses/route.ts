@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
 
             // Insert new key
             const insertQuery = `
-                INSERT INTO license_keys (key, type, max_uses, created_by, is_active, expires_at, demo_customer_name, demo_max_runs)
-                VALUES ($1, $2, $3, $4, true, $5, $6, $7)
+                INSERT INTO license_keys (key, type, max_uses, current_uses, created_by, is_active, expires_at, demo_customer_name, demo_max_runs)
+                VALUES ($1, $2, $3, 0, $4, true, $5, $6, $7)
                 RETURNING *
             `;
             const result = await client.query(insertQuery, [

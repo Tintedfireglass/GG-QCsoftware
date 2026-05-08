@@ -125,6 +125,12 @@ export default function LicensesPage() {
         }
     }
 
+    const getEffectiveUses = (k: LicenseKey) => {
+        const currentUses = typeof k.current_uses === "number" ? k.current_uses : 0
+        const activationCount = parseInt(k.activations_count || "0", 10)
+        return Math.max(currentUses, Number.isFinite(activationCount) ? activationCount : 0)
+    }
+
     // Filter keys
     const filteredKeys = keys.filter(k => {
         const q = search.toLowerCase()
@@ -180,7 +186,8 @@ export default function LicensesPage() {
                         <div className="py-8 text-center text-slate-500">No licenses found</div>
                     ) : (
                         filteredKeys.map((k) => {
-                            const usagePercent = Math.min(100, Math.round(((k.current_uses || 0) / k.max_uses) * 100));
+                            const effectiveUses = getEffectiveUses(k)
+                            const usagePercent = Math.min(100, Math.round(((effectiveUses || 0) / k.max_uses) * 100));
                             const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
 
                             return (
@@ -194,7 +201,7 @@ export default function LicensesPage() {
                                             </Button>
                                         </div>
                                         {k.is_active ? (
-                                            k.current_uses >= k.max_uses ? (
+                                            effectiveUses >= k.max_uses ? (
                                                 <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
                                                     Exhausted
                                                 </span>
@@ -228,7 +235,7 @@ export default function LicensesPage() {
                                     <div className="mb-4">
                                         <div className="flex justify-between items-end mb-1.5">
                                             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Usage</span>
-                                            <span className="text-xs font-mono font-medium text-slate-700">{k.current_uses || 0} / {k.max_uses}</span>
+                                            <span className="text-xs font-mono font-medium text-slate-700">{effectiveUses || 0} / {k.max_uses}</span>
                                         </div>
                                         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                             <div 
@@ -277,6 +284,7 @@ export default function LicensesPage() {
                                 </tr>
                             ) : (
                                 filteredKeys.map((k) => {
+                                    const effectiveUses = getEffectiveUses(k)
                                     const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
                                     return (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
@@ -292,11 +300,11 @@ export default function LicensesPage() {
                                             </span>
                                         </td>
                                         <td className="p-6 align-middle text-center text-slate-600">
-                                            {k.current_uses}/{k.max_uses}
+                                            {effectiveUses}/{k.max_uses}
                                         </td>
                                         <td className="p-6 align-middle text-center">
                                             {k.is_active ? (
-                                                k.current_uses >= k.max_uses ? (
+                                                effectiveUses >= k.max_uses ? (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
                                                         Exhausted
                                                     </span>

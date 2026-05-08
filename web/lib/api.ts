@@ -353,3 +353,22 @@ export async function getPublicVerify(healthId: string) {
     return cachedGetPublicJson(`/api/verify/${healthId}`, TTL.long);
 }
 
+export interface AdminFreeTrialRow {
+    id: number
+    email: string
+    machine_serial: string
+    mac_address: string | null
+    computer_name: string | null
+    machine_id: number | null
+    machine_identifier: string | null
+    trial_start_utc: string
+    trial_end_utc: string
+    is_active: boolean
+    revoked_at: string | null
+    revoke_reason: string | null
+    created_at: string
+}
+
+export async function getAdminFreeTrials(): Promise<{ trials: AdminFreeTrialRow[] }> {
+    return cachedGetJson("/api/admin/free-trials", TTL.short)
+}

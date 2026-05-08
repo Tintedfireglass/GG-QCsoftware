@@ -14,7 +14,8 @@ import {
     UserPlus,
     Shield,
     Key,
-    Server
+    Server,
+    Hourglass
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -65,6 +66,12 @@ export function Sidebar() {
             label: "Licenses",
             icon: Key,
             roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] // Visible to license managers
+        },
+        {
+            href: "/dashboard/free-trials",
+            label: "Free Trials",
+            icon: Hourglass,
+            roles: ['SuperAdmin']
         },
     ]
 
