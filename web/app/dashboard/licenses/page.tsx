@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,8 @@ export default function LicensesPage() {
     const [keys, setKeys] = useState<LicenseKey[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "exhausted" | "expired" | "revoked">("all")
+    const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | "activation_desc" | "activation_asc" | "status">("created_desc")
 
     // Modal States
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
@@ -131,11 +133,65 @@ export default function LicensesPage() {
         return Math.max(currentUses, Number.isFinite(activationCount) ? activationCount : 0)
     }
 
-    // Filter keys
-    const filteredKeys = keys.filter(k => {
-        const q = search.toLowerCase()
-        return k.key.toLowerCase().includes(q) || (k.customer_name || k.demo_customer_name || "").toLowerCase().includes(q)
-    })
+    const parseDateMs = (value?: string | null) => {
+        if (!value) return 0
+        const ms = new Date(value).getTime()
+        return Number.isFinite(ms) ? ms : 0
+    }
+
+    const formatDate = (value?: string | null) => {
+        if (!value) return "—"
+        const d = new Date(value)
+        if (!Number.isFinite(d.getTime())) return "—"
+        return d.toLocaleString()
+    }
+
+    const getKeyStatus = (k: LicenseKey, nowMs: number) => {
+        if (!k.is_active) return "revoked" as const
+        const expiresMs = parseDateMs(k.expires_at)
+        if (expiresMs > 0 && expiresMs <= nowMs) return "expired" as const
+        const effectiveUses = getEffectiveUses(k)
+        if (effectiveUses >= k.max_uses) return "exhausted" as const
+        return "active" as const
+    }
+
+    const statusRank = (s: ReturnType<typeof getKeyStatus>) => {
+        if (s === "active") return 1
+        if (s === "exhausted") return 2
+        if (s === "expired") return 3
+        return 4
+    }
+
+    const filteredKeys = useMemo(() => {
+        const nowMs = Date.now()
+        const q = search.trim().toLowerCase()
+
+        const base = keys.filter((k) => {
+            if (q) {
+                const hay = `${k.key} ${(k.customer_name || k.demo_customer_name || "")}`.toLowerCase()
+                if (!hay.includes(q)) return false
+            }
+
+            if (statusFilter !== "all") {
+                const s = getKeyStatus(k, nowMs)
+                if (s !== statusFilter) return false
+            }
+
+            return true
+        })
+
+        return [...base].sort((a, b) => {
+            if (sortBy === "created_desc") return parseDateMs(b.created_at) - parseDateMs(a.created_at)
+            if (sortBy === "created_asc") return parseDateMs(a.created_at) - parseDateMs(b.created_at)
+            if (sortBy === "activation_desc") return getEffectiveUses(b) - getEffectiveUses(a)
+            if (sortBy === "activation_asc") return getEffectiveUses(a) - getEffectiveUses(b)
+
+            const ra = statusRank(getKeyStatus(a, nowMs))
+            const rb = statusRank(getKeyStatus(b, nowMs))
+            if (ra !== rb) return ra - rb
+            return parseDateMs(b.created_at) - parseDateMs(a.created_at)
+        })
+    }, [keys, search, statusFilter, sortBy])
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading licenses...</div>
 
@@ -167,14 +223,42 @@ export default function LicensesPage() {
                 <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 gap-4 sm:gap-0">
                     <h2 className="text-xl font-bold text-slate-900">Active License Keys</h2>
 
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Search"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9 w-[250px] bg-white border-slate-200 focus-visible:ring-[var(--brand-purple)]"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Search"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9 w-full sm:w-[250px] bg-white border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                            />
+                        </div>
+
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)]"
+                            title="Filter by status"
+                        >
+                            <option value="all">All statuses</option>
+                            <option value="active">Active</option>
+                            <option value="exhausted">Exhausted</option>
+                            <option value="expired">Expired</option>
+                            <option value="revoked">Revoked</option>
+                        </select>
+
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)]"
+                            title="Sort"
+                        >
+                            <option value="created_desc">Created: Newest</option>
+                            <option value="created_asc">Created: Oldest</option>
+                            <option value="activation_desc">Activation size: High</option>
+                            <option value="activation_asc">Activation size: Low</option>
+                            <option value="status">Status</option>
+                        </select>
                     </div>
                 </div>
 
@@ -189,6 +273,7 @@ export default function LicensesPage() {
                             const effectiveUses = getEffectiveUses(k)
                             const usagePercent = Math.min(100, Math.round(((effectiveUses || 0) / k.max_uses) * 100));
                             const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
+                            const computedStatus = getKeyStatus(k, Date.now())
 
                             return (
                                 <div key={k.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
@@ -200,16 +285,18 @@ export default function LicensesPage() {
                                                 <Copy className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
-                                        {k.is_active ? (
-                                            effectiveUses >= k.max_uses ? (
-                                                <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
-                                                    Exhausted
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                                                    Active
-                                                </span>
-                                            )
+                                        {computedStatus === "active" ? (
+                                            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                                                Active
+                                            </span>
+                                        ) : computedStatus === "exhausted" ? (
+                                            <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                                                Exhausted
+                                            </span>
+                                        ) : computedStatus === "expired" ? (
+                                            <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                                                Expired
+                                            </span>
                                         ) : (
                                             <span className="inline-flex items-center rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700 uppercase tracking-wider">
                                                 Revoked
@@ -230,6 +317,10 @@ export default function LicensesPage() {
                                                 <div className="text-xs text-slate-600 truncate">{customerLabel}</div>
                                             </div>
                                         ) : null}
+                                    </div>
+
+                                    <div className="text-xs text-slate-400 mb-3">
+                                        Created: {formatDate(k.created_at)}
                                     </div>
 
                                     <div className="mb-4">
@@ -270,6 +361,7 @@ export default function LicensesPage() {
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Type</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Created</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px] whitespace-nowrap">Activation Size</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Status</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px] whitespace-nowrap">Action</th>
@@ -278,7 +370,7 @@ export default function LicensesPage() {
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredKeys.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500">
+                                    <td colSpan={6} className="p-8 text-center text-slate-500">
                                         No license keys found. Generate one above.
                                     </td>
                                 </tr>
@@ -286,6 +378,7 @@ export default function LicensesPage() {
                                 filteredKeys.map((k) => {
                                     const effectiveUses = getEffectiveUses(k)
                                     const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
+                                    const computedStatus = getKeyStatus(k, Date.now())
                                     return (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                         <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
@@ -299,20 +392,25 @@ export default function LicensesPage() {
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </td>
+                                        <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
+                                            {formatDate(k.created_at)}
+                                        </td>
                                         <td className="p-6 align-middle text-center text-slate-600">
                                             {effectiveUses}/{k.max_uses}
                                         </td>
                                         <td className="p-6 align-middle text-center">
-                                            {k.is_active ? (
-                                                effectiveUses >= k.max_uses ? (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
-                                                        Exhausted
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
-                                                        Active
-                                                    </span>
-                                                )
+                                            {computedStatus === "active" ? (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
+                                                    Active
+                                                </span>
+                                            ) : computedStatus === "exhausted" ? (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
+                                                    Exhausted
+                                                </span>
+                                            ) : computedStatus === "expired" ? (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium">
+                                                    Expired
+                                                </span>
                                             ) : (
                                                 <span className="inline-flex items-center px-3 py-1 rounded-full border border-rose-200 bg-rose-50 text-rose-700 text-xs font-medium">
                                                     Revoked
