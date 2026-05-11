@@ -1,5 +1,6 @@
 using LaptopQC.Core.Models;
 using LaptopQC.Core.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace LaptopQC.Core.Services;
 

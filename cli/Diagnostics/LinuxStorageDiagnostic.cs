@@ -26,6 +26,8 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                         if (type != "disk") continue;
 
                         var name = dev.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                        // Skip virtual/loop/ram devices
+                        if (name.StartsWith("loop") || name.StartsWith("ram") || name.StartsWith("zram")) continue;
                         var model = dev.TryGetProperty("model", out var m) ? m.GetString()?.Trim() ?? "" : "";
                         var sizeStr = dev.TryGetProperty("size", out var s) ? s.GetString() ?? "0" : "0";
                         var rotaStr = dev.TryGetProperty("rota", out var r) ? r.GetString() ?? "1" : "1";
@@ -82,8 +84,10 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                 var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 4) continue;
                 var name = parts[3];
-                // Only root disks (sda, nvme0n1, vda, etc. — no partition numbers for non-nvme)
-                if (Regex.IsMatch(name, @"^\d") || (name.StartsWith("sd") && Regex.IsMatch(name, @"sd[a-z]\d")))
+                // Only root disks (sda, nvme0n1, vda, etc. — no partition numbers)
+                if (Regex.IsMatch(name, @"^\d") || 
+                    (name.StartsWith("sd") && Regex.IsMatch(name, @"sd[a-z]\d")) ||
+                    ((name.StartsWith("nvme") || name.StartsWith("mmcblk")) && Regex.IsMatch(name, @"p\d+$")))
                     continue;
                 if (long.TryParse(parts[2], out long kb))
                 {

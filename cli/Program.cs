@@ -1,421 +1,374 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Spectre.Console;
 using LaptopQC.Core.Models;
 using LaptopQC.Core.Services;
-using LaptopQC.Core.Diagnostics;
+using LaptopQC.Hardware.Models;
 using Pramaan.CLI.Diagnostics;
+using Pramaan.CLI.UI;
 
 namespace Pramaan.CLI;
 
 class Program
 {
+    static DashboardState state = new();
+    static bool isRunning = true;
+
     static async Task Main(string[] args)
     {
-        AnsiConsole.Write(
-            new FigletText("PRAMAAN CLI")
-                .Centered()
-                .Color(Color.Blue));
+        Console.CursorVisible = false;
 
-        var report = new QCReport();
-        var sysDiag = new LinuxSystemDiagnostic();
-        
-        // ── Phase 1: Pre-Diagnostics (Gather Identity silently) ──
-        await AnsiConsole.Status()
-            .StartAsync("Initializing environment...", async ctx =>
-            {
-                ctx.Spinner(Spinner.Known.Dots);
-                ctx.SpinnerStyle(Style.Parse("green"));
-                
-                // Get basic system info needed for licensing
-                report.SystemInfo = sysDiag.GetInfo();
-                report.MacAddress = report.SystemInfo?.MacAddress ?? "";
-                await Task.Delay(200); // UI visual buffer
-            });
-
-        string machineSerial = MachineIdentityService.GetBestIdentityKey(
-            report.SystemInfo?.SerialNumber,
-            report.SystemInfo?.MacAddress,
-            report.SystemInfo?.ComputerName);
-
-        // ── Phase 2: Authentication Flow ──
-        var authService = new AuthService();
-        var trialService = new TrialService();
-        string? activeToken = null;
-        bool isUnactivated = false;
-
-        // Check if we are already activated
-        if (authService.IsLoggedIn)
+        // Gather basic system info upfront for header display
+        try
         {
-            AnsiConsole.MarkupLine($"[green]✓ Activated with License Key:[/] {authService.LicenseKey}");
-            activeToken = authService.Token;
-            report.DeviceId = authService.MachineId ?? 0;
+            var sysDiag = new LinuxSystemDiagnostic();
+            state.SystemInfo = sysDiag.GetInfo();
         }
-        else if (trialService.IsTrialActive)
+        catch { /* non-fatal */ }
+
+        while (isRunning)
         {
-            AnsiConsole.MarkupLine($"[yellow]✓ Active Trial:[/] {trialService.CurrentTrial?.Email} ({trialService.DaysRemaining} days remaining)");
-            activeToken = trialService.CurrentTrial?.Token;
-        }
-        else
-        {
-            // Prompt user for action
-            var choice = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
-                    .Title("\n[bold]Activation Required[/]\nChoose an option to continue:")
-                    .PageSize(4)
-                    .AddChoices(new[] {
-                        "🔑 Activate License Key",
-                        "⏳ Start 7-Day Free Trial",
-                        "⚠️ Continue Unactivated (Limited Features)"
-                    }));
+            int? actionToRun = null;
+            Console.CursorVisible = false;
 
-            if (choice.Contains("Activate License Key"))
-            {
-                var key = AnsiConsole.Prompt(new TextPrompt<string>("Enter your [green]16-digit License Key[/]:"));
-                
-                var result = await default(Task<LoginResult>); // placeholder for spinner
-                await AnsiConsole.Status().StartAsync("Activating...", async ctx => 
-                {
-                    result = await authService.LoginWithLicenseAsync(key, machineSerial, report.SystemInfo?.MacAddress, report.SystemInfo?.ComputerName);
-                });
+            while (Console.KeyAvailable) Console.ReadKey(true);
 
-                if (result.Success)
-                {
-                    AnsiConsole.MarkupLine("[bold green]Activation Successful![/]\n");
-                    activeToken = authService.Token;
-                    report.DeviceId = authService.MachineId ?? 0;
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"[bold red]Activation Failed:[/] {result.Message}");
-                    isUnactivated = true;
-                }
-            }
-            else if (choice.Contains("Start 7-Day Free Trial"))
-            {
-                var email = AnsiConsole.Prompt(
-                    new TextPrompt<string>("Enter your [yellow]Email Address[/]:")
-                        .Validate(e => e.Contains("@") ? ValidationResult.Success() : ValidationResult.Error("[red]Please enter a valid email[/]")));
+            var layout = DashboardRenderer.Build(state);
 
-                var result = await default(Task<TrialResult>);
-                await AnsiConsole.Status().StartAsync("Starting trial...", async ctx => 
+            await AnsiConsole.Live(layout)
+                .AutoClear(false)
+                .Overflow(VerticalOverflow.Ellipsis)
+                .Cropping(VerticalOverflowCropping.Top)
+                .StartAsync(async ctx =>
                 {
-                    result = await trialService.StartOrRefreshTrialAsync(email, machineSerial, report.SystemInfo?.MacAddress, report.SystemInfo?.ComputerName);
-                });
+                    ctx.Refresh();
 
-                if (result.Success)
-                {
-                    AnsiConsole.MarkupLine($"[bold green]Trial Started![/] You have {result.DaysRemaining} days remaining.\n");
-                    activeToken = result.Token;
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine($"[bold red]Trial Failed:[/] {result.ErrorMessage}");
-                    isUnactivated = true;
-                }
-            }
-            else
-            {
-                AnsiConsole.MarkupLine("[yellow]Continuing in unactivated mode. Submissions will be limited.[/]\n");
-                isUnactivated = true;
-            }
-        }
-
-        // ── Phase 3a: Refurbishment Metadata ──
-        AnsiConsole.MarkupLine("\n[bold cyan]── Session Details ──[/]");
-        report.RefurbishId = AnsiConsole.Prompt(
-            new TextPrompt<string>("Enter [green]Refurbish ID / Order ID[/] (optional):")
-                .AllowEmpty());
-                
-        report.TechnicianNotes = AnsiConsole.Prompt(
-            new TextPrompt<string>("Enter [green]Technician Notes[/] (optional):")
-                .AllowEmpty());
-
-        // ── Phase 3b: Automated Diagnostics & Stress Tests ──
-        AnsiConsole.MarkupLine("\n[bold cyan]── Automated Hardware Diagnostics ──[/]");
-        
-        await AnsiConsole.Status()
-            .StartAsync("Gathering Basic Info...", async ctx =>
-            {
-                ctx.Spinner(Spinner.Known.Dots);
-                ctx.SpinnerStyle(Style.Parse("green"));
-
-                ctx.Status("Gathering CPU Info...");
-                var cpuDiag = new LinuxCpuDiagnostic();
-                report.CpuDetails = cpuDiag.GetInfo();
-                var cpuVal = cpuDiag.ValidateCpu(report.CpuDetails);
-                report.CpuTest = new TestResult { Tested = true, Passed = cpuVal.IsHealthy, Message = cpuVal.Message };
-                report.CpuTest.Details.Add(report.CpuDetails.Name);
-                report.CpuTest.Details.Add($"{report.CpuDetails.Cores} cores / {report.CpuDetails.Threads} threads");
-                
-                ctx.Status("Gathering RAM Info...");
-                var ramDiag = new LinuxRamDiagnostic();
-                report.RamDetails = ramDiag.GetInfo();
-                var ramVal = ramDiag.ValidateRam(report.RamDetails);
-                report.RamTest = new TestResult { Tested = true, Passed = ramVal.IsHealthy, Message = ramVal.Message };
-                report.RamTest.Details.Add($"{report.RamDetails.TotalCapacityGB} GB Total");
-                
-                ctx.Status("Gathering Storage Info...");
-                var storageDiag = new LinuxStorageDiagnostic();
-                report.StorageDetails = storageDiag.GetInfo();
-                var storageVal = storageDiag.ValidateStorage(report.StorageDetails);
-                report.StorageTest = new TestResult { Tested = true, Passed = storageVal.IsHealthy, Message = storageVal.Message };
-                foreach(var d in report.StorageDetails.Devices)
-                {
-                    report.StorageTest.Details.Add($"{d.Model} ({d.SizeGB:F0} GB {(d.IsSsd ? "SSD" : "HDD")})");
-                }
-
-                ctx.Status("Gathering Battery Info...");
-                var batteryDiag = new LinuxBatteryDiagnostic();
-                report.BatteryDetails = batteryDiag.GetInfo();
-                var batteryVal = batteryDiag.ValidateBattery(report.BatteryDetails);
-                report.BatteryTest = new TestResult { Tested = true, Passed = batteryVal.IsHealthy, Message = batteryVal.Message };
-                if (report.BatteryDetails.IsPresent && !report.BatteryDetails.IsTampered)
-                {
-                    report.BatteryTest.Details.Add($"Health: {report.BatteryDetails.HealthPercent}%");
-                    report.BatteryTest.Details.Add($"Cycle Count: {report.BatteryDetails.CycleCount}");
-                }
-
-                ctx.Status("Gathering Peripheral Info...");
-                var deviceDiag = new LinuxDeviceDiagnostic();
-                report.DeviceDetails = deviceDiag.GetInfo();
-                var deviceVal = deviceDiag.ValidateDevices(report.DeviceDetails);
-                
-                // Record Network test explicitly from DeviceDetails (like WPF)
-                bool wifiConnected = report.DeviceDetails.NetworkDevices.Any(n => n.AdapterType == "WiFi" && n.IsConnected);
-                bool ethConnected = report.DeviceDetails.NetworkDevices.Any(n => n.AdapterType == "Ethernet" && n.IsConnected);
-                report.NetworkTest = new TestResult 
-                { 
-                    Tested = true, 
-                    Passed = wifiConnected || ethConnected,
-                    Message = (wifiConnected || ethConnected) ? "Network OK" : "No active network connection"
-                };
-                if (wifiConnected) report.NetworkTest.Details.Add("WiFi: Connected");
-                if (ethConnected) report.NetworkTest.Details.Add("Ethernet: Connected");
-            });
-
-        // ── SMART Tests ──
-        AnsiConsole.MarkupLine("[bold grey]Starting SMART Health Check...[/]");
-        var smartService = new LinuxSmartTestService();
-        if (smartService.IsAvailable)
-        {
-            var healthCheck = smartService.QuickHealthCheck();
-            foreach (var device in healthCheck.Devices)
-            {
-                report.StorageTest.Details.Add($"[SMART] {device.Model}: {device.HealthStatus} ({device.HealthScore}%)");
-                
-                // Sync health data to report storage details
-                var storageDevice = report.StorageDetails?.Devices.FirstOrDefault(d => 
-                    d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) || 
-                    device.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
-                    
-                if (storageDevice != null)
-                {
-                    storageDevice.HealthPercent = device.HealthScore;
-                    storageDevice.Temperature = device.Temperature;
-                    storageDevice.PowerOnHours = device.PowerOnHours;
-                }
-                
-                // Run short self-test
-                if (device.HealthPassed)
-                {
-                    await AnsiConsole.Progress()
-                        .StartAsync(async ctx =>
+                    while (isRunning)
+                    {
+                        if (Console.KeyAvailable)
                         {
-                            var task = ctx.AddTask($"[green]SMART Self-Test ({device.Model})[/]", new ProgressTaskSettings { MaxValue = 100 });
-                            var progress = new Progress<SmartTestProgress>(p => 
+                            var key = Console.ReadKey(true);
+                            switch (key.Key)
                             {
-                                task.Value = p.PercentComplete;
-                                task.Description = $"[green]SMART Self-Test ({device.Model})[/] - {p.Status}";
-                            });
-                            
-                            var testResult = await smartService.RunShortTestAsync(device.DevicePath, progress, device.DeviceType);
-                            
-                            if (testResult.Success && testResult.Passed)
-                                report.StorageTest.Details.Add($"Self-Test Passed: {device.Model}");
-                            else
-                                report.StorageTest.Details.Add($"Self-Test Failed/Inconclusive: {device.Model} ({testResult.Message})");
-                        });
-                }
-            }
-            if (!healthCheck.OverallHealthy)
+                                case ConsoleKey.UpArrow:
+                                    state.SelectedMenuIndex =
+                                        state.SelectedMenuIndex > 0
+                                        ? state.SelectedMenuIndex - 1
+                                        : DashboardState.MenuItems.Length - 1;
+                                    break;
+
+                                case ConsoleKey.DownArrow:
+                                    state.SelectedMenuIndex =
+                                        state.SelectedMenuIndex < DashboardState.MenuItems.Length - 1
+                                        ? state.SelectedMenuIndex + 1
+                                        : 0;
+                                    break;
+
+                                case ConsoleKey.Enter:
+                                    actionToRun = state.SelectedMenuIndex;
+                                    return; // Break out of Live context
+
+                                case ConsoleKey.Q:
+                                case ConsoleKey.Escape:
+                                    isRunning = false;
+                                    return; // Break out of Live context
+                            }
+
+                            ctx.UpdateTarget(DashboardRenderer.Build(state));
+                            ctx.Refresh();
+                        }
+
+                        await Task.Delay(50);
+                    }
+                });
+
+            if (!isRunning) break;
+
+            if (actionToRun.HasValue)
             {
-                report.StorageTest.Passed = false;
-                report.StorageTest.Message += " (SMART Warning/Fail)";
+                Console.CursorVisible = true;
+                AnsiConsole.Clear();
+                await HandleMenuAction(actionToRun.Value);
+                if (actionToRun.Value != 0 && actionToRun.Value != 3 && actionToRun.Value != 4)
+                {
+                    AnsiConsole.MarkupLine("\n[grey]Press any key to return to dashboard...[/]");
+                    Console.ReadKey(true);
+                }
+                AnsiConsole.Clear();
             }
-            
-            var finalStorageVal = new LinuxStorageDiagnostic().ValidateStorage(report.StorageDetails);
-            report.StorageTest.Passed &= finalStorageVal.IsHealthy;
-            report.StorageTest.Message = finalStorageVal.Message + (healthCheck.OverallHealthy ? "" : " (SMART Warning/Fail)");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine("[yellow]smartctl not available, skipping SMART checks.[/]");
-            report.StorageTest.Details.Add("SMART tools not available for self-test");
-            
-            var finalStorageVal = new LinuxStorageDiagnostic().ValidateStorage(report.StorageDetails);
-            report.StorageTest.Passed &= finalStorageVal.IsHealthy;
-            report.StorageTest.Message = finalStorageVal.Message;
         }
 
-        // ── Stress Tests ──
-        // CPU Stress
-        await AnsiConsole.Progress()
+        Console.CursorVisible = true;
+        AnsiConsole.MarkupLine("\n[purple]Thank you for using Pramaan CLI.[/]\n");
+    }
+
+    static async Task HandleMenuAction(int action)
+    {
+        switch (action)
+        {
+            case 0: // Run Full QC
+                state.StatusMessage = "Starting Full QC Wizard...";
+                await new QCWizard(state).RunAsync();
+                break;
+
+            case 1: // Run Diagnostics Only
+                await RunDiagnosticsOnlyWithLive();
+                break;
+
+            case 2: // Run Stress Tests Only
+                await RunStressTestsOnlyWithLive();
+                break;
+
+            case 3: // View Results Table
+                ShowResultsTable();
+                break;
+
+            case 4: // Settings (placeholder)
+                state.StatusMessage = "Settings: Not yet implemented.";
+                break;
+
+            case 5: // Exit
+                isRunning = false;
+                break;
+        }
+    }
+
+    static async Task RunDiagnosticsOnlyWithLive()
+    {
+        await AnsiConsole.Live(DashboardRenderer.Build(state))
+            .AutoClear(false)
             .StartAsync(async ctx =>
             {
-                var cpuStress = new LinuxCpuStressTest(durationSeconds: 15);
-                var task = ctx.AddTask("[blue]CPU Stress Test[/]", new ProgressTaskSettings { MaxValue = 100 });
-                cpuStress.OnProgress += p => 
+                await RunDiagnosticsOnly(ctx);
+            });
+    }
+
+    static async Task RunStressTestsOnlyWithLive()
+    {
+        await AnsiConsole.Live(DashboardRenderer.Build(state))
+            .AutoClear(false)
+            .StartAsync(async ctx =>
+            {
+                await RunStressTestsOnly(ctx);
+            });
+    }
+
+    static async Task RunDiagnosticsOnly(LiveDisplayContext ctx)
+    {
+        state.StatusMessage = "Running hardware diagnostics...";
+        state.ProgressStorage = 0;
+        ctx.UpdateTarget(DashboardRenderer.Build(state));
+        ctx.Refresh();
+
+        var report = state.Report ?? new QCReport();
+
+        try
+        {
+            void Refresh(string msg) {
+                state.StatusMessage = msg;
+                ctx.UpdateTarget(DashboardRenderer.Build(state));
+                ctx.Refresh();
+            }
+
+            Refresh("Gathering CPU info...");
+            var cpuDiag = new LinuxCpuDiagnostic();
+            report.CpuDetails = cpuDiag.GetInfo();
+            var cpuVal = cpuDiag.ValidateCpu(report.CpuDetails);
+            report.CpuTest = new TestResult { Tested = true, Passed = cpuVal.IsHealthy, Message = cpuVal.Message };
+            report.CpuTest.Details.Add(report.CpuDetails.Name);
+
+            Refresh("Gathering RAM info...");
+            var ramDiag = new LinuxRamDiagnostic();
+            report.RamDetails = ramDiag.GetInfo();
+            var ramVal = ramDiag.ValidateRam(report.RamDetails);
+            report.RamTest = new TestResult { Tested = true, Passed = ramVal.IsHealthy, Message = ramVal.Message };
+
+            Refresh("Gathering storage info...");
+            var storageDiag = new LinuxStorageDiagnostic();
+            report.StorageDetails = storageDiag.GetInfo();
+            var storVal = storageDiag.ValidateStorage(report.StorageDetails);
+            report.StorageTest = new TestResult { Tested = true, Passed = storVal.IsHealthy, Message = storVal.Message };
+            state.ProgressStorage = 50;
+
+            Refresh("Gathering battery info...");
+            var battDiag = new LinuxBatteryDiagnostic();
+            report.BatteryDetails = battDiag.GetInfo();
+            var batVal = battDiag.ValidateBattery(report.BatteryDetails);
+            report.BatteryTest = new TestResult { Tested = true, Passed = batVal.IsHealthy, Message = batVal.Message };
+
+            Refresh("Gathering device info...");
+            var devDiag = new LinuxDeviceDiagnostic();
+            report.DeviceDetails = devDiag.GetInfo();
+            var wifiOk = report.DeviceDetails.NetworkDevices.Any(n => n.AdapterType == "WiFi" && n.IsConnected);
+            var ethOk = report.DeviceDetails.NetworkDevices.Any(n => n.AdapterType == "Ethernet" && n.IsConnected);
+            report.NetworkTest = new TestResult
+            {
+                Tested = true, Passed = wifiOk || ethOk,
+                Message = (wifiOk || ethOk) ? "Network OK" : "No active connection"
+            };
+
+            // SMART
+            Refresh("Running SMART checks...");
+            var smartSvc = new LinuxSmartTestService();
+            if (smartSvc.IsAvailable)
+            {
+                var hc = smartSvc.QuickHealthCheck();
+                foreach (var dev in hc.Devices)
                 {
-                    task.Value = p.PercentComplete;
-                    task.Description = $"[blue]CPU Stress Test[/] - {p.Status}";
-                };
-                
-                var cpuResult = await cpuStress.RunAsync();
+                    report.StorageTest.Details.Add($"[SMART] {dev.Model}: {dev.HealthStatus} ({dev.HealthScore}%)");
+                    // Best-effort: sync health% into StorageDetails for display
+                    var sd = report.StorageDetails?.Devices.FirstOrDefault(d =>
+                        d.Model.Contains(dev.Model, StringComparison.OrdinalIgnoreCase) ||
+                        dev.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
+                    if (sd != null)
+                    {
+                        sd.HealthPercent = dev.HealthScore;
+                        sd.Temperature = dev.Temperature;
+                        sd.PowerOnHours = dev.PowerOnHours;
+                    }
+                }
+
+                // Authoritative pass/fail comes directly from SMART — bypasses any prior
+                // 'Inconclusive' result that fired before SMART data was available.
+                // Also clear IsInconclusive so the GradingService doesn't hard-cap to 35.
+                if (report.StorageDetails != null)
+                {
+                    report.StorageDetails.IsInconclusive = false;
+                    report.StorageDetails.InconclusiveReason = null;
+                }
+                report.StorageTest.Passed = hc.OverallHealthy;
+                report.StorageTest.Message = hc.OverallHealthy
+                    ? $"{hc.Devices.Count} drive(s) healthy (SMART)"
+                    : $"SMART health warning on {hc.Devices.Count(d => !d.HealthPassed)} drive(s)";
+            }
+
+            state.ProgressStorage = 100;
+            state.UpdateFromReport(report);
+            state.StatusMessage = "Diagnostics complete!";
+        }
+        catch (Exception ex)
+        {
+            state.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        ctx.UpdateTarget(DashboardRenderer.Build(state));
+        ctx.Refresh();
+    }
+
+    static async Task RunStressTestsOnly(LiveDisplayContext ctx)
+    {
+        state.StatusMessage = "Running stress tests...";
+        state.ProgressCpu = 0; state.ProgressRam = 0; state.ProgressGpu = 0;
+        ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh();
+
+        var report = state.Report ?? new QCReport();
+
+        void Refresh(string msg) {
+            state.StatusMessage = msg;
+            ctx.UpdateTarget(DashboardRenderer.Build(state));
+            ctx.Refresh();
+        }
+
+        try
+        {
+            var cpuStress = new LinuxCpuStressTest(durationSeconds: 15);
+            cpuStress.OnProgress += p => { state.ProgressCpu = p.PercentComplete; Refresh($"CPU Stress: {p.Status}"); };
+            var cpuResult = await cpuStress.RunAsync();
+            if (!report.CpuTest.Tested)
+                report.CpuTest = new TestResult { Tested = true, Passed = cpuResult.Passed, Message = cpuResult.Message };
+            else
                 report.CpuTest.Passed &= cpuResult.Passed;
-                report.CpuTest.Details.Add(cpuResult.Message);
-            });
+            report.CpuTest.Details.Add(cpuResult.Message);
+            state.ProgressCpu = 100; Refresh("CPU stress complete.");
 
-        // RAM Stress
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
-                var ramStress = new LinuxRamStressTest(testSizeMB: 512, iterations: 2);
-                var task = ctx.AddTask("[blue]RAM Stress Test[/]", new ProgressTaskSettings { MaxValue = 100 });
-                ramStress.OnProgress += p => 
-                {
-                    task.Value = p.PercentComplete;
-                    task.Description = $"[blue]RAM Stress Test[/] - Iteration {p.CurrentIteration}/{p.TotalIterations} ({p.PercentComplete}%)";
-                };
-                
-                var ramResult = await ramStress.RunAsync();
+            var ramStress = new LinuxRamStressTest(testSizeMB: 512, iterations: 2);
+            ramStress.OnProgress += p => { state.ProgressRam = p.PercentComplete; Refresh($"RAM Stress: {p.CurrentIteration}/{p.TotalIterations}"); };
+            var ramResult = await ramStress.RunAsync();
+            if (!report.RamTest.Tested)
+                report.RamTest = new TestResult { Tested = true, Passed = ramResult.Passed, Message = ramResult.Message };
+            else
                 report.RamTest.Passed &= ramResult.Passed;
-                report.RamTest.Details.Add(ramResult.Message);
-            });
+            report.RamTest.Details.Add(ramResult.Message);
+            state.ProgressRam = 100; Refresh("RAM stress complete.");
 
-        // GPU Stress
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
-                var gpuStress = new LinuxGpuStressTest(durationSeconds: 15);
-                var task = ctx.AddTask("[blue]GPU Stress Test[/]", new ProgressTaskSettings { MaxValue = 100 });
-                gpuStress.OnProgress += p => 
-                {
-                    task.Value = p.PercentComplete;
-                    task.Description = $"[blue]GPU Stress Test[/] - {p.Status}";
-                };
-                
-                var gpuResult = await gpuStress.RunAsync();
-                report.GpuTest = new TestResult 
-                { 
-                    Tested = true, 
-                    Passed = gpuResult.Passed, 
-                    Message = gpuResult.Message 
-                };
-                report.GpuTest.Details.Add($"GPU: {gpuResult.GpuName}");
-                if (gpuResult.MaxTemp > 0)
-                    report.GpuTest.Details.Add($"Max Temperature: {gpuResult.MaxTemp:F1}°C");
-            });
+            var gpuStress = new LinuxGpuStressTest(durationSeconds: 15);
+            gpuStress.OnProgress += p => { state.ProgressGpu = p.PercentComplete; Refresh($"GPU Stress: {p.Status}"); };
+            var gpuResult = await gpuStress.RunAsync();
+            report.GpuTest = new TestResult { Tested = true, Passed = gpuResult.Passed, Message = gpuResult.Message };
+            report.GpuTest.Details.Add($"GPU: {gpuResult.GpuName}");
+            if (gpuResult.MaxTemp > 0) report.GpuTest.Details.Add($"Max Temp: {gpuResult.MaxTemp:F1}°C");
+            state.ProgressGpu = 100;
 
-        // ── Phase 4: Interactive Manual Tests ──
-        AnsiConsole.MarkupLine("\n[bold cyan]── Interactive Component Tests ──[/]");
-        AnsiConsole.MarkupLine("[grey]Please answer Y/N for the following components based on your physical testing.[/]\n");
-
-        bool CheckManual(string component, string details)
+            state.UpdateFromReport(report);
+            state.StatusMessage = "Stress tests complete!";
+        }
+        catch (Exception ex)
         {
-            return AnsiConsole.Confirm($"Did the [bold white]{component}[/] work correctly? [grey]({details})[/]");
+            state.StatusMessage = $"Stress test error: {ex.Message}";
         }
 
-        report.KeyboardTest = new TestResult { Tested = true, Passed = CheckManual("Keyboard", "All keys register correctly"), Message = "Manual verification" };
-        report.TrackpadTest = new TestResult { Tested = true, Passed = CheckManual("Trackpad", "Mouse movement and clicks work"), Message = "Manual verification" };
-        report.UsbTest = new TestResult { Tested = true, Passed = CheckManual("USB Ports", $"Tested physical ports"), Message = "Manual verification" };
-        report.AudioVideoTest = new TestResult { Tested = true, Passed = CheckManual("Audio/Video", "Speakers and webcam work"), Message = "Manual verification" };
-        report.AudioJackTest = new TestResult { Tested = true, Passed = CheckManual("Audio Jack", "Headphone jack outputs sound"), Message = "Manual verification" };
+        ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh();
+    }
 
-        // ── Phase 5 & 6: Grading & Submission ──
-        var submitSuccess = false;
-        string? errorMessage = null;
-
-        await AnsiConsole.Status()
-            .StartAsync("Scoring and Submitting...", async ctx =>
-            {
-                ctx.Spinner(Spinner.Known.Dots);
-                ctx.SpinnerStyle(Style.Parse("green"));
-
-                ctx.Status("Grading Report...");
-                var gradingService = new GradingService();
-                
-                // Get active config from PRAMAAN cloud for the engine
-                var configService = new PramaanConfigService();
-                var liveConfig = await configService.GetActiveConfigAsync();
-                
-                gradingService.GradeReport(report, liveConfig);
-
-                ctx.Status("Submitting to Cloud...");
-                var submitService = new QCSubmissionService();
-                var submitResult = await submitService.SubmitReportAsync(report, null, activeToken);
-
-                submitSuccess = submitResult.Success;
-                if (!submitSuccess)
-                {
-                    errorMessage = submitResult.ErrorMessage;
-                }
-            });
-
-        // ── Output Summary ──
-        AnsiConsole.MarkupLine("\n[bold cyan]── Final Results ──[/]");
-        var table = new Table();
-        table.AddColumn("Component");
-        table.AddColumn("Status");
-        table.AddColumn("Details");
-        
-        table.AddRow("System", report.SystemInfo?.ComputerName ?? "Unknown", report.SystemInfo?.SerialNumber ?? "");
-        table.AddRow("CPU", report.CpuTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.CpuTest.Message);
-        table.AddRow("RAM", report.RamTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.RamTest.Message);
-        table.AddRow("Storage", report.StorageTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.StorageTest.Message);
-        table.AddRow("Battery", report.BatteryTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.BatteryTest.Message);
-        table.AddRow("GPU", report.GpuTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.GpuTest.Message);
-        table.AddRow("Network", report.NetworkTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", report.NetworkTest.Message);
-        table.AddRow("Keyboard", report.KeyboardTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", "Manual Check");
-        table.AddRow("Trackpad", report.TrackpadTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", "Manual Check");
-        table.AddRow("USB", report.UsbTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", "Manual Check");
-        table.AddRow("Audio/Video", report.AudioVideoTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", "Manual Check");
-        table.AddRow("Audio Jack", report.AudioJackTest.Passed ? "[green]PASS[/]" : "[red]FAIL[/]", "Manual Check");
-        
-        AnsiConsole.Write(table);
-
-        // PRAMAAN Scores Table
-        if (report.PramaanResult != null)
+    static void ShowResultsTable()
+    {
+        var report = state.Report;
+        if (report == null)
         {
-            var pTable = new Table();
-            pTable.AddColumn("PRAMAAN Category");
-            pTable.AddColumn("Score");
-            foreach (var cat in report.PramaanResult.CategoryScores)
-            {
-                string label = cat.Key.Replace("_", " ").ToUpper();
-                if (label == "THERMAL") label = "THERMAL (CPU/GPU)";
-                pTable.AddRow(label, cat.Value.ToString() + "/100");
-            }
-            AnsiConsole.Write(pTable);
+            state.StatusMessage = "No scan data yet. Run Diagnostics or Full QC first.";
+            return;
         }
 
-        AnsiConsole.MarkupLine($"\n[bold white]Overall Health Score:[/] [bold yellow]{report.PramaanResult?.OverallHealthScore ?? report.OverallScore}[/] (Grade: [bold green]{report.PramaanResult?.GradeLabel ?? report.OverallGrade}[/])");
-        
-        if (submitSuccess)
+        AnsiConsole.Clear();
+
+        var t = new Table().Border(TableBorder.Rounded).BorderColor(Color.Purple).Expand();
+        t.AddColumn(new TableColumn("[purple]Component[/]"));
+        t.AddColumn(new TableColumn("[purple]Test[/]"));
+        t.AddColumn(new TableColumn("[purple]Result[/]"));
+        t.AddColumn(new TableColumn("[purple]Score[/]").RightAligned());
+        t.AddColumn(new TableColumn("[purple]Details[/]"));
+
+        void AddRow(string comp, string test, TestResult r)
         {
-            var apiConfig = new ApiConfiguration();
-            var domain = apiConfig.ApiUrl.Replace("/api", "");
-            if (domain.EndsWith("/")) domain = domain.TrimEnd('/');
+            if (!r.Tested) return;
+            var status = r.Passed ? "[green]✓ PASS[/]" : "[red]✗ FAIL[/]";
+            var scoreStr = $"[white]{r.Score}[/][grey]/100[/]";
             
-            var reportUrl = $"{domain}/reports/{report.HealthId}";
+            var detailsList = new List<string>();
+            if (!string.IsNullOrEmpty(r.Message)) detailsList.Add(r.Message);
+            detailsList.AddRange(r.Details);
+            
+            var details = string.Join("\n", detailsList.Distinct());
+            
+            t.AddRow(
+                new Markup($"[white]{comp}[/]"), 
+                new Markup($"[grey]{test}[/]"), 
+                new Markup(status), 
+                new Markup(scoreStr), 
+                new Markup($"[grey]{details.EscapeMarkup()}[/]")
+            );
+        }
 
-            AnsiConsole.MarkupLine($"\n[bold cyan]Cloud Report Link:[/] [link={reportUrl}]{reportUrl}[/]\n");
-        }
-        else
-        {
-            AnsiConsole.MarkupLine($"\n[bold red]Cloud Submission Failed:[/] {errorMessage}\n");
-        }
+        AddRow("CPU", "Detection + Stress", report.CpuTest);
+        AddRow("RAM", "Detection + Stress", report.RamTest);
+        AddRow("Storage", "SMART + Self-Test", report.StorageTest);
+        AddRow("Battery", "Health Check", report.BatteryTest);
+        AddRow("GPU", "Stress Test", report.GpuTest);
+        AddRow("Network", "Connectivity", report.NetworkTest);
+        AddRow("Keyboard", "Manual Test", report.KeyboardTest);
+        AddRow("Trackpad", "Manual Test", report.TrackpadTest);
+        AddRow("USB Ports", "Manual Test", report.UsbTest);
+        AddRow("Audio/Video", "Manual Test", report.AudioVideoTest);
+        AddRow("Audio Jack", "Manual Test", report.AudioJackTest);
+
+        AnsiConsole.Write(t);
+
+        var score = report.PramaanResult?.OverallHealthScore ?? report.OverallScore;
+        var grade = report.PramaanResult?.GradeBand ?? report.OverallGrade;
+        AnsiConsole.MarkupLine($"\n[bold white]Overall Score:[/] [bold yellow]{score}/100[/]  Grade: [bold green]{grade}[/]");
+        AnsiConsole.MarkupLine("\n[grey]Press any key to return to dashboard...[/]");
+        Console.ReadKey(true);
+        AnsiConsole.Clear();
     }
 }

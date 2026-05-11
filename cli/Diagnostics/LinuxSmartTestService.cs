@@ -163,41 +163,116 @@ public class LinuxSmartTestService : ISmartTestService
             IsRunning       = true
         });
 
-        // Poll every 5 seconds for up to 10 minutes
-        const int maxPolls = 120;
+        // Poll every 5 seconds for up to 3 minutes (NVMe short tests finish in <2 min)
+        const int maxPolls = 36;
         for (int i = 0; i < maxPolls; i++)
         {
             await Task.Delay(5000);
 
             var logOut = LinuxCommandRunner.TryRun(_smartctlPath, $"-l selftest {devicePath}");
 
-            // Parse first data row in self-test log
-            // Format: "# 1  Short offline  Completed without error  00%  12345  -"
-            var logMatch = Regex.Match(logOut,
+            int pct = 0;
+            string status = "Testing...";
+            bool matchFound = false;
+
+            // ── ATA format: "# 1  Short offline  Completed without error  00%  12345  -"
+            // ATA entries use "# N" prefix and have a "XX%" remaining column.
+            var ataMatch = Regex.Match(logOut,
                 @"#\s*1\s+\S+\s+\S+\s+(\S.*?)\s{2,}(\d+)%",
                 RegexOptions.Multiline);
 
-            int pct = 0;
-            string status = "Testing...";
-
-            if (logMatch.Success)
+            if (ataMatch.Success)
             {
-                status = logMatch.Groups[1].Value.Trim();
-                int.TryParse(logMatch.Groups[2].Value, out pct);
+                status = ataMatch.Groups[1].Value.Trim();
+                int.TryParse(ataMatch.Groups[2].Value, out pct);
+                matchFound = true;
+            }
+            else
+            {
+                // ── NVMe format (entries are 0-indexed, no "#" prefix):
+                //   Self-test status: Short self-test in progress (14% completed)   ← real-time
+                //    0   Short             Completed without error   8043   -   -   -   -    -  ← log entry
+                //
+                // IMPORTANT: while a new test is running the OLD completed entry (index 0)
+                // is still in the log. Check the status line FIRST so we don't falsely
+                // declare completion from the previous test's entry.
+
+                var nvmeInProgress = Regex.Match(logOut,
+                    @"Self-test status:.*in progress.*\((\d+)%\s+completed\)",
+                    RegexOptions.IgnoreCase);
+
+                if (nvmeInProgress.Success)
+                {
+                    // Test is still running — report real percentage and keep polling
+                    int.TryParse(nvmeInProgress.Groups[1].Value, out int nvmePct);
+                    progress?.Report(new SmartTestProgress
+                    {
+                        DevicePath      = devicePath,
+                        Status          = "Self-test in progress...",
+                        PercentComplete = nvmePct,
+                        IsRunning       = true
+                    });
+                    continue;
+                }
+
+                // No in-progress line → check entry 0 for the completed result
+                var nvmeMatch = Regex.Match(logOut,
+                    @"^\s*0\s+Short\s+(.+?)\s{2,}",
+                    RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+                if (nvmeMatch.Success)
+                {
+                    status = nvmeMatch.Groups[1].Value.Trim();
+                    pct = 0; // NVMe log entries don't have a % column
+                    matchFound = true;
+                }
             }
 
-            bool running = pct > 0 || status.Contains("In progress", StringComparison.OrdinalIgnoreCase);
+            // Nothing matched yet — test may not have started logging
+            if (!matchFound)
+            {
+                if (i < 4)
+                {
+                    progress?.Report(new SmartTestProgress
+                    {
+                        DevicePath      = devicePath,
+                        Status          = "Waiting for test to begin...",
+                        PercentComplete = 0,
+                        IsRunning       = true
+                    });
+                    continue;
+                }
+
+                // Check if the log says nothing has ever run
+                bool noEntries = logOut.Contains("No self-tests have been logged",
+                    StringComparison.OrdinalIgnoreCase);
+                if (noEntries)
+                {
+                    result.Success = true;
+                    result.Passed  = false;
+                    result.Message = "Self-test could not be verified (no log entry)";
+                    result.EndTime = DateTime.Now;
+                    return result;
+                }
+                continue;
+            }
+
+            bool completed = status.Contains("Completed", StringComparison.OrdinalIgnoreCase) ||
+                             status.Contains("without error", StringComparison.OrdinalIgnoreCase);
+            bool failed    = status.Contains("Failed", StringComparison.OrdinalIgnoreCase) ||
+                             (status.Contains("error", StringComparison.OrdinalIgnoreCase) &&
+                              !status.Contains("without error", StringComparison.OrdinalIgnoreCase));
+            bool inProgress = pct > 0 || status.Contains("progress", StringComparison.OrdinalIgnoreCase);
 
             progress?.Report(new SmartTestProgress
             {
                 DevicePath      = devicePath,
                 Status          = status,
-                PercentComplete = 100 - pct, // smartctl shows "percent remaining"
-                IsRunning       = running
+                PercentComplete = pct > 0 ? 100 - pct : (completed ? 100 : 50),
+                IsRunning       = inProgress
             });
 
-            if (!running || status.Contains("Completed", StringComparison.OrdinalIgnoreCase) ||
-                status.Contains("Failed", StringComparison.OrdinalIgnoreCase))
+            if (completed || failed || (!inProgress && matchFound))
             {
                 bool passed = status.Contains("without error", StringComparison.OrdinalIgnoreCase);
                 result.Success  = true;
