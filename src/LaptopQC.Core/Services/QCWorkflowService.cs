@@ -495,9 +495,7 @@ public class QCWorkflowService
         // Record test completion timestamp for the reminder system
         try
         {
-            var appDataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Pramaan");
+            var appDataDir = LaptopQC.Core.Models.AppPaths.AppDataDir;
             Directory.CreateDirectory(appDataDir);
             File.WriteAllText(
                 Path.Combine(appDataDir, "last_qc_test.txt"),

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text.Json;
 using LaptopQC.Core.Models;
 using LaptopQC.Hardware.Models;
 
@@ -40,6 +42,44 @@ public class DashboardState
     public string FooterMessage { get; set; } = "";
 
     public List<RecentReportEntry> RecentReports { get; set; } = new();
+
+    private string GetRecentReportsPath()
+    {
+        var appDataDir = LaptopQC.Core.Models.AppPaths.AppDataDir;
+        Directory.CreateDirectory(appDataDir);
+        return Path.Combine(appDataDir, "recent_reports.json");
+    }
+
+    public void LoadRecentReports()
+    {
+        try
+        {
+            var path = GetRecentReportsPath();
+            if (File.Exists(path))
+            {
+                var json = File.ReadAllText(path);
+                var loaded = JsonSerializer.Deserialize<List<RecentReportEntry>>(json);
+                if (loaded != null)
+                {
+                    RecentReports = loaded;
+                }
+            }
+        }
+        catch { /* Ignore errors on load */ }
+    }
+
+    public void SaveRecentReports()
+    {
+        try
+        {
+            var path = GetRecentReportsPath();
+            // Keep the last 10 reports
+            var toSave = RecentReports.Take(10).ToList();
+            var json = JsonSerializer.Serialize(toSave);
+            File.WriteAllText(path, json);
+        }
+        catch { /* Ignore errors on save */ }
+    }
 
     public void UpdateFromReport(QCReport r)
     {

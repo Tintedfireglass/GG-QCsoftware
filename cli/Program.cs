@@ -15,6 +15,11 @@ class Program
     static DashboardState state = new();
     static bool isRunning = true;
 
+    static Program()
+    {
+        state.LoadRecentReports();
+    }
+
     static async Task Main(string[] args)
     {
         Console.CursorVisible = false;

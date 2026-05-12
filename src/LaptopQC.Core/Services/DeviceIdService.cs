@@ -13,8 +13,7 @@ public class DeviceIdService
             "Pramaan",
             "device_registry.json"),
         Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Pramaan",
+            LaptopQC.Core.Models.AppPaths.AppDataDir,
             "device_registry.json")
     };
 

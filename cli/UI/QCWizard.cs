@@ -190,6 +190,7 @@ public class QCWizard
                 DateTime.Now.ToString("MMM d, HH:mm"),
                 $"{report.PramaanResult?.OverallHealthScore ?? report.OverallScore}/100",
                 "Verified"));
+            _state.SaveRecentReports();
         }
         else
         {

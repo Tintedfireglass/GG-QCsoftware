@@ -41,10 +41,7 @@ public class TrialService
     {
         _apiUrl = apiUrl.TrimEnd('/');
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        _trialFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Pramaan",
-            "trial_session.json");
+        _trialFilePath = Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "trial_session.json");
 
         LoadLocalSession();
     }

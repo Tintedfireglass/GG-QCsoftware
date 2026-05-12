@@ -30,10 +30,7 @@ public class AuthService
         {
             Timeout = TimeSpan.FromSeconds(15)
         };
-        _sessionFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Pramaan",
-            "auth_session.json");
+        _sessionFilePath = Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "auth_session.json");
 
         LoadSession();
     }
