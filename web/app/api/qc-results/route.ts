@@ -479,7 +479,7 @@ export async function POST(request: NextRequest) {
                     body.batteryDetails ? JSON.stringify(body.batteryDetails) : null,
                     body.deviceDetails ? JSON.stringify(body.deviceDetails) : null,
                     submissionIp,
-                    body.technicianId || null,
+                    body.technicianId || authUser?.id || null,
                     body.pramaanScore ?? null,
                     body.healthId || null,
                     body.pramaanHash || null,

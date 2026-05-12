@@ -242,10 +242,13 @@ public class QCWorkflowService
                     Report.StorageTest.Details.Add($"[SMART] {device.Model}: {device.HealthStatus} ({device.HealthScore}%)");
                     
                     // Sync SMART data to StorageDetails for the report
-                    var storageDevice = Report.StorageDetails?.Devices.FirstOrDefault(d => 
-                        d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) || 
+                    var storageDevice = Report.StorageDetails?.Devices.FirstOrDefault(d =>
+                        // Primary match: device path is always consistent on Linux
+                        d.DeviceId.Equals(device.DevicePath, StringComparison.OrdinalIgnoreCase) ||
+                        // Fallback: model-name substring
+                        d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) ||
                         device.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
-                        
+
                     if (storageDevice != null)
                     {
                         storageDevice.HealthPercent = device.HealthScore;
@@ -253,6 +256,12 @@ public class QCWorkflowService
                             storageDevice.Temperature = device.Temperature.Value;
                         if (device.PowerOnHours.HasValue)
                             storageDevice.PowerOnHours = device.PowerOnHours.Value;
+                        // Overwrite placeholder name (e.g. "NVME0N1") with the real vendor model
+                        if (!string.IsNullOrWhiteSpace(device.Model) && !device.Model.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase))
+                            storageDevice.Model = device.Model;
+                        // Populate serial if lsblk didn't provide one
+                        if (string.IsNullOrWhiteSpace(storageDevice.SerialNumber) && !string.IsNullOrWhiteSpace(device.SerialNumber))
+                            storageDevice.SerialNumber = device.SerialNumber;
                     }
                     
                     // Run short self-test if healthy enough

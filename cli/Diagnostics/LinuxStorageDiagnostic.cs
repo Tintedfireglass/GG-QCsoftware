@@ -14,7 +14,7 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
         try
         {
             // Use lsblk -J to enumerate block devices (JSON output)
-            var lsblkJson = LinuxCommandRunner.TryRun("lsblk", "-J -b -o NAME,SIZE,TYPE,MODEL,ROTA,MOUNTPOINT");
+            var lsblkJson = LinuxCommandRunner.TryRun("lsblk", "-J -b -o NAME,SIZE,TYPE,MODEL,ROTA,MOUNTPOINT,SERIAL");
             if (!string.IsNullOrEmpty(lsblkJson))
             {
                 using var doc = JsonDocument.Parse(lsblkJson);
@@ -31,6 +31,7 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                         var model = dev.TryGetProperty("model", out var m) ? m.GetString()?.Trim() ?? "" : "";
                         var sizeStr = dev.TryGetProperty("size", out var s) ? s.GetString() ?? "0" : "0";
                         var rotaStr = dev.TryGetProperty("rota", out var r) ? r.GetString() ?? "1" : "1";
+                        var serial = dev.TryGetProperty("serial", out var ser) ? ser.GetString()?.Trim() ?? "" : "";
 
                         long.TryParse(sizeStr, out long sizeBytes);
                         bool.TryParse(rotaStr == "1" ? "true" : "false", out bool isHdd);
@@ -38,7 +39,10 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                         var device = new StorageDevice
                         {
                             DeviceId = $"/dev/{name}",
+                            // Keep the raw device name only as a last resort — smartctl will overwrite
+                            // with the real vendor model string during SMART enrichment.
                             Model = string.IsNullOrWhiteSpace(model) ? name.ToUpperInvariant() : model,
+                            SerialNumber = serial,
                             SizeGB = sizeBytes / (1024.0 * 1024 * 1024),
                             IsSsd = !isHdd
                         };
@@ -84,6 +88,8 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                 var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 4) continue;
                 var name = parts[3];
+                // Skip virtual devices
+                if (name.StartsWith("loop") || name.StartsWith("ram") || name.StartsWith("zram")) continue;
                 // Only root disks (sda, nvme0n1, vda, etc. — no partition numbers)
                 if (Regex.IsMatch(name, @"^\d") || 
                     (name.StartsWith("sd") && Regex.IsMatch(name, @"sd[a-z]\d")) ||
@@ -94,6 +100,7 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
                     info.Devices.Add(new StorageDevice
                     {
                         DeviceId = $"/dev/{name}",
+                        // Model will be enriched by smartctl — use device name as placeholder
                         Model = name.ToUpperInvariant(),
                         SizeGB = kb / (1024.0 * 1024),
                         IsSsd = !name.StartsWith("hd")

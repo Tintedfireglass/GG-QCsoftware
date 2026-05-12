@@ -55,6 +55,7 @@ export async function GET(
         qr.system_manufacturer,
         qr.system_model,
         qr.system_serial,
+        qr.mac_address,
         qr.cpu_model,
         qr.ram_total,
         qr.system_info_json,
