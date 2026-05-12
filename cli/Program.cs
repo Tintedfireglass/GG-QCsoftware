@@ -218,15 +218,24 @@ class Program
                 {
                     report.StorageTest.Details.Add($"[SMART] {dev.Model}: {dev.HealthStatus} ({dev.HealthScore}%)");
                     // Best-effort: sync health% into StorageDetails for display
-                    var sd = report.StorageDetails?.Devices.FirstOrDefault(d =>
-                        d.Model.Contains(dev.Model, StringComparison.OrdinalIgnoreCase) ||
-                        dev.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
-                    if (sd != null)
-                    {
-                        sd.HealthPercent = dev.HealthScore;
-                        sd.Temperature = dev.Temperature;
-                        sd.PowerOnHours = dev.PowerOnHours;
-                    }
+                var sd = report.StorageDetails?.Devices.FirstOrDefault(d =>
+                    // Primary match: device path is always consistent on Linux
+                    d.DeviceId.Equals(dev.DevicePath, StringComparison.OrdinalIgnoreCase) ||
+                    // Fallback: model-name substring (for cases where DeviceId wasn't populated)
+                    d.Model.Contains(dev.Model, StringComparison.OrdinalIgnoreCase) ||
+                    dev.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
+                if (sd != null)
+                {
+                    sd.HealthPercent = dev.HealthScore;
+                    sd.Temperature = dev.Temperature;
+                    sd.PowerOnHours = dev.PowerOnHours;
+                    // Overwrite placeholder name (e.g. "NVME0N1") with the real vendor model
+                    if (!string.IsNullOrWhiteSpace(dev.Model) && !dev.Model.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase))
+                        sd.Model = dev.Model;
+                    // Populate serial if lsblk didn't provide one
+                    if (string.IsNullOrWhiteSpace(sd.SerialNumber) && !string.IsNullOrWhiteSpace(dev.SerialNumber))
+                        sd.SerialNumber = dev.SerialNumber;
+                }
                 }
 
                 // Authoritative pass/fail comes directly from SMART — bypasses any prior

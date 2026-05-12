@@ -175,7 +175,7 @@ public class QCWizard
         gradingService.GradeReport(report, liveConfig);
 
         var submitService = new QCSubmissionService();
-        var submitResult = await submitService.SubmitReportAsync(report, null, activeToken);
+        var submitResult = await submitService.SubmitReportAsync(report, authService.GetTechnicianId(), activeToken);
 
         _state.UpdateFromReport(report);
 
@@ -183,7 +183,7 @@ public class QCWizard
         {
             var apiConfig = new ApiConfiguration();
             var domain = apiConfig.ApiUrl.Replace("/api", "").TrimEnd('/');
-            var url = $"{domain}/reports/{report.HealthId}";
+            var url = $"{domain}/verify/{report.HealthId}";
             _state.FooterMessage = $"✓ Submitted! Report: {url}";
             _state.RecentReports.Insert(0, new RecentReportEntry(
                 report.HealthId[..8].ToUpper(),
@@ -288,7 +288,24 @@ public class QCWizard
                 // Single-drive fallback: if no match found but there is exactly one storage device, use it
                 sd ??= (report.StorageDetails?.Devices.Count == 1 && hc.Devices.Count == 1)
                     ? report.StorageDetails.Devices[0] : null;
-                if (sd != null) { sd.HealthPercent = dev.HealthScore; sd.Temperature = dev.Temperature; sd.PowerOnHours = dev.PowerOnHours; }
+                if (sd != null) 
+                { 
+                    sd.HealthPercent = dev.HealthScore; 
+                    sd.Temperature = dev.Temperature; 
+                    sd.PowerOnHours = dev.PowerOnHours; 
+                    
+                    // Overwrite placeholder name (e.g. "NVME0N1") with the real vendor model
+                    if (!string.IsNullOrWhiteSpace(dev.Model) && !dev.Model.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sd.Model = dev.Model;
+                    }
+                    
+                    // Populate serial if lsblk didn't provide one
+                    if (string.IsNullOrWhiteSpace(sd.SerialNumber) && !string.IsNullOrWhiteSpace(dev.SerialNumber))
+                    {
+                        sd.SerialNumber = dev.SerialNumber;
+                    }
+                }
 
                 if (dev.HealthPassed)
                 {
