@@ -4,16 +4,16 @@ using System.Text;
 namespace LaptopQC.Core.Services;
 
 /// <summary>
-/// Registers/manages the Windows Scheduled Task for periodic heartbeats.
-/// The task runs the main app with --heartbeat to check in with the server and refresh last_seen.
-/// - Runs every 4 hours.
-/// - Uses XML-based registration so StartWhenAvailable=true is supported
-///   (catches up if the machine was off at the trigger time).
-/// - Runs at highest available privilege level (required because app.manifest demands admin).
+/// Registers/manages the Windows Scheduled Task that launches Pramaan in background
+/// (system tray mode) automatically on user logon.
+/// - Trigger: ONLOGON for the current user.
+/// - Passes --background flag so the app starts silently with a tray icon and no UI.
+/// - Runs at highest available privilege level.
+/// - StartWhenAvailable=true so it catches up if logon happened while offline.
 /// </summary>
-public static class HeartbeatTaskService
+public static class AutostartTaskService
 {
-    private const string TaskName = "PramaanHeartbeat";
+    private const string TaskName = "PramaanAutostart";
 
     public static void EnsureRegistered()
     {
@@ -29,7 +29,7 @@ public static class HeartbeatTaskService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Heartbeat task registration failed: {ex.Message}");
+            Debug.WriteLine($"Autostart task registration failed: {ex.Message}");
         }
     }
 
@@ -73,11 +73,9 @@ public static class HeartbeatTaskService
 
     private static void RegisterTask(string appExePath)
     {
-        // Start time: now + 5 minutes
-        var startBoundary = DateTime.Now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ss");
-        var xmlContent = BuildTaskXml(appExePath, startBoundary);
+        var xmlContent = BuildTaskXml(appExePath);
+        var tempXml = Path.Combine(Path.GetTempPath(), "PramaanAutostart.xml");
 
-        var tempXml = Path.Combine(Path.GetTempPath(), "PramaanHeartbeat.xml");
         try
         {
             File.WriteAllText(tempXml, xmlContent, Encoding.Unicode);
@@ -96,11 +94,11 @@ public static class HeartbeatTaskService
             process?.WaitForExit(15000);
 
             if (process?.ExitCode == 0)
-                Debug.WriteLine($"Heartbeat task registered (every 4 hours): {appExePath}");
+                Debug.WriteLine($"Autostart task registered: {appExePath}");
             else
             {
                 var err = process?.StandardError.ReadToEnd();
-                Debug.WriteLine($"Heartbeat task registration failed (exit {process?.ExitCode}): {err}");
+                Debug.WriteLine($"Autostart task registration failed (exit {process?.ExitCode}): {err}");
             }
         }
         finally
@@ -109,25 +107,21 @@ public static class HeartbeatTaskService
         }
     }
 
-    private static string BuildTaskXml(string exePath, string startBoundary)
+    private static string BuildTaskXml(string exePath)
     {
         var taskCommand = $"\"{exePath}\"";
 
         return $@"<?xml version=""1.0"" encoding=""UTF-16""?>
 <Task version=""1.4"" xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
   <RegistrationInfo>
-    <Description>Pramaan periodic heartbeat — keeps device last_seen timestamp fresh on the server</Description>
+    <Description>Launches Pramaan silently at logon so heartbeat and auto-QC tasks can run on schedule</Description>
     <Author>Pramaan</Author>
   </RegistrationInfo>
   <Triggers>
-    <TimeTrigger>
-      <Repetition>
-        <Interval>PT4H</Interval>
-        <StopAtDurationEnd>false</StopAtDurationEnd>
-      </Repetition>
-      <StartBoundary>{startBoundary}</StartBoundary>
+    <LogonTrigger>
       <Enabled>true</Enabled>
-    </TimeTrigger>
+      <Delay>PT30S</Delay>
+    </LogonTrigger>
   </Triggers>
   <Principals>
     <Principal id=""Author"">
@@ -139,7 +133,7 @@ public static class HeartbeatTaskService
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
     <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
     <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <AllowHardTerminate>true</AllowHardTerminate>
+    <AllowHardTerminate>false</AllowHardTerminate>
     <StartWhenAvailable>true</StartWhenAvailable>
     <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
     <IdleSettings>
@@ -151,13 +145,13 @@ public static class HeartbeatTaskService
     <Hidden>false</Hidden>
     <RunOnlyIfIdle>false</RunOnlyIfIdle>
     <WakeToRun>false</WakeToRun>
-    <ExecutionTimeLimit>PT10M</ExecutionTimeLimit>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
     <Priority>7</Priority>
   </Settings>
   <Actions Context=""Author"">
     <Exec>
       <Command>{taskCommand}</Command>
-      <Arguments>--heartbeat</Arguments>
+      <Arguments>--background</Arguments>
     </Exec>
   </Actions>
 </Task>";
