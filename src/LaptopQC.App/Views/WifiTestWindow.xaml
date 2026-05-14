@@ -40,36 +40,36 @@
                 <!-- Results (hidden until test completes) -->
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed" Margin="0,0,0,16">
                     <!-- WiFi Status -->
-                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" 
+                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="WifiIcon" Text="📡" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="WifiIcon" Text="📡" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="WiFi" FontWeight="SemiBold" Foreground="#374151" FontFamily="Segoe UI" FontSize="13"/>
+                                <TextBlock Text="WiFi" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
                                 <TextBlock x:Name="WifiStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Ethernet Status -->
-                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" 
+                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="EthernetIcon" Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="EthernetIcon" Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="Ethernet" FontWeight="SemiBold" Foreground="#374151" FontFamily="Segoe UI" FontSize="13"/>
+                                <TextBlock Text="Ethernet" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
                                 <TextBlock x:Name="EthernetStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Internet Status -->
-                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" 
+                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="InternetIcon" Text="🌐" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="InternetIcon" Text="🌐" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="Internet" FontWeight="SemiBold" Foreground="#374151" FontFamily="Segoe UI" FontSize="13"/>
+                                <TextBlock Text="Internet" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
                                 <TextBlock x:Name="InternetStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>

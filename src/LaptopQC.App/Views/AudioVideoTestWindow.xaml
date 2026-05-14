@@ -45,23 +45,23 @@
         </Style>
 
         <Style TargetType="Button" x:Key="PassButton" BasedOn="{StaticResource DefaultButton}">
-            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Background" Value="#0B9444"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A3376"/>
+                    <Setter Property="Background" Value="#097736"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="Button" x:Key="FailButton" BasedOn="{StaticResource DefaultButton}">
-            <Setter Property="Background" Value="#ef4444"/>
+            <Setter Property="Background" Value="#FF0000"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#dc2626"/>
+                    <Setter Property="Background" Value="#E60000"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -94,7 +94,7 @@
             <!-- Progress/Step -->
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,16">
                 <TextBlock Text="{Binding CurrentStepName}" 
-                           FontSize="16" FontWeight="SemiBold" Foreground="#0891b2" 
+                           FontSize="16" FontWeight="SemiBold" Foreground="#6C6B6B" 
                            HorizontalAlignment="Center"/>
                 <TextBlock Text="{Binding Instructions}" 
                            FontSize="13" Foreground="#6b7280" 
@@ -123,11 +123,11 @@
                             </StackPanel>
                             
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="✓ Pass" Command="{Binding PassLeftSpeakerCommand}" 
-                                        Style="{StaticResource PassButton}" Width="80" Height="36"
-                                        IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
                                 <Button Content="✗ Fail" Command="{Binding FailLeftSpeakerCommand}" 
                                         Style="{StaticResource FailButton}" Width="80" Height="36"
+                                        IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <Button Content="✓ Pass" Command="{Binding PassLeftSpeakerCommand}" 
+                                        Style="{StaticResource PassButton}" Width="80" Height="36"
                                         IsEnabled="{Binding LeftSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
                                 <TextBlock Text="{Binding LeftSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
                                            FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"
@@ -153,11 +153,11 @@
                             </StackPanel>
                             
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="✓ Pass" Command="{Binding PassRightSpeakerCommand}" 
-                                        Style="{StaticResource PassButton}" Width="80" Height="36"
-                                        IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
                                 <Button Content="✗ Fail" Command="{Binding FailRightSpeakerCommand}" 
                                         Style="{StaticResource FailButton}" Width="80" Height="36"
+                                        IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
+                                <Button Content="✓ Pass" Command="{Binding PassRightSpeakerCommand}" 
+                                        Style="{StaticResource PassButton}" Width="80" Height="36"
                                         IsEnabled="{Binding RightSpeakerTested, Converter={StaticResource InverseBoolConverter}}"/>
                                 <TextBlock Text="{Binding RightSpeakerPassed, Converter={StaticResource BoolToPassFailConverter}}" 
                                            FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"
@@ -190,8 +190,8 @@
                     <TextBlock Text="Did you clearly hear your voice in the playback?" HorizontalAlignment="Center" Margin="0,24,0,12"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="No (Fail)" Command="{Binding FailMicTestCommand}" Style="{StaticResource FailButton}" Width="110" Margin="0,0,10,0"/>
                         <Button Content="Yes (Pass)" Command="{Binding PassMicTestCommand}" Style="{StaticResource PassButton}" Width="110"/>
-                        <Button Content="No (Fail)" Command="{Binding FailMicTestCommand}" Style="{StaticResource FailButton}" Width="110"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -222,8 +222,8 @@
                                HorizontalAlignment="Center" Margin="0,16,0,12"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="No (Fail)" Command="{Binding FailJackTestCommand}" Style="{StaticResource FailButton}" Width="110" Margin="0,0,10,0"/>
                         <Button Content="Yes (Pass)" Command="{Binding PassJackTestCommand}" Style="{StaticResource PassButton}" Width="110"/>
-                        <Button Content="No (Fail)" Command="{Binding FailJackTestCommand}" Style="{StaticResource FailButton}" Width="110"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -236,17 +236,30 @@
                     <TextBlock Text="Did the camera open and show the video feed correctly?" HorizontalAlignment="Center" Margin="0,24,0,12"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="No (Fail)" Command="{Binding FailCameraTestCommand}" Style="{StaticResource FailButton}" Width="110" Margin="0,0,10,0"/>
                         <Button Content="Yes (Pass)" Command="{Binding PassCameraTestCommand}" Style="{StaticResource PassButton}" Width="110"/>
-                        <Button Content="No (Fail)" Command="{Binding FailCameraTestCommand}" Style="{StaticResource FailButton}" Width="110"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Complete -->
                 <StackPanel Visibility="{Binding IsComplete, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock FontSize="72" HorizontalAlignment="Center" Margin="0,10,0,0" FontFamily="Segoe UI Emoji"
+                               Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="❌"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Passed}" Value="True">
+                                        <Setter Property="Text" Value="✅"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Text="{Binding ResultMessage}" 
                                FontSize="18" FontWeight="SemiBold" 
                                Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}}"
-                               HorizontalAlignment="Center" Margin="0,30"/>
+                               HorizontalAlignment="Center" Margin="0,20"/>
                     
                     <Button Content="Close" Click="CloseButton_Click" 
                             Style="{StaticResource DefaultButton}"

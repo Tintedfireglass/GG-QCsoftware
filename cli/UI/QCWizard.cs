@@ -23,7 +23,7 @@ public class QCWizard
 
     public async Task<QCReport?> RunAsync()
     {
-        var report = new QCReport { Timestamp = DateTime.Now };
+        var report = new QCReport { Timestamp = DateTime.Now, AppVersion = "1.0.0L" };
 
         // ── Phase 1: Auth ─────────────────────────────────────────────────
         _state.StatusMessage = "Checking authentication...";

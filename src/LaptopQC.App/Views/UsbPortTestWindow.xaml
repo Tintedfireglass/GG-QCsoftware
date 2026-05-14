@@ -165,7 +165,7 @@
                                                         <Setter Property="Background" Value="#e5e7eb"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding UsbVersion}" Value="USB 3.x">
-                                                                <Setter Property="Background" Value="#0891b2"/>
+                                                                <Setter Property="Background" Value="#2595FF"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding UsbVersion}" Value="USB 2.0">
                                                                 <Setter Property="Background" Value="#6b7280"/>

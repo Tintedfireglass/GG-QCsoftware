@@ -31,7 +31,7 @@ public class BoolToColorConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is bool boolValue)
-            return boolValue ? new SolidColorBrush(Color.FromRgb(0, 217, 255)) : new SolidColorBrush(Color.FromRgb(255, 107, 107));
+            return boolValue ? new SolidColorBrush(Color.FromRgb(11, 148, 68)) : new SolidColorBrush(Color.FromRgb(255, 0, 0));
         return new SolidColorBrush(Color.FromRgb(160, 160, 160));
     }
 
