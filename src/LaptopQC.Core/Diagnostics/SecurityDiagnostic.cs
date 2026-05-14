@@ -1,5 +1,7 @@
 #if WINDOWS
+using Microsoft.Win32;
 using System.Management;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace LaptopQC.Core.Diagnostics;
@@ -101,6 +103,59 @@ public class SecurityDiagnostic
             status.OverallHealth = "Unknown";
 
         return status;
+    }
+
+    public DateTime? GetWindowsLastUpdatedAt()
+    {
+        try
+        {
+            // Best-effort. Some images do not have this value set.
+            const string keyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\Results\Install";
+            var raw = Registry.GetValue(keyPath, "LastSuccessTime", null) as string;
+            if (!string.IsNullOrWhiteSpace(raw) && DateTime.TryParse(raw, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var parsed))
+            {
+                return parsed;
+            }
+        }
+        catch { /* Best-effort only */ }
+
+        try
+        {
+            DateTime? latest = null;
+
+            using var searcher = new ManagementObjectSearcher("SELECT InstalledOn FROM Win32_QuickFixEngineering");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                var installedOn = obj["InstalledOn"]?.ToString();
+                if (string.IsNullOrWhiteSpace(installedOn)) continue;
+
+                if (!TryParseInstalledOn(installedOn, out var dt)) continue;
+
+                if (latest == null || dt > latest.Value)
+                    latest = dt;
+            }
+
+            return latest;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool TryParseInstalledOn(string installedOn, out DateTime parsed)
+    {
+        // Common format: "M/d/yyyy" or "MM/dd/yyyy"
+        if (DateTime.TryParse(installedOn, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out parsed))
+            return true;
+
+        if (DateTime.TryParse(installedOn, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsed))
+            return true;
+
+        if (DateTime.TryParse(installedOn, new CultureInfo("en-US"), DateTimeStyles.AssumeLocal, out parsed))
+            return true;
+
+        return false;
     }
 
     private static int? ToInt(object? value)

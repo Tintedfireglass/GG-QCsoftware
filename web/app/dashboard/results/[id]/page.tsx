@@ -8,7 +8,7 @@ import { ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
-import { formatAppVersion, formatBytes, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 import { isIssue } from "@/lib/issues"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
@@ -343,6 +343,10 @@ export default function ResultDetailPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Version</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{formatWindowsVersion(data.system_info_json?.osVersion, data.system_info_json?.windowsProductName)}</dd>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                    <dt className="font-medium text-slate-500">Windows Last Updated</dt>
+                                    <dd className="sm:col-span-2 text-slate-900 break-words">{formatDbDate(data.system_info_json?.windowsLastUpdatedAt)}</dd>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Windows Activation</dt>

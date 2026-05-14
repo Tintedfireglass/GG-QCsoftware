@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { getQCResults } from "@/lib/api"
+import { getQCResults, getUsers } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,13 +11,15 @@ import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
 import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
 export default function ResultsPage() {
-    const { isSuperAdmin, isAdmin, isUser } = useAuth()
+    const { isSuperAdmin, isAdmin, isUser, canManageUsers } = useAuth()
     const [results, setResults] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const [searchInput, setSearchInput] = useState("")
     const [appliedSearch, setAppliedSearch] = useState("")
+    const [selectedUserId, setSelectedUserId] = useState("")
+    const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string }>>([])
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
@@ -29,10 +31,12 @@ export default function ResultsPage() {
     // Show user/technician column for all roles
     const showTechnicianColumn = true
 
-    async function loadData(pageToLoad = page, searchTerm = appliedSearch) {
+    async function loadData(pageToLoad = page, searchTerm = appliedSearch, userId = selectedUserId) {
         setLoading(true)
         try {
-            const filters = searchTerm ? { search: searchTerm } : {}
+            const filters: Record<string, string> = {}
+            if (searchTerm) filters.search = searchTerm
+            if (userId) filters.userId = userId
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -44,8 +48,25 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-        loadData(page, appliedSearch)
-    }, [page, appliedSearch]) // Reload when page/search changes
+        loadData(page, appliedSearch, selectedUserId)
+    }, [page, appliedSearch, selectedUserId]) // Reload when page/search/user changes
+
+    useEffect(() => {
+        let cancelled = false
+        async function loadUsers() {
+            if (!canManageUsers()) return
+            try {
+                const data = await getUsers(1, 200, { role: "Technician" })
+                if (!cancelled) setUsers(data.users || [])
+            } catch (e) {
+                console.error("Failed to load users for filter:", e)
+            }
+        }
+        loadUsers()
+        return () => {
+            cancelled = true
+        }
+    }, [canManageUsers])
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -84,6 +105,7 @@ export default function ResultsPage() {
             const token = localStorage.getItem("qc_token")
             const params = new URLSearchParams()
             if (appliedSearch) params.append("search", appliedSearch)
+            if (selectedUserId) params.append("userId", selectedUserId)
             params.append("format", format)
             params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
@@ -236,6 +258,24 @@ export default function ResultsPage() {
                                 </div>
                             )}
                         </div>
+                        {canManageUsers() && (
+                            <select
+                                value={selectedUserId}
+                                onChange={(e) => {
+                                    setPage(1)
+                                    setSelectedUserId(e.target.value)
+                                }}
+                                className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
+                                aria-label="Filter by user"
+                            >
+                                <option value="">User: All</option>
+                                {users.map((u) => (
+                                    <option key={u.id} value={String(u.id)}>
+                                        {u.display_name || u.username || `User #${u.id}`}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         <select
                             value={resultSort}
                             onChange={(e) => setResultSort(e.target.value as typeof resultSort)}

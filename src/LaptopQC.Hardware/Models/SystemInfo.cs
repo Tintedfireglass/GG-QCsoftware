@@ -15,6 +15,7 @@ public class SystemInfo
     public string WindowsProductName { get; set; } = string.Empty;
     public string WindowsActivationStatus { get; set; } = string.Empty;
     public bool? IsWindowsActivated { get; set; }
+    public DateTime? WindowsLastUpdatedAt { get; set; }
     public string AntivirusStatus { get; set; } = string.Empty;
     public bool? IsAntivirusHealthy { get; set; }
     public DateTime ScanTimestamp { get; set; } = DateTime.UtcNow;

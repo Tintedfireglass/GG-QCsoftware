@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const machineId = searchParams.get("machineId")
         const refurbishId = searchParams.get("refurbishId")
+        const userIdParam = searchParams.get("userId")
         const overallPass = searchParams.get("overallPass")
         const search = searchParams.get("search")?.trim()
 
@@ -36,6 +37,30 @@ export async function GET(request: NextRequest) {
                 `(qr.technician_id = $${paramCount} OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $${paramCount}))`
             )
             params.push(authUser.id)
+            paramCount++
+        }
+
+        if (userIdParam) {
+            const requestedUserId = parseInt(userIdParam, 10)
+            if (!Number.isFinite(requestedUserId)) {
+                return NextResponse.json(
+                    { error: "Validation Error", message: "Invalid userId" } as ApiError,
+                    { status: 400 }
+                )
+            }
+
+            if (
+                (authUser.role === "Technician" || authUser.role === "Client" || authUser.role === "B2CDevice") &&
+                requestedUserId !== authUser.id
+            ) {
+                return NextResponse.json(
+                    { error: "Authorization Error", message: "You can only filter your own results" } as ApiError,
+                    { status: 403 }
+                )
+            }
+
+            whereClauses.push(`qr.technician_id = $${paramCount}`)
+            params.push(requestedUserId)
             paramCount++
         }
 
@@ -96,4 +121,3 @@ export async function GET(request: NextRequest) {
         )
     }
 }
-
