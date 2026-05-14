@@ -58,6 +58,10 @@ public class TrialService
         string? macAddress = null,
         string? computerName = null)
     {
+        // Track whether a local session already exists before we call the server.
+        // If it doesn't, this is a genuine first-time activation.
+        bool isNew = CurrentTrial == null;
+
         try
         {
             var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/auth/trial", new
@@ -86,6 +90,7 @@ public class TrialService
                     return new TrialResult
                     {
                         Success       = true,
+                        IsNew         = isNew,
                         Token         = result.Token,
                         MachineId     = result.MachineId,
                         TrialEndsAt   = result.TrialEndsAt,
@@ -169,6 +174,8 @@ public class TrialSession
 public class TrialResult
 {
     public bool     Success       { get; set; }
+    /// <summary>True only on genuine first-time activation (no prior local session existed).</summary>
+    public bool     IsNew         { get; set; }
     public string?  Token         { get; set; }
     public int      MachineId     { get; set; }
     public DateTime TrialEndsAt   { get; set; }

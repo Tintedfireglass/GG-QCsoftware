@@ -149,6 +149,12 @@ public partial class LoginWindow : Window
             {
                 _authService.StartTrialSession(
                     email, result.Token, result.MachineId, result.TrialEndsAt);
+
+                // On first-ever trial activation, run an immediate auto QC in the background
+                // so the server receives an initial health report right away.
+                if (result.IsNew)
+                    _ = App.Current.RunAutoBasicQcInBackgroundAsync();
+
                 DialogResult = true;
                 Close();
             }

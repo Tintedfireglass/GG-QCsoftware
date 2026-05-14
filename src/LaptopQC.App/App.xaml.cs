@@ -184,22 +184,35 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Public entry point to kick off an auto basic QC run in the background.
+    /// Called immediately after a fresh trial activation so the server gets
+    /// an initial health report right away.
+    /// </summary>
+    public Task RunAutoBasicQcInBackgroundAsync() => RunAutoBasicQcAsync();
+
     private async Task RunAutoBasicQcAsync()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey))
+            // Allow license-activated users and free trial users; block unactivated installs.
+            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
                 return;
 
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
 
-            var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
-            if (!loginResult.Success)
+            // License-activated: re-validate the key and refresh the token.
+            // Trial users already have a valid token from StartTrialSession — skip re-auth.
+            if (!string.IsNullOrWhiteSpace(AuthService.LicenseKey))
             {
-                AuthService.Logout();
-                return;
+                var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
+                if (!loginResult.Success)
+                {
+                    AuthService.Logout();
+                    return;
+                }
             }
 
             var workflow = Services.GetRequiredService<QCWorkflowService>();
@@ -237,14 +250,24 @@ public partial class App : Application
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey))
+            // Allow license-activated users and free trial users; block unactivated installs.
+            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
                 return;
 
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
 
-            await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
+            if (!string.IsNullOrWhiteSpace(AuthService.LicenseKey))
+            {
+                // License-activated: re-auth with license key (refreshes last_seen on server)
+                await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
+            }
+            else if (AuthService.IsTrialSession)
+            {
+                // Trial: just ping the server to refresh last_seen using the existing token
+                await AuthService.SendTrialHeartbeatAsync(serial, mac, computerName);
+            }
         }
         catch (Exception ex)
         {

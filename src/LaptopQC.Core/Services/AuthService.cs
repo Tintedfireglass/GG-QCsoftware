@@ -275,6 +275,35 @@ public class AuthService
         LastOnlineCheckUtc = DateTime.UtcNow;
         SaveSession();
     }
+
+    /// <summary>
+    /// Refreshes the trial session by re-calling /api/auth/trial with the stored email + machine info.
+    /// This updates last_seen on the machine row — no separate heartbeat endpoint needed.
+    /// </summary>
+    public async Task SendTrialHeartbeatAsync(string machineSerial, string? macAddress = null, string? computerName = null)
+    {
+        var email = CurrentUser?.Username;
+        if (string.IsNullOrWhiteSpace(email))
+            return;
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{_apiUrl}/auth/trial", new
+            {
+                email,
+                machineSerial,
+                macAddress,
+                computerName
+            });
+
+            if (response.IsSuccessStatusCode)
+                LastOnlineCheckUtc = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Trial heartbeat failed: {ex.Message}");
+        }
+    }
 }
 
 internal sealed class AuthSessionRecord
