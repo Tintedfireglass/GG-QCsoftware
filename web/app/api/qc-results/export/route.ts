@@ -473,7 +473,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
         { key: 'tamper',   title: 'Tamper',       width: 46  },
         { key: 'thermal',  title: 'Thermal',      width: 44  },
         { key: 'grade',    title: 'Grade',        width: 38  },
-        { key: 'user',     title: 'User',         width: 80  },
+        { key: 'user',     title: 'Client',       width: 80  },
     ];
     const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
@@ -539,7 +539,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
             entry.isTampered ? 'Tampered' : 'Clean',              // Tamper
             entry.hasThermalIssue ? 'Risk' : 'OK',                // Thermal
             String(values[13] || '-'),                             // Grade
-            String(values[19] || '-'),                             // User
+            String(values[19] || '-'),                             // Client
         ];
 
         let x = margin + 4;
@@ -609,6 +609,7 @@ export async function GET(request: NextRequest) {
 
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search')?.trim();
+        const userIdParam = searchParams.get('userId');
         const format = (searchParams.get('format') || 'xlsx').toLowerCase();
         const timeZone = searchParams.get('timeZone') || 'Asia/Kolkata';
 
@@ -624,6 +625,30 @@ export async function GET(request: NextRequest) {
         } else if (authUser.role === 'Refurbisher' || authUser.role === 'Enterprise' || authUser.role === 'OEM' || authUser.role === 'Insurer' || authUser.role === 'Reseller') {
             whereClauses.push(`(qr.technician_id = $${paramCount} OR qr.technician_id IN (SELECT id FROM users WHERE created_by = $${paramCount}))`);
             params.push(authUser.id);
+            paramCount++;
+        }
+
+        if (userIdParam) {
+            const requestedUserId = parseInt(userIdParam, 10);
+            if (!Number.isFinite(requestedUserId)) {
+                return NextResponse.json(
+                    { error: 'Validation Error', message: 'Invalid userId' } as ApiError,
+                    { status: 400 }
+                );
+            }
+
+            if (
+                (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') &&
+                requestedUserId !== authUser.id
+            ) {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'You can only filter your own results' } as ApiError,
+                    { status: 403 }
+                );
+            }
+
+            whereClauses.push(`qr.technician_id = $${paramCount}`);
+            params.push(requestedUserId);
             paramCount++;
         }
 
@@ -670,6 +695,7 @@ export async function GET(request: NextRequest) {
             'OS Edition',
             'Windows',
             'Version',
+            'Windows Last Updated',
             'Processor',
             'RAM (GB)',
             'Antivirus',
@@ -683,7 +709,7 @@ export async function GET(request: NextRequest) {
             'MAC Address',
             'Manufacturer',
             'Model',
-            'User',
+            'Client',
         ];
 
         const issueMap: Record<IssueKey, Set<string>> = {
@@ -756,6 +782,7 @@ export async function GET(request: NextRequest) {
                 osEdition,
                 activationLabel,
                 winRelease,
+                formatShiftDate((sysInfo.windowsLastUpdatedAt as string | Date | null | undefined) || null, timeZone),
                 compactProcessor,
                 String(ramGb),
                 antivirus,

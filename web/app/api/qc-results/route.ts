@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10), 0);
         const machineId = searchParams.get('machineId');
         const refurbishId = searchParams.get('refurbishId');
+        const userIdParam = searchParams.get('userId');
         const overallPass = searchParams.get('overallPass');
         const search = searchParams.get('search')?.trim();
         const includeTotal = searchParams.get('includeTotal') !== '0' && searchParams.get('includeTotal') !== 'false';
@@ -62,6 +63,32 @@ export async function GET(request: NextRequest) {
         }
 
         const needsMachineJoin = !!machineId || !!search;
+
+        if (userIdParam) {
+            const requestedUserId = parseInt(userIdParam, 10);
+            if (!Number.isFinite(requestedUserId)) {
+                return NextResponse.json(
+                    { error: 'Validation Error', message: 'Invalid userId' } as ApiError,
+                    { status: 400 }
+                );
+            }
+
+            // Prevent technicians/clients/devices from attempting to query other users explicitly.
+            if (
+                (authUser.role === 'Technician' || authUser.role === 'Client' || authUser.role === 'B2CDevice') &&
+                requestedUserId !== authUser.id
+            ) {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'You can only filter your own results' } as ApiError,
+                    { status: 403 }
+                );
+            }
+
+            // Additional scoping; role-based whereClause above still applies for team-based roles.
+            baseWhereClauses.push(`qr.technician_id = $${paramCount}`);
+            params.push(requestedUserId);
+            paramCount++;
+        }
 
         if (refurbishId) {
             baseWhereClauses.push(`qr.refurbish_id = $${paramCount}`);

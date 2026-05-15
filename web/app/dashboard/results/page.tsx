@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { getQCResults } from "@/lib/api"
+import { getQCResults, getUsers } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,16 +11,21 @@ import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
 import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
 export default function ResultsPage() {
-    const { isSuperAdmin, isAdmin, isUser } = useAuth()
+    const { isSuperAdmin, isAdmin, isUser, canManageUsers } = useAuth()
     const [results, setResults] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const [searchInput, setSearchInput] = useState("")
     const [appliedSearch, setAppliedSearch] = useState("")
+    const [selectedUserId, setSelectedUserId] = useState("")
+    const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string }>>([])
+    const [isClientFilterOpen, setIsClientFilterOpen] = useState(false)
+    const [clientFilterSearch, setClientFilterSearch] = useState("")
+    const clientFilterRef = useRef<HTMLDivElement | null>(null)
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
-    const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
+    const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("date_desc")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [exportingExcel, setExportingExcel] = useState(false)
     const [exportingPdf, setExportingPdf] = useState(false)
@@ -29,10 +34,12 @@ export default function ResultsPage() {
     // Show user/technician column for all roles
     const showTechnicianColumn = true
 
-    async function loadData(pageToLoad = page, searchTerm = appliedSearch) {
+    async function loadData(pageToLoad = page, searchTerm = appliedSearch, userId = selectedUserId) {
         setLoading(true)
         try {
-            const filters = searchTerm ? { search: searchTerm } : {}
+            const filters: Record<string, string> = {}
+            if (searchTerm) filters.search = searchTerm
+            if (userId) filters.userId = userId
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -44,21 +51,41 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-        loadData(page, appliedSearch)
-    }, [page, appliedSearch]) // Reload when page/search changes
+        loadData(page, appliedSearch, selectedUserId)
+    }, [page, appliedSearch, selectedUserId]) // Reload when page/search/user changes
+
+    useEffect(() => {
+        let cancelled = false
+        async function loadUsers() {
+            if (!canManageUsers()) return
+            try {
+                const data = await getUsers(1, 500, {})
+                if (!cancelled) setUsers(data.users || [])
+            } catch (e) {
+                console.error("Failed to load users for filter:", e)
+            }
+        }
+        loadUsers()
+        return () => {
+            cancelled = true
+        }
+    }, [canManageUsers])
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
-            if (!isGradeFilterOpen) return
             const target = e.target as Node | null
-            if (gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
+            if (isGradeFilterOpen && gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
                 setIsGradeFilterOpen(false)
+            }
+            if (isClientFilterOpen && clientFilterRef.current && target && !clientFilterRef.current.contains(target)) {
+                setIsClientFilterOpen(false)
             }
         }
 
         function onDocumentKeyDown(e: KeyboardEvent) {
             if (e.key === "Escape") {
                 setIsGradeFilterOpen(false)
+                setIsClientFilterOpen(false)
             }
         }
 
@@ -68,7 +95,28 @@ export default function ResultsPage() {
             document.removeEventListener("mousedown", onDocumentMouseDown)
             document.removeEventListener("keydown", onDocumentKeyDown)
         }
-    }, [isGradeFilterOpen])
+    }, [isGradeFilterOpen, isClientFilterOpen])
+
+    const getClientLabel = (u: { id: number; username: string; display_name?: string }) =>
+        u.display_name || u.username || `Client #${u.id}`
+
+    const sortedClients = useMemo(() => {
+        const list = [...users]
+        return list.sort((a, b) => getClientLabel(a).localeCompare(getClientLabel(b), undefined, { sensitivity: "base" }))
+    }, [users])
+
+    const filteredClients = useMemo(() => {
+        const term = clientFilterSearch.trim().toLowerCase()
+        if (!term) return sortedClients
+        return sortedClients.filter((u) => getClientLabel(u).toLowerCase().includes(term))
+    }, [sortedClients, clientFilterSearch])
+
+    const selectedClientLabel = useMemo(() => {
+        if (!selectedUserId) return "Client: All"
+        const id = parseInt(selectedUserId, 10)
+        const found = users.find((u) => u.id === id)
+        return found ? `Client: ${getClientLabel(found)}` : "Client: Selected"
+    }, [selectedUserId, users])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -84,6 +132,7 @@ export default function ResultsPage() {
             const token = localStorage.getItem("qc_token")
             const params = new URLSearchParams()
             if (appliedSearch) params.append("search", appliedSearch)
+            if (selectedUserId) params.append("userId", selectedUserId)
             params.append("format", format)
             params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
@@ -236,6 +285,70 @@ export default function ResultsPage() {
                                 </div>
                             )}
                         </div>
+                        {canManageUsers() && (
+                            <div className="relative" ref={clientFilterRef}>
+                                <button
+                                    type="button"
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 flex items-center justify-between gap-3 min-w-[190px]"
+                                    aria-label="Filter by client"
+                                    onClick={() => {
+                                        setIsClientFilterOpen((v) => !v)
+                                        setClientFilterSearch("")
+                                    }}
+                                >
+                                    <span className="truncate">{selectedClientLabel}</span>
+                                    <span className="text-slate-400">▾</span>
+                                </button>
+
+                                {isClientFilterOpen && (
+                                    <div className="absolute z-50 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white shadow-lg p-2">
+                                        <Input
+                                            value={clientFilterSearch}
+                                            onChange={(e) => setClientFilterSearch(e.target.value)}
+                                            placeholder="Search client..."
+                                            className="h-9 border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                                        />
+                                        <div className="mt-2 max-h-64 overflow-auto">
+                                            <button
+                                                type="button"
+                                                className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${selectedUserId === "" ? "bg-slate-50 font-semibold" : ""}`}
+                                                onClick={() => {
+                                                    setPage(1)
+                                                    setSelectedUserId("")
+                                                    setIsClientFilterOpen(false)
+                                                }}
+                                            >
+                                                Client: All
+                                            </button>
+
+                                            {filteredClients.length === 0 ? (
+                                                <div className="px-2 py-2 text-sm text-slate-400">No matches</div>
+                                            ) : (
+                                                filteredClients.map((u) => {
+                                                    const value = String(u.id)
+                                                    const label = getClientLabel(u)
+                                                    const isSelected = selectedUserId === value
+                                                    return (
+                                                        <button
+                                                            key={u.id}
+                                                            type="button"
+                                                            className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${isSelected ? "bg-slate-50 font-semibold" : ""}`}
+                                                            onClick={() => {
+                                                                setPage(1)
+                                                                setSelectedUserId(value)
+                                                                setIsClientFilterOpen(false)
+                                                            }}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <select
                             value={resultSort}
                             onChange={(e) => setResultSort(e.target.value as typeof resultSort)}
@@ -326,7 +439,7 @@ export default function ResultsPage() {
                                         </div>
                                         {showTechnicianColumn && (
                                             <div className="text-xs text-slate-500 mt-1">
-                                                <span className="font-semibold text-slate-700">User:</span> {test.technician_name || test.technician_username || "Unassigned"}
+                                                <span className="font-semibold text-slate-700">Client:</span> {test.technician_name || test.technician_username || "Unassigned"}
                                             </div>
                                         )}
                                         {test.computer_name && (
@@ -360,7 +473,7 @@ export default function ResultsPage() {
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[100px]">Status</th>
 
                                 {showTechnicianColumn && (
-                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Client</th>
                                 )}
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 max-w-[200px]">Model</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>

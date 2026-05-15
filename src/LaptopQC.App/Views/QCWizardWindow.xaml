@@ -113,7 +113,7 @@
                     <TextBlock Text="🧪" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Step 3: Interactive Tests" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="{Binding InteractiveInstruction}" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#0891b2" FontFamily="Segoe UI"/>
+                <TextBlock Text="{Binding InteractiveInstruction}" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#6C6B6B" FontFamily="Segoe UI"/>
 
                 <Button Command="{Binding RunKeyboardTestCommand}" Content="Run Keyboard Test" 
                         Style="{StaticResource PrimaryButton}"
@@ -166,10 +166,12 @@
             <!-- Step 4: Report -->
             <StackPanel Visibility="{Binding IsReportStep, Converter={StaticResource BoolToVisibilityConverter}}"
                         VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                     <TextBlock Text="✅" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="QC Complete" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
+                
+                <TextBlock Text="✅" FontSize="72" HorizontalAlignment="Center" FontFamily="Segoe UI Emoji" Margin="0,0,0,10" Foreground="#0B9444" />
                 
                 <TextBlock Text="{Binding CompletionMessage}" FontSize="18" FontWeight="SemiBold" 
                            HorizontalAlignment="Center" Margin="0,0,0,8" FontFamily="Segoe UI"
@@ -185,7 +187,7 @@
                 <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
                 
                 <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold" 
-                           HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#15803d" FontFamily="Segoe UI"/>
+                           HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="{Binding SubmissionStatusColor}" FontFamily="Segoe UI"/>
 
                 <Button Command="{Binding OpenReportCommand}" Content="View Report" 
                         Style="{StaticResource PrimaryButton}" Margin="0,0,0,10"/>

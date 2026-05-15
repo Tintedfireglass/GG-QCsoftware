@@ -109,6 +109,9 @@ public class SystemInfoSnapshot
     [JsonPropertyName("isWindowsActivated")]
     public bool? IsWindowsActivated { get; set; }
 
+    [JsonPropertyName("windowsLastUpdatedAt")]
+    public DateTime? WindowsLastUpdatedAt { get; set; }
+
     [JsonPropertyName("antivirusStatus")]
     public string? AntivirusStatus { get; set; }
 

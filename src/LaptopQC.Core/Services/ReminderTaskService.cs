@@ -5,22 +5,23 @@ namespace LaptopQC.Core.Services;
 /// <summary>
 /// Registers/manages the Windows Scheduled Task for the QC reminder.
 /// The task runs PramaanReminder.exe at logon to check if a QC test is overdue.
+/// Always re-registers on startup so application updates are automatically applied.
 /// </summary>
 public static class ReminderTaskService
 {
     private const string TaskName = "PramaanQCReminder";
 
     /// <summary>
-    /// Ensures the scheduled task is registered. Safe to call on every app startup —
-    /// it checks first and only registers if the task doesn't exist yet.
+    /// Re-registers the scheduled task on every app startup.
+    /// The /F flag forces overwrite of any existing task so updates are
+    /// automatically applied without requiring any user action.
     /// </summary>
     public static void EnsureRegistered()
     {
         try
         {
-            if (IsTaskRegistered())
-                return;
-
+            // Always re-register so updates to the exe path or task settings
+            // are applied automatically. The /F flag forces overwrite.
             var reminderExe = FindReminderExe();
             if (reminderExe == null)
                 return; // Reminder exe not found — skip silently
@@ -30,30 +31,6 @@ public static class ReminderTaskService
         catch (Exception ex)
         {
             Debug.WriteLine($"Reminder task registration failed: {ex.Message}");
-        }
-    }
-
-    private static bool IsTaskRegistered()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "schtasks.exe",
-                Arguments = $"/Query /TN \"{TaskName}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(psi);
-            process?.WaitForExit(5000);
-            return process?.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
         }
     }
 
@@ -86,7 +63,7 @@ public static class ReminderTaskService
         var args = $"/Create /TN \"{TaskName}\" " +
                    $"/TR \"\\\"{reminderExePath}\\\"\" " +
                    $"/SC ONLOGON " +
-                   $"/RL LIMITED " +
+                   $"/RL HIGHEST " +
                    $"/F " +  // Force overwrite if exists
                    $"/IT";   // Only when user is interactively logged on
 

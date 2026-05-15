@@ -15,6 +15,11 @@ class Program
     static DashboardState state = new();
     static bool isRunning = true;
 
+    static Program()
+    {
+        state.LoadRecentReports();
+    }
+
     static async Task Main(string[] args)
     {
         Console.CursorVisible = false;
@@ -161,7 +166,7 @@ class Program
         ctx.UpdateTarget(DashboardRenderer.Build(state));
         ctx.Refresh();
 
-        var report = state.Report ?? new QCReport();
+        var report = state.Report ?? new QCReport { AppVersion = "1.0.0L" };
 
         try
         {
@@ -271,7 +276,7 @@ class Program
         state.ProgressCpu = 0; state.ProgressRam = 0; state.ProgressGpu = 0;
         ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh();
 
-        var report = state.Report ?? new QCReport();
+        var report = state.Report ?? new QCReport { AppVersion = "1.0.0L" };
 
         void Refresh(string msg) {
             state.StatusMessage = msg;

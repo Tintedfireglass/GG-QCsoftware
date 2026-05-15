@@ -89,6 +89,9 @@ public partial class QCWizardViewModel : ObservableObject
     private string _submissionStatus = "";
 
     [ObservableProperty]
+    private string _submissionStatusColor = "#15803d";
+
+    [ObservableProperty]
     private BitmapImage? _qrCodeImage;
 
     [ObservableProperty]
@@ -411,6 +414,7 @@ public partial class QCWizardViewModel : ObservableObject
         if (!App.IsLoggedIn)
         {
             SubmissionStatus = "Login required to submit to cloud...";
+            SubmissionStatusColor = "#F59E0B";
             
             // Show login dialog
             var loginWindow = new Views.LoginWindow(App.AuthService)
@@ -443,6 +447,7 @@ public partial class QCWizardViewModel : ObservableObject
                 if (!App.IsLoggedIn)
                 {
                     SubmissionStatus = "⚠ Skipped cloud submission (saved locally only)";
+                    SubmissionStatusColor = "#F59E0B";
                     return;
                 }
             }
@@ -451,6 +456,7 @@ public partial class QCWizardViewModel : ObservableObject
         // Now logged in - submit to API
         var technicianId = App.TechnicianId;
         SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
+        SubmissionStatusColor = "#F59E0B";
 
         // Refresh server-allocated Machine ID for this hardware (if license-based)
         await RefreshMachineIdAsync(report);
@@ -468,6 +474,7 @@ public partial class QCWizardViewModel : ObservableObject
         if (submitResult.Success)
         {
             SubmissionStatus = $"✓ Submitted (by {App.UserDisplayName})";
+            SubmissionStatusColor = "#0B9444";
             GenerateQrCode(report.HealthId);
 
             if (submitResult.DemoExhausted)
@@ -485,6 +492,7 @@ public partial class QCWizardViewModel : ObservableObject
             SubmissionStatus = submitResult.IsAuthError
                 ? $"✗ Activation required to submit ({submitResult.ErrorMessage})"
                 : $"✗ Failed to Submit: {submitResult.ErrorMessage}";
+            SubmissionStatusColor = "#FF0000";
         }
     }
 
