@@ -56,7 +56,7 @@ export default function ResultsPage() {
         async function loadUsers() {
             if (!canManageUsers()) return
             try {
-                const data = await getUsers(1, 200, { role: "Technician" })
+                const data = await getUsers(1, 500, {})
                 if (!cancelled) setUsers(data.users || [])
             } catch (e) {
                 console.error("Failed to load users for filter:", e)
