@@ -22,7 +22,7 @@ export default function ResultsPage() {
     const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string }>>([])
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
-    const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("grade_desc")
+    const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("date_desc")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [exportingExcel, setExportingExcel] = useState(false)
     const [exportingPdf, setExportingPdf] = useState(false)
@@ -266,12 +266,12 @@ export default function ResultsPage() {
                                     setSelectedUserId(e.target.value)
                                 }}
                                 className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
-                                aria-label="Filter by user"
+                                aria-label="Filter by client"
                             >
-                                <option value="">User: All</option>
+                                <option value="">Client: All</option>
                                 {users.map((u) => (
                                     <option key={u.id} value={String(u.id)}>
-                                        {u.display_name || u.username || `User #${u.id}`}
+                                        {u.display_name || u.username || `Client #${u.id}`}
                                     </option>
                                 ))}
                             </select>
@@ -366,7 +366,7 @@ export default function ResultsPage() {
                                         </div>
                                         {showTechnicianColumn && (
                                             <div className="text-xs text-slate-500 mt-1">
-                                                <span className="font-semibold text-slate-700">User:</span> {test.technician_name || test.technician_username || "Unassigned"}
+                                                <span className="font-semibold text-slate-700">Client:</span> {test.technician_name || test.technician_username || "Unassigned"}
                                             </div>
                                         )}
                                         {test.computer_name && (
@@ -400,7 +400,7 @@ export default function ResultsPage() {
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[100px]">Status</th>
 
                                 {showTechnicianColumn && (
-                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">User</th>
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Client</th>
                                 )}
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 max-w-[200px]">Model</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>

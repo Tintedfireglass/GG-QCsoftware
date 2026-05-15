@@ -473,7 +473,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
         { key: 'tamper',   title: 'Tamper',       width: 46  },
         { key: 'thermal',  title: 'Thermal',      width: 44  },
         { key: 'grade',    title: 'Grade',        width: 38  },
-        { key: 'user',     title: 'User',         width: 80  },
+        { key: 'user',     title: 'Client',       width: 80  },
     ];
     const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
@@ -539,7 +539,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
             entry.isTampered ? 'Tampered' : 'Clean',              // Tamper
             entry.hasThermalIssue ? 'Risk' : 'OK',                // Thermal
             String(values[13] || '-'),                             // Grade
-            String(values[19] || '-'),                             // User
+            String(values[19] || '-'),                             // Client
         ];
 
         let x = margin + 4;
@@ -709,7 +709,7 @@ export async function GET(request: NextRequest) {
             'MAC Address',
             'Manufacturer',
             'Model',
-            'User',
+            'Client',
         ];
 
         const issueMap: Record<IssueKey, Set<string>> = {
