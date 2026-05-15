@@ -22,6 +22,13 @@ class Program
 
     static async Task Main(string[] args)
     {
+        if (args.Length > 0 && args[0].Equals("agent", StringComparison.OrdinalIgnoreCase))
+        {
+            var exitCode = await Pramaan.CLI.Agent.AgentCli.RunAsync(args);
+            Environment.ExitCode = exitCode;
+            return;
+        }
+
         Console.CursorVisible = false;
 
         // Gather basic system info upfront for header display

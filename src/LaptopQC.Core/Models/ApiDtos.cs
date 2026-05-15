@@ -194,3 +194,42 @@ public class ComponentGrade
     [JsonPropertyName("grade")]
     public string Grade { get; set; } = "";
 }
+
+public class SubmitServerHealthRequest
+{
+    [JsonPropertyName("schema_version")]
+    public string SchemaVersion { get; set; } = "1";
+
+    [JsonPropertyName("machine_id")]
+    public int? MachineId { get; set; }
+
+    [JsonPropertyName("collected_at")]
+    public DateTime CollectedAt { get; set; } = DateTime.UtcNow;
+
+    [JsonPropertyName("agent_version")]
+    public string? AgentVersion { get; set; }
+
+    [JsonPropertyName("overall_status")]
+    public string OverallStatus { get; set; } = "unknown";
+
+    [JsonPropertyName("checks")]
+    public List<ServerHealthCheckResult> Checks { get; set; } = new();
+}
+
+public class ServerHealthCheckResult
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = "unknown";
+
+    [JsonPropertyName("summary")]
+    public string? Summary { get; set; }
+
+    [JsonPropertyName("metrics")]
+    public Dictionary<string, double>? Metrics { get; set; }
+
+    [JsonPropertyName("details")]
+    public List<string>? Details { get; set; }
+}
