@@ -20,6 +20,9 @@ export default function ResultsPage() {
     const [appliedSearch, setAppliedSearch] = useState("")
     const [selectedUserId, setSelectedUserId] = useState("")
     const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string }>>([])
+    const [isClientFilterOpen, setIsClientFilterOpen] = useState(false)
+    const [clientFilterSearch, setClientFilterSearch] = useState("")
+    const clientFilterRef = useRef<HTMLDivElement | null>(null)
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [resultSort, setResultSort] = useState<"grade_desc" | "grade_asc" | "date_desc" | "date_asc" | "id_asc">("date_desc")
@@ -70,16 +73,19 @@ export default function ResultsPage() {
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
-            if (!isGradeFilterOpen) return
             const target = e.target as Node | null
-            if (gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
+            if (isGradeFilterOpen && gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
                 setIsGradeFilterOpen(false)
+            }
+            if (isClientFilterOpen && clientFilterRef.current && target && !clientFilterRef.current.contains(target)) {
+                setIsClientFilterOpen(false)
             }
         }
 
         function onDocumentKeyDown(e: KeyboardEvent) {
             if (e.key === "Escape") {
                 setIsGradeFilterOpen(false)
+                setIsClientFilterOpen(false)
             }
         }
 
@@ -89,7 +95,28 @@ export default function ResultsPage() {
             document.removeEventListener("mousedown", onDocumentMouseDown)
             document.removeEventListener("keydown", onDocumentKeyDown)
         }
-    }, [isGradeFilterOpen])
+    }, [isGradeFilterOpen, isClientFilterOpen])
+
+    const getClientLabel = (u: { id: number; username: string; display_name?: string }) =>
+        u.display_name || u.username || `Client #${u.id}`
+
+    const sortedClients = useMemo(() => {
+        const list = [...users]
+        return list.sort((a, b) => getClientLabel(a).localeCompare(getClientLabel(b), undefined, { sensitivity: "base" }))
+    }, [users])
+
+    const filteredClients = useMemo(() => {
+        const term = clientFilterSearch.trim().toLowerCase()
+        if (!term) return sortedClients
+        return sortedClients.filter((u) => getClientLabel(u).toLowerCase().includes(term))
+    }, [sortedClients, clientFilterSearch])
+
+    const selectedClientLabel = useMemo(() => {
+        if (!selectedUserId) return "Client: All"
+        const id = parseInt(selectedUserId, 10)
+        const found = users.find((u) => u.id === id)
+        return found ? `Client: ${getClientLabel(found)}` : "Client: Selected"
+    }, [selectedUserId, users])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -259,22 +286,68 @@ export default function ResultsPage() {
                             )}
                         </div>
                         {canManageUsers() && (
-                            <select
-                                value={selectedUserId}
-                                onChange={(e) => {
-                                    setPage(1)
-                                    setSelectedUserId(e.target.value)
-                                }}
-                                className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
-                                aria-label="Filter by client"
-                            >
-                                <option value="">Client: All</option>
-                                {users.map((u) => (
-                                    <option key={u.id} value={String(u.id)}>
-                                        {u.display_name || u.username || `Client #${u.id}`}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative" ref={clientFilterRef}>
+                                <button
+                                    type="button"
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 flex items-center justify-between gap-3 min-w-[190px]"
+                                    aria-label="Filter by client"
+                                    onClick={() => {
+                                        setIsClientFilterOpen((v) => !v)
+                                        setClientFilterSearch("")
+                                    }}
+                                >
+                                    <span className="truncate">{selectedClientLabel}</span>
+                                    <span className="text-slate-400">▾</span>
+                                </button>
+
+                                {isClientFilterOpen && (
+                                    <div className="absolute z-50 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white shadow-lg p-2">
+                                        <Input
+                                            value={clientFilterSearch}
+                                            onChange={(e) => setClientFilterSearch(e.target.value)}
+                                            placeholder="Search client..."
+                                            className="h-9 border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                                        />
+                                        <div className="mt-2 max-h-64 overflow-auto">
+                                            <button
+                                                type="button"
+                                                className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${selectedUserId === "" ? "bg-slate-50 font-semibold" : ""}`}
+                                                onClick={() => {
+                                                    setPage(1)
+                                                    setSelectedUserId("")
+                                                    setIsClientFilterOpen(false)
+                                                }}
+                                            >
+                                                Client: All
+                                            </button>
+
+                                            {filteredClients.length === 0 ? (
+                                                <div className="px-2 py-2 text-sm text-slate-400">No matches</div>
+                                            ) : (
+                                                filteredClients.map((u) => {
+                                                    const value = String(u.id)
+                                                    const label = getClientLabel(u)
+                                                    const isSelected = selectedUserId === value
+                                                    return (
+                                                        <button
+                                                            key={u.id}
+                                                            type="button"
+                                                            className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${isSelected ? "bg-slate-50 font-semibold" : ""}`}
+                                                            onClick={() => {
+                                                                setPage(1)
+                                                                setSelectedUserId(value)
+                                                                setIsClientFilterOpen(false)
+                                                            }}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                         <select
                             value={resultSort}
