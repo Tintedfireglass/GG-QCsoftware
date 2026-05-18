@@ -54,7 +54,6 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-    useEffect(() => {
         let cancelled = false
         async function loadUsers() {
             if (!canManageUsers()) return
