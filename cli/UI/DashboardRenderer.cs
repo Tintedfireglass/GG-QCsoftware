@@ -13,9 +13,9 @@ public static class DashboardRenderer
         var layout = new Layout("Root").SplitRows(
             new Layout("Header").Size(1),
             new Layout("Top").Ratio(4).SplitColumns(
-                new Layout("Logo").Ratio(3),
+                new Layout("Logo").Size(38),
                 new Layout("SysInfo").Ratio(4),
-                new Layout("Menu").Ratio(4)),
+                new Layout("Menu").Size(42)),
             new Layout("Summary").Ratio(4),
             new Layout("Details").Ratio(6).SplitColumns(
                 new Layout("Health").Ratio(7),
@@ -51,8 +51,12 @@ public static class DashboardRenderer
 
     static IRenderable BuildLogo()
     {
-        var figlet = new FigletText("PRAMAAN").Color(Color.Purple).LeftJustified();
-        return new Panel(new Rows(figlet, new Markup("  Trust. Verify. [purple]Sell Better.[/]")))
+        string ascii = @" ___ ___  _   __  __  _   _   _  _ 
+| _ \ _ \/_\ |  \/  |/_\ /_\ | \| |
+|  _/   / _ \| |\/| / _ \ _ \| .` |
+|_| |_|_\/ \_\_|  |/_/ \_\/ \_\_|\_|";
+        var logo = new Text(ascii, new Style(Color.Purple));
+        return new Panel(new Rows(logo, new Markup(" Trust. Verify. [purple]Certify.[/]")))
             .Border(BoxBorder.None);
     }
 

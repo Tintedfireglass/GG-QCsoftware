@@ -29,17 +29,20 @@ export default function ResultsPage() {
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [exportingExcel, setExportingExcel] = useState(false)
     const [exportingPdf, setExportingPdf] = useState(false)
+    const [showIssuesOnly, setShowIssuesOnly] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
     const limit = 20
 
     // Show user/technician column for all roles
     const showTechnicianColumn = true
 
-    async function loadData(pageToLoad = page, searchTerm = appliedSearch, userId = selectedUserId) {
+    async function loadData(pageToLoad = page, searchTerm = appliedSearch, userId = selectedUserId, issuesOnly = showIssuesOnly) {
         setLoading(true)
         try {
             const filters: Record<string, string> = {}
             if (searchTerm) filters.search = searchTerm
             if (userId) filters.userId = userId
+            if (issuesOnly) filters.hasIssues = "true"
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -51,9 +54,6 @@ export default function ResultsPage() {
     }
 
     useEffect(() => {
-        loadData(page, appliedSearch, selectedUserId)
-    }, [page, appliedSearch, selectedUserId]) // Reload when page/search/user changes
-
     useEffect(() => {
         let cancelled = false
         async function loadUsers() {
@@ -70,6 +70,22 @@ export default function ResultsPage() {
             cancelled = true
         }
     }, [canManageUsers])
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('hasIssues') === 'true') {
+                setShowIssuesOnly(true);
+            }
+        }
+        setIsInitialized(true);
+    }, []);
+
+    useEffect(() => {
+        if (isInitialized) {
+            loadData(page, appliedSearch, selectedUserId, showIssuesOnly)
+        }
+    }, [page, appliedSearch, selectedUserId, showIssuesOnly, isInitialized]) // Reload when state changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -247,6 +263,17 @@ export default function ResultsPage() {
                         </Button>
                     </form>
                     <div className="flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant={showIssuesOnly ? "default" : "outline"}
+                            className={`h-10 ${showIssuesOnly ? "bg-red-500 hover:bg-red-600 text-white border-red-500" : ""}`}
+                            onClick={() => {
+                                setPage(1);
+                                setShowIssuesOnly(!showIssuesOnly);
+                            }}
+                        >
+                            {showIssuesOnly ? "Issues Only" : "All Systems"}
+                        </Button>
                         <div className="relative" ref={gradeFilterRef}>
                             <Button
                                 size="sm"

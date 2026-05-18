@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using LaptopQC.Core.Diagnostics;
 
 namespace Pramaan.CLI.Diagnostics;
 
@@ -30,6 +31,8 @@ public class LinuxCpuStressTest
 
     private readonly List<double> _temps  = new();
     private readonly List<double> _clocks = new();
+    
+    private ThermalThrottleDetector? _throttleDetector;
 
     public event Action<StressTestProgress>? OnProgress;
 
@@ -41,6 +44,9 @@ public class LinuxCpuStressTest
 
     public async Task<CpuStressResult> RunAsync(CancellationToken ct = default)
     {
+        int baseClockMHz = GetBaseClockFromLinux();
+        _throttleDetector = new ThermalThrottleDetector(baseClockMHz);
+
         _isRunning = true;
         _temps.Clear();
         _clocks.Clear();
@@ -95,49 +101,76 @@ public class LinuxCpuStressTest
         string message;
         bool thermalThrottle = false;
 
-        // Determine verdict using the same thresholds as WPF CpuStressTest
-        if (maxTemp > 95)
+        // ── Advanced throttle analysis ────────────────────────────
+        var throttleAnalysis = _throttleDetector?.Analyze();
+        
+        if (throttleAnalysis != null && throttleAnalysis.Verdict != ThrottleVerdict.InsufficientData)
         {
-            passed         = false;
-            thermalThrottle = true;
-            message        = $"CRITICAL: CPU overheated ({maxTemp:F1}°C > 95°C threshold)";
+            passed = throttleAnalysis.Verdict == ThrottleVerdict.Excellent || 
+                     throttleAnalysis.Verdict == ThrottleVerdict.Pass ||
+                     (maxTemp == 0); // Allow pass if no temps
+                     
+            message = throttleAnalysis.Message;
+            if (maxTemp == 0) message = "PASS: Stress completed (temperature sensors not available)";
+            
+            thermalThrottle = throttleAnalysis.Verdict == ThrottleVerdict.Warning || 
+                              throttleAnalysis.Verdict == ThrottleVerdict.Fail || 
+                              throttleAnalysis.Verdict == ThrottleVerdict.CriticalFail;
+                              
+            var concerningPatterns = throttleAnalysis.Patterns
+                .Where(p => p.Severity >= ThrottleSeverity.Moderate)
+                .ToList();
+            
+            if (concerningPatterns.Any())
+            {
+                message += " | Patterns: " + string.Join("; ", concerningPatterns.Select(p => p.Description));
+            }
         }
-        else if (maxTemp > 90)
+        else
         {
-            passed         = false;
-            thermalThrottle = true;
-            message        = $"FAIL: High temperature ({maxTemp:F1}°C) — cooling issue suspected";
-        }
-        else if (maxClock > 0 && minClock > 0 && maxTemp > 80)
-        {
-            double dropPct = (1.0 - minClock / maxClock) * 100.0;
-            if (dropPct > 25)
+            // ── Legacy Fallback ───────────────────────────────────
+            if (maxTemp > 95)
             {
                 passed         = false;
                 thermalThrottle = true;
-                message        = $"FAIL: Thermal throttle detected — clock dropped {dropPct:F0}% under load";
+                message        = $"CRITICAL: CPU overheated ({maxTemp:F1}°C > 95°C threshold)";
             }
-            else if (dropPct > 10)
+            else if (maxTemp > 90)
+            {
+                passed         = false;
+                thermalThrottle = true;
+                message        = $"FAIL: High temperature ({maxTemp:F1}°C) — cooling issue suspected";
+            }
+            else if (maxClock > 0 && minClock > 0 && maxTemp > 80)
+            {
+                double dropPct = (1.0 - minClock / maxClock) * 100.0;
+                if (dropPct > 25)
+                {
+                    passed         = false;
+                    thermalThrottle = true;
+                    message        = $"FAIL: Thermal throttle detected — clock dropped {dropPct:F0}% under load";
+                }
+                else if (dropPct > 10)
+                {
+                    passed  = true;
+                    message = $"WARNING: Minor throttle ({dropPct:F0}% clock drop, {maxTemp:F0}°C max)";
+                }
+                else
+                {
+                    passed  = true;
+                    message = $"PASS: Stable at ~{avgClock:F0} MHz, {maxTemp:F0}°C max — EXCELLENT";
+                }
+            }
+            else if (maxTemp == 0)
             {
                 passed  = true;
-                message = $"WARNING: Minor throttle ({dropPct:F0}% clock drop, {maxTemp:F0}°C max)";
+                message = "PASS: Stress completed (temperature sensors not available)";
             }
             else
             {
                 passed  = true;
-                message = $"PASS: Stable at ~{avgClock:F0} MHz, {maxTemp:F0}°C max — EXCELLENT";
+                message = $"PASS: {maxTemp:F0}°C max, ~{avgClock:F0} MHz — EXCELLENT";
             }
-        }
-        else if (maxTemp == 0)
-        {
-            // No temp data (WSL, no sensors) — pass on compute alone
-            passed  = true;
-            message = "PASS: Stress completed (temperature sensors not available)";
-        }
-        else
-        {
-            passed  = true;
-            message = $"PASS: {maxTemp:F0}°C max, ~{avgClock:F0} MHz — EXCELLENT";
         }
 
         return new CpuStressResult
@@ -177,6 +210,9 @@ public class LinuxCpuStressTest
                 {
                     if (temp.HasValue)  _temps.Add(temp.Value);
                     if (clock.HasValue) _clocks.Add(clock.Value);
+                    
+                    if (temp.HasValue && clock.HasValue)
+                        _throttleDetector?.RecordSample(temp.Value, clock.Value);
                 }
 
                 OnProgress?.Invoke(new StressTestProgress
@@ -285,6 +321,32 @@ public class LinuxCpuStressTest
         catch { }
 
         return null;
+    }
+    
+    // ── Base Clock Helper ────────────────────────────────────────
+    
+    private static int GetBaseClockFromLinux()
+    {
+        // 1. Try lscpu model string (e.g. "Intel Core i7-8550U CPU @ 1.80GHz")
+        try
+        {
+            var lscpu = LinuxCommandRunner.TryRun("lscpu", "");
+            var m = Regex.Match(lscpu, @"Model name:.*?@\s*([\d.]+)\s*GHz", RegexOptions.IgnoreCase);
+            if (m.Success && double.TryParse(m.Groups[1].Value, out double ghz))
+                return (int)Math.Round(ghz * 1000);
+                
+            // Fallback: look for "CPU max MHz:" in lscpu and divide by an average boost ratio (approx 1.3x)
+            var maxFreqMatch = Regex.Match(lscpu, @"CPU max MHz:\s+([\d.]+)");
+            if (maxFreqMatch.Success && double.TryParse(maxFreqMatch.Groups[1].Value, out double maxMhz))
+            {
+                // Note: We divide by 1.3 as a rough heuristic to get "base" from "max boost"
+                // since the thermal throttle detector evaluates drops relative to base clock.
+                return (int)Math.Round(maxMhz / 1.3);
+            }
+        }
+        catch { }
+
+        return 2000; // Default fallback: 2 GHz
     }
 }
 

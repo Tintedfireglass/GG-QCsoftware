@@ -15,10 +15,13 @@ public class QCWizard
 {
     private readonly DashboardState _state;
     private LiveDisplayContext? _ctx;
+    private readonly bool _headless;
+    private string? _lastMsg;
 
-    public QCWizard(DashboardState state)
+    public QCWizard(DashboardState state, bool headless = false)
     {
         _state = state;
+        _headless = headless;
     }
 
     public async Task<QCReport?> RunAsync()
@@ -116,31 +119,39 @@ public class QCWizard
         // ── Phase 3: Automated Diagnostics ────────────────────────────────
         _state.StatusMessage = "Running automated diagnostics...";
         
-        AnsiConsole.Clear();
-        await AnsiConsole.Live(DashboardRenderer.Build(_state))
-            .AutoClear(false)
-            .StartAsync(async ctx =>
-            {
-                _ctx = ctx;
-                Refresh();
-                
-                var startTime = DateTime.Now;
-                var timer = new System.Timers.Timer(1000);
-                timer.Elapsed += (_, _) => { _state.Elapsed = (DateTime.Now - startTime).ToString(@"hh\:mm\:ss"); Refresh(); };
-                timer.Start();
+        if (!_headless) AnsiConsole.Clear();
 
-                try
+        if (_headless)
+        {
+            await RunAutomatedDiagnostics(report);
+        }
+        else
+        {
+            await AnsiConsole.Live(DashboardRenderer.Build(_state))
+                .AutoClear(false)
+                .StartAsync(async ctx =>
                 {
-                    await RunAutomatedDiagnostics(report);
-                }
-                finally
-                {
-                    timer.Stop();
-                    _ctx = null;
-                }
-            });
+                    _ctx = ctx;
+                    Refresh();
+                    
+                    var startTime = DateTime.Now;
+                    var timer = new System.Timers.Timer(1000);
+                    timer.Elapsed += (_, _) => { _state.Elapsed = (DateTime.Now - startTime).ToString(@"hh\:mm\:ss"); Refresh(); };
+                    timer.Start();
 
-        AnsiConsole.Clear();
+                    try
+                    {
+                        await RunAutomatedDiagnostics(report);
+                    }
+                    finally
+                    {
+                        timer.Stop();
+                        _ctx = null;
+                    }
+                });
+        }
+
+        if (!_headless) AnsiConsole.Clear();
         // ── Phase 4: Interactive Manual Tests ─────────────────────────────
         AnsiConsole.MarkupLine("\n[bold cyan]── Interactive Component Tests ──[/]");
         AnsiConsole.MarkupLine("[grey]Answer Y/N based on physical testing.[/]\n");
@@ -417,6 +428,16 @@ public class QCWizard
 
     void Refresh()
     {
+        if (_headless)
+        {
+            if (!string.IsNullOrEmpty(_state.StatusMessage) && _state.StatusMessage != _lastMsg)
+            {
+                AnsiConsole.MarkupLine($"[grey]{_state.StatusMessage.EscapeMarkup()}[/]");
+                _lastMsg = _state.StatusMessage;
+            }
+            return;
+        }
+
         if (_ctx == null) return;
         _state.Report = _state.Report; // ensure reference is latest
         var layout = DashboardRenderer.Build(_state);

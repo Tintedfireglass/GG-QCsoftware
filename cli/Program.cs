@@ -1,7 +1,11 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Diagnostics;
 using Spectre.Console;
+using LaptopQC.Core.Diagnostics;
 using LaptopQC.Core.Models;
 using LaptopQC.Core.Services;
 using LaptopQC.Hardware.Models;
@@ -22,11 +26,69 @@ class Program
 
     static async Task Main(string[] args)
     {
-        if (args.Length > 0 && args[0].Equals("agent", StringComparison.OrdinalIgnoreCase))
+        // ── CLI argument handling (non-interactive modes) ────────────────────
+        if (args.Length > 0)
         {
-            var exitCode = await Pramaan.CLI.Agent.AgentCli.RunAsync(args);
-            Environment.ExitCode = exitCode;
-            return;
+            if (args[0].Equals("agent", StringComparison.OrdinalIgnoreCase))
+            {
+                var exitCode = await Pramaan.CLI.Agent.AgentCli.RunAsync(args);
+                Environment.ExitCode = exitCode;
+                return;
+            }
+
+            switch (args[0].ToLowerInvariant())
+            {
+                case "--help":
+                case "-h":
+                    PrintHelp();
+                    return;
+
+                case "--version":
+                case "-v":
+                    AnsiConsole.MarkupLine("[purple]Pramaan CLI[/] v1.0.0 (linux-x64)");
+                    return;
+
+                case "--diagnose":
+                case "-d":
+                    Console.CursorVisible = true;
+                    try { state.SystemInfo = new LinuxSystemDiagnostic().GetInfo(); } catch { }
+                    await RunDiagnosticsOnly(null!);
+                    PrintReport();
+                    return;
+
+                case "--stress":
+                case "-s":
+                    Console.CursorVisible = true;
+                    await RunStressTestsOnly(null!);
+                    PrintReport();
+                    return;
+
+                case "--full-qc":
+                case "-f":
+                    Console.CursorVisible = true;
+                    try { state.SystemInfo = new LinuxSystemDiagnostic().GetInfo(); } catch { }
+                    state.StatusMessage = "Starting Full QC Wizard (Sequential Mode)...";
+                    await new QCWizard(state, headless: true).RunAsync();
+                    PrintReport();
+                    return;
+
+                case "--heartbeat":
+                    await RunHeartbeatAsync();
+                    return;
+
+                case "--auto-basic-qc":
+                    await RunAutoBasicQcAsync();
+                    return;
+
+                case "--install-background":
+                    InstallBackgroundServices();
+                    return;
+
+                default:
+                    AnsiConsole.MarkupLine($"[red]Unknown argument:[/] {args[0]}");
+                    PrintHelp();
+                    return;
+            }
         }
 
         Console.CursorVisible = false;
@@ -152,7 +214,7 @@ class Program
             .AutoClear(false)
             .StartAsync(async ctx =>
             {
-                await RunDiagnosticsOnly(ctx);
+                await RunDiagnosticsOnly((LiveDisplayContext)ctx);
             });
     }
 
@@ -162,16 +224,16 @@ class Program
             .AutoClear(false)
             .StartAsync(async ctx =>
             {
-                await RunStressTestsOnly(ctx);
+                await RunStressTestsOnly((LiveDisplayContext)ctx);
             });
     }
 
-    static async Task RunDiagnosticsOnly(LiveDisplayContext ctx)
+    static async Task RunDiagnosticsOnly(LiveDisplayContext? ctx)
     {
         state.StatusMessage = "Running hardware diagnostics...";
         state.ProgressStorage = 0;
-        ctx.UpdateTarget(DashboardRenderer.Build(state));
-        ctx.Refresh();
+        ctx?.UpdateTarget(DashboardRenderer.Build(state));
+        ctx?.Refresh();
 
         var report = state.Report ?? new QCReport { AppVersion = "1.0.0L" };
 
@@ -179,8 +241,8 @@ class Program
         {
             void Refresh(string msg) {
                 state.StatusMessage = msg;
-                ctx.UpdateTarget(DashboardRenderer.Build(state));
-                ctx.Refresh();
+                if (ctx != null) { ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh(); }
+                else AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
             }
 
             Refresh("Gathering CPU info...");
@@ -229,25 +291,42 @@ class Program
                 foreach (var dev in hc.Devices)
                 {
                     report.StorageTest.Details.Add($"[SMART] {dev.Model}: {dev.HealthStatus} ({dev.HealthScore}%)");
-                    // Best-effort: sync health% into StorageDetails for display
-                var sd = report.StorageDetails?.Devices.FirstOrDefault(d =>
-                    // Primary match: device path is always consistent on Linux
-                    d.DeviceId.Equals(dev.DevicePath, StringComparison.OrdinalIgnoreCase) ||
-                    // Fallback: model-name substring (for cases where DeviceId wasn't populated)
-                    d.Model.Contains(dev.Model, StringComparison.OrdinalIgnoreCase) ||
-                    dev.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
-                if (sd != null)
-                {
-                    sd.HealthPercent = dev.HealthScore;
-                    sd.Temperature = dev.Temperature;
-                    sd.PowerOnHours = dev.PowerOnHours;
-                    // Overwrite placeholder name (e.g. "NVME0N1") with the real vendor model
-                    if (!string.IsNullOrWhiteSpace(dev.Model) && !dev.Model.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase))
-                        sd.Model = dev.Model;
-                    // Populate serial if lsblk didn't provide one
-                    if (string.IsNullOrWhiteSpace(sd.SerialNumber) && !string.IsNullOrWhiteSpace(dev.SerialNumber))
-                        sd.SerialNumber = dev.SerialNumber;
-                }
+                    // Hardware RAID: if device has a DeviceType (e.g., megaraid,0), we add it as a separate device
+                    if (!string.IsNullOrEmpty(dev.DeviceType))
+                    {
+                        report.StorageDetails?.Devices.Add(new StorageDevice
+                        {
+                            DeviceId = $"{dev.DevicePath} [{dev.DeviceType}]",
+                            Model = string.IsNullOrWhiteSpace(dev.Model) ? "Unknown RAID Drive" : dev.Model,
+                            SerialNumber = dev.SerialNumber,
+                            HealthPercent = dev.HealthScore,
+                            Temperature = dev.Temperature,
+                            PowerOnHours = dev.PowerOnHours,
+                            SizeGB = 0 // Capacity is managed by the controller virtual disk
+                        });
+                        continue;
+                    }
+
+                    // Best-effort: sync health% into StorageDetails for display (standard drives)
+                    var sd = report.StorageDetails?.Devices.FirstOrDefault(d =>
+                        // Primary match: device path is always consistent on Linux
+                        d.DeviceId.Equals(dev.DevicePath, StringComparison.OrdinalIgnoreCase) ||
+                        // Fallback: model-name substring (for cases where DeviceId wasn't populated)
+                        d.Model.Contains(dev.Model, StringComparison.OrdinalIgnoreCase) ||
+                        dev.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
+                        
+                    if (sd != null)
+                    {
+                        sd.HealthPercent = dev.HealthScore;
+                        sd.Temperature = dev.Temperature;
+                        sd.PowerOnHours = dev.PowerOnHours;
+                        // Overwrite placeholder name (e.g. "NVME0N1") with the real vendor model
+                        if (!string.IsNullOrWhiteSpace(dev.Model) && !dev.Model.StartsWith("/dev/", StringComparison.OrdinalIgnoreCase))
+                            sd.Model = dev.Model;
+                        // Populate serial if lsblk didn't provide one
+                        if (string.IsNullOrWhiteSpace(sd.SerialNumber) && !string.IsNullOrWhiteSpace(dev.SerialNumber))
+                            sd.SerialNumber = dev.SerialNumber;
+                    }
                 }
 
                 // Authoritative pass/fail comes directly from SMART — bypasses any prior
@@ -255,6 +334,10 @@ class Program
                 // Also clear IsInconclusive so the GradingService doesn't hard-cap to 35.
                 if (report.StorageDetails != null)
                 {
+                    foreach (var raid in report.StorageDetails.RaidArrays)
+                    {
+                        report.StorageTest.Details.Add($"[RAID] {raid.Name} ({raid.Level}): {raid.State} [{raid.ActiveDrives}/{raid.TotalDrives} drives]");
+                    }
                     report.StorageDetails.IsInconclusive = false;
                     report.StorageDetails.InconclusiveReason = null;
                 }
@@ -273,22 +356,22 @@ class Program
             state.StatusMessage = $"Error: {ex.Message}";
         }
 
-        ctx.UpdateTarget(DashboardRenderer.Build(state));
-        ctx.Refresh();
+        ctx?.UpdateTarget(DashboardRenderer.Build(state));
+        ctx?.Refresh();
     }
 
-    static async Task RunStressTestsOnly(LiveDisplayContext ctx)
+    static async Task RunStressTestsOnly(LiveDisplayContext? ctx)
     {
         state.StatusMessage = "Running stress tests...";
         state.ProgressCpu = 0; state.ProgressRam = 0; state.ProgressGpu = 0;
-        ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh();
+        ctx?.UpdateTarget(DashboardRenderer.Build(state)); ctx?.Refresh();
 
         var report = state.Report ?? new QCReport { AppVersion = "1.0.0L" };
 
         void Refresh(string msg) {
             state.StatusMessage = msg;
-            ctx.UpdateTarget(DashboardRenderer.Build(state));
-            ctx.Refresh();
+            if (ctx != null) { ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh(); }
+            else AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
         }
 
         try
@@ -329,7 +412,62 @@ class Program
             state.StatusMessage = $"Stress test error: {ex.Message}";
         }
 
-        ctx.UpdateTarget(DashboardRenderer.Build(state)); ctx.Refresh();
+        ctx?.UpdateTarget(DashboardRenderer.Build(state)); ctx?.Refresh();
+    }
+
+    static void PrintHelp()
+    {
+        AnsiConsole.MarkupLine("[bold purple]Pramaan CLI[/] v1.0.0 — Hardware Quality Check Tool");
+        AnsiConsole.MarkupLine("");
+        AnsiConsole.MarkupLine("[bold white]USAGE:[/]");
+        AnsiConsole.MarkupLine("  [green]pramaan[/]                          Launch interactive dashboard");
+        AnsiConsole.MarkupLine("  [green]pramaan --help[/]                   Show this help message");
+        AnsiConsole.MarkupLine("  [green]pramaan --version[/]                Show version info");
+        AnsiConsole.MarkupLine("  [green]pramaan --diagnose[/]               Run hardware diagnostics (non-interactive)");
+        AnsiConsole.MarkupLine("  [green]pramaan --stress[/]                 Run stress tests (non-interactive)");
+        AnsiConsole.MarkupLine("  [green]pramaan --full-qc[/]                Run full QC (diagnostics + stress) non-interactively");
+        AnsiConsole.MarkupLine("");
+        AnsiConsole.MarkupLine("[bold white]BACKGROUND REPORTING (Silent):[/]");
+        AnsiConsole.MarkupLine("  [green]pramaan --heartbeat[/]              Send online heartbeat (requires auth)");
+        AnsiConsole.MarkupLine("  [green]pramaan --auto-basic-qc[/]          Run silent QC & submit to cloud (requires auth)");
+        AnsiConsole.MarkupLine("  [green]sudo pramaan --install-background[/] Install systemd timers for automatic background testing");
+        AnsiConsole.MarkupLine("");
+        AnsiConsole.MarkupLine("[bold white]ALIASES:[/]  -h  -v  -d  -s  -f");
+    }
+
+    static void PrintReport()
+    {
+        var report = state.Report;
+        if (report == null) { AnsiConsole.MarkupLine("[red]No report data generated.[/]"); return; }
+
+        AnsiConsole.MarkupLine("");
+        var t = new Table().Border(TableBorder.Rounded).BorderColor(Color.Purple).Expand();
+        t.AddColumn(new TableColumn("[purple]Component[/]"));
+        t.AddColumn(new TableColumn("[purple]Result[/]"));
+        t.AddColumn(new TableColumn("[purple]Score[/]").RightAligned());
+        t.AddColumn(new TableColumn("[purple]Details[/]"));
+
+        void Row(string name, TestResult r)
+        {
+            if (!r.Tested) return;
+            t.AddRow(
+                $"[white]{name}[/]",
+                r.Passed ? "[green]✓ PASS[/]" : "[red]✗ FAIL[/]",
+                $"[grey]{r.Score}/100[/]",
+                $"[grey]{r.Message.EscapeMarkup()}[/]"
+            );
+        }
+        Row("CPU",     report.CpuTest);
+        Row("RAM",     report.RamTest);
+        Row("Storage", report.StorageTest);
+        Row("Battery", report.BatteryTest);
+        Row("GPU",     report.GpuTest);
+        Row("Network", report.NetworkTest);
+        AnsiConsole.Write(t);
+
+        var score = report.PramaanResult?.OverallHealthScore ?? report.OverallScore;
+        var grade = report.PramaanResult?.GradeBand ?? report.OverallGrade;
+        AnsiConsole.MarkupLine($"\n[bold white]Overall Score:[/] [bold yellow]{score}/100[/]  Grade: [bold green]{grade}[/]\n");
     }
 
     static void ShowResultsTable()
@@ -391,5 +529,225 @@ class Program
         AnsiConsole.MarkupLine("\n[grey]Press any key to return to dashboard...[/]");
         Console.ReadKey(true);
         AnsiConsole.Clear();
+    }
+
+    // ── Background Auto-QC Methods ────────────────────────────────────────
+
+    static async Task RunHeartbeatAsync()
+    {
+        try
+        {
+            var authService = new AuthService();
+            
+            if (!authService.IsLoggedIn)
+            {
+                var trialSvc = new TrialService();
+                if (trialSvc.IsTrialActive)
+                {
+                    var t = trialSvc.CurrentTrial!;
+                    authService.StartTrialSession(t.Email, t.Token, t.MachineId, t.TrialEndsAtUtc);
+                }
+            }
+
+            if (!authService.IsLoggedIn && !authService.IsTrialSession)
+            {
+                Console.WriteLine("No active license or trial session found.");
+                return;
+            }
+
+            var sysDiag = new LinuxSystemDiagnostic();
+            var si = sysDiag.GetInfo();
+            var serial = MachineIdentityService.GetBestIdentityKey(si.SerialNumber, si.MacAddress, si.ComputerName);
+
+            if (!string.IsNullOrWhiteSpace(authService.LicenseKey))
+            {
+                await authService.LoginWithLicenseAsync(authService.LicenseKey, serial, si.MacAddress, si.ComputerName);
+            }
+            else if (authService.IsTrialSession)
+            {
+                await authService.SendTrialHeartbeatAsync(serial, si.MacAddress, si.ComputerName);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Heartbeat failed: {ex.Message}");
+        }
+    }
+
+    static async Task RunAutoBasicQcAsync()
+    {
+        try
+        {
+            var authService = new AuthService();
+            
+            if (!authService.IsLoggedIn)
+            {
+                var trialSvc = new TrialService();
+                if (trialSvc.IsTrialActive)
+                {
+                    var t = trialSvc.CurrentTrial!;
+                    authService.StartTrialSession(t.Email, t.Token, t.MachineId, t.TrialEndsAtUtc);
+                }
+            }
+
+            if (!authService.IsLoggedIn && !authService.IsTrialSession)
+            {
+                Console.WriteLine("No active license or trial session found.");
+                return;
+            }
+
+            var sysDiag = new LinuxSystemDiagnostic();
+            var si = sysDiag.GetInfo();
+            var serial = MachineIdentityService.GetBestIdentityKey(si.SerialNumber, si.MacAddress, si.ComputerName);
+
+            if (!string.IsNullOrWhiteSpace(authService.LicenseKey))
+            {
+                var loginResult = await authService.LoginWithLicenseAsync(authService.LicenseKey, serial, si.MacAddress, si.ComputerName);
+                if (!loginResult.Success)
+                {
+                    authService.Logout();
+                    return;
+                }
+            }
+
+            // Create a fresh report
+            var report = new QCReport 
+            { 
+                ReportId = Guid.NewGuid().ToString(),
+                Timestamp = DateTime.UtcNow,
+                TechnicianNotes = "Automated weekly component check",
+                DeviceId = authService.MachineId ?? 0
+            };
+
+            // Gather Data
+            report.SystemInfo = si;
+            report.MacAddress = si.MacAddress ?? "";
+
+            var cpuDiag = new LinuxCpuDiagnostic();
+            report.CpuDetails = cpuDiag.GetInfo();
+            var cpuVal = cpuDiag.ValidateCpu(report.CpuDetails);
+            report.CpuTest = new TestResult { Tested = true, Passed = cpuVal.IsHealthy, Message = cpuVal.Message };
+
+            var ramDiag = new LinuxRamDiagnostic();
+            report.RamDetails = ramDiag.GetInfo();
+            var ramVal = ramDiag.ValidateRam(report.RamDetails);
+            report.RamTest = new TestResult { Tested = true, Passed = ramVal.IsHealthy, Message = ramVal.Message };
+
+            var storageDiag = new LinuxStorageDiagnostic();
+            report.StorageDetails = storageDiag.GetInfo();
+            var storVal = storageDiag.ValidateStorage(report.StorageDetails);
+            report.StorageTest = new TestResult { Tested = true, Passed = storVal.IsHealthy, Message = storVal.Message };
+
+            var battDiag = new LinuxBatteryDiagnostic();
+            report.BatteryDetails = battDiag.GetInfo();
+            var batVal = battDiag.ValidateBattery(report.BatteryDetails);
+            report.BatteryTest = new TestResult { Tested = true, Passed = batVal.IsHealthy, Message = batVal.Message };
+
+            // Wait for SMART
+            var smartSvc = new LinuxSmartTestService();
+            if (smartSvc.IsAvailable && report.StorageDetails?.Devices.Count > 0)
+            {
+                // Just do quick health check for AutoQC to save time/resources, similar to skipping stress
+                var hc = smartSvc.QuickHealthCheck();
+                report.StorageTest.Passed = hc.OverallHealthy;
+                report.StorageTest.Message = hc.OverallHealthy ? "Healthy" : "Warning";
+            }
+
+            var grading = new GradingService();
+            var components = new[] { "CPU", "RAM", "Storage", "Battery", "SMART" };
+            var componentGrades = grading.GradeComponentTestsOnly(report, components);
+
+            if (componentGrades.Count == 0)
+                return;
+
+            var submission = new MachineHistorySubmissionService();
+            var submitResult = await submission.SubmitComponentGradesAsync(
+                report,
+                componentGrades,
+                "auto_basic_qc",
+                authService.Token);
+
+            if (!submitResult.Success && submitResult.IsAuthError)
+            {
+                authService.Logout();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Auto QC failed: {ex.Message}");
+        }
+    }
+
+    static void InstallBackgroundServices()
+    {
+        if (Environment.UserName != "root")
+        {
+            Console.WriteLine("Error: --install-background must be run as root (using sudo).");
+            Environment.Exit(1);
+        }
+
+        string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "/usr/bin/pramaan";
+        
+        // 1. Heartbeat (Every 4 hours)
+        string heartbeatService = $@"[Unit]
+Description=Pramaan Heartbeat Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={exePath} --heartbeat
+User=root
+";
+        string heartbeatTimer = $@"[Unit]
+Description=Run Pramaan Heartbeat every 4 hours
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=4h
+AccuracySec=5m
+
+[Install]
+WantedBy=timers.target
+";
+
+        // 2. Auto QC (Weekly)
+        string autoQcService = $@"[Unit]
+Description=Pramaan Auto Basic QC Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart={exePath} --auto-basic-qc
+User=root
+";
+        string autoQcTimer = $@"[Unit]
+Description=Run Pramaan Auto QC weekly
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+AccuracySec=12h
+
+[Install]
+WantedBy=timers.target
+";
+
+        try
+        {
+            File.WriteAllText("/etc/systemd/system/pramaan-heartbeat.service", heartbeatService);
+            File.WriteAllText("/etc/systemd/system/pramaan-heartbeat.timer", heartbeatTimer);
+            File.WriteAllText("/etc/systemd/system/pramaan-autoqc.service", autoQcService);
+            File.WriteAllText("/etc/systemd/system/pramaan-autoqc.timer", autoQcTimer);
+
+            LinuxCommandRunner.TryRun("systemctl", "daemon-reload");
+            LinuxCommandRunner.TryRun("systemctl", "enable --now pramaan-heartbeat.timer");
+            LinuxCommandRunner.TryRun("systemctl", "enable --now pramaan-autoqc.timer");
+
+            Console.WriteLine("Successfully installed and enabled systemd timers for background Auto QC and Heartbeat.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to install services: {ex.Message}");
+        }
     }
 }
