@@ -8,6 +8,7 @@ export interface AuthenticatedUser {
     username: string;
     role: UserRole;
     created_by?: number;
+    machineId?: number;
 }
 
 export interface AuthResult {
@@ -70,6 +71,7 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
                 id: payload.userId,
                 username: payload.username,
                 role: 'B2CDevice',
+                machineId: payload.machineId,
             },
             error: null,
         };

@@ -10,6 +10,7 @@ export interface JwtPayload {
     role: string;
     scope?: 'user' | 'license_device';
     customerUserId?: number;
+    machineId?: number;
 }
 
 // Hash a password

@@ -173,7 +173,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* Issues Card — always visible, all roles */}
-                <Link href="/dashboard/results">
+                <Link href="/dashboard/results?hasIssues=true">
                     <Card className={cn(
                         "shadow-none cursor-pointer transition-colors",
                         issueStats.devicesWithIssues > 0

@@ -16,11 +16,27 @@ public class LinuxSmartTestService : ISmartTestService
 
     public LinuxSmartTestService()
     {
-        // Check for bundled smartctl first, then fallback to system paths
+        // 1. Extract embedded smartctl if available
+        string embeddedPath = Path.Combine(Path.GetTempPath(), "pramaan_smartctl");
+        try
+        {
+            using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("smartctl-linux-x64");
+            if (stream != null)
+            {
+                using var fs = new FileStream(embeddedPath, FileMode.Create, FileAccess.Write);
+                stream.CopyTo(fs);
+                fs.Close();
+                LinuxCommandRunner.TryRun("chmod", $"+x {embeddedPath}");
+            }
+        }
+        catch { }
+
+        // 2. Check for bundled smartctl first, then fallback to system paths
         string localPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "smartctl-linux-x64");
         string localPathGeneric = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "smartctl");
 
-        _smartctlPath = File.Exists(localPath) ? localPath
+        _smartctlPath = File.Exists(embeddedPath) ? embeddedPath
+                      : File.Exists(localPath) ? localPath
                       : File.Exists(localPathGeneric) ? localPathGeneric
                       : File.Exists("/usr/bin/smartctl") ? "/usr/bin/smartctl"
                       : File.Exists("/usr/local/bin/smartctl") ? "/usr/local/bin/smartctl"
@@ -63,9 +79,27 @@ public class LinuxSmartTestService : ISmartTestService
                 // Skip loop and ram devices
                 if (devPath.Contains("/loop") || devPath.Contains("/ram")) continue;
 
-                var info = BuildDriveInfo(devPath);
+                // Check if smartctl provided a device type argument (e.g. -d megaraid,0)
+                string devArgs = "";
+                int typeIdx = line.IndexOf(" -d ");
+                if (typeIdx != -1)
+                {
+                    int commentIdx = line.IndexOf(" # ");
+                    if (commentIdx > typeIdx)
+                        devArgs = line.Substring(typeIdx, commentIdx - typeIdx).Trim();
+                    else
+                        devArgs = line.Substring(typeIdx).Trim();
+                }
+
+                var info = BuildDriveInfo(devPath, devArgs);
                 if (info != null)
                     devices.Add(info);
+            }
+
+            // Fallback for Hardware RAID controllers that are missed by --scan
+            if (devices.Count == 0 || IsHardwareRaidPresent())
+            {
+                devices.AddRange(ProbeHardwareRaidDevices());
             }
         }
         catch { /* Return whatever we got */ }
@@ -134,8 +168,8 @@ public class LinuxSmartTestService : ISmartTestService
             StartTime  = DateTime.Now
         };
 
-        // Start the test (requires sudo)
-        var startOut = LinuxCommandRunner.TryRun(_smartctlPath, $"-t short {devicePath}");
+        var args = string.IsNullOrWhiteSpace(deviceType) ? "" : $"-d {deviceType} ";
+        var startOut = LinuxCommandRunner.TryRun(_smartctlPath, $"-t short {args}{devicePath}");
         if (startOut.Contains("error", StringComparison.OrdinalIgnoreCase) ||
             startOut.Contains("Unable to", StringComparison.OrdinalIgnoreCase) ||
             startOut.Contains("failed to", StringComparison.OrdinalIgnoreCase))
@@ -169,7 +203,7 @@ public class LinuxSmartTestService : ISmartTestService
         {
             await Task.Delay(5000);
 
-            var logOut = LinuxCommandRunner.TryRun(_smartctlPath, $"-l selftest {devicePath}");
+            var logOut = LinuxCommandRunner.TryRun(_smartctlPath, $"-l selftest {args}{devicePath}");
 
             int pct = 0;
             string status = "Testing...";
@@ -291,12 +325,13 @@ public class LinuxSmartTestService : ISmartTestService
 
     // ── Helpers ─────────────────────────────────────────────────
 
-    private SmartDriveInfo? BuildDriveInfo(string devicePath)
+    private SmartDriveInfo? BuildDriveInfo(string devicePath, string? deviceArgs = null)
     {
         try
         {
+            var args = string.IsNullOrWhiteSpace(deviceArgs) ? "" : $" {deviceArgs}";
             // -a gives everything: identity + SMART attributes
-            var raw = LinuxCommandRunner.TryRun(_smartctlPath, $"-a {devicePath}");
+            var raw = LinuxCommandRunner.TryRun(_smartctlPath, $"-a {devicePath}{args}");
             if (string.IsNullOrWhiteSpace(raw)) return null;
 
             if (raw.Contains("Permission denied", StringComparison.OrdinalIgnoreCase) ||
@@ -336,6 +371,7 @@ public class LinuxSmartTestService : ISmartTestService
             return new SmartDriveInfo
             {
                 DevicePath    = devicePath,
+                DeviceType    = string.IsNullOrWhiteSpace(deviceArgs) ? "" : deviceArgs.Replace("-d ", "").Trim(),
                 Model         = model,
                 SerialNumber  = serial,
                 HealthScore   = healthScore,
@@ -430,7 +466,71 @@ public class LinuxSmartTestService : ISmartTestService
         if (output.Contains("Unknown USB", StringComparison.OrdinalIgnoreCase))
             return "USB bridge — self-test not available";
 
-        var firstLine = output.Split('\n').FirstOrDefault(l => !string.IsNullOrWhiteSpace(l))?.Trim();
-        return firstLine ?? "Failed to start self-test";
+        // Find the first line that looks like the actual error
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                          .Select(l => l.Trim())
+                          .Where(l => !l.StartsWith("smartctl", StringComparison.OrdinalIgnoreCase) && 
+                                      !l.StartsWith("Copyright", StringComparison.OrdinalIgnoreCase) &&
+                                      !l.StartsWith("===", StringComparison.OrdinalIgnoreCase) &&
+                                      !l.StartsWith("Sending command", StringComparison.OrdinalIgnoreCase) &&
+                                      !string.IsNullOrWhiteSpace(l));
+                          
+        var errorLine = lines.FirstOrDefault(l => l.Contains("failed", StringComparison.OrdinalIgnoreCase) || 
+                                                  l.Contains("error", StringComparison.OrdinalIgnoreCase)) 
+                        ?? lines.FirstOrDefault();
+
+        return errorLine ?? "Failed to start self-test";
+    }
+
+    private bool IsHardwareRaidPresent()
+    {
+        try
+        {
+            var lsblk = LinuxCommandRunner.TryRun("lsblk", "-J -o NAME,MODEL");
+            return lsblk.Contains("PERC", StringComparison.OrdinalIgnoreCase) ||
+                   lsblk.Contains("MegaRAID", StringComparison.OrdinalIgnoreCase) ||
+                   lsblk.Contains("LOGICAL VOLUME", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    private List<SmartDriveInfo> ProbeHardwareRaidDevices()
+    {
+        var devices = new List<SmartDriveInfo>();
+        var virtualDisks = new[] { "/dev/sda", "/dev/sdb", "/dev/sdc" };
+
+        foreach (var vd in virtualDisks)
+        {
+            if (!File.Exists(vd)) continue;
+
+            // Common RAID controllers: megaraid (LSI/PERC), cciss (HP), areca
+            var controllerTypes = new[] { "megaraid", "cciss" };
+            
+            foreach (var ctype in controllerTypes)
+            {
+                // Probe slots 0 to 15
+                for (int i = 0; i < 16; i++)
+                {
+                    var devArgs = $"-d {ctype},{i}";
+                    var info = BuildDriveInfo(vd, devArgs);
+                    if (info != null)
+                    {
+                        // Ensure we aren't adding the virtual controller metadata as a real drive
+                        if (!string.IsNullOrWhiteSpace(info.Model) && 
+                            !info.Model.Contains("Virtual", StringComparison.OrdinalIgnoreCase))
+                        {
+                            devices.Add(info);
+                        }
+                    }
+                    else if (i > 3)
+                    {
+                        // Optimization: if first 4 slots are empty, stop probing this controller type
+                        break; 
+                    }
+                }
+            }
+        }
+
+        return devices;
     }
 }

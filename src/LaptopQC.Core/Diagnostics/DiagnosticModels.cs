@@ -21,6 +21,16 @@ public class StorageInfo
     public string InconclusiveReason { get; set; } = "";
     public bool IsSuspicious { get; set; }
     public string SuspiciousReason { get; set; } = "";
+    public List<RaidArrayInfo> RaidArrays { get; set; } = new();
+}
+
+public class RaidArrayInfo
+{
+    public string Name { get; set; } = "";
+    public string Level { get; set; } = "";
+    public string State { get; set; } = "Active";
+    public int ActiveDrives { get; set; }
+    public int TotalDrives { get; set; }
 }
 
 public class StorageVolume

@@ -119,6 +119,35 @@ export async function GET(request: NextRequest) {
             paramCount++;
         }
 
+        const hasIssues = searchParams.get('hasIssues');
+        if (hasIssues === 'true') {
+            baseWhereClauses.push(`EXISTS (
+                SELECT 1 FROM test_results tr
+                WHERE tr.qc_result_id = qr.id
+                  AND tr.score < 70
+                  AND (
+                    LOWER(tr.test_type) LIKE 'cpu%'
+                    OR LOWER(tr.test_type) LIKE 'memory%'
+                    OR LOWER(tr.test_type) LIKE 'ram%'
+                    OR LOWER(tr.test_type) LIKE 'storage%'
+                    OR LOWER(tr.test_type) LIKE 'nvme%'
+                    OR LOWER(tr.test_type) LIKE 'ssd%'
+                    OR LOWER(tr.test_type) LIKE 'smart%'
+                    OR (
+                      (LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%')
+                      AND tr.score > 0
+                    )
+                    OR (
+                      LOWER(tr.test_type) LIKE 'battery%'
+                      AND (
+                        qr.battery_details_json IS NOT NULL
+                        AND (qr.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+                      )
+                    )
+                  )
+            )`);
+        }
+
         const baseWhereSql = baseWhereClauses.join(' AND ');
 
         // Performance notes:

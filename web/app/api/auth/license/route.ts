@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
                     role: 'B2CDevice',
                     scope: 'license_device',
                     customerUserId: customer.id,
+                    machineId,
                 });
 
                 loginResponse = {
@@ -199,6 +200,7 @@ export async function POST(request: NextRequest) {
                 userId: creator.id,
                 username: creator.username,
                 role: creator.role,
+                machineId,
             });
 
             loginResponse = {

@@ -109,6 +109,8 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
             }
         }
 
+        CheckSoftwareRaid(info);
+
         return info;
     }
 
@@ -118,6 +120,10 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
         if (info.Devices.Count == 0) return (false, "No storage devices detected");
         if (info.IsTampered) return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered" : info.TamperReason);
         if (info.IsInconclusive) return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage health could not be determined" : info.InconclusiveReason);
+        
+        var degradedArray = info.RaidArrays.FirstOrDefault(r => r.State == "Degraded");
+        if (degradedArray != null) return (false, $"Storage health warning: Degraded RAID array detected ({degradedArray.Name})");
+        
         if (info.IsSuspicious) return (true, "Storage data suspicious — review recommended");
         return (true, $"{info.Devices.Count} drive(s) detected, {info.TotalCapacityGB:F0}GB total");
     }
@@ -146,5 +152,53 @@ public class LinuxStorageDiagnostic : IStorageDiagnostic
             info.IsInconclusive = true;
             info.InconclusiveReason = "Storage health inconclusive — run with sudo to enable SMART";
         }
+    }
+
+    private void CheckSoftwareRaid(StorageInfo info)
+    {
+        if (!System.IO.File.Exists("/proc/mdstat")) return;
+
+        try
+        {
+            var mdstat = LinuxCommandRunner.ReadFile("/proc/mdstat");
+            // Regex pattern to extract md devices and active states
+            // Example: md0 : active raid1 sda1[0] sdb1[1]
+            var matches = Regex.Matches(mdstat, @"(md\d+)\s+:\s+(\w+)\s+(raid\d+)\s+(.*)");
+            foreach (Match match in matches)
+            {
+                var name = match.Groups[1].Value;
+                var state = match.Groups[2].Value;
+                var level = match.Groups[3].Value;
+                var disks = match.Groups[4].Value;
+
+                var activeCount = Regex.Matches(disks, @"\[\d+\]").Count;
+
+                var raidInfo = new RaidArrayInfo
+                {
+                    Name = name,
+                    Level = level.ToUpperInvariant(),
+                    State = state.Equals("active", StringComparison.OrdinalIgnoreCase) ? "Healthy" : "Degraded",
+                    ActiveDrives = activeCount,
+                    TotalDrives = activeCount
+                };
+
+                // If degraded state is found in the block status line (e.g., [U_])
+                var statusLineMatch = Regex.Match(mdstat, name + @"[\s\S]*?\[([U_]+)\]");
+                if (statusLineMatch.Success)
+                {
+                    var statusStr = statusLineMatch.Groups[1].Value;
+                    raidInfo.TotalDrives = statusStr.Length;
+                    raidInfo.ActiveDrives = statusStr.Count(c => c == 'U');
+                    if (statusStr.Contains('_'))
+                    {
+                        raidInfo.State = "Degraded";
+                        info.IsSuspicious = true; // Flag array anomaly
+                    }
+                }
+
+                info.RaidArrays.Add(raidInfo);
+            }
+        }
+        catch { /* Ignore parsing errors */ }
     }
 }
