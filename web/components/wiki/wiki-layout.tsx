@@ -52,7 +52,7 @@ export async function WikiLayout({
 
       <main className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-6">
         {title ? <h1 className="mb-4 text-2xl font-semibold text-slate-900">{title}</h1> : null}
-        <div className="prose prose-slate max-w-none">{children}</div>
+        <div className="wiki-prose">{children}</div>
       </main>
     </div>
   )

@@ -14,24 +14,30 @@ export function WikiMarkdown({ markdown }: { markdown: string }) {
             rel={props.href?.startsWith("http") ? "noreferrer" : undefined}
           />
         ),
-        code: ({ className, children, ...props }) => (
-          <code
-            {...props}
-            className={[
-              "rounded bg-slate-100 px-1 py-0.5 text-[0.9em]",
-              className ?? "",
-            ].join(" ")}
-          >
-            {children}
-          </code>
-        ),
+        code: ({ className, children, ...props }: any) => {
+          const isBlock = typeof className === "string" && className.includes("language-")
+          if (isBlock) {
+            return (
+              <code {...props} className={["block text-sm", className ?? ""].join(" ")}>
+                {children}
+              </code>
+            )
+          }
+          return (
+            <code {...props} className={className}>
+              {children}
+            </code>
+          )
+        },
         pre: ({ children, ...props }) => (
-          <pre
-            {...props}
-            className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-4"
-          >
+          <pre {...props}>
             {children}
           </pre>
+        ),
+        table: ({ children, ...props }) => (
+          <div className="my-4 overflow-x-auto">
+            <table {...props}>{children}</table>
+          </div>
         ),
       }}
     >
@@ -39,4 +45,3 @@ export function WikiMarkdown({ markdown }: { markdown: string }) {
     </ReactMarkdown>
   )
 }
-

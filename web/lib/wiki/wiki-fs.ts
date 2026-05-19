@@ -15,7 +15,7 @@ export type WikiNode =
       sourcePath: string
     }
 
-const docsRoot = path.resolve(process.cwd(), "..", "docs")
+const docsRoot = path.resolve(process.cwd(), "..", "docs", "end-user")
 
 function slugToFsPath(slug: string[]): string {
   const target = path.resolve(docsRoot, ...slug)
@@ -56,6 +56,8 @@ export async function buildWikiTree(): Promise<WikiNode> {
   async function walk(currentFsPath: string, slug: string[]): Promise<WikiNode> {
     const entries = await fs.readdir(currentFsPath, { withFileTypes: true })
     const children: WikiNode[] = []
+    const readmeFullPath = path.join(currentFsPath, "README.md")
+    const hasReadme = await pathExists(readmeFullPath)
 
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue
@@ -69,6 +71,7 @@ export async function buildWikiTree(): Promise<WikiNode> {
 
       if (!entry.isFile()) continue
       if (!entry.name.toLowerCase().endsWith(".md")) continue
+      if (hasReadme && entry.name.toLowerCase() === "readme.md") continue
 
       const slugWithoutExt = [...slug, entry.name.replace(/\.md$/i, "")]
       children.push({
@@ -84,7 +87,17 @@ export async function buildWikiTree(): Promise<WikiNode> {
       return a.name.localeCompare(b.name)
     })
 
-    return { type: "dir", name: slug.length ? slug[slug.length - 1] : "docs", slug, children }
+    const name = slug.length ? slug[slug.length - 1] : "end-user"
+    if (hasReadme) {
+      children.unshift({
+        type: "file",
+        name,
+        slug: [...slug, "README"],
+        sourcePath: readmeFullPath,
+      })
+    }
+
+    return { type: "dir", name, slug, children }
   }
 
   return walk(docsRoot, [])
@@ -97,4 +110,3 @@ export async function readWikiMarkdown(absPath: string) {
   }
   return fs.readFile(resolved, "utf8")
 }
-
