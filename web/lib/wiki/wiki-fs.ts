@@ -15,7 +15,7 @@ export type WikiNode =
       sourcePath: string
     }
 
-const docsRoot = path.resolve(process.cwd(), "..", "docs", "end-user")
+const docsRoot = path.resolve(process.cwd(), "..", "docs")
 
 function slugToFsPath(slug: string[]): string {
   const target = path.resolve(docsRoot, ...slug)
@@ -87,7 +87,7 @@ export async function buildWikiTree(): Promise<WikiNode> {
       return a.name.localeCompare(b.name)
     })
 
-    const name = slug.length ? slug[slug.length - 1] : "end-user"
+    const name = slug.length ? slug[slug.length - 1] : "docs"
     if (hasReadme) {
       children.unshift({
         type: "file",

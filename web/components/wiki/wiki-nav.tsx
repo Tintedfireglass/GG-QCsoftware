@@ -41,7 +41,7 @@ function TreeNode({
 
   return (
     <li className={depth === 0 ? "" : "mt-2"}>
-      <details open={depth < 1} className="group">
+      <details open={depth < 2} className="group">
         <summary className="cursor-pointer select-none rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-50">
           {label}
         </summary>
@@ -97,4 +97,3 @@ export function WikiNav({ tree, basePath }: { tree: WikiNode; basePath: string }
     </div>
   )
 }
-
