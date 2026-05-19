@@ -18,8 +18,7 @@ export default async function DashboardDocPage({
 
   return (
     <DashboardWikiLayout title={title}>
-      <WikiMarkdown markdown={markdown} />
+      <WikiMarkdown markdown={markdown} basePath="/dashboard/docs" currentSlug={slug} />
     </DashboardWikiLayout>
   )
 }
-
