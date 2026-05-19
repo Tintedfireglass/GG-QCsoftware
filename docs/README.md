@@ -23,6 +23,7 @@ Pramaan is a full-stack quality-control (QC) certification platform for refurbis
 | Document | Audience | Description |
 |---|---|---|
 | [End-User Docs (Index)](./end-user/README.md) | QC Technicians, Operations, Admins | Feature docs for the Web Dashboard and the Windows (WPF) app |
+| [API Guide (Integrations)](./end-user/api/README.md) | Integrations, IT, Developers | Practical API usage guide + Postman collection pointers |
 
 ### For the Business Team
 

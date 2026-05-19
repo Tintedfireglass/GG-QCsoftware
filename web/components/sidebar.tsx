@@ -15,7 +15,8 @@ import {
     Shield,
     Key,
     Server,
-    Hourglass
+    Hourglass,
+    BookOpen
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -72,6 +73,11 @@ export function Sidebar() {
             label: "Free Trials",
             icon: Hourglass,
             roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/docs",
+            label: "Docs",
+            icon: BookOpen
         },
     ]
 
