@@ -59,11 +59,12 @@ The Pramaan engine computes a **weighted composite score** across 6 categories. 
 
 ```csharp
 public class PramaanScoringConfig {
-    public Dictionary<string, double> CategoryWeights { get; set; }
+    public string Version { get; set; }                    // e.g. "1.0.2"
+    public Dictionary<string, double> Weights { get; set; }
     public List<GradeBand> GradeBands { get; set; }
     public Dictionary<string, int> RiskThresholds { get; set; }
     public int DefaultRepairModifierScore { get; set; }
-    public string AlgorithmVersion { get; set; }
+    public int CertificationValidityDays { get; set; }
 }
 ```
 
@@ -131,6 +132,8 @@ Final thermal = average of CPU and GPU thermal scores (or CPU only if no discret
 ### Battery Category Detail (PramaanScoringEngine)
 
 > **Note:** `PramaanScoringEngine.ScoreBattery()` uses a different curve from `GradingService.ScoreBattery()`. These are independent implementations.
+
+If battery BMS data is tampered/unreadable → returns **0** immediately.
 
 Base score from health % (non-linear curve):
 
@@ -209,10 +212,10 @@ The final grade is assigned by comparing the score against ordered `GradeBand` t
 Every scored result stores:
 
 ```json
-"pramaan_algorithm_version": "v2.1"
+"pramaanAlgorithmVersion": "Scoring Engine v1.0.2"
 ```
 
-This field comes directly from `PramaanScoringConfig.AlgorithmVersion` returned by the API. It enables:
+This string is built at runtime as `"Scoring Engine v" + config.Version`. The `config.Version` field comes from `PramaanScoringConfig.Version` (default `"1.0.2"`), which the API can override. It enables:
 
 - Historical comparisons that account for config changes
 - Audits that trace which exact configuration produced a given score
@@ -237,16 +240,11 @@ Weight and threshold changes never require deploying a new CLI or desktop app bi
 
 ---
 
-## GradeComponentTestsOnly (Auto QC)
+## Auto QC (`--auto-basic-qc`)
 
-For background Auto QC runs (`--auto-basic-qc`), only a subset of components are graded:
+For background Auto QC runs, the CLI runs a headless diagnostic pass (CPU, RAM, storage, battery + SMART) without any interactive technician tests. Keyboard, trackpad, USB, and audio tests are skipped since no technician is present.
 
-```csharp
-var components = new[] { "CPU", "RAM", "Storage", "Battery", "SMART" };
-var componentGrades = grading.GradeComponentTestsOnly(report, components);
-```
-
-Interactive tests (keyboard, trackpad, USB, audio) are excluded since there is no technician present. The result is submitted as `source: "auto_basic_qc"` in the machine history API.
+The result is submitted to the machine history API as `source: "auto_basic_qc"`. See [CLI Reference](cli-reference.md) and [API Reference](api-reference.md) for the `/api/machine-history` endpoint details.
 
 ---
 

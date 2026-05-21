@@ -175,7 +175,7 @@ Key fields:
   "pramaanGrade": "A",
   "pramaanHash": "sha256hexstring",
   "pramaanCategoryScores": { "storage": 78, "thermal": 88, ... },
-  "pramaanAlgorithmVersion": "v2.1"
+  "pramaanAlgorithmVersion": "Scoring Engine v1.0.2"
 }
 ```
 
@@ -307,7 +307,8 @@ Returns the active scoring configuration. Called by CLI/desktop app at the start
 **Response:**
 ```json
 {
-  "categoryWeights": {
+  "version": "1.0.2",
+  "weights": {
     "storage": 0.25,
     "thermal": 0.20,
     "battery": 0.20,
@@ -316,17 +317,18 @@ Returns the active scoring configuration. Called by CLI/desktop app at the start
     "repair_modifier": 0.10
   },
   "gradeBands": [
-    { "grade": "A+", "minScore": 85 },
-    { "grade": "A",  "minScore": 70 },
-    { "grade": "B",  "minScore": 55 },
-    { "grade": "C",  "minScore": 40 },
-    { "grade": "Reject", "minScore": 0 }
+    { "grade": "A+",     "minScore": 90 },
+    { "grade": "A",      "minScore": 80 },
+    { "grade": "B",      "minScore": 65 },
+    { "grade": "C",      "minScore": 50 },
+    { "grade": "Reject", "minScore": 0  }
   ],
   "riskThresholds": {
-    "storage": 40, "thermal": 35, "battery": 35,
-    "cpu_ram": 40, "physical_ports": 50
+    "storage": 40, "thermal": 40, "battery": 35,
+    "cpu_ram": 30, "physical_ports": 50, "repair_modifier": 50
   },
-  "algorithmVersion": "v2.1"
+  "defaultRepairModifierScore": 100,
+  "certificationValidityDays": 180
 }
 ```
 

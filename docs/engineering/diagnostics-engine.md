@@ -109,14 +109,14 @@ Reads battery data from `/sys/class/power_supply/`.
 Runs a multi-threaded CPU stress test.
 
 **Implementation:**
-- Spawns N threads (one per logical CPU)
+- Spawns `ProcessorCount - 1` stress threads (one core reserved for the monitor thread)
 - Each thread performs tight mathematical computations for `durationSeconds` (default: 15s)
 - Monitors CPU temperature via `/sys/class/thermal/thermal_zone*/temp`
 - Reports progress via `OnProgress` event
 
 **Thermal throttle detection:**
 - Compares frequency before vs. during stress via `/proc/cpuinfo`
-- Classifies result as EXCELLENT / GOOD / WARNING / CRITICAL based on temperature bands
+- Classifies result as `EXCELLENT` / `PASS` / `WARNING` / `FAIL` / `CRITICAL` based on clock-drop analysis and temperature
 
 ---
 
@@ -279,7 +279,7 @@ QCWorkflowStep.Complete
 | `DiagnosticHash` | `string` | SHA-256 of full report JSON |
 | `OverallScore` | `int` | Final Pramaan Score (0–100) |
 | `OverallGrade` | `string` | Final grade (A+/A/B/C/Reject) |
-| `OverallPass` | `bool` | Score >= 40 |
+| `OverallPass` | `bool` | Score >= 50 |
 
 ---
 
