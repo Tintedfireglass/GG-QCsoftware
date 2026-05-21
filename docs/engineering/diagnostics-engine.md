@@ -99,7 +99,7 @@ Reads battery data from `/sys/class/power_supply/`.
 - Battery status (Charging/Discharging/Full)
 - Design capacity vs actual capacity (wear level)
 
-**Validation:** Flags battery as failing if health < 30% or cycle count exceeds threshold.
+**Validation:** Flags battery as failing if health < 50%, wear level > 40%, or BMS data is tampered.
 
 ---
 
@@ -139,10 +139,10 @@ Allocates and verifies a large memory buffer.
 Runs a GPU stress test using available compute APIs.
 
 **Implementation:**
-- Detects GPU via `/sys/class/drm/` and `lspci`
-- Uses OpenCL (via platform detection) or falls back to CPU-based GPU proxy
-- Monitors GPU temperature via hwmon sysfs paths
-- Reports max temperature and any throttle events
+- Detects discrete GPU via `lspci` (NVIDIA, AMD, other; skips Intel integrated)
+- Runs SIMD `Vector<float>` compute loops across multiple threads as a load generator
+- Monitors GPU temperature via `nvidia-smi` (NVIDIA), `/sys/class/hwmon/` (AMD/nouveau), or `/sys/class/drm/card*/device/hwmon/`
+- Reports max temperature and pass/fail verdict (fail threshold: > 90°C)
 
 ---
 

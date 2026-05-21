@@ -40,7 +40,7 @@ Double-click `Pramaan.exe` or launch from the Start menu. The dashboard opens au
 
 On first launch (or if the session has expired), you will be prompted to enter your license key. The application validates the key with the cloud API and stores the session locally.
 
-If you are on a free trial, the trial session is detected automatically — no manual key entry needed.
+If a free trial has already been registered on this machine (via `POST /api/auth/trial`), the trial session is detected automatically from local storage — no manual key entry needed on subsequent launches.
 
 ---
 

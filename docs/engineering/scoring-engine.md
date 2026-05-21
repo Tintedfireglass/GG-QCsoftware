@@ -106,14 +106,16 @@ The `PramaanScoringEngine.ScoreStorage()` computes an **average** across per-dri
 
 CPU thermal score from verdict keyword in `CpuTest.Message`:
 
-| Keyword | CPU Thermal Score |
+| Keyword (evaluated in this order) | CPU Thermal Score |
 |---|---|
 | EXCELLENT | 100 |
-| PASS | 100 |
-| WARNING | 50 |
-| FAIL | 20 |
 | CRITICAL | 5 |
+| FAIL | 20 |
+| WARNING | 50 |
+| PASS | 100 |
 | (none / other) | 100 if passed, else 20 |
+
+> **Note:** The evaluation uses `else if` chains, so order matters. CRITICAL is checked before FAIL — a message containing both (e.g. "CRITICAL: system FAIL") will score 5, not 20.
 
 GPU thermal score from max temperature in `GpuTest.Details`:
 
