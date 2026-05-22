@@ -52,10 +52,6 @@ On Linux, the CLI uses native filesystem reads (`/proc`, `/sys`, `lsblk`, `smart
 
 ### How is the health score calculated?
 
-Two parallel systems run simultaneously:
-
-**GradingService:** Per-component scoring using `ScoreFunc` delegates; computes a simple weighted overall score.
-
 **PramaanScoringEngine:** 6-category weighted composite → configurable grade bands (A+/A/B/C/Reject).
 
 | Category | Default Weight |
@@ -132,7 +128,6 @@ Full hardware baseline snapshots per device are **not yet persisted locally** �
 ### Can diagnostic data be converted into a deterministic grade classification?
 
 **Yes — this is the core function of the system.**
-- `GradingService.ScoreToGrade(int score)` → A/B/C/D/E/F (component-level, legacy scale)
 - `PramaanScoringConfig.ScoreToGrade(int score)` → A+/A/B/C/Reject via ordered grade bands
 - Default Pramaan grade bands: A+ ≥ 90, A ≥ 80, B ≥ 65, C ≥ 50, Reject < 50
 - Overall pass threshold: `PramaanScore ≥ 50` (grade C minimum)
@@ -246,7 +241,7 @@ Identity is keyed on the **exact, normalized serial number string** (`TRIM().ToU
 | All diagnostics execute automatically | ✅ Implemented — automated + interactive phases |
 | Hardware APIs for telemetry | ✅ LHM + WMI + Performance Counters + smartctl |
 | Normalize results across hardware | ✅ All scores normalized 0–100 |
-| Health score calculation | ✅ GradingService + PramaanScoringEngine |
+| Health score calculation | ✅ PramaanScoringEngine — 6-category weighted composite |
 | Deterministic scoring model | ✅ Fully deterministic for a given config version |
 | Scoring updated without software update | ✅ Config pulled from API at runtime |
 | Detect hardware changes between cycles | ⚠️ Device ID exists; delta comparison not yet built |

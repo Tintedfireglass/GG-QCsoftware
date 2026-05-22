@@ -7,49 +7,11 @@
 
 ## Overview
 
-Pramaan runs two parallel scoring systems on every completed QC report. Both produce a 0–100 score and a grade, but using different methodologies. The **Pramaan Score** (from `PramaanScoringEngine`) is the primary public-facing result.
+Pramaan computes a **Pramaan Score** (0–100) and grade on every completed QC report using `PramaanScoringEngine` — the sole scoring system. Individual test results also receive per-component scores (0–100) used for display; the overall device grade is always the Pramaan Score.
 
 ---
 
-## System 1 — GradingService
-
-**File:** `src/LaptopQC.Core/Services/GradingService.cs`
-
-The `GradingService` grades each **individual test component** (CPU, RAM, Storage, Battery, GPU, etc.) using `ScoreFunc` delegates. **The legacy OverallScore is disabled** — `GradingService.GradeReport()` now sets `report.OverallScore = 0` and `report.OverallGrade = "PRAMAAN"` and delegates overall grading entirely to `PramaanScoringEngine`.
-
-### Component Score Functions
-
-Each test type (CPU, RAM, Storage, Battery, GPU, Network, etc.) has a dedicated scoring function. Score functions map raw test data to 0–100 using lookup tables, threshold bands, and penalty rules.
-
-```csharp
-// Example: Battery scoring
-private int ScoreBattery(TestResult r, QCReport report) {
-    var health = report.BatteryDetails?.HealthPercent ?? 0;
-    return health >= 90 ? 100
-         : health >= 80 ? 85
-         : health >= 70 ? 70
-         : health >= 60 ? 55
-         : health >= 50 ? 40
-         : 20;
-}
-```
-
-### Component Grade (A–F)
-
-Individual component grades use the legacy `GradingService.ScoreToGrade()` scale:
-
-| Score | Grade |
-|---|---|
-| ≥ 90 | A |
-| ≥ 80 | B |
-| ≥ 70 | C |
-| ≥ 50 | D |
-| > 0 | E |
-| 0 | F |
-
----
-
-## System 2 — PramaanScoringEngine (Primary)
+## PramaanScoringEngine
 
 **File:** `src/LaptopQC.Core/Services/PramaanScoringEngine.cs`
 
@@ -59,11 +21,12 @@ The Pramaan engine computes a **weighted composite score** across 6 categories. 
 
 ```csharp
 public class PramaanScoringConfig {
-    public Dictionary<string, double> CategoryWeights { get; set; }
+    public string Version { get; set; }                    // e.g. "1.0.2"
+    public Dictionary<string, double> Weights { get; set; } // JSON: "weights"
     public List<GradeBand> GradeBands { get; set; }
     public Dictionary<string, int> RiskThresholds { get; set; }
     public int DefaultRepairModifierScore { get; set; }
-    public string AlgorithmVersion { get; set; }
+    public int CertificationValidityDays { get; set; }
 }
 ```
 
@@ -123,14 +86,12 @@ GPU thermal score from max temperature in `GpuTest.Details`:
 | ≤ 90°C | 65 |
 | ≤ 95°C | 45 |
 | > 95°C | 10 |
-| GPU failed | 10 |
-| No discrete GPU | excluded |
+| GPU failed (Passed = false) | 10 |
+| No discrete GPU | excluded (not scored) |
 
-Final thermal = average of CPU and GPU thermal scores (or CPU only if no discrete GPU).
+Final thermal = average of CPU and GPU thermal scores (or CPU only if no discrete GPU). Returns **70** (neutral default) if neither CPU nor GPU test was run.
 
 ### Battery Category Detail (PramaanScoringEngine)
-
-> **Note:** `PramaanScoringEngine.ScoreBattery()` uses a different curve from `GradingService.ScoreBattery()`. These are independent implementations.
 
 Base score from health % (non-linear curve):
 
@@ -144,7 +105,7 @@ Base score from health % (non-linear curve):
 | ≥ 40% | 22 |
 | < 40% | 10 |
 
-Cycle count penalty (`PramaanScoringEngine.ScoreBattery`):
+Cycle count penalty:
 - ≤ 500: no penalty
 - > 500: -3
 - > 1000: -8
@@ -209,10 +170,10 @@ The final grade is assigned by comparing the score against ordered `GradeBand` t
 Every scored result stores:
 
 ```json
-"pramaan_algorithm_version": "v2.1"
+"AlgorithmVersion": "Scoring Engine v1.0.2"
 ```
 
-This field comes directly from `PramaanScoringConfig.AlgorithmVersion` returned by the API. It enables:
+This field is built from `PramaanScoringConfig.Version` (formatted as `"Scoring Engine v{config.Version}"`). The current hardcoded default version is `"1.0.2"`. It enables:
 
 - Historical comparisons that account for config changes
 - Audits that trace which exact configuration produced a given score
@@ -237,14 +198,11 @@ Weight and threshold changes never require deploying a new CLI or desktop app bi
 
 ---
 
-## GradeComponentTestsOnly (Auto QC)
+## Auto QC
 
-For background Auto QC runs (`--auto-basic-qc`), only a subset of components are graded:
+For background Auto QC runs (`--auto-basic-qc`), only a subset of components feed into scoring:
 
-```csharp
-var components = new[] { "CPU", "RAM", "Storage", "Battery", "SMART" };
-var componentGrades = grading.GradeComponentTestsOnly(report, components);
-```
+- CPU, RAM, Storage, Battery, SMART
 
 Interactive tests (keyboard, trackpad, USB, audio) are excluded since there is no technician present. The result is submitted as `source: "auto_basic_qc"` in the machine history API.
 

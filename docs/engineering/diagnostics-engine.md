@@ -236,8 +236,7 @@ QCWorkflowStep.InteractiveTests      ← Technician input required
   • Network connectivity
        ↓
 QCWorkflowStep.ReportGeneration
-  • GradingService.GradeReport()
-  • PramaanScoringEngine.Score()
+  • PramaanScoringEngine.ScoreReport()
   • SHA-256 hash computed
   • HTML report generated
        ↓
@@ -277,7 +276,7 @@ QCWorkflowStep.Complete
 | `AudioJackTest` | `TestResult` | Audio jack manual test result |
 | `PramaanResult` | `PramaanResult` | Score, grade, risk flags |
 | `DiagnosticHash` | `string` | SHA-256 of full report JSON |
-| `OverallScore` | `int` | Final Pramaan Score (0–100) |
+| `OverallScore` | `int` | Always 0 (replaced by `PramaanResult.OverallHealthScore`) |
 | `OverallGrade` | `string` | Final grade (A+/A/B/C/Reject) |
 | `OverallPass` | `bool` | Score >= 40 |
 

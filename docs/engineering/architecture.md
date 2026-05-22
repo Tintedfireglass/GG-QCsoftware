@@ -53,7 +53,7 @@ All three clients (Linux CLI, Windows Desktop, Agent) communicate with the web d
 3. Interactive Tests (technician input)
 
 4. Grading (local computation)
-   └─ GradingService + PramaanScoringEngine
+   └─ PramaanScoringEngine
    └─ PramaanScoringConfig fetched from API at runtime
 
 5. SHA-256 hash computed over full QCReport JSON
