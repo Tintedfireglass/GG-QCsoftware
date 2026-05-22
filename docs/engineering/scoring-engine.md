@@ -68,14 +68,16 @@ The `PramaanScoringEngine.ScoreStorage()` computes an **average** across per-dri
 
 CPU thermal score from verdict keyword in `CpuTest.Message`:
 
-| Keyword | CPU Thermal Score |
+| Keyword (evaluated in this order) | CPU Thermal Score |
 |---|---|
 | EXCELLENT | 100 |
-| PASS | 100 |
-| WARNING | 50 |
-| FAIL | 20 |
 | CRITICAL | 5 |
+| FAIL | 20 |
+| WARNING | 50 |
+| PASS | 100 |
 | (none / other) | 100 if passed, else 20 |
+
+> **Note:** The evaluation uses `else if` chains, so order matters. CRITICAL is checked before FAIL — a message containing both (e.g. "CRITICAL: system FAIL") will score 5, not 20.
 
 GPU thermal score from max temperature in `GpuTest.Details`:
 
@@ -92,6 +94,9 @@ GPU thermal score from max temperature in `GpuTest.Details`:
 Final thermal = average of CPU and GPU thermal scores (or CPU only if no discrete GPU). Returns **70** (neutral default) if neither CPU nor GPU test was run.
 
 ### Battery Category Detail (PramaanScoringEngine)
+
+If battery BMS data is tampered/unreadable → returns **0** immediately.
+
 
 Base score from health % (non-linear curve):
 
@@ -170,10 +175,10 @@ The final grade is assigned by comparing the score against ordered `GradeBand` t
 Every scored result stores:
 
 ```json
-"AlgorithmVersion": "Scoring Engine v1.0.2"
+"pramaanAlgorithmVersion": "Scoring Engine v1.0.2"
 ```
 
-This field is built from `PramaanScoringConfig.Version` (formatted as `"Scoring Engine v{config.Version}"`). The current hardcoded default version is `"1.0.2"`. It enables:
+This string is built at runtime as `"Scoring Engine v" + config.Version`. The `config.Version` field comes from `PramaanScoringConfig.Version` (default `"1.0.2"`), which the API can override. It enables:
 
 - Historical comparisons that account for config changes
 - Audits that trace which exact configuration produced a given score
@@ -198,13 +203,11 @@ Weight and threshold changes never require deploying a new CLI or desktop app bi
 
 ---
 
-## Auto QC
+## Auto QC (`--auto-basic-qc`)
 
-For background Auto QC runs (`--auto-basic-qc`), only a subset of components feed into scoring:
+For background Auto QC runs, the CLI runs a headless diagnostic pass (CPU, RAM, storage, battery + SMART) without any interactive technician tests. Keyboard, trackpad, USB, and audio tests are skipped since no technician is present.
 
-- CPU, RAM, Storage, Battery, SMART
-
-Interactive tests (keyboard, trackpad, USB, audio) are excluded since there is no technician present. The result is submitted as `source: "auto_basic_qc"` in the machine history API.
+The result is submitted to the machine history API as `source: "auto_basic_qc"`. See [CLI Reference](cli-reference.md) and [API Reference](api-reference.md) for the `/api/machine-history` endpoint details.
 
 ---
 

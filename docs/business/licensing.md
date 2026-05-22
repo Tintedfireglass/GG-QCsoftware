@@ -51,8 +51,8 @@ Pramaan uses a **license key system** to authenticate CLI/desktop clients and co
 Each device is assigned a unique integer **Device ID** based on this priority:
 
 1. BIOS serial number (preferred — factory-burned, highly reliable)
-2. Computer name (fallback)
-3. MAC address (last resort)
+2. MAC address (fallback)
+3. Computer name (last resort)
 
 Device IDs are stored in a local registry:
 - **Linux/CLI:** `~/.pramaan/` directory

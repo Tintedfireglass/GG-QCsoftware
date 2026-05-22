@@ -65,10 +65,11 @@ In addition to the score, the system generates **per-category risk flags** if a 
 ## How Individual Components Are Scored
 
 ### Storage Score
-- SMART health percent is read from `smartctl` or LibreHardwareMonitor
-- Normalized: 100% health → 100 points; 60% health → ~30 points
-- Temperature bands: below 45°C → no penalty; above 65°C → critical penalty
-- SMART short self-test failure → automatic cap of 40/100
+- SMART health % is read directly from `smartctl` — used as the per-drive score (0–100)
+- Drives are weighted by capacity (GB) to produce a single machine-level storage score
+- Temperature penalty applied per drive: ≤ 45°C → no penalty; > 45°C → −4; > 50°C → −10; > 55°C → −20; > 60°C → −35
+- SMART self-test failure → −30 points and score capped at 45
+- All-eMMC devices without health data → capped at 80
 - RAID: degraded array (missing drives) → critical penalty
 
 ### Battery Score
@@ -84,13 +85,15 @@ In addition to the score, the system generates **per-category risk flags** if a 
 Cycle count penalty: high cycle counts deduct from the base score.
 
 ### CPU & RAM Score
-- CPU detection pass (healthy core count, frequency detected) → points
-- RAM stress test pass → points
-- Thermal throttle during CPU stress → deduction
+- CPU stress test pass → high points; stress test fail → low points
+- RAM stress test pass → high points; stress test failure or errors → low points
+- Thermal throttle during CPU stress test reduces the thermal category score (separate from cpu_ram)
 
 ### Thermal Score
-- Based on peak CPU + GPU temperature during stress testing
-- Verdict bands: `EXCELLENT` (< 70°C) → 100, `GOOD` (< 80°C) → 85, `WARNING` (< 90°C) → 60, `CRITICAL` (≥ 90°C) → 25
+- Based on the verdict keyword present in the CPU stress test message (`CpuTest.Message`)
+- `EXCELLENT` → 100, `PASS` → 100, `WARNING` → 50, `FAIL` → 20, `CRITICAL` → 5
+- GPU thermal scored separately from max temperature in stress test details and averaged with CPU thermal
+- If no discrete GPU is detected, only the CPU thermal score is used
 
 ### Physical Ports Score
 - USB test pass → points
@@ -100,8 +103,8 @@ Cycle count penalty: high cycle counts deduct from the base score.
 
 ### Repair Modifier
 - Entered by the technician during the QC session
-- Default score if no repair info recorded: configurable (typically 70)
-- Known repairs reduce the modifier score based on severity
+- Default score if no repair info recorded: **100** (best-case assumption — no known repairs)
+- Known repairs reduce the modifier score based on severity (Saarthi integration, future)
 
 ---
 
