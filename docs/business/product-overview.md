@@ -74,11 +74,11 @@ Every device receives a **Pramaan Score (0–100)** and a **Grade Band**:
 
 | Grade | Label | Score Range |
 |---|---|---|
-| **A+** | Certified Premium | 85–100 |
-| **A** | Certified | 70–84 |
-| **B** | Good Condition | 55–69 |
-| **C** | Acceptable | 40–54 |
-| **Reject** | Not Certified | 0–39 |
+| **A+** | Certified Premium | 90–100 |
+| **A** | Certified | 80–89 |
+| **B** | Good Condition | 65–79 |
+| **C** | Acceptable | 50–64 |
+| **Reject** | Not Certified | 0–49 |
 
 Scoring is fully deterministic — the same hardware in the same state always produces the same score.
 
