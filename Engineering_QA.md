@@ -43,16 +43,13 @@ In addition, `SmartctlProvider` shells out to the `smartctl` CLI tool (from smar
 - **CPU/GPU thermal:** Verdict keywords (`EXCELLENT`, `WARNING`, `CRITICAL`) or raw peak temperature are mapped to score values
 - **Binary tests** (Keyboard, Trackpad, USB): 100 = Pass, 0 = Fail — hardware-agnostic
 
-The `GradingService` uses `TestDefinitions` (a registry of `ScoreFunc` delegates), and `PramaanScoringEngine` uses 6 weighted categories — both are hardware-model-agnostic.
+The `PramaanScoringEngine` uses 6 weighted categories — hardware-model-agnostic by design.
 
 ---
 
 ### 4. How is the health score calculated?
 
-Two parallel scoring systems run simultaneously (`GradingService.GradeReport()`):
-
-
-#### System — PRAMAAN Health Score (PramaanScoringEngine)
+#### PRAMAAN Health Score (PramaanScoringEngine)
 6 categories → configurable weighted average → GradeBand (A+/A/B/C/Reject).
 
 | Category | Default Weight |
@@ -154,10 +151,9 @@ The backend receives these as `SubmitQCResultRequest` and (by design) stores the
 
 **Yes — this is the core function of the system.** The grade classification is fully deterministic:
 
-- `GradingService.ScoreToGrade(int score)` → A/B/C/D/E/F via a `switch` expression
 - `PramaanScoringConfig.ScoreToGrade(int score)` → A+/A/B/C/Reject via ordered `GradeBands`
 
-The overall pass threshold is `OverallScore >= 50` (`QCReport.OverallPass`), making "sellable" vs. "reject" a deterministic binary output.
+The overall pass threshold is `PramaanResult.OverallHealthScore ≥ 50`, making "sellable" vs. "reject" a deterministic binary output.
 
 ---
 
@@ -319,7 +315,7 @@ Currently, identity is keyed on the **exact, normalized serial number string** (
 | **All diagnostics execute automatically** | ✅ **Feasible** | Automated phase runs without user input; interactive phase is manual by design |
 | **Hardware APIs for telemetry** | ✅ **Feasible** | LibreHardwareMonitor + WMI + Performance Counters + smartctl |
 | **Normalize results across hardware models** | ✅ **Feasible** | All scores normalized to 0–100 via scoring functions |
-| **Health score calculation** | ✅ **Feasible** | Dual-system: GradingService + PramaanScoringEngine, both implemented |
+| **Health score calculation** | ✅ **Feasible** | PramaanScoringEngine: 6-category weighted composite |
 | **Deterministic scoring model** | ✅ **Feasible** | Fully deterministic for a given config version |
 | **Scoring updated via software** | ✅ **Feasible** | Config pulled from API at runtime; no software update required for weights/thresholds |
 | **Detect hardware changes between cycles** | ⚠️ **Partially Feasible** | Device ID tracking exists; delta comparison requires architecture addition |

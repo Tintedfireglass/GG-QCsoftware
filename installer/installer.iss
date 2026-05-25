@@ -16,7 +16,7 @@
 #define MyAppExeName "Pramaan.exe"
 #define MyAppURL "https://gg-qcsoftware.vercel.app/"
 #define MyAppExePath "..\publish\Pramaan.exe"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 
 [Setup]
 ; Application identity

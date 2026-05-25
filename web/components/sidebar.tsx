@@ -15,7 +15,7 @@ import {
     Shield,
     Key,
     Server,
-    Hourglass
+    Hourglass,
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 

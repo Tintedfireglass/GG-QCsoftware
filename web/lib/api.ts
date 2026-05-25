@@ -367,8 +367,39 @@ export interface AdminFreeTrialRow {
     revoked_at: string | null
     revoke_reason: string | null
     created_at: string
+    qc_result_count: number
+}
+
+export interface AutoQCComponentGrade {
+    score: number
+    grade: string
+}
+
+export interface AutoQCRun {
+    id: number
+    timestamp: string
+    source: string
+    app_version: string | null
+    component_grades: Record<string, AutoQCComponentGrade>
+    machine_identifier: string | null
+    computer_name: string | null
+    serial_number: string | null
+    manufacturer: string | null
+    model: string | null
 }
 
 export async function getAdminFreeTrials(): Promise<{ trials: AdminFreeTrialRow[] }> {
     return cachedGetJson("/api/admin/free-trials", TTL.short)
+}
+
+export async function getTrialMachineAutoQCRuns(
+    machineSerial: string
+): Promise<{ results: AutoQCRun[]; serial: string }> {
+    const encoded = encodeURIComponent(machineSerial)
+    const res = await fetchWithAuth(`/api/admin/free-trials/${encoded}/qc-results`)
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
 }

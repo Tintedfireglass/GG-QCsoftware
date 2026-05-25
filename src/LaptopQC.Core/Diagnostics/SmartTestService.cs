@@ -35,6 +35,12 @@ public class SmartTestService : ISmartTestService
         
         foreach (var drive in drives)
         {
+            if (drive.Type.Contains("usb", StringComparison.OrdinalIgnoreCase) || 
+                drive.Protocol.Contains("usb", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(drive.DevicePath)))
                 continue;
 
@@ -215,8 +221,6 @@ public class SmartTestService : ISmartTestService
         return result;
     }
 
-    private const long UsbFlashMaxBytes = 64L * 1024 * 1024 * 1024; // 64 GB
-
     [SupportedOSPlatform("windows")]
     private static UsbRemovableInfo GetUsbRemovableInfo()
     {
@@ -225,30 +229,19 @@ public class SmartTestService : ISmartTestService
         try
         {
             using var searcher = new ManagementObjectSearcher(
-                "SELECT DeviceID, Model, SerialNumber, MediaType, InterfaceType, RemovableMedia, Size FROM Win32_DiskDrive");
+                "SELECT DeviceID, Model, SerialNumber, MediaType, InterfaceType, RemovableMedia FROM Win32_DiskDrive");
 
             foreach (ManagementObject obj in searcher.Get())
             {
                 var interfaceType = obj["InterfaceType"]?.ToString() ?? "";
-                if (!interfaceType.Equals("USB", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
                 var removableMedia = obj["RemovableMedia"] as bool?;
                 var mediaType = obj["MediaType"]?.ToString() ?? "";
+
+                var isUsb = interfaceType.Equals("USB", StringComparison.OrdinalIgnoreCase);
                 var isRemovable = (removableMedia == true) ||
                                   mediaType.Contains("Removable", StringComparison.OrdinalIgnoreCase);
 
-                long sizeBytes = 0;
-                try
-                {
-                    if (obj["Size"] != null)
-                        sizeBytes = Convert.ToInt64(obj["Size"]);
-                }
-                catch { }
-
-                var isSmallUsb = sizeBytes > 0 && sizeBytes <= UsbFlashMaxBytes;
-
-                if (!isRemovable && !isSmallUsb)
+                if (!isUsb && !isRemovable)
                     continue;
 
                 var deviceId = obj["DeviceID"]?.ToString() ?? "";

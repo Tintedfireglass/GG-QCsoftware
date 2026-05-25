@@ -53,18 +53,31 @@ export async function POST(request: NextRequest) {
                 [machineIdRaw]
             );
 
-            if (activationRes.rows.length === 0) {
-                throw new Error('NO_ACTIVATION');
+            let licenseError: string | null = null;
+            const license = activationRes.rows.length > 0 ? activationRes.rows[0] : null;
+
+            if (!license) {
+                licenseError = 'NO_ACTIVATION';
+            } else if (!license.is_active) {
+                licenseError = 'KEY_DISABLED';
+            } else if (license.expires_at && new Date(license.expires_at) < new Date()) {
+                licenseError = 'KEY_EXPIRED';
             }
 
-            const license = activationRes.rows[0];
+            // If no valid license, check for an active free trial before rejecting
+            if (licenseError !== null) {
+                const trialRes = await client.query(
+                    `SELECT id FROM free_trials
+                     WHERE machine_serial = $1
+                       AND is_active = true
+                       AND trial_end_utc > NOW()`,
+                    [machineIdRaw]
+                );
 
-            if (!license.is_active) {
-                throw new Error('KEY_DISABLED');
-            }
-
-            if (license.expires_at && new Date(license.expires_at) < new Date()) {
-                throw new Error('KEY_EXPIRED');
+                if (trialRes.rows.length === 0) {
+                    throw new Error(licenseError);
+                }
+                // Valid trial found — allow the submission to proceed
             }
 
             let machineDbId: number;
