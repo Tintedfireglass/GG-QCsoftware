@@ -140,7 +140,7 @@ function computePramaanFromCategoryScores(
     const clamped = Math.max(0, Math.min(100, overallScore));
 
     // Grade: pick the band with highest MinScore <= score
-    let grade: string | null = null;
+    let grade: string | undefined = undefined;
     const sortedBands = [...gradeBands]
         .filter(b => typeof b?.MinScore === 'number' && typeof b?.Grade === 'string')
         .sort((a, b) => (b.MinScore as number) - (a.MinScore as number));
@@ -168,7 +168,7 @@ function computePramaanFromCategoryScores(
         pramaanScore: clamped,
         pramaanGrade: grade,
         pramaanRiskFlags: riskFlags,
-        pramaanAlgorithmVersion: config.version_id ? `Scoring Engine v${config.version_id}` : null,
+        pramaanAlgorithmVersion: config.version_id ? `Scoring Engine v${config.version_id}` : undefined,
     };
 }
 
@@ -548,9 +548,9 @@ export async function POST(request: NextRequest) {
                     );
 
                     body.pramaanScore = computed.pramaanScore;
-                    body.pramaanGrade = computed.pramaanGrade || body.pramaanGrade || null;
+                    body.pramaanGrade = computed.pramaanGrade || body.pramaanGrade;
                     body.pramaanRiskFlags = computed.pramaanRiskFlags as any;
-                    body.pramaanAlgorithmVersion = computed.pramaanAlgorithmVersion || body.pramaanAlgorithmVersion || null;
+                    body.pramaanAlgorithmVersion = computed.pramaanAlgorithmVersion || body.pramaanAlgorithmVersion;
                 }
             }
 
