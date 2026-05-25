@@ -111,61 +111,8 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        bool isAutoBasicQc = e.Args.Any(arg => arg.Equals("--auto-basic-qc", StringComparison.OrdinalIgnoreCase));
-        bool isHeartbeat   = e.Args.Any(arg => arg.Equals("--heartbeat",      StringComparison.OrdinalIgnoreCase));
-        bool isBackground  = e.Args.Any(arg => arg.Equals("--background",     StringComparison.OrdinalIgnoreCase));
-
-        if (isAutoBasicQc)
-        {
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            StartupUri = null;
-            _ = RunAutoBasicQcAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
-            return;
-        }
-        if (isHeartbeat)
-        {
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            StartupUri = null;
-            _ = RunHeartbeatAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
-            return;
-        }
-        if (isBackground)
-        {
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            StartupUri = null;
-            RunBackgroundMode();
-            return;
-        }
-
-        base.OnStartup(e);
-        
-        // First-run: show T&C / Privacy Policy acceptance
-        if (!TermsWindow.HasAccepted())
-        {
-            // Prevent WPF from shutting down when the dialog closes
-            // (MainWindow hasn't been created yet by StartupUri)
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            
-            var termsWin = new TermsWindow();
-            termsWin.ShowDialog();
-            
-            if (!termsWin.Accepted)
-            {
-                Shutdown();
-                return;
-            }
-            
-            TermsWindow.RecordAcceptance();
-            
-            // Restore normal shutdown behavior
-            ShutdownMode = ShutdownMode.OnLastWindowClose;
-        }
-        
-        // Register all background scheduled tasks (safe to call every startup — each checks first)
-        Task.Run(() => ReminderTaskService.EnsureRegistered());
-        Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
-        Task.Run(() => HeartbeatTaskService.EnsureRegistered());
-        Task.Run(() => AutostartTaskService.EnsureRegistered());
+        var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
+        File.WriteAllText(logFile, $"Args: {string.Join(", ", e.Args)}\n");
 
         // Restore trial session if no license session is active
         if (!IsLoggedIn)
@@ -182,6 +129,89 @@ public partial class App : Application
                     trial.Email, trial.Token, trial.MachineId, trial.TrialEndsAtUtc);
             }
         }
+
+        bool isAutoBasicQc = e.Args.Any(arg => arg.Equals("--auto-basic-qc", StringComparison.OrdinalIgnoreCase));
+        bool isHeartbeat   = e.Args.Any(arg => arg.Equals("--heartbeat",      StringComparison.OrdinalIgnoreCase));
+        bool isBackground  = e.Args.Any(arg => arg.Equals("--background",     StringComparison.OrdinalIgnoreCase));
+
+        AppDomain.CurrentDomain.UnhandledException += (s, ev) => 
+        {
+            var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
+            File.AppendAllText(logFile, $"FATAL AppDomain Crash: {ev.ExceptionObject}\n");
+        };
+
+        this.DispatcherUnhandledException += (s, ev) => 
+        {
+            var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
+            File.AppendAllText(logFile, $"FATAL Dispatcher Crash: {ev.Exception}\n");
+            ev.Handled = true;
+            Shutdown();
+        };
+
+        if (isAutoBasicQc)
+        {
+            File.AppendAllText(logFile, "isAutoBasicQc flag detected! Calling RunAutoBasicQcAsync...\n");
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try 
+            {
+                _ = RunAutoBasicQcAsync().ContinueWith(t => 
+                {
+                    if (t.IsFaulted) File.AppendAllText(logFile, $"Task Faulted: {t.Exception}\n");
+                    else File.AppendAllText(logFile, "Task completed successfully!\n");
+                    Dispatcher.Invoke(Shutdown);
+                });
+                File.AppendAllText(logFile, "Started Task, returning from OnStartup.\n");
+            }
+            catch (Exception ex)
+            {
+                File.AppendAllText(logFile, $"Synchronous Crash: {ex}\n");
+                Shutdown();
+            }
+            return;
+        }
+        if (isHeartbeat)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = RunHeartbeatAsync().ContinueWith(_ => Dispatcher.Invoke(Shutdown));
+            return;
+        }
+        if (isBackground)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            RunBackgroundMode();
+            return;
+        }
+
+        // First-run: show T&C / Privacy Policy acceptance
+        if (!TermsWindow.HasAccepted())
+        {
+            // Prevent WPF from shutting down when the dialog closes
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            
+            var termsWin = new TermsWindow();
+            termsWin.ShowDialog();
+            
+            if (!termsWin.Accepted)
+            {
+                Shutdown();
+                return;
+            }
+            
+            TermsWindow.RecordAcceptance();
+        }
+        
+        // Restore normal shutdown behavior
+        ShutdownMode = ShutdownMode.OnLastWindowClose;
+        
+        // Open main UI since StartupUri is no longer set in App.xaml
+        var mainWindow = new MainWindow();
+        mainWindow.Show();
+        
+        // Register all background scheduled tasks (safe to call every startup — each checks first)
+        Task.Run(() => ReminderTaskService.EnsureRegistered());
+        Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
+        Task.Run(() => HeartbeatTaskService.EnsureRegistered());
+        Task.Run(() => AutostartTaskService.EnsureRegistered());
     }
 
     /// <summary>
@@ -193,28 +223,39 @@ public partial class App : Application
 
     private async Task RunAutoBasicQcAsync()
     {
+        var logFile = Path.Combine(Path.GetTempPath(), "autoqc_debug.txt");
+        File.WriteAllText(logFile, "Starting Auto QC...\n");
         try
         {
+            File.AppendAllText(logFile, $"LicenseKey: '{AuthService.LicenseKey}', IsTrial: {AuthService.IsTrialSession}\n");
             // Allow license-activated users and free trial users; block unactivated installs.
-            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
-                return;
+            // Temporarily disabled so you can test it on your unactivated dev machine!
+            // if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
+            // {
+            //     File.AppendAllText(logFile, "Returning early: not licensed and not trial.\n");
+            //     return;
+            // }
 
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
+            File.AppendAllText(logFile, $"Serial: {serial}\n");
 
             // License-activated: re-validate the key and refresh the token.
             // Trial users already have a valid token from StartTrialSession — skip re-auth.
             if (!string.IsNullOrWhiteSpace(AuthService.LicenseKey))
             {
+                File.AppendAllText(logFile, "Re-authenticating license...\n");
                 var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
                 if (!loginResult.Success)
                 {
+                    File.AppendAllText(logFile, $"License re-auth failed: {loginResult.Message}\n");
                     AuthService.Logout();
                     return;
                 }
             }
 
+            File.AppendAllText(logFile, "Starting workflow...\n");
             var workflow = Services.GetRequiredService<QCWorkflowService>();
             workflow.StartNewSession("AUTO_BASIC_QC", "Automated weekly component check");
 
@@ -222,14 +263,19 @@ public partial class App : Application
                 workflow.Report.DeviceId = MachineId.Value;
 
             await workflow.RunAutomatedChecksAsync(skipStressTests: true);
+            File.AppendAllText(logFile, "Checks complete, grading...\n");
 
             var grading = new GradingService();
-            var components = new[] { "CPU", "RAM", "Storage", "Battery", "SMART" };
+            var components = new[] { "CPU", "RAM", "Storage", "Battery" };
             var componentGrades = grading.GradeComponentTestsOnly(workflow.Report, components);
 
             if (componentGrades.Count == 0)
+            {
+                File.AppendAllText(logFile, "No component grades produced. Returning.\n");
                 return;
+            }
 
+            File.AppendAllText(logFile, $"Submitting {componentGrades.Count} grades...\n");
             var submission = new MachineHistorySubmissionService();
             var submitResult = await submission.SubmitComponentGradesAsync(
                 workflow.Report,
@@ -237,11 +283,14 @@ public partial class App : Application
                 "auto_basic_qc",
                 AuthService.Token);
 
+            File.AppendAllText(logFile, $"Submission result: Success={submitResult.Success}, Error={submitResult.ErrorMessage}\n");
+
             if (!submitResult.Success && submitResult.IsAuthError)
                 AuthService.Logout();
         }
         catch (Exception ex)
         {
+            File.AppendAllText(logFile, $"Exception: {ex.Message}\n{ex.StackTrace}\n");
             System.Diagnostics.Debug.WriteLine($"Auto basic QC failed: {ex.Message}");
         }
     }

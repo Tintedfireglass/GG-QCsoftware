@@ -25,6 +25,153 @@ function normalizeDbGrade(rawGrade?: string | null): string {
     return trimmed.length <= 2 ? trimmed : trimmed.slice(0, 2);
 }
 
+function getStringDetails(details: unknown): string[] {
+    if (!Array.isArray(details)) return [];
+    return details.filter((d): d is string => typeof d === 'string').map(d => d.trim()).filter(Boolean);
+}
+
+function isSelfTestUnavailableLine(line: string): boolean {
+    const s = line.toLowerCase();
+    return (
+        s.includes('self-test could not be started') ||
+        s.includes('self test could not be started') ||
+        s.includes('self-test inconclusive') ||
+        s.includes('self test inconclusive') ||
+        s.includes('self-test not supported') ||
+        s.includes('self test not supported') ||
+        s.includes('self-test unsupported') ||
+        s.includes('self test unsupported') ||
+        s.includes('not supported')
+    );
+}
+
+function hasSmartExcellent100(details: string[]): boolean {
+    // Example lines:
+    // "[SMART] /dev/sda: Excellent (100%)"
+    // "[SMART] VendorC ProductCode: Excellent (100%)"
+    const excellent100 = /\bexcellent\b.*\(\s*100%\s*\)/i;
+    return details.some(d => d.includes('[SMART]') && excellent100.test(d));
+}
+
+function hasOnlySelfTestInconclusive(details: string[]): boolean {
+    // If "inconclusive" is present, ensure it's only due to self-test unavailability.
+    const inconclusiveLines = details.filter(d => d.toLowerCase().includes('inconclusive'));
+    if (inconclusiveLines.length === 0) return false;
+    return inconclusiveLines.every(isSelfTestUnavailableLine);
+}
+
+function normalizeStorageInconclusive(body: SubmitQCResultRequest) {
+    const storageTest = body.testResults?.find(t => t.testType === 'Storage');
+    if (!storageTest) return;
+
+    const details = getStringDetails(storageTest.details);
+
+    // NVMe and many other drives frequently cannot start a SMART self-test.
+    // Do not mark Storage inconclusive if SMART health is clearly excellent.
+    const selfTestUnavailable = details.some(d => d.toLowerCase().includes('self-test') && isSelfTestUnavailableLine(d));
+    const smartExcellent = hasSmartExcellent100(details);
+    const storageMessage = String(storageTest.message || '').toLowerCase();
+    const markedInconclusive =
+        storageMessage.includes('inconclusive') ||
+        details.some(d => d.toLowerCase().includes('storage inconclusive'));
+
+    if (markedInconclusive && smartExcellent && selfTestUnavailable) {
+        storageTest.tested = true;
+        storageTest.passed = true;
+        storageTest.score = 100;
+        storageTest.grade = 'A';
+        storageTest.message = 'Storage health verified';
+
+        if (body.storageDetails) {
+            (body.storageDetails as any).isInconclusive = false;
+            (body.storageDetails as any).inconclusiveReason = '';
+            if (Array.isArray((body.storageDetails as any).devices)) {
+                for (const device of (body.storageDetails as any).devices) {
+                    if (device && typeof device === 'object') {
+                        device.isInconclusive = false;
+                        device.inconclusiveReason = '';
+                    }
+                }
+            }
+        }
+
+        if (body.pramaanCategoryScores && typeof body.pramaanCategoryScores === 'object') {
+            (body.pramaanCategoryScores as any).storage = 100;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+type PramaanConfigRow = {
+    version_id: string;
+    weights: any;
+    grade_bands: any;
+    risk_thresholds: any;
+};
+
+function computePramaanFromCategoryScores(
+    categoryScores: Record<string, unknown>,
+    config: PramaanConfigRow
+) {
+    const weightsObj: Record<string, unknown> = config.weights && typeof config.weights === 'object' ? config.weights : {};
+    const thresholdsObj: Record<string, unknown> =
+        config.risk_thresholds && typeof config.risk_thresholds === 'object' ? config.risk_thresholds : {};
+    const gradeBands: Array<{ Grade?: string; MinScore?: number }> = Array.isArray(config.grade_bands) ? config.grade_bands : [];
+
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+
+    for (const [key, weightRaw] of Object.entries(weightsObj)) {
+        const weight = typeof weightRaw === 'number' ? weightRaw : Number(weightRaw);
+        const scoreRaw = categoryScores[key];
+        const score = typeof scoreRaw === 'number' ? scoreRaw : Number(scoreRaw);
+
+        if (!Number.isFinite(weight) || weight <= 0) continue;
+        if (!Number.isFinite(score)) continue;
+
+        totalWeightedScore += score * weight;
+        totalWeight += weight;
+    }
+
+    const overallScore = totalWeight > 0 ? Math.round(totalWeightedScore / totalWeight) : 0;
+    const clamped = Math.max(0, Math.min(100, overallScore));
+
+    // Grade: pick the band with highest MinScore <= score
+    let grade: string | null = null;
+    const sortedBands = [...gradeBands]
+        .filter(b => typeof b?.MinScore === 'number' && typeof b?.Grade === 'string')
+        .sort((a, b) => (b.MinScore as number) - (a.MinScore as number));
+    for (const band of sortedBands) {
+        if (clamped >= (band.MinScore as number)) {
+            grade = band.Grade as string;
+            break;
+        }
+    }
+
+    const riskFlags: Record<string, boolean> = {};
+    for (const [key, thresholdRaw] of Object.entries(thresholdsObj)) {
+        const threshold = typeof thresholdRaw === 'number' ? thresholdRaw : Number(thresholdRaw);
+        const scoreRaw = categoryScores[key];
+        const score = typeof scoreRaw === 'number' ? scoreRaw : Number(scoreRaw);
+
+        if (!Number.isFinite(threshold) || !Number.isFinite(score)) {
+            riskFlags[key] = false;
+            continue;
+        }
+        riskFlags[key] = score < threshold;
+    }
+
+    return {
+        pramaanScore: clamped,
+        pramaanGrade: grade,
+        pramaanRiskFlags: riskFlags,
+        pramaanAlgorithmVersion: config.version_id ? `Scoring Engine v${config.version_id}` : null,
+    };
+}
+
 // GET all QC results (requires JWT authentication)
 export async function GET(request: NextRequest) {
     try {
@@ -302,6 +449,8 @@ export async function POST(request: NextRequest) {
 
         const body: SubmitQCResultRequest = await request.json();
 
+        const shouldRecomputePramaan = normalizeStorageInconclusive(body);
+
         // Intercept and mark storage as tampered if it has 0% health but passed the SMART self-test.
         // New executables fold SMART into Storage, while older ones may still submit SMART separately.
         if (body.storageDetails?.devices && Array.isArray(body.storageDetails.devices)) {
@@ -383,6 +532,28 @@ export async function POST(request: NextRequest) {
         let demoExhausted = false;
 
         await transaction(async (client) => {
+            if (shouldRecomputePramaan && body.pramaanCategoryScores && typeof body.pramaanCategoryScores === 'object') {
+                const cfgRes = await client.query(
+                    `SELECT version_id, weights, grade_bands, risk_thresholds
+                     FROM pramaan_scoring_versions
+                     WHERE is_active = true
+                     ORDER BY created_at DESC
+                     LIMIT 1`
+                );
+
+                if (cfgRes.rows.length > 0) {
+                    const computed = computePramaanFromCategoryScores(
+                        body.pramaanCategoryScores as any,
+                        cfgRes.rows[0] as PramaanConfigRow
+                    );
+
+                    body.pramaanScore = computed.pramaanScore;
+                    body.pramaanGrade = computed.pramaanGrade || body.pramaanGrade || null;
+                    body.pramaanRiskFlags = computed.pramaanRiskFlags as any;
+                    body.pramaanAlgorithmVersion = computed.pramaanAlgorithmVersion || body.pramaanAlgorithmVersion || null;
+                }
+            }
+
             const existing = await client.query(
                 'SELECT id FROM qc_results WHERE report_id = $1',
                 [body.reportId]

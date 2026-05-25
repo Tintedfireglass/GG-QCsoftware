@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
                 ft.revoked_at,
                 ft.revoke_reason,
                 ft.created_at,
-                COUNT(qr.id)::int AS qc_result_count
+                COUNT(mh.id)::int AS qc_result_count
             FROM free_trials ft
             LEFT JOIN machines m ON ft.machine_id = m.id
-            LEFT JOIN qc_results qr ON qr.machine_id = m.id
+            LEFT JOIN machine_history mh ON mh.machine_id = m.id
             GROUP BY
                 ft.id, ft.email, ft.machine_serial, ft.mac_address,
                 ft.computer_name, ft.machine_id, m.machine_id,

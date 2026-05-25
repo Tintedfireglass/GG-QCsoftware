@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import {
     getAdminFreeTrials,
-    getTrialMachineQCResults,
+    getTrialMachineAutoQCRuns,
     AdminFreeTrialRow,
-    TrialQCResult,
-    TrialQCTestResult,
+    AutoQCRun,
+    AutoQCComponentGrade,
 } from "@/lib/api"
 import { Input } from "@/components/ui/input"
-import { RefreshCw, Search, FlaskConical, X, ChevronRight, CheckCircle2, XCircle, Minus, ExternalLink } from "lucide-react"
+import { RefreshCw, Search, FlaskConical, X, ChevronDown, ChevronRight } from "lucide-react"
 import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
-import Link from "next/link"
 
 type TrialStatus = "Active" | "Expired" | "Revoked"
 
@@ -52,131 +51,119 @@ function statusPill(status: TrialStatus) {
     return `${base} bg-rose-100 text-rose-700`
 }
 
-function testScoreColor(score: number, passed: boolean): string {
-    if (!passed) return "text-rose-600"
-    if (score >= 85) return "text-emerald-600"
-    if (score >= 70) return "text-amber-600"
-    return "text-orange-600"
+// Pretty-print the component name from the key
+function componentLabel(key: string): string {
+    const map: Record<string, string> = {
+        CPU: "CPU",
+        RAM: "RAM",
+        Storage: "Storage",
+        Battery: "Battery",
+        SMART: "SMART (Disk)",
+    }
+    return map[key] ?? key
 }
 
-function TestResultRow({ t }: { t: TrialQCTestResult }) {
-    const icon = !t.tested ? (
-        <Minus className="h-4 w-4 text-slate-400" />
-    ) : t.passed ? (
-        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-    ) : (
-        <XCircle className="h-4 w-4 text-rose-500" />
-    )
+// ── Component grade row ────────────────────────────────────────────────────────
+function ComponentGradeRow({
+    name,
+    cg,
+}: {
+    name: string
+    cg: AutoQCComponentGrade
+}) {
+    const gs = getGradeStyle(cg.grade)
+    const scoreColor =
+        cg.score >= 85
+            ? "text-emerald-600"
+            : cg.score >= 70
+            ? "text-amber-600"
+            : "text-rose-600"
 
     return (
-        <div className="flex items-center gap-3 py-2.5 px-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors">
-            <div className="w-5 shrink-0">{icon}</div>
-            <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-slate-800">{t.test_type}</div>
-                {t.message && (
-                    <div className="text-xs text-slate-500 mt-0.5 truncate" title={t.message}>
-                        {t.message}
-                    </div>
-                )}
-            </div>
-            <div className="shrink-0 text-right">
-                {t.tested ? (
-                    <span className={`text-sm font-bold tabular-nums ${testScoreColor(t.score, t.passed)}`}>
-                        {t.score}
-                    </span>
-                ) : (
-                    <span className="text-xs text-slate-400">N/A</span>
-                )}
-            </div>
-            {t.grade ? (
-                <div className={`shrink-0 w-8 text-center text-xs font-bold rounded px-1 py-0.5 ${getGradeStyle(t.grade).bg} ${getGradeStyle(t.grade).text}`}>
-                    {t.grade}
-                </div>
-            ) : (
-                <div className="shrink-0 w-8" />
-            )}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors">
+            <div className="flex-1 text-sm font-medium text-slate-800">{componentLabel(name)}</div>
+            <span className={`tabular-nums font-bold text-sm ${scoreColor}`}>{cg.score}</span>
+            <span
+                className={`w-9 text-center text-xs font-bold rounded px-1.5 py-0.5 ${gs.bg} ${gs.text}`}
+            >
+                {cg.grade}
+            </span>
         </div>
     )
 }
 
-function QCRunCard({ run }: { run: TrialQCResult }) {
+// ── Auto QC run card ──────────────────────────────────────────────────────────
+function AutoQCRunCard({ run }: { run: AutoQCRun }) {
     const [expanded, setExpanded] = useState(false)
-    const gs = run.pramaan_grade ? getGradeStyle(run.pramaan_grade) : null
+    const components = Object.entries(run.component_grades ?? {})
+
+    // Derive an overall grade from the component grades (worst grade wins)
+    const gradeOrder = ["A+", "A", "B", "C", "D", "E", "F", "Reject"]
+    const worstGrade = components.reduce((worst, [, cg]) => {
+        const wi = gradeOrder.indexOf(worst)
+        const ci = gradeOrder.indexOf(cg.grade)
+        return ci > wi ? cg.grade : worst
+    }, "A+")
+
+    const gs = getGradeStyle(worstGrade)
 
     return (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-            {/* Card header */}
+            {/* Header */}
             <div className="flex items-start justify-between gap-3 p-4">
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs text-slate-400 font-mono">#{run.id}</span>
                         <span className="text-xs text-slate-500">{formatDateShort(run.timestamp)}</span>
                         <span className="text-xs text-slate-400">{formatTime(run.timestamp)}</span>
+                        <span className="text-xs bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-mono">
+                            {run.source}
+                        </span>
                     </div>
-                    <div className="font-semibold text-slate-900 text-sm leading-tight">
-                        {run.system_manufacturer} {run.system_model}
-                    </div>
-                    {run.system_serial && (
-                        <div className="text-xs text-slate-500 mt-0.5">
-                            S/N: {run.system_serial}
+                    {(run.manufacturer || run.model) && (
+                        <div className="font-semibold text-slate-900 text-sm leading-tight">
+                            {run.manufacturer} {run.model}
                         </div>
                     )}
-                    {run.cpu_model && (
-                        <div className="text-xs text-slate-400 mt-0.5 truncate">{run.cpu_model}</div>
+                    {run.computer_name && (
+                        <div className="text-xs text-slate-500 mt-0.5">{run.computer_name}</div>
                     )}
                 </div>
 
-                {/* Grade / Status badge */}
+                {/* Worst-component grade badge */}
                 <div className="shrink-0 flex flex-col items-end gap-1">
-                    {gs && run.pramaan_grade ? (
-                        <>
-                            <span className={`text-lg font-black ${gradeHeroColor(run.pramaan_grade)}`}>
-                                {run.pramaan_grade}
-                            </span>
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${gs.bg} ${gs.text}`}>
-                                {run.pramaan_score ?? "—"} pts
-                            </span>
-                        </>
-                    ) : (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${run.overall_pass ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                            {run.overall_pass ? "Pass" : "Fail"}
-                        </span>
-                    )}
+                    <span className={`text-xl font-black ${gradeHeroColor(worstGrade)}`}>
+                        {worstGrade}
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${gs.bg} ${gs.text}`}>
+                        worst component
+                    </span>
                 </div>
             </div>
 
-            {/* Actions row */}
-            <div className="border-t border-slate-100 flex items-center justify-between px-4 py-2 bg-slate-50/60">
-                <button
-                    onClick={() => setExpanded((v) => !v)}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors"
-                >
-                    <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} />
-                    {run.test_results.length} test{run.test_results.length !== 1 ? "s" : ""}
-                    {expanded ? " – hide" : " – show"}
-                </button>
-                <Link
-                    href={`/dashboard/results/${run.id}`}
-                    target="_blank"
-                    className="text-xs font-medium text-[var(--brand-purple)] hover:underline flex items-center gap-1"
-                >
-                    Full report
-                    <ExternalLink className="h-3 w-3" />
-                </Link>
-            </div>
+            {/* Toggle row */}
+            <button
+                onClick={() => setExpanded((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-2 border-t border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 transition-colors text-xs text-slate-500 font-medium"
+            >
+                <span>{components.length} component{components.length !== 1 ? "s" : ""} tested</span>
+                {expanded ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                )}
+            </button>
 
-            {/* Expanded test results */}
-            {expanded && run.test_results.length > 0 && (
+            {/* Component grade breakdown */}
+            {expanded && components.length > 0 && (
                 <div className="border-t border-slate-100">
-                    {/* Column headers */}
                     <div className="flex items-center gap-3 px-4 py-1.5 bg-slate-50 border-b border-slate-100">
-                        <div className="w-5 shrink-0" />
-                        <div className="flex-1 text-xs text-slate-400 font-medium">Test</div>
-                        <div className="shrink-0 text-xs text-slate-400 font-medium w-8 text-right">Score</div>
-                        <div className="shrink-0 w-8 text-center text-xs text-slate-400 font-medium">Grade</div>
+                        <div className="flex-1 text-xs text-slate-400 font-medium">Component</div>
+                        <div className="text-xs text-slate-400 font-medium w-9 text-right">Score</div>
+                        <div className="w-9 text-center text-xs text-slate-400 font-medium">Grade</div>
                     </div>
-                    {run.test_results.map((t) => (
-                        <TestResultRow key={t.test_type} t={t} />
+                    {components.map(([name, cg]) => (
+                        <ComponentGradeRow key={name} name={name} cg={cg} />
                     ))}
                 </div>
             )}
@@ -185,7 +172,6 @@ function QCRunCard({ run }: { run: TrialQCResult }) {
 }
 
 // ── Slide-over drawer ──────────────────────────────────────────────────────────
-
 interface QCDrawerProps {
     trial: AdminFreeTrialRow
     onClose: () => void
@@ -194,7 +180,7 @@ interface QCDrawerProps {
 function QCDrawer({ trial, onClose }: QCDrawerProps) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
-    const [runs, setRuns] = useState<TrialQCResult[]>([])
+    const [runs, setRuns] = useState<AutoQCRun[]>([])
 
     const machineLabel =
         trial.machine_identifier ||
@@ -208,7 +194,7 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
             try {
                 setError("")
                 setLoading(true)
-                const data = await getTrialMachineQCResults(trial.machine_serial)
+                const data = await getTrialMachineAutoQCRuns(trial.machine_serial)
                 if (!cancelled) setRuns(data.results)
             } catch (e) {
                 if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load results")
@@ -217,16 +203,11 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
             }
         }
         void load()
-        return () => {
-            cancelled = true
-        }
+        return () => { cancelled = true }
     }, [trial.machine_serial])
 
-    // Close on Escape key
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose()
-        }
+        const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
         document.addEventListener("keydown", handler)
         return () => document.removeEventListener("keydown", handler)
     }, [onClose])
@@ -253,7 +234,7 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
                         <div className="flex items-center gap-2 mb-1">
                             <FlaskConical className="h-4 w-4 text-[var(--brand-purple)]" />
                             <span className="text-xs font-semibold text-[var(--brand-purple)] uppercase tracking-wider">
-                                Auto QC Results
+                                Auto QC Runs
                             </span>
                         </div>
                         <h2 className="text-lg font-bold text-slate-900 leading-tight truncate">
@@ -261,6 +242,9 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
                         </h2>
                         <p className="text-xs text-slate-500 mt-0.5 truncate">
                             {trial.email} · Serial: {trial.machine_serial}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Background component health checks run weekly by the app
                         </p>
                     </div>
                     <button
@@ -277,7 +261,7 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-48 gap-3 text-slate-400">
                             <RefreshCw className="h-6 w-6 animate-spin" />
-                            <span className="text-sm">Loading QC results…</span>
+                            <span className="text-sm">Loading auto QC runs…</span>
                         </div>
                     ) : error ? (
                         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700 text-sm">
@@ -287,19 +271,19 @@ function QCDrawer({ trial, onClose }: QCDrawerProps) {
                         <div className="flex flex-col items-center justify-center h-48 gap-3 text-slate-400">
                             <FlaskConical className="h-8 w-8 opacity-40" />
                             <div className="text-center">
-                                <p className="text-sm font-medium text-slate-600">No QC runs yet</p>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    This trial device hasn't submitted any QC results.
+                                <p className="text-sm font-medium text-slate-600">No auto QC runs yet</p>
+                                <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                                    The app submits weekly background checks automatically. Results will appear here once the device has been active long enough.
                                 </p>
                             </div>
                         </div>
                     ) : (
                         <>
                             <p className="text-xs text-slate-500">
-                                {runs.length} QC run{runs.length !== 1 ? "s" : ""} recorded for this device
+                                {runs.length} auto QC run{runs.length !== 1 ? "s" : ""} recorded for this device
                             </p>
                             {runs.map((run) => (
-                                <QCRunCard key={run.id} run={run} />
+                                <AutoQCRunCard key={run.id} run={run} />
                             ))}
                         </>
                     )}
@@ -323,14 +307,8 @@ export default function FreeTrialsPage() {
     const [selectedTrial, setSelectedTrial] = useState<AdminFreeTrialRow | null>(null)
 
     useEffect(() => {
-        if (!user) {
-            router.push("/login")
-            return
-        }
-        if (!isSuperAdmin()) {
-            router.push("/dashboard")
-            return
-        }
+        if (!user) { router.push("/login"); return }
+        if (!isSuperAdmin()) { router.push("/dashboard"); return }
         void load()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, router])
@@ -349,12 +327,8 @@ export default function FreeTrialsPage() {
     }
 
     const onRefresh = async () => {
-        try {
-            setRefreshing(true)
-            await load()
-        } finally {
-            setRefreshing(false)
-        }
+        try { setRefreshing(true); await load() }
+        finally { setRefreshing(false) }
     }
 
     const handleCloseDrawer = useCallback(() => setSelectedTrial(null), [])
@@ -362,18 +336,10 @@ export default function FreeTrialsPage() {
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase()
         if (!q) return rows
-        return rows.filter((r) => {
-            const hay = [
-                r.email,
-                r.machine_serial,
-                r.mac_address || "",
-                r.computer_name || "",
-                r.machine_identifier || "",
-            ]
-                .join(" ")
-                .toLowerCase()
-            return hay.includes(q)
-        })
+        return rows.filter((r) =>
+            [r.email, r.machine_serial, r.mac_address || "", r.computer_name || "", r.machine_identifier || ""]
+                .join(" ").toLowerCase().includes(q)
+        )
     }, [rows, search])
 
     const now = Date.now()
@@ -399,7 +365,6 @@ export default function FreeTrialsPage() {
                                 className="pl-9 w-[280px] h-11 rounded-xl border border-slate-200 focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)]"
                             />
                         </div>
-
                         <button
                             onClick={onRefresh}
                             disabled={refreshing}
@@ -429,7 +394,7 @@ export default function FreeTrialsPage() {
                                     <th className="h-12 px-6 text-left align-middle font-medium text-slate-900 whitespace-nowrap">Trial start</th>
                                     <th className="h-12 px-6 text-left align-middle font-medium text-slate-900 whitespace-nowrap">Trial end</th>
                                     <th className="h-12 px-6 text-left align-middle font-medium text-slate-900 whitespace-nowrap">Revoked</th>
-                                    <th className="h-12 px-6 text-center align-middle font-medium text-slate-900 whitespace-nowrap">QC Results</th>
+                                    <th className="h-12 px-6 text-center align-middle font-medium text-slate-900 whitespace-nowrap">Auto QC</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -445,7 +410,7 @@ export default function FreeTrialsPage() {
                                         const machineLabel =
                                             t.machine_identifier ||
                                             (typeof t.machine_id === "number" ? `#${t.machine_id}` : null) ||
-                                            (t.computer_name ? t.computer_name : null) ||
+                                            t.computer_name ||
                                             "—"
                                         const revokedLabel = t.revoked_at ? formatDate(t.revoked_at) : "—"
                                         const qcCount = t.qc_result_count ?? 0
@@ -479,23 +444,20 @@ export default function FreeTrialsPage() {
                                                 </td>
                                                 <td className="px-6 py-4 align-middle text-center">
                                                     <button
-                                                        id={`trial-qc-btn-${t.id}`}
+                                                        id={`trial-autoqc-btn-${t.id}`}
                                                         onClick={() => setSelectedTrial(t)}
                                                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                                                             qcCount > 0
                                                                 ? "bg-[var(--brand-purple)]/10 text-[var(--brand-purple)] hover:bg-[var(--brand-purple)]/20"
                                                                 : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                                                         }`}
-                                                        title={`View ${qcCount} QC result${qcCount !== 1 ? "s" : ""}`}
+                                                        title={`View ${qcCount} auto QC run${qcCount !== 1 ? "s" : ""}`}
                                                     >
                                                         <FlaskConical className="h-3.5 w-3.5" />
                                                         {qcCount > 0 ? (
-                                                            <>
-                                                                <span>{qcCount}</span>
-                                                                <span className="hidden sm:inline">run{qcCount !== 1 ? "s" : ""}</span>
-                                                            </>
+                                                            <span>{qcCount} run{qcCount !== 1 ? "s" : ""}</span>
                                                         ) : (
-                                                            <span>No runs</span>
+                                                            <span>No runs yet</span>
                                                         )}
                                                     </button>
                                                 </td>
@@ -509,7 +471,7 @@ export default function FreeTrialsPage() {
                 </div>
             </div>
 
-            {/* QC Results Drawer */}
+            {/* Auto QC Drawer */}
             {selectedTrial && (
                 <QCDrawer trial={selectedTrial} onClose={handleCloseDrawer} />
             )}

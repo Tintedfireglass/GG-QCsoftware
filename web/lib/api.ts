@@ -370,42 +370,31 @@ export interface AdminFreeTrialRow {
     qc_result_count: number
 }
 
-export interface TrialQCTestResult {
-    test_type: string
-    tested: boolean
-    passed: boolean
+export interface AutoQCComponentGrade {
     score: number
     grade: string
-    message: string | null
 }
 
-export interface TrialQCResult {
+export interface AutoQCRun {
     id: number
-    report_id: string
     timestamp: string
-    overall_pass: boolean
-    overall_score: number
-    overall_grade: string
-    pramaan_score: number | null
-    pramaan_grade: string | null
-    system_manufacturer: string | null
-    system_model: string | null
-    system_serial: string | null
-    cpu_model: string | null
-    ram_total: string | null
+    source: string
     app_version: string | null
+    component_grades: Record<string, AutoQCComponentGrade>
     machine_identifier: string | null
     computer_name: string | null
-    test_results: TrialQCTestResult[]
+    serial_number: string | null
+    manufacturer: string | null
+    model: string | null
 }
 
 export async function getAdminFreeTrials(): Promise<{ trials: AdminFreeTrialRow[] }> {
     return cachedGetJson("/api/admin/free-trials", TTL.short)
 }
 
-export async function getTrialMachineQCResults(
+export async function getTrialMachineAutoQCRuns(
     machineSerial: string
-): Promise<{ results: TrialQCResult[]; serial: string }> {
+): Promise<{ results: AutoQCRun[]; serial: string }> {
     const encoded = encodeURIComponent(machineSerial)
     const res = await fetchWithAuth(`/api/admin/free-trials/${encoded}/qc-results`)
     if (!res.ok) {
