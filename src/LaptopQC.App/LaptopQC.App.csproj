@@ -1,5 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <Brand Condition="'$(Brand)' == ''">Pramaan</Brand>
+  </PropertyGroup>
+
+  <Import Project="Branding\$(Brand).props" Condition="Exists('Branding\$(Brand).props')" />
+
+  <PropertyGroup>
+    <BrandAppDisplayName Condition="'$(BrandAppDisplayName)' == ''">PRAMAAN</BrandAppDisplayName>
+    <BrandExeName Condition="'$(BrandExeName)' == ''">Pramaan</BrandExeName>
+    <BrandProductName Condition="'$(BrandProductName)' == ''">PRAMAAN</BrandProductName>
+    <BrandCompanyName Condition="'$(BrandCompanyName)' == ''">Gadget Guruz</BrandCompanyName>
+    <BrandPublisherName Condition="'$(BrandPublisherName)' == ''">GadgetGuruz</BrandPublisherName>
+    <BrandUpdateUrl Condition="'$(BrandUpdateUrl)' == ''">https://gadgetguruz.com/api/pramaan/download</BrandUpdateUrl>
+    <BrandIconPath Condition="'$(BrandIconPath)' == ''">Resources\pramana_icon.ico</BrandIconPath>
+    <BrandXamlKey Condition="'$(BrandXamlKey)' == ''">Pramaan</BrandXamlKey>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\LaptopQC.Core\LaptopQC.Core.csproj" />
     <ProjectReference Include="..\LaptopQC.Hardware\LaptopQC.Hardware.csproj" />
@@ -17,12 +34,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Resources\pramana_icon.ico</ApplicationIcon>
+    <ApplicationIcon>$(BrandIconPath)</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\pramana_logo.png" />
-    <Resource Include="Resources\pramana_icon.ico" />
+    <Resource Include="Resources\pramana_logo.png" Condition="Exists('Resources\pramana_logo.png')" />
+    <Resource Include="$(BrandIconPath)" Condition="Exists('$(BrandIconPath)')" />
+    <Content Include="$(BrandIconPath)" Condition="Exists('$(BrandIconPath)')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -31,14 +52,22 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <PropertyGroup>
-    <!-- App Info -->
-    <AssemblyName>Pramaan</AssemblyName>
-    <Product>PRAMAAN</Product>
-    <Company>Gadget Guruz</Company>
-    <Version>1.0.5</Version>
-    
-  </PropertyGroup>
+	  <PropertyGroup>
+	    <!-- App Info -->
+	    <AssemblyName>$(BrandExeName)</AssemblyName>
+	    <Product>$(BrandProductName)</Product>
+	    <Company>$(BrandCompanyName)</Company>
+	    <Version>1.0.6</Version>
+	    
+	  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="Brand" Value="$(BrandXamlKey)" />
+    <AssemblyMetadata Include="Brand.AppDisplayName" Value="$(BrandAppDisplayName)" />
+    <AssemblyMetadata Include="Brand.Publisher" Value="$(BrandPublisherName)" />
+    <AssemblyMetadata Include="Brand.UpdateUrl" Value="$(BrandUpdateUrl)" />
+    <AssemblyMetadata Include="Brand.IconFileName" Value="$([System.IO.Path]::GetFileName('$(BrandIconPath)'))" />
+  </ItemGroup>
 
   <!-- SMART NVMe self-tests require admin rights (IOCTL_STORAGE_PROTOCOL_COMMAND). -->
   <PropertyGroup>

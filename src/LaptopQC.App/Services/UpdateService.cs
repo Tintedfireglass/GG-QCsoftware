@@ -5,16 +5,18 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using LaptopQC.App.Branding;
 using LaptopQC.Core.Services;
 
 namespace LaptopQC.App.Services;
 
 public static class UpdateService
 {
-    private const string UpdateUrl = "https://gadgetguruz.com/api/pramaan/download";
-
     public static async Task CheckForUpdatesAsync(Window owner)
     {
+        if (string.IsNullOrWhiteSpace(BrandInfo.UpdateUrl))
+            return;
+
         try
         {
             var updateInfo = await FetchLatestAsync();
@@ -68,7 +70,7 @@ public static class UpdateService
         using var handler = new HttpClientHandler { AllowAutoRedirect = true };
         using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
 
-        using var response = await http.GetAsync(UpdateUrl, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await http.GetAsync(BrandInfo.UpdateUrl!, HttpCompletionOption.ResponseHeadersRead);
         if (!response.IsSuccessStatusCode)
             return null;
 
@@ -88,7 +90,7 @@ public static class UpdateService
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         var fileName = Path.GetFileName(downloadUrl.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName))
-            fileName = "Pramaan_Setup.exe";
+            fileName = $"{BrandInfo.AppDisplayName}_Setup.exe";
 
         var targetPath = Path.Combine(Path.GetTempPath(), fileName);
 
@@ -133,7 +135,8 @@ public static class UpdateService
         if (string.IsNullOrWhiteSpace(file))
             return null;
 
-        var match = Regex.Match(file, @"Pramaan_Setup_(\d+(?:\.\d+){1,3})\.exe", RegexOptions.IgnoreCase);
+        var prefix = Regex.Escape(BrandInfo.InstallerFileNamePrefix);
+        var match = Regex.Match(file, $@"{prefix}(\d+(?:\.\d+){{1,3}})\.exe", RegexOptions.IgnoreCase);
         if (!match.Success)
             return null;
 

@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <BrandAppDisplayName>PRAMAAN</BrandAppDisplayName>
+    <BrandExeName>Pramaan</BrandExeName>
+    <BrandProductName>PRAMAAN</BrandProductName>
+    <BrandCompanyName>Gadget Guruz</BrandCompanyName>
+    <BrandPublisherName>GadgetGuruz</BrandPublisherName>
+    <BrandUpdateUrl>https://gadgetguruz.com/api/pramaan/download</BrandUpdateUrl>
+    <BrandIconPath>Resources\pramana_icon.ico</BrandIconPath>
+    <BrandXamlKey>Pramaan</BrandXamlKey>
+  </PropertyGroup>
+</Project>
+

@@ -12,7 +12,7 @@
         <vm:UsbPortTestViewModel />
     </Window.DataContext>
     
-    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
+    <Border Background="White" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
             Effect="{StaticResource CardShadow}">
         <Grid>
             <Grid.RowDefinitions>
@@ -29,12 +29,12 @@
                 <TextBlock Text="🔌" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="USB Port Test" 
                            FontSize="22" FontWeight="SemiBold" 
-                           Foreground="#8B3D88" FontFamily="Segoe UI"
+                           Foreground="{DynamicResource BrandPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                            VerticalAlignment="Center"/>
             </StackPanel>
             
             <!-- Port Count Selector -->
-            <Border Grid.Row="1" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+            <Border Grid.Row="1" Background="#f9fafb" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -42,9 +42,9 @@
                     </Grid.ColumnDefinitions>
                     
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Expected USB Ports" Foreground="#374151" FontSize="14" FontWeight="SemiBold" FontFamily="Segoe UI"/>
+                        <TextBlock Text="Expected USB Ports" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold" FontFamily="{DynamicResource AppFontFamily}"/>
                         <TextBlock Text="Set this to the number of physical USB ports on the laptop" 
-                                   Foreground="#6b7280" FontSize="12" FontFamily="Segoe UI"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
                     </StackPanel>
                     
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -52,9 +52,9 @@
                                 Width="36" Height="36" FontSize="18" FontWeight="Bold">
                             <Button.Style>
                                 <Style TargetType="Button">
-                                    <Setter Property="Background" Value="#f3f4f6"/>
-                                    <Setter Property="Foreground" Value="#374151"/>
-                                    <Setter Property="BorderBrush" Value="#d1d5db"/>
+                                     <Setter Property="Background" Value="#f3f4f6"/>
+                                     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                     <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                                     <Setter Property="BorderThickness" Value="1"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
@@ -70,22 +70,22 @@
                                     </Setter>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#e5e7eb"/>
+                                             <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <TextBlock Text="{Binding ExpectedPortCount}" 
-                                   Foreground="#1f2937" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI"
+                         <TextBlock Text="{Binding ExpectedPortCount}" 
+                                   Foreground="{DynamicResource TextPrimaryBrush}" FontSize="24" FontWeight="Bold" FontFamily="{DynamicResource AppFontFamily}"
                                    VerticalAlignment="Center" Margin="16,0"/>
                         <Button Content="+" Command="{Binding IncrementPortCountCommand}"
                                 Width="36" Height="36" FontSize="18" FontWeight="Bold">
                             <Button.Style>
                                 <Style TargetType="Button">
-                                    <Setter Property="Background" Value="#f3f4f6"/>
-                                    <Setter Property="Foreground" Value="#374151"/>
-                                    <Setter Property="BorderBrush" Value="#d1d5db"/>
+                                     <Setter Property="Background" Value="#f3f4f6"/>
+                                     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                     <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                                     <Setter Property="BorderThickness" Value="1"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
@@ -101,7 +101,7 @@
                                     </Setter>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#e5e7eb"/>
+                                             <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -115,18 +115,18 @@
             <StackPanel Grid.Row="2" Margin="0,0,0,12">
                 <ProgressBar Value="{Binding ProgressPercent}" 
                              Minimum="0" Maximum="100"
-                             Height="8" 
-                             Background="#e5e7eb"
-                             Foreground="#8B3D88"/>
+                              Height="8" 
+                              Background="{DynamicResource BorderGreyBrush}"
+                              Foreground="{DynamicResource BrandPrimaryBrush}"/>
                 <TextBlock Text="{Binding ProgressText}" 
-                           Foreground="#6b7280" FontFamily="Segoe UI"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                            HorizontalAlignment="Center"
                            FontSize="14"
                            Margin="0,6,0,0"/>
             </StackPanel>
             
             <!-- USB Events List -->
-            <Border Grid.Row="3" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="12">
+            <Border Grid.Row="3" Background="#f9fafb" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -134,14 +134,14 @@
                     </Grid.RowDefinitions>
                     
                     <TextBlock Grid.Row="0" Text="Detected Insertions" 
-                               Foreground="#8B3D88" FontWeight="SemiBold" FontFamily="Segoe UI"
+                               Foreground="{DynamicResource BrandPrimaryBrush}" FontWeight="SemiBold" FontFamily="{DynamicResource AppFontFamily}"
                                Margin="0,0,0,10"/>
                     
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding InsertionEvents}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,3">
+                                    <Border Background="White" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,3">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -150,10 +150,10 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <Border Grid.Column="0" Background="#8B3D88" CornerRadius="10" 
+                                            <Border Grid.Column="0" Background="{DynamicResource BrandPrimaryBrush}" CornerRadius="10" 
                                                     Width="22" Height="22" Margin="0,0,8,0">
                                                 <TextBlock Text="{Binding PortNumber}" 
-                                                           Foreground="White" FontWeight="Bold" FontSize="11" FontFamily="Segoe UI"
+                                                           Foreground="White" FontWeight="Bold" FontSize="11" FontFamily="{DynamicResource AppFontFamily}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             
@@ -162,22 +162,22 @@
                                                     VerticalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#e5e7eb"/>
+                                                         <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding UsbVersion}" Value="USB 3.x">
-                                                                <Setter Property="Background" Value="#2595FF"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding UsbVersion}" Value="USB 2.0">
-                                                                <Setter Property="Background" Value="#6b7280"/>
-                                                            </DataTrigger>
+                                                             <DataTrigger Binding="{Binding UsbVersion}" Value="USB 3.x">
+                                                                 <Setter Property="Background" Value="{DynamicResource UsbBlueBrush}"/>
+                                                             </DataTrigger>
+                                                             <DataTrigger Binding="{Binding UsbVersion}" Value="USB 2.0">
+                                                                 <Setter Property="Background" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="{Binding UsbVersion}" FontSize="10" FontWeight="SemiBold" FontFamily="Segoe UI"
+                                                <TextBlock Text="{Binding UsbVersion}" FontSize="10" FontWeight="SemiBold" FontFamily="{DynamicResource AppFontFamily}"
                                                            VerticalAlignment="Center">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="#374151"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding UsbVersion}" Value="USB 3.x">
                                                                     <Setter Property="Foreground" Value="White"/>
@@ -191,12 +191,12 @@
                                                 </TextBlock>
                                             </Border>
                                             
-                                            <TextBlock Grid.Column="2" Text="{Binding Time}" 
-                                                       Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"
+                                             <TextBlock Grid.Column="2" Text="{Binding Time}" 
+                                                       Foreground="{DynamicResource DisabledTextBrush}" FontSize="11" FontFamily="{DynamicResource AppFontFamily}"
                                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            
-                                            <TextBlock Grid.Column="3" Text="{Binding DeviceName}" 
-                                                       Foreground="#374151" FontSize="12" FontFamily="Segoe UI"
+                                             
+                                             <TextBlock Grid.Column="3" Text="{Binding DeviceName}" 
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                         </Grid>
                                     </Border>
@@ -208,7 +208,7 @@
                     <!-- Empty state -->
                     <TextBlock Grid.Row="1" 
                                Text="No USB insertions detected yet.&#x0a;Click 'Start Watching' then plug in a USB device."
-                               Foreground="#9ca3af" FontSize="14" FontFamily="Segoe UI"
+                               Foreground="{DynamicResource DisabledTextBrush}" FontSize="14" FontFamily="{DynamicResource AppFontFamily}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                TextAlignment="Center"
                                Visibility="{Binding InsertionEvents, Converter={StaticResource EmptyToVisibilityConverter}, FallbackValue=Visible}"/>
@@ -218,7 +218,7 @@
             <!-- Instructions -->
             <TextBlock Grid.Row="4" 
                        Text="{Binding Instructions}" 
-                       Foreground="#6b7280" FontFamily="Segoe UI"
+                       Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                        FontSize="14"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
@@ -233,9 +233,9 @@
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#f3f4f6"/>
-                            <Setter Property="Foreground" Value="#6b7280"/>
-                            <Setter Property="FontFamily" Value="Segoe UI"/>
-                            <Setter Property="BorderBrush" Value="#d1d5db"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Cursor" Value="Hand"/>
                             <Setter Property="Template">
@@ -252,7 +252,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#e5e7eb"/>
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -263,7 +263,7 @@
                 <Button Width="150" Height="40" Margin="0,0,10,0">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#8B3D88"/>
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
                             <Setter Property="Content" Value="▶ Start Watching"/>
@@ -281,7 +281,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#7A3376"/>
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                 </Trigger>
                                 <DataTrigger Binding="{Binding IsWatching}" Value="True">
                                     <Setter Property="Background" Value="#ef4444"/>
@@ -298,7 +298,7 @@
                         Width="120" Height="40">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#8B3D88"/>
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -315,7 +315,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#7A3376"/>
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

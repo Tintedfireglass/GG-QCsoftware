@@ -1,7 +1,7 @@
 <Window x:Class="LaptopQC.App.Views.WifiTestWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Network Test - PRAMAAN" Width="420"
+        Title="{Binding Source={DynamicResource AppDisplayName}, StringFormat=Network Test - {0}}" Width="420"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -9,7 +9,7 @@
     
     <Grid>
         <Border Background="White" 
-                BorderBrush="#e5e7eb"
+                BorderBrush="{DynamicResource BorderGreyBrush}"
                 BorderThickness="1"
                 CornerRadius="12" 
                 Margin="20" 
@@ -22,55 +22,55 @@
                         <TextBlock Text="📶" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock Text="Network Connectivity Test" FontSize="20" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI"/>
+                               HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"/>
                     <TextBlock Text="Checking WiFi, Ethernet, and Internet connectivity..." 
-                               FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI"
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                                HorizontalAlignment="Center" Margin="0,6,0,0"/>
                 </StackPanel>
 
                 <!-- Loading indicator -->
                 <StackPanel x:Name="LoadingPanel" HorizontalAlignment="Center" Margin="0,0,0,16">
-                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" 
-                                 Background="#e5e7eb" Foreground="#8B3D88"/>
-                    <TextBlock x:Name="LoadingText" Text="Scanning network adapters..." 
-                               HorizontalAlignment="Center" Foreground="#6b7280" FontFamily="Segoe UI"
+                     <ProgressBar IsIndeterminate="True" Width="200" Height="4" 
+                                  Background="{DynamicResource BorderGreyBrush}" Foreground="{DynamicResource BrandPrimaryBrush}"/>
+                     <TextBlock x:Name="LoadingText" Text="Scanning network adapters..." 
+                               HorizontalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                                FontSize="12" Margin="0,8,0,0"/>
                 </StackPanel>
 
                 <!-- Results (hidden until test completes) -->
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed" Margin="0,0,0,16">
                     <!-- WiFi Status -->
-                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
+                    <Border Background="{DynamicResource BorderGreyBrush}" BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="WifiIcon" Text="📡" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="WiFi" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
-                                <TextBlock x:Name="WifiStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
+                                <TextBlock Text="WiFi" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="13"/>
+                                <TextBlock x:Name="WifiStatusText" Text="-" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Ethernet Status -->
-                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
+                    <Border Background="{DynamicResource BorderGreyBrush}" BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="EthernetIcon" Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="Ethernet" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
-                                <TextBlock x:Name="EthernetStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
+                                <TextBlock Text="Ethernet" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="13"/>
+                                <TextBlock x:Name="EthernetStatusText" Text="-" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Internet Status -->
-                    <Border Background="#E5E7EB" BorderBrush="#d1d5db" BorderThickness="1" 
+                    <Border Background="{DynamicResource BorderGreyBrush}" BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="1" 
                             CornerRadius="6" Padding="12,10" Margin="0,4">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="InternetIcon" Text="🌐" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
                             <StackPanel>
-                                <TextBlock Text="Internet" FontWeight="SemiBold" Foreground="#000000" FontFamily="Segoe UI" FontSize="13"/>
-                                <TextBlock x:Name="InternetStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI" FontSize="12"/>
+                                <TextBlock Text="Internet" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="13"/>
+                                <TextBlock x:Name="InternetStatusText" Text="-" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -90,13 +90,13 @@
                         Padding="12,12"
                         FontSize="14"
                         FontWeight="SemiBold"
-                        FontFamily="Segoe UI"
+                        FontFamily="{DynamicResource AppFontFamily}"
                         Foreground="White"
                         BorderThickness="0"
                         Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#8B3D88"/>
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
@@ -110,10 +110,10 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#7A3376"/>
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Background" Value="#d1d5db"/>
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

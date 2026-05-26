@@ -527,7 +527,7 @@ public partial class MainViewModel : ObservableObject
                     });
                 });
 
-                var result = await _smartTestService.RunShortTestAsync(device.DevicePath, progress);
+                var result = await _smartTestService.RunShortTestAsync(device.DevicePath, progress, device.DeviceType);
                 
                 Dispatcher.UIThread.Post(() =>
                     AddResult("Storage", "SMART Self-Test",

@@ -11,6 +11,7 @@ using LaptopQC.Core.Abstractions;
 using LaptopQC.App.Views;
 using Microsoft.Extensions.DependencyInjection;
 using LaptopQC.Hardware.Providers;
+using LaptopQC.App.Branding;
 
 namespace LaptopQC.App;
 
@@ -111,8 +112,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
-        File.WriteAllText(logFile, $"Args: {string.Join(", ", e.Args)}\n");
+        BrandingManager.LoadBrandResources(this);
 
         // Restore trial session if no license session is active
         if (!IsLoggedIn)
@@ -134,39 +134,13 @@ public partial class App : Application
         bool isHeartbeat   = e.Args.Any(arg => arg.Equals("--heartbeat",      StringComparison.OrdinalIgnoreCase));
         bool isBackground  = e.Args.Any(arg => arg.Equals("--background",     StringComparison.OrdinalIgnoreCase));
 
-        AppDomain.CurrentDomain.UnhandledException += (s, ev) => 
-        {
-            var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
-            File.AppendAllText(logFile, $"FATAL AppDomain Crash: {ev.ExceptionObject}\n");
-        };
-
-        this.DispatcherUnhandledException += (s, ev) => 
-        {
-            var logFile = Path.Combine(Path.GetTempPath(), "startup_debug.txt");
-            File.AppendAllText(logFile, $"FATAL Dispatcher Crash: {ev.Exception}\n");
-            ev.Handled = true;
-            Shutdown();
-        };
-
         if (isAutoBasicQc)
         {
-            File.AppendAllText(logFile, "isAutoBasicQc flag detected! Calling RunAutoBasicQcAsync...\n");
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            try 
+            _ = RunAutoBasicQcAsync().ContinueWith(t => 
             {
-                _ = RunAutoBasicQcAsync().ContinueWith(t => 
-                {
-                    if (t.IsFaulted) File.AppendAllText(logFile, $"Task Faulted: {t.Exception}\n");
-                    else File.AppendAllText(logFile, "Task completed successfully!\n");
-                    Dispatcher.Invoke(Shutdown);
-                });
-                File.AppendAllText(logFile, "Started Task, returning from OnStartup.\n");
-            }
-            catch (Exception ex)
-            {
-                File.AppendAllText(logFile, $"Synchronous Crash: {ex}\n");
-                Shutdown();
-            }
+                Dispatcher.Invoke(Shutdown);
+            });
             return;
         }
         if (isHeartbeat)
@@ -223,19 +197,9 @@ public partial class App : Application
 
     private async Task RunAutoBasicQcAsync()
     {
-        var logFile = Path.Combine(Path.GetTempPath(), "autoqc_debug.txt");
-        File.WriteAllText(logFile, "Starting Auto QC...\n");
+        var logFile = Path.Combine(Path.GetTempPath(), $"{BrandInfo.BrandXamlKey}_auto_basic_qc.log");
         try
         {
-            File.AppendAllText(logFile, $"LicenseKey: '{AuthService.LicenseKey}', IsTrial: {AuthService.IsTrialSession}\n");
-            // Allow license-activated users and free trial users; block unactivated installs.
-            // Temporarily disabled so you can test it on your unactivated dev machine!
-            // if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
-            // {
-            //     File.AppendAllText(logFile, "Returning early: not licensed and not trial.\n");
-            //     return;
-            // }
-
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
@@ -245,17 +209,14 @@ public partial class App : Application
             // Trial users already have a valid token from StartTrialSession — skip re-auth.
             if (!string.IsNullOrWhiteSpace(AuthService.LicenseKey))
             {
-                File.AppendAllText(logFile, "Re-authenticating license...\n");
                 var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
                 if (!loginResult.Success)
                 {
-                    File.AppendAllText(logFile, $"License re-auth failed: {loginResult.Message}\n");
                     AuthService.Logout();
                     return;
                 }
             }
 
-            File.AppendAllText(logFile, "Starting workflow...\n");
             var workflow = Services.GetRequiredService<QCWorkflowService>();
             workflow.StartNewSession("AUTO_BASIC_QC", "Automated weekly component check");
 
@@ -263,7 +224,6 @@ public partial class App : Application
                 workflow.Report.DeviceId = MachineId.Value;
 
             await workflow.RunAutomatedChecksAsync(skipStressTests: true);
-            File.AppendAllText(logFile, "Checks complete, grading...\n");
 
             var grading = new GradingService();
             var components = new[] { "CPU", "RAM", "Storage", "Battery" };
@@ -367,7 +327,7 @@ public partial class App : Application
 
         var timestampFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Pramaan", "last_qc_test.txt");
+            BrandInfo.AppDataFolderName, "last_qc_test.txt");
 
         bool isDue = true;
         try

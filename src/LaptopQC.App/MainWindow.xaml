@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
-        Title="PRAMAAN" Height="680" Width="960"
+        Title="{DynamicResource AppDisplayName}" Height="680" Width="960"
         MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
         MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
         WindowStartupLocation="CenterScreen"
@@ -15,46 +15,46 @@
     <Window.Resources>
         <!-- Light theme with green accent styles -->
         <Style x:Key="HeaderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="FontSize" Value="22"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
         
         <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
         
         <Style x:Key="InfoLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
         
         <Style x:Key="ValueText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
         
         <Style x:Key="LargeValue" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
         
         <!-- Primary Green Button -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -71,11 +71,11 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A3376"/>
+                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#d1d5db"/>
-                    <Setter Property="Foreground" Value="#9ca3af"/>
+                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -86,10 +86,10 @@
             <Setter Property="Foreground" Value="#ef4444"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#8B3D88"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -109,19 +109,19 @@
                     <Setter Property="Background" Value="#fef2f2"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="BorderBrush" Value="#d1d5db"/>
-                    <Setter Property="Foreground" Value="#9ca3af"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         
         <!-- Small Test Button -->
         <Style x:Key="SmallTestButton" TargetType="Button">
-            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -139,10 +139,10 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A3376"/>
+                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#d1d5db"/>
+                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -150,7 +150,7 @@
         <!-- Card Panel -->
         <Style x:Key="CardPanel" TargetType="Border">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="20"/>
@@ -177,7 +177,7 @@
         <!-- Device Item Box -->
         <Style x:Key="DeviceItemBox" TargetType="Border">
             <Setter Property="Background" Value="#f9fafb"/>
-            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="10,6"/>
@@ -208,28 +208,28 @@
             <Image Grid.Column="0" Source="/Resources/pramana_logo.png" Width="50" Margin="0,0,16,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
             
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock Text="PRAMAAN" FontSize="20" FontWeight="Bold" Foreground="#1f2937" FontFamily="Segoe UI"/>
+                <TextBlock Text="{DynamicResource AppDisplayName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"/>
                 <TextBlock Text="the device health &amp; lifecycle intelligence layer for refurbished electronics." 
-                           Foreground="#6b7280" FontSize="12" FontFamily="Segoe UI"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
             </StackPanel>
             
             <!-- User Status / Login -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                 <Border x:Name="UserStatusBorder" 
-                        Background="#f3f4f6" 
-                        BorderBrush="#e5e7eb"
-                        BorderThickness="1"
-                        CornerRadius="6" 
-                        Padding="12,8"
-                        MouseLeftButtonDown="UserStatus_Click"
-                        Cursor="Hand">
+                         Background="#f3f4f6" 
+                         BorderBrush="{DynamicResource BorderGreyBrush}"
+                         BorderThickness="1"
+                         CornerRadius="6" 
+                         Padding="12,8"
+                         MouseLeftButtonDown="UserStatus_Click"
+                         Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock x:Name="UserStatusIcon" Text="🔑" FontSize="14" VerticalAlignment="Center"/>
                         <TextBlock x:Name="UserStatusText" 
                                    Text="Click to Activate" 
-                                   Foreground="#6b7280" 
+                                   Foreground="{DynamicResource TextSecondaryBrush}" 
                                    FontSize="12" 
-                                   FontFamily="Segoe UI"
+                                   FontFamily="{DynamicResource AppFontFamily}"
                                    VerticalAlignment="Center" 
                                    Margin="8,0,0,0"/>
                     </StackPanel>
@@ -275,38 +275,33 @@
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     
-                    <!-- Full QC - Outline style with cyan text -->
+                    <!-- Full QC - Primary filled style -->
                     <Button Content="Full QC" 
                             Command="{Binding StartFullQcCommand}"
                             IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                             Visibility="{Binding IsFullQcVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Style="{StaticResource PrimaryButton}"
+                            Margin="0,0,10,0" />
+
+                    <!-- Basic QC - Outline style with purple text -->
+                    <Button Content="Basic QC" 
+                            Command="{Binding RunDiagnosticsCommand}"
+                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
                             Margin="0,0,10,0">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-                                <Setter Property="Foreground" Value="#0891b2"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                             </Style>
                         </Button.Style>
                     </Button>
 
-                    <!-- Run Diagnostics - Outline style with green text -->
-                    <Button Content="Basic QC" 
-                            Command="{Binding RunDiagnosticsCommand}"
+                    <!-- Stress Test - Outline style with purple text -->
+                    <Button Content="Stress Test"
+                            Command="{Binding RunStressTestsCommand}"
                             IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-                                <Setter Property="Foreground" Value="#8B3D88"/>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-
-                    <!-- Junk Cleanup -->
-                    <Button Content="Junk Cleanup"
-                            Command="{Binding OpenCleanupCommand}"
-                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
-                            Margin="10,0,0,0">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-                                <Setter Property="Foreground" Value="#0f766e"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                             </Style>
                         </Button.Style>
                     </Button>
@@ -380,7 +375,7 @@
                         </Grid>
                         
                         <Border Style="{StaticResource StatusBoxSuccess}">
-                            <TextBlock Text="{Binding CpuStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding CpuStatus, FallbackValue='Not scanned'}" Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -397,7 +392,7 @@
                             <TextBlock Text="RAM" Style="{StaticResource InfoLabel}"/>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding RamInfo.TotalCapacityGB, FallbackValue='-'}" Style="{StaticResource LargeValue}"/>
-                                <TextBlock Text=" GB" Foreground="#6b7280" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                <TextBlock Text=" GB" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4" FontFamily="{DynamicResource AppFontFamily}"/>
                             </StackPanel>
                         </StackPanel>
                         
@@ -412,7 +407,7 @@
                         </StackPanel>
                         
                         <Border Style="{StaticResource StatusBoxSuccess}">
-                            <TextBlock Text="{Binding RamStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding RamStatus, FallbackValue='Not scanned'}" Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -437,7 +432,7 @@
                             <TextBlock Text="Total" Style="{StaticResource InfoLabel}"/>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding StorageInfo.TotalCapacityGB, FallbackValue='-', StringFormat='{}{0:F0}'}" Style="{StaticResource LargeValue}"/>
-                                <TextBlock Text=" GB" Foreground="#6b7280" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                <TextBlock Text=" GB" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4" FontFamily="{DynamicResource AppFontFamily}"/>
                             </StackPanel>
                         </StackPanel>
                         
@@ -446,8 +441,8 @@
                                 <DataTemplate>
                                     <Border Style="{StaticResource DeviceItemBox}">
                                         <StackPanel>
-                                            <TextBlock Foreground="#1f2937" FontSize="12" TextWrapping="Wrap" Text="{Binding Model}" FontFamily="Segoe UI"/>
-                                            <TextBlock Foreground="#6b7280" FontSize="11" FontFamily="Segoe UI">
+                                            <TextBlock Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" TextWrapping="Wrap" Text="{Binding Model}" FontFamily="{DynamicResource AppFontFamily}"/>
+                                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontFamily="{DynamicResource AppFontFamily}">
                                                 <Run Text="{Binding SizeGB, StringFormat='{}{0:F0} GB'}"/>
                                             </TextBlock>
                                         </StackPanel>
@@ -461,14 +456,14 @@
                             <ProgressBar Value="{Binding SmartTestProgress}" 
                                          Minimum="0" Maximum="100"
                                          Height="4" 
-                                         Background="#e5e7eb"
-                                         Foreground="#8B3D88"
+                                         Background="{DynamicResource BorderGreyBrush}"
+                                         Foreground="{DynamicResource BrandPrimaryBrush}"
                                          Margin="0,8,0,4"/>
-                            <TextBlock Text="{Binding SmartTestStatus}" Foreground="#6b7280" FontSize="10"/>
+                            <TextBlock Text="{Binding SmartTestStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" FontFamily="{DynamicResource AppFontFamily}"/>
                         </StackPanel>
                         
                         <Border Style="{StaticResource StatusBoxSuccess}">
-                            <TextBlock Text="{Binding StorageStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding StorageStatus, FallbackValue='Not scanned'}" Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -489,7 +484,7 @@
                             
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Charge" Style="{StaticResource InfoLabel}"/>
-                                <TextBlock Foreground="#8B3D88" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI">
+                                <TextBlock Foreground="{DynamicResource BrandPrimaryBrush}" FontSize="24" FontWeight="Bold" FontFamily="{DynamicResource AppFontFamily}">
                                     <Run Text="{Binding BatteryInfo.EstimatedChargeRemaining, FallbackValue='-'}"/>
                                     <Run Text=" %" FontSize="16"/>
                                 </TextBlock>
@@ -507,14 +502,14 @@
                         <Border Style="{StaticResource DeviceItemBox}" Margin="0,12,0,0">
                             <TextBlock Style="{StaticResource InfoLabel}">
                                 <Run Text="Wear: "/>
-                                <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-', TargetNullValue='-'}" Foreground="#8B3D88"/>
+                                <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-', TargetNullValue='-'}" Foreground="{DynamicResource BrandPrimaryBrush}"/>
                                 <Run Text="%  |  Cycles: "/>
-                                <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-', TargetNullValue='-'}" Foreground="#8B3D88"/>
+                                <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-', TargetNullValue='-'}" Foreground="{DynamicResource BrandPrimaryBrush}"/>
                             </TextBlock>
                         </Border>
                         
                         <Border Style="{StaticResource StatusBoxSuccess}">
-                            <TextBlock Text="{Binding BatteryStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
+                            <TextBlock Text="{Binding BatteryStatus, FallbackValue='Not scanned'}" Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -605,7 +600,7 @@
                             <TextBlock Text="USB  Controllers" Style="{StaticResource InfoLabel}" Margin="0,12,0,6"/>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" Style="{StaticResource LargeValue}"/>
-                                <TextBlock Text=" Total" Foreground="#6b7280" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                                <TextBlock Text=" Total" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4" FontFamily="{DynamicResource AppFontFamily}"/>
                                 <Button Content="Test" 
                                         Command="{Binding OpenUsbPortTestCommand}"
                                         Style="{StaticResource SmallTestButton}"
@@ -621,7 +616,7 @@
                             </StackPanel>
                             
                             <Border Style="{StaticResource StatusBoxSuccess}" Margin="0,12,0,0">
-                                <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}" TextWrapping="Wrap"/>
                             </Border>
                         </StackPanel>
                         
@@ -662,8 +657,8 @@
                         </StackPanel>
 
                         <Border Style="{StaticResource StatusBoxSuccess}" Margin="0,12,0,0">
-                            <TextBlock Text="Security checks reflect Windows license and antivirus status only."
-                                       Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                             <TextBlock Text="Security checks reflect Windows license and antivirus status only."
+                                       Foreground="{DynamicResource SuccessYesBrush}" FontSize="12" FontFamily="{DynamicResource AppFontFamily}" TextWrapping="Wrap"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -698,7 +693,7 @@
                             <ItemsControl ItemsSource="{Binding Results}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="8,10">
+                                    <Border BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="0,0,0,1" Padding="8,10">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="80"/>
@@ -707,9 +702,9 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#8B3D88" FontWeight="Medium" VerticalAlignment="Center" FontFamily="Segoe UI"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
-                                            <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#1f2937" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="Segoe UI"/>
+                                    <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="{DynamicResource BrandPrimaryBrush}" FontWeight="Medium" VerticalAlignment="Center" FontFamily="{DynamicResource AppFontFamily}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" FontFamily="{DynamicResource AppFontFamily}"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="{DynamicResource AppFontFamily}"/>
                                             
                                             <!-- Pass/Fail Badge -->
                                             <Border Grid.Column="3" CornerRadius="4" Padding="8,4" Margin="10,0,0,0" VerticalAlignment="Center">
@@ -726,10 +721,10 @@
                                                 <TextBlock Text="{Binding Status}" FontWeight="Medium" FontSize="11" FontFamily="Segoe UI">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="#dc2626"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerNoBrush}"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding Passed}" Value="True">
-                                                                    <Setter Property="Foreground" Value="#15803d"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessYesBrush}"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -747,12 +742,15 @@
                         <Border Visibility="{Binding IsTrial, Converter={StaticResource BoolToVisibilityConverter}}" 
                                 Background="#40FFFFFF" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" CornerRadius="4">
                             <Border Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                                    Padding="24,16" CornerRadius="8" BorderBrush="#e5e7eb" BorderThickness="1"
+                                    Padding="24,16" CornerRadius="8" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1"
                                     Effect="{StaticResource CardShadow}">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="🔒 Results Locked" FontSize="16" FontWeight="SemiBold" Foreground="#8B3D88" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Activate PRAMAAN to unlock detailed test results." 
-                                               Foreground="#6b7280" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🔒 Results Locked" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" HorizontalAlignment="Center" FontFamily="{DynamicResource AppFontFamily}"/>
+                                    <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center" FontFamily="{DynamicResource AppFontFamily}">
+                                        <Run Text="Activate "/>
+                                        <Run Text="{DynamicResource AppDisplayName}"/>
+                                        <Run Text=" to unlock detailed test results."/>
+                                    </TextBlock>
                                 </StackPanel>
                             </Border>
                         </Border>
@@ -763,13 +761,13 @@
         </Grid>
         
         <!-- Status Bar -->
-        <Border Grid.Row="4" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="6" Padding="15,10" Margin="5,10,5,0">
+        <Border Grid.Row="4" Background="#f3f4f6" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="6" Padding="15,10" Margin="5,10,5,0">
             <Grid>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" FontFamily="{DynamicResource AppFontFamily}"/>
                 <ProgressBar IsIndeterminate="{Binding IsScanning}" 
                              Height="3" 
                              Background="Transparent"
-                             Foreground="#8B3D88"
+                             Foreground="{DynamicResource BrandPrimaryBrush}"
                              VerticalAlignment="Bottom"
                              Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"/>
             </Grid>

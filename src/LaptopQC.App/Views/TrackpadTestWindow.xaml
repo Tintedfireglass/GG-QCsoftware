@@ -18,7 +18,7 @@
     <Window.Resources>
         <Style x:Key="TestItemBorder" TargetType="Border">
             <Setter Property="Background" Value="#f3f4f6"/>
-            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16,12"/>
@@ -27,9 +27,9 @@
         </Style>
         
         <Style x:Key="TestItemLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
         
@@ -40,7 +40,7 @@
         </Style>
     </Window.Resources>
     
-    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
+    <Border Background="White" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
             Effect="{StaticResource CardShadow}">
         <Grid>
             <Grid.RowDefinitions>
@@ -56,7 +56,7 @@
                 <TextBlock Text="🖱️" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="Trackpad Test" 
                            FontSize="22" FontWeight="SemiBold" 
-                           Foreground="#8B3D88" FontFamily="Segoe UI"
+                           Foreground="{DynamicResource BrandPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                            VerticalAlignment="Center"/>
             </StackPanel>
             
@@ -65,17 +65,17 @@
                 <ProgressBar Value="{Binding ProgressPercent}" 
                              Minimum="0" Maximum="100"
                              Height="8" 
-                             Background="#e5e7eb"
-                             Foreground="#8B3D88"/>
+                             Background="{DynamicResource BorderGreyBrush}"
+                             Foreground="{DynamicResource BrandPrimaryBrush}"/>
                 <TextBlock Text="{Binding ProgressText}" 
-                           Foreground="#6b7280" FontFamily="Segoe UI"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                            HorizontalAlignment="Center"
                            FontSize="14"
                            Margin="0,6,0,0"/>
             </StackPanel>
             
             <!-- Test Area -->
-            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="16">
+            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -91,7 +91,7 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding MovementTested}" Value="True">
                                             <Setter Property="Background" Value="#dcfce7"/>
-                                            <Setter Property="BorderBrush" Value="#8B3D88"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -100,10 +100,10 @@
                                 <TextBlock Text="↔️">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemIcon}">
-                                            <Setter Property="Foreground" Value="#9ca3af"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding MovementTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#8B3D88"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -114,7 +114,7 @@
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemLabel}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding MovementTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#15803d"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessYesBrush}"/>
                                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -131,7 +131,7 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding LeftClickTested}" Value="True">
                                             <Setter Property="Background" Value="#dcfce7"/>
-                                            <Setter Property="BorderBrush" Value="#8B3D88"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -140,10 +140,10 @@
                                 <TextBlock Text="🖱️">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemIcon}">
-                                            <Setter Property="Foreground" Value="#9ca3af"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding LeftClickTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#8B3D88"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -154,7 +154,7 @@
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemLabel}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding LeftClickTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#15803d"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessYesBrush}"/>
                                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -171,7 +171,7 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding RightClickTested}" Value="True">
                                             <Setter Property="Background" Value="#dcfce7"/>
-                                            <Setter Property="BorderBrush" Value="#8B3D88"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -180,10 +180,10 @@
                                 <TextBlock Text="🖱️">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemIcon}">
-                                            <Setter Property="Foreground" Value="#9ca3af"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding RightClickTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#8B3D88"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -194,7 +194,7 @@
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemLabel}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding RightClickTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#15803d"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessYesBrush}"/>
                                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -211,7 +211,7 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ScrollTested}" Value="True">
                                             <Setter Property="Background" Value="#dcfce7"/>
-                                            <Setter Property="BorderBrush" Value="#8B3D88"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -220,10 +220,10 @@
                                 <TextBlock Text="↕️">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemIcon}">
-                                            <Setter Property="Foreground" Value="#9ca3af"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding ScrollTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#8B3D88"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -234,7 +234,7 @@
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource TestItemLabel}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding ScrollTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="#15803d"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessYesBrush}"/>
                                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -247,9 +247,9 @@
                     
                     <!-- Interactive Test Zone -->
                     <Border Grid.Row="1" Background="White" CornerRadius="8" 
-                            BorderBrush="#d1d5db" BorderThickness="2,2,2,2">
+                            BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="2,2,2,2">
                         <TextBlock Text="🎯 Move cursor and click here to test trackpad" 
-                                   Foreground="#9ca3af" FontFamily="Segoe UI"
+                                   Foreground="{DynamicResource DisabledTextBrush}" FontFamily="{DynamicResource AppFontFamily}"
                                    FontSize="15"
                                    HorizontalAlignment="Center" 
                                    VerticalAlignment="Center"/>
@@ -260,7 +260,7 @@
             <!-- Instructions -->
             <TextBlock Grid.Row="3" 
                        Text="{Binding Instructions}" 
-                       Foreground="#6b7280" FontFamily="Segoe UI"
+                       Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                        FontSize="14"
                        HorizontalAlignment="Center"
                        Margin="0,16,0,0"/>
@@ -274,9 +274,9 @@
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#f3f4f6"/>
-                            <Setter Property="Foreground" Value="#6b7280"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
-                            <Setter Property="BorderBrush" Value="#d1d5db"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Cursor" Value="Hand"/>
                             <Setter Property="Template">
@@ -294,7 +294,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#e5e7eb"/>
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -306,7 +306,7 @@
                         Width="150" Height="40">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#8B3D88"/>
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -325,7 +325,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#7A3376"/>
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

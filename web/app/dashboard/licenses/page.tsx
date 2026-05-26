@@ -5,8 +5,8 @@ import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createLicenseKey, getLicenses, toggleLicenseKeyActive } from "@/lib/api"
-import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2 } from "lucide-react"
+import { createLicenseKey, getLicenses, toggleLicenseKeyActive, updateLicenseExpiry } from "@/lib/api"
+import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar, Power, PowerOff } from "lucide-react"
 
 interface LicenseKey {
     id: number
@@ -37,15 +37,25 @@ export default function LicensesPage() {
     // Modal States
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+    const [isExtendModalOpen, setIsExtendModalOpen] = useState(false)
 
     // Generation Form States
     const [isGenerating, setIsGenerating] = useState(false)
     const [newType, setNewType] = useState("single_use")
     const [newMaxUses, setNewMaxUses] = useState("1")
     const [demoCustomerName, setDemoCustomerName] = useState("")
+    const [durationMode, setDurationMode] = useState<"forever" | "temporary">("forever")
+    const [expiresAt, setExpiresAt] = useState("")
     const [generatedKeyString, setGeneratedKeyString] = useState("")
     const [generateError, setGenerateError] = useState("")
     const [togglingId, setTogglingId] = useState<number | null>(null)
+
+    // Extend Modal States
+    const [extendingLicense, setExtendingLicense] = useState<LicenseKey | null>(null)
+    const [extendDurationMode, setExtendDurationMode] = useState<"forever" | "temporary">("forever")
+    const [extendExpiresAt, setExtendExpiresAt] = useState("")
+    const [isExtending, setIsExtending] = useState(false)
+    const [extendError, setExtendError] = useState("")
 
     useEffect(() => {
         if (!user) {
@@ -90,6 +100,7 @@ export default function LicensesPage() {
                 type: newType as any,
                 max_uses: newType === "demo" ? 1 : maxUsesValue,
                 demo_customer_name: trimmedCustomerName ? trimmedCustomerName : undefined,
+                expires_at: durationMode === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null,
             })
 
             setGeneratedKeyString(data.key.key)
@@ -106,6 +117,35 @@ export default function LicensesPage() {
     const handleCopy = (keyString: string) => {
         navigator.clipboard.writeText(keyString)
         alert("Copied to clipboard!")
+    }
+
+    const handleExtend = async () => {
+        if (!extendingLicense) return
+        setExtendError("")
+        setIsExtending(true)
+        try {
+            const newExpiry = extendDurationMode === "temporary" && extendExpiresAt ? new Date(extendExpiresAt).toISOString() : null
+            await updateLicenseExpiry({ id: extendingLicense.id, expires_at: newExpiry })
+            setIsExtendModalOpen(false)
+            fetchKeys()
+        } catch (err) {
+            setExtendError(err instanceof Error ? err.message : "Server error while updating expiry.")
+        } finally {
+            setIsExtending(false)
+        }
+    }
+
+    const openExtendModal = (k: LicenseKey) => {
+        setExtendingLicense(k)
+        if (k.expires_at) {
+            setExtendDurationMode("temporary")
+            setExtendExpiresAt(new Date(k.expires_at).toISOString().split('T')[0])
+        } else {
+            setExtendDurationMode("forever")
+            setExtendExpiresAt("")
+        }
+        setExtendError("")
+        setIsExtendModalOpen(true)
     }
 
     const handleToggleActive = async (licenseKey: LicenseKey) => {
@@ -210,6 +250,8 @@ export default function LicensesPage() {
                         setNewType(defaultType)
                         setNewMaxUses("1")
                         setDemoCustomerName("")
+                        setDurationMode("forever")
+                        setExpiresAt("")
                         setGenerateError("")
                         setIsGenerateModalOpen(true)
                     }}
@@ -321,6 +363,11 @@ export default function LicensesPage() {
 
                                     <div className="text-xs text-slate-400 mb-3">
                                         Created: {formatDate(k.created_at)}
+                                        {k.type !== 'demo' && (
+                                            <div className="mt-1 font-medium text-slate-500">
+                                                Expires: {k.expires_at ? formatDate(k.expires_at) : 'Forever'}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mb-4">
@@ -336,7 +383,17 @@ export default function LicensesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+                                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                                        {k.type !== 'demo' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openExtendModal(k)}
+                                                className="h-7 px-3 text-xs font-medium rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                                Extend
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -359,18 +416,19 @@ export default function LicensesPage() {
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b border-slate-200 bg-white">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Type</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Created</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px] whitespace-nowrap">Activation Size</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Status</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px] whitespace-nowrap">Action</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[110px] whitespace-nowrap">Type</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Created</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Expires</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[130px] whitespace-nowrap">Activations</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Status</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredKeys.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-slate-500">
+                                    <td colSpan={7} className="p-8 text-center text-slate-500">
                                         No license keys found. Generate one above.
                                     </td>
                                 </tr>
@@ -381,24 +439,27 @@ export default function LicensesPage() {
                                     const computedStatus = getKeyStatus(k, Date.now())
                                     return (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
-                                        <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
-                                            <div>{k.key}</div>
+                                        <td className="py-4 px-4 align-middle text-slate-600 font-medium tracking-wide">
+                                            <div className="font-mono text-sm">{k.key}</div>
                                             {customerLabel ? (
-                                                <div className="text-xs text-slate-400">Customer: {customerLabel}</div>
+                                                <div className="text-xs text-slate-400 mt-0.5">Customer: {customerLabel}</div>
                                             ) : null}
                                         </td>
-                                        <td className="p-6 align-middle text-center">
+                                        <td className="py-4 px-4 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </td>
-                                        <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 whitespace-nowrap text-sm">
                                             {formatDate(k.created_at)}
                                         </td>
-                                        <td className="p-6 align-middle text-center text-slate-600">
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 whitespace-nowrap text-sm">
+                                            {k.type === 'demo' ? '—' : (k.expires_at ? formatDate(k.expires_at) : 'Forever')}
+                                        </td>
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 text-sm">
                                             {effectiveUses}/{k.max_uses}
                                         </td>
-                                        <td className="p-6 align-middle text-center">
+                                        <td className="py-4 px-4 align-middle text-center">
                                             {computedStatus === "active" ? (
                                                 <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
                                                     Active
@@ -417,27 +478,46 @@ export default function LicensesPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="p-6 align-middle text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="rounded-full px-6 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9"
+                                        <td className="py-4 px-4 align-middle text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                {/* Copy */}
+                                                <button
+                                                    title="Copy key"
                                                     onClick={() => handleCopy(k.key)}
+                                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-[var(--brand-purple)] hover:bg-purple-50 transition-colors"
                                                 >
-                                                    Copy
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    className={
-                                                        k.is_active
-                                                            ? "rounded-full px-6 border-rose-200 text-rose-600 hover:text-rose-700 hover:border-rose-300 bg-white shadow-sm h-9"
-                                                            : "rounded-full px-6 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 bg-white shadow-sm h-9"
-                                                    }
+                                                    <Copy className="h-4 w-4" />
+                                                </button>
+
+                                                {/* Extend expiry */}
+                                                {k.type !== 'demo' && (
+                                                    <button
+                                                        title="Edit expiry date"
+                                                        onClick={() => openExtendModal(k)}
+                                                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                    >
+                                                        <Calendar className="h-4 w-4" />
+                                                    </button>
+                                                )}
+
+                                                {/* Enable / Disable */}
+                                                <button
+                                                    title={k.is_active ? 'Disable key' : 'Enable key'}
                                                     onClick={() => handleToggleActive(k)}
                                                     disabled={togglingId === k.id}
+                                                    className={`inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors disabled:opacity-50 ${
+                                                        k.is_active
+                                                            ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                                                    }`}
                                                 >
-                                                    {togglingId === k.id ? "Updating..." : k.is_active ? "Disable" : "Enable"}
-                                                </Button>
+                                                    {togglingId === k.id
+                                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                                        : k.is_active
+                                                            ? <PowerOff className="h-4 w-4" />
+                                                            : <Power className="h-4 w-4" />
+                                                    }
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -492,6 +572,36 @@ export default function LicensesPage() {
                                     <option value="demo">Demo Key (1 Full QC)</option>
                                 </select>
                             </div>
+
+                            {newType !== "demo" && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Duration
+                                    </label>
+                                    <select
+                                        value={durationMode}
+                                        onChange={(e) => setDurationMode(e.target.value as any)}
+                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                    >
+                                        <option value="forever">Forever</option>
+                                        <option value="temporary">Temporary</option>
+                                    </select>
+
+                                    {durationMode === "temporary" && (
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                                Expiration Date
+                                            </label>
+                                            <Input
+                                                type="date"
+                                                value={expiresAt}
+                                                onChange={(e) => setExpiresAt(e.target.value)}
+                                                className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">
@@ -569,6 +679,71 @@ export default function LicensesPage() {
                             >
                                 <Copy className="h-5 w-5" />
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EXTEND MODAL */}
+            {isExtendModalOpen && extendingLicense && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-[500px] p-8 rounded-2xl shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setIsExtendModalOpen(false)}
+                            className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Extend License Key</h2>
+                            <p className="text-slate-500 text-base mt-2 font-mono text-xs break-all">
+                                {extendingLicense.key}
+                            </p>
+                        </div>
+
+                        {extendError && (
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm">
+                                {extendError}
+                            </div>
+                        )}
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                    Duration
+                                </label>
+                                <select
+                                    value={extendDurationMode}
+                                    onChange={(e) => setExtendDurationMode(e.target.value as any)}
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                >
+                                    <option value="forever">Forever</option>
+                                    <option value="temporary">Temporary</option>
+                                </select>
+
+                                {extendDurationMode === "temporary" && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                            Expiration Date
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            value={extendExpiresAt}
+                                            onChange={(e) => setExtendExpiresAt(e.target.value)}
+                                            className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <Button
+                                className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
+                                onClick={handleExtend}
+                                disabled={isExtending}
+                            >
+                                {isExtending ? "Updating..." : "Update Expiry Date"}
+                            </Button>
                         </div>
                     </div>
                 </div>

@@ -801,7 +801,7 @@ public partial class MainViewModel : ObservableObject
                     SmartTestStatus = $"{device.Model}: {p.Status} ({p.PercentComplete}%)";
                 });
 
-                var result = await _smartTestService.RunShortTestAsync(device.DevicePath, progress);
+                var result = await _smartTestService.RunShortTestAsync(device.DevicePath, progress, device.DeviceType);
                 
                 AddResult("Storage", "SMART Self-Test",
                     result.Success,

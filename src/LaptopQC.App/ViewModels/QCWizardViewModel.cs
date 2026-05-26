@@ -65,7 +65,16 @@ public partial class QCWizardViewModel : ObservableObject
     private string _wifiStatus = "";
 
     [ObservableProperty]
-    private string _networkLiveStatus = "";
+    private string _wifiLiveStatusText = "";
+
+    [ObservableProperty]
+    private bool _isWifiLiveConnected;
+
+    [ObservableProperty]
+    private string _ethernetLiveStatusText = "";
+
+    [ObservableProperty]
+    private bool _isEthernetLiveConnected;
 
     [ObservableProperty]
     private bool _isCheckingNetwork;
@@ -89,7 +98,7 @@ public partial class QCWizardViewModel : ObservableObject
     private string _submissionStatus = "";
 
     [ObservableProperty]
-    private string _submissionStatusColor = "#15803d";
+    private System.Windows.Media.SolidColorBrush _submissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(21, 128, 61));
 
     [ObservableProperty]
     private BitmapImage? _qrCodeImage;
@@ -268,14 +277,18 @@ public partial class QCWizardViewModel : ObservableObject
                     { ethernet = true; ethName = ni.Name; }
             }
 
-            var parts = new List<string>();
-            parts.Add(wifi ? $"✓ WiFi: {wifiName}" : "✗ WiFi: Not connected");
-            parts.Add(ethernet ? $"✓ Ethernet: {ethName}" : "✗ Ethernet: Not connected");
-            NetworkLiveStatus = string.Join("   |   ", parts);
+            IsWifiLiveConnected = wifi;
+            WifiLiveStatusText = wifi ? $"WiFi: {wifiName}" : "WiFi: Not connected";
+
+            IsEthernetLiveConnected = ethernet;
+            EthernetLiveStatusText = ethernet ? $"Ethernet: {ethName}" : "Ethernet: Not connected";
         }
         catch
         {
-            NetworkLiveStatus = "⚠ Could not read adapters";
+            IsWifiLiveConnected = false;
+            WifiLiveStatusText = "WiFi: Error reading adapter";
+            IsEthernetLiveConnected = false;
+            EthernetLiveStatusText = "Ethernet: Error reading adapter";
         }
     }
 
@@ -414,7 +427,7 @@ public partial class QCWizardViewModel : ObservableObject
         if (!App.IsLoggedIn)
         {
             SubmissionStatus = "Login required to submit to cloud...";
-            SubmissionStatusColor = "#F59E0B";
+            SubmissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11));
             
             // Show login dialog
             var loginWindow = new Views.LoginWindow(App.AuthService)
@@ -447,7 +460,7 @@ public partial class QCWizardViewModel : ObservableObject
                 if (!App.IsLoggedIn)
                 {
                     SubmissionStatus = "⚠ Skipped cloud submission (saved locally only)";
-                    SubmissionStatusColor = "#F59E0B";
+                    SubmissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11));
                     return;
                 }
             }
@@ -456,7 +469,7 @@ public partial class QCWizardViewModel : ObservableObject
         // Now logged in - submit to API
         var technicianId = App.TechnicianId;
         SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
-        SubmissionStatusColor = "#F59E0B";
+        SubmissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11));
 
         // Refresh server-allocated Machine ID for this hardware (if license-based)
         await RefreshMachineIdAsync(report);
@@ -474,7 +487,7 @@ public partial class QCWizardViewModel : ObservableObject
         if (submitResult.Success)
         {
             SubmissionStatus = $"✓ Submitted (by {App.UserDisplayName})";
-            SubmissionStatusColor = "#0B9444";
+            SubmissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 148, 68));
             GenerateQrCode(report.HealthId);
 
             if (submitResult.DemoExhausted)
@@ -492,7 +505,7 @@ public partial class QCWizardViewModel : ObservableObject
             SubmissionStatus = submitResult.IsAuthError
                 ? $"✗ Activation required to submit ({submitResult.ErrorMessage})"
                 : $"✗ Failed to Submit: {submitResult.ErrorMessage}";
-            SubmissionStatusColor = "#FF0000";
+            SubmissionStatusColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0));
         }
     }
 

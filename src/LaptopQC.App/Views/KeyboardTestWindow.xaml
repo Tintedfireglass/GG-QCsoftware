@@ -17,7 +17,7 @@
     <Window.Resources>
         <!-- Key button base style -->
         <Style x:Key="KeyButton" TargetType="Border">
-            <Setter Property="Background" Value="#e5e7eb"/>
+            <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Margin" Value="2"/>
             <Setter Property="MinHeight" Value="40"/>
@@ -25,7 +25,7 @@
         
         <!-- Key label style -->
         <Style x:Key="KeyLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -34,7 +34,7 @@
         </Style>
     </Window.Resources>
     
-    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
+    <Border Background="White" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="12" Margin="16" Padding="20"
             Effect="{StaticResource CardShadow}">
         <Grid>
             <Grid.RowDefinitions>
@@ -51,7 +51,7 @@
                     <TextBlock Text="⌨️" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Text="Keyboard Test" 
                                FontSize="22" FontWeight="SemiBold" 
-                               Foreground="#8B3D88" FontFamily="Segoe UI"
+                               Foreground="{DynamicResource BrandPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
@@ -59,7 +59,7 @@
                           IsChecked="{Binding ShowNumpad}"
                           HorizontalAlignment="Right"
                           VerticalAlignment="Center"
-                          Foreground="#6b7280"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
                           FontFamily="Segoe UI"/>
             </Grid>
             
@@ -68,10 +68,10 @@
                 <ProgressBar Value="{Binding ProgressPercent}" 
                              Minimum="0" Maximum="100"
                              Height="8" 
-                             Background="#e5e7eb"
-                             Foreground="#8B3D88"/>
+                             Background="{DynamicResource BorderGreyBrush}"
+                             Foreground="{DynamicResource BrandPrimaryBrush}"/>
                 <TextBlock Text="{Binding ProgressText}" 
-                           Foreground="#6b7280" 
+                           Foreground="{DynamicResource TextSecondaryBrush}" 
                            FontFamily="Segoe UI"
                            HorizontalAlignment="Center"
                            FontSize="14"
@@ -79,7 +79,7 @@
             </StackPanel>
             
             <!-- Keyboard Layout -->
-            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" Padding="15">
+            <Border Grid.Row="2" Background="#f9fafb" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="8" Padding="15">
                 <ItemsControl ItemsSource="{Binding Keys}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -110,13 +110,13 @@
                                     Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="Background" Value="#e5e7eb"/>
-                                        <Setter Property="BorderBrush" Value="#d1d5db"/>
+                                        <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                                         <Setter Property="BorderThickness" Value="1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                                <Setter Property="Background" Value="#8B3D88"/>
-                                                <Setter Property="BorderBrush" Value="#7A3376"/>
+                                                <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -129,7 +129,7 @@
                                            FontFamily="Segoe UI">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="#6b7280"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsTested}" Value="True">
                                                     <Setter Property="Foreground" Value="White"/>
@@ -147,7 +147,7 @@
             <!-- Instructions -->
             <TextBlock Grid.Row="3" 
                        Text="{Binding Instructions}" 
-                       Foreground="#6b7280" 
+                       Foreground="{DynamicResource TextSecondaryBrush}" 
                        FontFamily="Segoe UI"
                        FontSize="14"
                        HorizontalAlignment="Center"
@@ -162,9 +162,9 @@
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="#f3f4f6"/>
-                            <Setter Property="Foreground" Value="#6b7280"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
-                            <Setter Property="BorderBrush" Value="#d1d5db"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Cursor" Value="Hand"/>
                             <Setter Property="Template">
@@ -182,7 +182,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#e5e7eb"/>
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -194,7 +194,7 @@
                         Width="150" Height="40">
                     <Button.Style>
                         <Style TargetType="Button">
-                            <Setter Property="Background" Value="#8B3D88"/>
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -213,7 +213,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#7A3376"/>
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

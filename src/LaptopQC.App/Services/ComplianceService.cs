@@ -1,4 +1,5 @@
 using System.Windows;
+using LaptopQC.App.Branding;
 using LaptopQC.App.Views;
 using LaptopQC.Core.Services;
 
@@ -21,7 +22,7 @@ public static class ComplianceService
                 if (owner is MainWindow mw)
                     mw.RefreshActivationUi();
                 MessageBox.Show(owner,
-                    "Your 7-day free trial has expired.\n\nPlease activate with a license key to continue using PRAMAAN.",
+                    $"Your 7-day free trial has expired.\n\nPlease activate with a license key to continue using {BrandInfo.AppDisplayName}.",
                     "Free Trial Expired",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
