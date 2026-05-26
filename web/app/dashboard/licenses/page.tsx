@@ -5,8 +5,8 @@ import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createLicenseKey, getLicenses, toggleLicenseKeyActive } from "@/lib/api"
-import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2 } from "lucide-react"
+import { createLicenseKey, getLicenses, toggleLicenseKeyActive, updateLicenseExpiry } from "@/lib/api"
+import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar } from "lucide-react"
 
 interface LicenseKey {
     id: number
@@ -37,15 +37,25 @@ export default function LicensesPage() {
     // Modal States
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+    const [isExtendModalOpen, setIsExtendModalOpen] = useState(false)
 
     // Generation Form States
     const [isGenerating, setIsGenerating] = useState(false)
     const [newType, setNewType] = useState("single_use")
     const [newMaxUses, setNewMaxUses] = useState("1")
     const [demoCustomerName, setDemoCustomerName] = useState("")
+    const [durationMode, setDurationMode] = useState<"forever" | "temporary">("forever")
+    const [expiresAt, setExpiresAt] = useState("")
     const [generatedKeyString, setGeneratedKeyString] = useState("")
     const [generateError, setGenerateError] = useState("")
     const [togglingId, setTogglingId] = useState<number | null>(null)
+
+    // Extend Modal States
+    const [extendingLicense, setExtendingLicense] = useState<LicenseKey | null>(null)
+    const [extendDurationMode, setExtendDurationMode] = useState<"forever" | "temporary">("forever")
+    const [extendExpiresAt, setExtendExpiresAt] = useState("")
+    const [isExtending, setIsExtending] = useState(false)
+    const [extendError, setExtendError] = useState("")
 
     useEffect(() => {
         if (!user) {
@@ -90,6 +100,7 @@ export default function LicensesPage() {
                 type: newType as any,
                 max_uses: newType === "demo" ? 1 : maxUsesValue,
                 demo_customer_name: trimmedCustomerName ? trimmedCustomerName : undefined,
+                expires_at: durationMode === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null,
             })
 
             setGeneratedKeyString(data.key.key)
@@ -106,6 +117,35 @@ export default function LicensesPage() {
     const handleCopy = (keyString: string) => {
         navigator.clipboard.writeText(keyString)
         alert("Copied to clipboard!")
+    }
+
+    const handleExtend = async () => {
+        if (!extendingLicense) return
+        setExtendError("")
+        setIsExtending(true)
+        try {
+            const newExpiry = extendDurationMode === "temporary" && extendExpiresAt ? new Date(extendExpiresAt).toISOString() : null
+            await updateLicenseExpiry({ id: extendingLicense.id, expires_at: newExpiry })
+            setIsExtendModalOpen(false)
+            fetchKeys()
+        } catch (err) {
+            setExtendError(err instanceof Error ? err.message : "Server error while updating expiry.")
+        } finally {
+            setIsExtending(false)
+        }
+    }
+
+    const openExtendModal = (k: LicenseKey) => {
+        setExtendingLicense(k)
+        if (k.expires_at) {
+            setExtendDurationMode("temporary")
+            setExtendExpiresAt(new Date(k.expires_at).toISOString().split('T')[0])
+        } else {
+            setExtendDurationMode("forever")
+            setExtendExpiresAt("")
+        }
+        setExtendError("")
+        setIsExtendModalOpen(true)
     }
 
     const handleToggleActive = async (licenseKey: LicenseKey) => {
@@ -210,6 +250,8 @@ export default function LicensesPage() {
                         setNewType(defaultType)
                         setNewMaxUses("1")
                         setDemoCustomerName("")
+                        setDurationMode("forever")
+                        setExpiresAt("")
                         setGenerateError("")
                         setIsGenerateModalOpen(true)
                     }}
@@ -321,6 +363,11 @@ export default function LicensesPage() {
 
                                     <div className="text-xs text-slate-400 mb-3">
                                         Created: {formatDate(k.created_at)}
+                                        {k.type !== 'demo' && (
+                                            <div className="mt-1 font-medium text-slate-500">
+                                                Expires: {k.expires_at ? formatDate(k.expires_at) : 'Forever'}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mb-4">
@@ -336,7 +383,17 @@ export default function LicensesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+                                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                                        {k.type !== 'demo' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openExtendModal(k)}
+                                                className="h-7 px-3 text-xs font-medium rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                                Extend
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -362,6 +419,7 @@ export default function LicensesPage() {
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Type</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Created</th>
+                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Expires</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px] whitespace-nowrap">Activation Size</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Status</th>
                                 <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px] whitespace-nowrap">Action</th>
@@ -370,7 +428,7 @@ export default function LicensesPage() {
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredKeys.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-slate-500">
+                                    <td colSpan={7} className="p-8 text-center text-slate-500">
                                         No license keys found. Generate one above.
                                     </td>
                                 </tr>
@@ -394,6 +452,9 @@ export default function LicensesPage() {
                                         </td>
                                         <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
                                             {formatDate(k.created_at)}
+                                        </td>
+                                        <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
+                                            {k.type === 'demo' ? '—' : (k.expires_at ? formatDate(k.expires_at) : 'Forever')}
                                         </td>
                                         <td className="p-6 align-middle text-center text-slate-600">
                                             {effectiveUses}/{k.max_uses}
@@ -426,6 +487,15 @@ export default function LicensesPage() {
                                                 >
                                                     Copy
                                                 </Button>
+                                                {k.type !== 'demo' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="rounded-full px-6 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 bg-white shadow-sm h-9"
+                                                        onClick={() => openExtendModal(k)}
+                                                    >
+                                                        Extend
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="outline"
                                                     className={
@@ -492,6 +562,36 @@ export default function LicensesPage() {
                                     <option value="demo">Demo Key (1 Full QC)</option>
                                 </select>
                             </div>
+
+                            {newType !== "demo" && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Duration
+                                    </label>
+                                    <select
+                                        value={durationMode}
+                                        onChange={(e) => setDurationMode(e.target.value as any)}
+                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                    >
+                                        <option value="forever">Forever</option>
+                                        <option value="temporary">Temporary</option>
+                                    </select>
+
+                                    {durationMode === "temporary" && (
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                                Expiration Date
+                                            </label>
+                                            <Input
+                                                type="date"
+                                                value={expiresAt}
+                                                onChange={(e) => setExpiresAt(e.target.value)}
+                                                className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">
@@ -569,6 +669,71 @@ export default function LicensesPage() {
                             >
                                 <Copy className="h-5 w-5" />
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EXTEND MODAL */}
+            {isExtendModalOpen && extendingLicense && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-[500px] p-8 rounded-2xl shadow-xl relative animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setIsExtendModalOpen(false)}
+                            className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 rounded-full p-1 hover:bg-slate-100 transition-colors"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Extend License Key</h2>
+                            <p className="text-slate-500 text-base mt-2 font-mono text-xs break-all">
+                                {extendingLicense.key}
+                            </p>
+                        </div>
+
+                        {extendError && (
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm">
+                                {extendError}
+                            </div>
+                        )}
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                    Duration
+                                </label>
+                                <select
+                                    value={extendDurationMode}
+                                    onChange={(e) => setExtendDurationMode(e.target.value as any)}
+                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                >
+                                    <option value="forever">Forever</option>
+                                    <option value="temporary">Temporary</option>
+                                </select>
+
+                                {extendDurationMode === "temporary" && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                            Expiration Date
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            value={extendExpiresAt}
+                                            onChange={(e) => setExtendExpiresAt(e.target.value)}
+                                            className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <Button
+                                className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
+                                onClick={handleExtend}
+                                disabled={isExtending}
+                            >
+                                {isExtending ? "Updating..." : "Update Expiry Date"}
+                            </Button>
                         </div>
                     </div>
                 </div>

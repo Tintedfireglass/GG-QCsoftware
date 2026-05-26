@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// PATCH /api/licenses - Toggle license key active status
+// PATCH /api/licenses - Update license key (toggle active status and/or expiry date)
 export async function PATCH(request: NextRequest) {
     try {
         const { user: authUser, error: authError } = await authenticateRequest(request);
@@ -153,35 +153,49 @@ export async function PATCH(request: NextRequest) {
         if (roleError) return roleError;
 
         const body = await request.json();
-        const { id, is_active } = body;
+        const { id, is_active, expires_at } = body;
 
-        if (!id || typeof is_active !== 'boolean') {
+        if (!id || (is_active === undefined && expires_at === undefined)) {
             return NextResponse.json({ error: 'Invalid input parameters' }, { status: 400 });
         }
 
         let updatedKey: any = null;
 
         await transaction(async (client: PoolClient) => {
-            const params: any[] = [is_active, id];
+            const hasIsActive = is_active !== undefined;
+            const hasExpiresAt = expires_at !== undefined;
+
+            const params: any[] = [];
+            let paramIdx = 1;
+
+            const setClauses: string[] = [];
+            let isActiveParamIdx = -1;
+
+            if (hasIsActive) {
+                setClauses.push(`is_active = $${paramIdx}`);
+                isActiveParamIdx = paramIdx;
+                params.push(is_active);
+                paramIdx++;
+            }
+
+            if (hasExpiresAt) {
+                setClauses.push(`expires_at = $${paramIdx}`);
+                params.push(expires_at ? new Date(expires_at) : null);
+                paramIdx++;
+            }
+
+            const idParamIdx = paramIdx++;
+            params.push(id);
+
             let ownershipClause = '';
             if (authUser.role !== 'SuperAdmin') {
-                ownershipClause = ' AND created_by = $3';
+                ownershipClause = ` AND created_by = $${paramIdx++}`;
                 params.push(authUser.id);
             }
 
-            const updateSql = `
-                WITH target AS (
-                    SELECT id, is_active
-                    FROM license_keys
-                    WHERE id = $2${ownershipClause}
-                    FOR UPDATE
-                ),
-                updated AS (
-                    UPDATE license_keys
-                    SET is_active = $1
-                    WHERE id IN (SELECT id FROM target)
-                    RETURNING *
-                ),
+            const authUserParamIdx = paramIdx;
+
+            const auditCte = hasIsActive ? `,
                 audit AS (
                     INSERT INTO license_key_audits (
                         license_key_id,
@@ -192,17 +206,37 @@ export async function PATCH(request: NextRequest) {
                     )
                     SELECT
                         target.id,
-                        CASE WHEN $1 = true THEN 'enable' ELSE 'disable' END,
+                        CASE WHEN $${isActiveParamIdx} = true THEN 'enable' ELSE 'disable' END,
                         target.is_active,
                         updated.is_active,
-                        $${params.length + 1}
+                        $${authUserParamIdx}
                     FROM target, updated
                     RETURNING 1
+                )` : '';
+
+            const updateSql = `
+                WITH target AS (
+                    SELECT id, is_active
+                    FROM license_keys
+                    WHERE id = $${idParamIdx}${ownershipClause}
+                    FOR UPDATE
+                ),
+                updated AS (
+                    UPDATE license_keys
+                    SET ${setClauses.join(', ')}
+                    WHERE id IN (SELECT id FROM target)
+                    RETURNING *
                 )
+                ${auditCte}
                 SELECT * FROM updated
             `;
 
-            const result = await client.query(updateSql, [...params, authUser.id]);
+            const queryParams = [...params];
+            if (hasIsActive) {
+                queryParams.push(authUser.id);
+            }
+
+            const result = await client.query(updateSql, queryParams);
             if (result.rows.length === 0) {
                 throw new Error('NOT_FOUND');
             }

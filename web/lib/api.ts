@@ -345,6 +345,19 @@ export async function toggleLicenseKeyActive(data: { id: number; is_active: bool
     return json;
 }
 
+export async function updateLicenseExpiry(data: { id: number; expires_at: string | null }) {
+    const res = await fetchWithAuth("/api/licenses", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        throw new Error(json?.message || json?.error || "Failed to update license expiry");
+    }
+    clearClientCache();
+    return json;
+}
+
 export async function getCustomerLicenses(): Promise<{ licenses: any[] }> {
     return cachedGetCustomerJson("/api/customer/licenses", TTL.short);
 }
