@@ -384,7 +384,7 @@ export default function LicensesPage() {
                                     </div>
 
                                     <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                                        {k.type !== 'demo' && (
+                                        {k.type !== 'demo' && (user?.role === "SuperAdmin" || user?.role === "Employee") && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -489,8 +489,8 @@ export default function LicensesPage() {
                                                     <Copy className="h-4 w-4" />
                                                 </button>
 
-                                                {/* Extend expiry */}
-                                                {k.type !== 'demo' && (
+                                                {/* Extend expiry — SuperAdmin & Employee only */}
+                                                {k.type !== 'demo' && (user?.role === "SuperAdmin" || user?.role === "Employee") && (
                                                     <button
                                                         title="Edit expiry date"
                                                         onClick={() => openExtendModal(k)}
@@ -573,7 +573,7 @@ export default function LicensesPage() {
                                 </select>
                             </div>
 
-                            {newType !== "demo" && (
+                            {newType !== "demo" && (user?.role === "SuperAdmin" || user?.role === "Employee") && (
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-900 mb-2">
                                         Duration
