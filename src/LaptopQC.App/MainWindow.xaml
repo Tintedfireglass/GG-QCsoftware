@@ -295,16 +295,16 @@
                         </Button.Style>
                     </Button>
 
-                    <!-- Stress Test - Outline style with purple text -->
-                    <Button Content="Stress Test"
-                            Command="{Binding RunStressTestsCommand}"
-                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
-                                <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+	                    <!-- Junk Cleanup - Outline style with brand text -->
+	                    <Button Content="Junk Cleanup"
+	                            Command="{Binding OpenCleanupCommand}"
+	                            IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}">
+	                        <Button.Style>
+	                            <Style TargetType="Button" BasedOn="{StaticResource OutlineButton}">
+	                                <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
+	                            </Style>
+	                        </Button.Style>
+	                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
