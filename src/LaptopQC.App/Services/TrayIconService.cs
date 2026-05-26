@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using LaptopQC.App.Branding;
 
 namespace LaptopQC.App.Services;
 
@@ -116,12 +117,12 @@ public sealed class TrayIconService : IDisposable
         _hwndSource.AddHook(WndProc);
 
         // Load icon
-        var iconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "pramana_icon.ico");
+        var iconPath = Path.Combine(AppContext.BaseDirectory, BrandInfo.TrayIconRelativePath);
         if (File.Exists(iconPath))
             _hIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 
         // Register the tray icon
-        var data = BuildNotifyIconData("Pramaan \u2014 Running in Background");
+        var data = BuildNotifyIconData($"{BrandInfo.AppDisplayName} \u2014 Running in Background");
         Shell_NotifyIcon(NIM_ADD, ref data);
     }
 
@@ -168,7 +169,7 @@ public sealed class TrayIconService : IDisposable
         SetForegroundWindow(_hwnd);
 
         var hMenu = CreatePopupMenu();
-        AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN), "Open Pramaan");
+        AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_OPEN), $"Open {BrandInfo.AppDisplayName}");
         AppendMenu(hMenu, MF_SEPARATOR, IntPtr.Zero, null);
         AppendMenu(hMenu, MF_STRING, new IntPtr(CMD_EXIT), "Exit");
 

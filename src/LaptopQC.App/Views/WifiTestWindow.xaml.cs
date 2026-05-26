@@ -9,6 +9,17 @@ public partial class WifiTestWindow : Window
 {
     private bool _internetReachable;
 
+    private static Color GetBrandColor(string key, string fallbackHex)
+    {
+        if (Application.Current.Resources[key] is Color c)
+            return c;
+
+        if (Application.Current.Resources[key] is SolidColorBrush b)
+            return b.Color;
+
+        return (Color)ColorConverter.ConvertFromString(fallbackHex);
+    }
+
     public WifiTestWindow()
     {
         InitializeComponent();
@@ -85,14 +96,14 @@ public partial class WifiTestWindow : Window
             WifiStatusText.Text = wifiConnected ? $"Connected ({wifiName})" : "Not connected";
             WifiIcon.Text = wifiConnected ? "✅" : "❌";
             WifiStatusText.Foreground = new SolidColorBrush(wifiConnected
-                ? (Color)ColorConverter.ConvertFromString("#0B9444")
-                : (Color)ColorConverter.ConvertFromString("#FF0000"));
+                ? GetBrandColor("SuccessYesColor", "#0B9444")
+                : GetBrandColor("DangerNoColor", "#FF0000"));
 
             EthernetStatusText.Text = ethernetConnected ? $"Connected ({ethName})" : "Not connected";
             EthernetIcon.Text = ethernetConnected ? "✅" : "❌";
             EthernetStatusText.Foreground = new SolidColorBrush(ethernetConnected
-                ? (Color)ColorConverter.ConvertFromString("#0B9444")
-                : (Color)ColorConverter.ConvertFromString("#FF0000"));
+                ? GetBrandColor("SuccessYesColor", "#0B9444")
+                : GetBrandColor("DangerNoColor", "#FF0000"));
 
             // Test internet — always attempt, even if adapter-type detection was inconclusive.
             // Try HTTP first, then ICMP ping as fallback because Windows Server firewall /
@@ -109,14 +120,14 @@ public partial class WifiTestWindow : Window
                 EthernetStatusText.Text = $"Connected ({ethName})";
                 EthernetIcon.Text = "✅";
                 EthernetStatusText.Foreground = new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString("#0B9444"));
+                    GetBrandColor("SuccessYesColor", "#0B9444"));
             }
 
             InternetStatusText.Text = internetReachable ? "Reachable" : "Not reachable";
             InternetIcon.Text = internetReachable ? "✅" : "❌";
             InternetStatusText.Foreground = new SolidColorBrush(internetReachable
-                ? (Color)ColorConverter.ConvertFromString("#0B9444")
-                : (Color)ColorConverter.ConvertFromString("#FF0000"));
+                ? GetBrandColor("SuccessYesColor", "#0B9444")
+                : GetBrandColor("DangerNoColor", "#FF0000"));
         }
         catch (Exception ex)
         {
@@ -135,7 +146,9 @@ public partial class WifiTestWindow : Window
             ? "✓ Network connectivity verified"
             : "✗ Internet not connected — connect to WiFi or Ethernet and retry";
         OverallResultText.Foreground = new SolidColorBrush(
-            (Color)ColorConverter.ConvertFromString(_internetReachable ? "#0B9444" : "#FF0000"));
+            _internetReachable
+                ? GetBrandColor("SuccessYesColor", "#0B9444")
+                : GetBrandColor("DangerNoColor", "#FF0000"));
 
         ContinueButton.IsEnabled = true;
         ContinueButton.Content = _internetReachable ? "Continue" : "Retry";

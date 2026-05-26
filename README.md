@@ -53,6 +53,22 @@ dotnet build
 dotnet run --project LaptopQC.App
 ```
 
+### Whitelabel Builds (per customer)
+The desktop app supports a per-customer build via the `Brand` MSBuild property.
+
+```bat
+REM Publish brand (outputs to publish\<Brand>\)
+publish.bat Pramaan
+publish.bat Cirtyn
+```
+
+For the installer, pass the matching brand to Inno Setup (and ensure `installer/brands/<Brand>.iss` exists):
+
+```bat
+REM Inno Setup (ISCC.exe)
+ISCC.exe /DBrand=Cirtyn installer\installer.iss
+```
+
 ### Web Dashboard
 ```bash
 # Setup and run

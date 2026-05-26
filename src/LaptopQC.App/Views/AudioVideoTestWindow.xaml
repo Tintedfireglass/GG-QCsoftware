@@ -243,18 +243,9 @@
 
                 <!-- Complete -->
                 <StackPanel Visibility="{Binding IsComplete, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock FontSize="72" HorizontalAlignment="Center" Margin="0,10,0,0" FontFamily="Segoe UI Emoji"
+                    <TextBlock FontSize="72" HorizontalAlignment="Center" Margin="0,10,0,0" FontFamily="Segoe UI"
+                               Text="{Binding Passed, Converter={StaticResource BoolToPassFailConverter}}"
                                Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Text" Value="❌"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Passed}" Value="True">
-                                        <Setter Property="Text" Value="✅"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
                     </TextBlock>
                     <TextBlock Text="{Binding ResultMessage}" 
                                FontSize="18" FontWeight="SemiBold" 

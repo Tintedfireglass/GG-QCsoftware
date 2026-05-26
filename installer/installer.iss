@@ -11,16 +11,14 @@
 ;
 ; ===================================================
 
-#define MyAppName "Pramaan"
-#define MyAppPublisher "GadgetGuruz"
-#define MyAppExeName "Pramaan.exe"
-#define MyAppURL "https://gg-qcsoftware.vercel.app/"
-#define MyAppExePath "..\publish\Pramaan.exe"
-#define MyAppVersion "1.0.5"
+#ifndef Brand
+  #define Brand "Pramaan"
+#endif
+#include "brands\" + Brand + ".iss"
 
 [Setup]
 ; Application identity
-AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}
+AppId={{{#MyAppId}}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -37,9 +35,9 @@ DisableProgramGroupPage=yes
 
 ; Output settings
 OutputDir=Output
-OutputBaseFilename=Pramaan_Setup_{#MyAppVersion}
+OutputBaseFilename={#MyAppName}_Setup_{#MyAppVersion}
 ; SetupIconFile - uncomment and set path if you have an icon file
-SetupIconFile=..\src\LaptopQC.App\Resources\pramana_icon.ico
+SetupIconFile={#MyAppIconFile}
 Compression=lzma2/normal
 SolidCompression=no
 
@@ -71,14 +69,14 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; Package full publish output from the current build.
 ; Exclude transient logs and local reports.
-Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "Reports\*;*.log;*.txt"
+Source: "..\publish\{#Brand}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "Reports\*;*.log;*.txt"
 
 [Icons]
 ; Start Menu shortcut
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "Pramaan - Refurbished Laptop Diagnostic System"
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Comment: "{#MyAppName} - Refurbished Laptop Diagnostic System"
 
 ; Desktop shortcut (optional)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "Pramaan - Refurbished Laptop Diagnostic System"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; Comment: "{#MyAppName} - Refurbished Laptop Diagnostic System"
 
 [Run]
 ; Option to run after installation

@@ -14,38 +14,38 @@
     <Window.Resources>
         <conv:BoolToWidthConverter x:Key="BoolToWidthConverter"/>
         <Style x:Key="HeaderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
 
         <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
 
         <Style x:Key="InfoLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
 
         <Style x:Key="ValueText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
         </Style>
 
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -62,24 +62,24 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A3376"/>
+                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#d1d5db"/>
-                    <Setter Property="Foreground" Value="#9ca3af"/>
+                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="OutlineButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#8B3D88"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -99,14 +99,14 @@
                     <Setter Property="Background" Value="#fef2f2"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="BorderBrush" Value="#d1d5db"/>
-                    <Setter Property="Foreground" Value="#9ca3af"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="SmallTestButton" TargetType="Button">
-            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Medium"/>
@@ -128,17 +128,17 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#7A3376"/>
+                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#d1d5db"/>
+                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="CardPanel" TargetType="Border">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16"/>
@@ -311,27 +311,27 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="6" Padding="12" Margin="5,12,5,0">
+        <Border Grid.Row="2" Background="#f3f4f6" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="5,12,5,0">
             <StackPanel>
                 <ProgressBar Height="4"
                              IsIndeterminate="True"
                              Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}}"
-                             Background="#e5e7eb"
+                             Background="{DynamicResource BorderGreyBrush}"
                              Foreground="#0f766e"/>
                 <ProgressBar Height="4"
                              IsIndeterminate="True"
                              Visibility="{Binding IsCleaning, Converter={StaticResource BoolToVisibilityConverter}}"
-                             Background="#e5e7eb"
-                             Foreground="#8B3D88"
+                             Background="{DynamicResource BorderGreyBrush}"
+                             Foreground="{DynamicResource BrandPrimaryBrush}"
                              Margin="0,6,0,0"/>
                 <ProgressBar Height="4"
                              IsIndeterminate="True"
                              Visibility="{Binding IsDeepScanning, Converter={StaticResource BoolToVisibilityConverter}}"
-                             Background="#e5e7eb"
+                             Background="{DynamicResource BorderGreyBrush}"
                              Foreground="#2563eb"
                              Margin="0,6,0,0"/>
                 <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource InfoLabel}" Margin="0,6,0,0"/>
-                <TextBlock Text="{Binding CurrentOperation}" Foreground="#9ca3af" FontSize="11" TextWrapping="Wrap" FontFamily="Segoe UI"/>
+                <TextBlock Text="{Binding CurrentOperation}" Foreground="{DynamicResource DisabledTextBrush}" FontSize="11" TextWrapping="Wrap" FontFamily="{DynamicResource AppFontFamily}"/>
             </StackPanel>
         </Border>
     </Grid>

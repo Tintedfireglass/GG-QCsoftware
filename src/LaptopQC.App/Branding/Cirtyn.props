@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <BrandAppDisplayName>Cirtyn</BrandAppDisplayName>
+    <BrandExeName>Cirtyn</BrandExeName>
+    <BrandProductName>Cirtyn</BrandProductName>
+    <BrandCompanyName>Cirtyn</BrandCompanyName>
+    <BrandPublisherName>Cirtyn</BrandPublisherName>
+    <!-- Update URL is brand-specific; set to your endpoint (or leave empty to disable updates). -->
+    <BrandUpdateUrl></BrandUpdateUrl>
+    <!-- Provide customer-specific icon in Resources and update this path. -->
+    <BrandIconPath>Resources\cirtyn_icon.ico</BrandIconPath>
+    <BrandXamlKey>Cirtyn</BrandXamlKey>
+  </PropertyGroup>
+</Project>
+

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Text.RegularExpressions;
+using LaptopQC.App.Branding;
 
 namespace LaptopQC.App.Views;
 
@@ -99,7 +100,7 @@ public partial class TermsWindow : Window
     private static string AcceptanceFlagPath =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Pramaan", "tnc_accepted.txt");
+            BrandInfo.AppDataFolderName, "tnc_accepted.txt");
 
     public static bool HasAccepted() => File.Exists(AcceptanceFlagPath);
 

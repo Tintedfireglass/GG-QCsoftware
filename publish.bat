@@ -12,7 +12,14 @@ echo.
 REM Set paths
 set PROJECT_DIR=%~dp0
 set SRC_DIR=%PROJECT_DIR%src\LaptopQC.App
-set PUBLISH_DIR=%PROJECT_DIR%publish
+set BRAND=%1
+set NOPAUSE=%2
+if /I "%BRAND%"=="nopause" (
+    set BRAND=Pramaan
+    set NOPAUSE=nopause
+)
+if "%BRAND%"=="" set BRAND=Pramaan
+set PUBLISH_DIR=%PROJECT_DIR%publish\%BRAND%
 set TOOLS_SRC=%SRC_DIR%\tools
 
 REM Clean previous publish
@@ -26,6 +33,7 @@ dotnet publish "%SRC_DIR%\LaptopQC.App.csproj" ^
     -c Release ^
     -r win-x64 ^
     --self-contained true ^
+    -p:Brand=%BRAND% ^
     -p:PublishSingleFile=false ^
     -p:PublishReadyToRun=true ^
     -o "%PUBLISH_DIR%"
@@ -63,8 +71,8 @@ dir /b "%PUBLISH_DIR%"
 echo.
 echo Next steps:
 echo   1. Install Inno Setup from: https://jrsoftware.org/isdl.php
-echo   2. Open installer\installer.iss in Inno Setup Compiler
+echo   2. Open installer\installer.iss in Inno Setup Compiler (pass Brand=%BRAND%)
 echo   3. Click Build ^> Compile to create the installer
 echo.
-if "%1"=="nopause" goto :eof
+if /I "%NOPAUSE%"=="nopause" goto :eof
 pause

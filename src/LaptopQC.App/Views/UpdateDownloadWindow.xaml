@@ -16,7 +16,7 @@
         <TextBlock Text="Downloading update..."
                    FontSize="16"
                    FontWeight="SemiBold"
-                   Foreground="#0f172a"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
                    Margin="0,0,0,10"/>
         <ProgressBar x:Name="DownloadProgress"
                      Grid.Row="1"
@@ -28,7 +28,7 @@
         <TextBlock x:Name="ProgressText"
                    Grid.Row="2"
                    FontSize="12"
-                   Foreground="#64748b"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
                    Text="Starting download..."/>
     </Grid>
 </Window>

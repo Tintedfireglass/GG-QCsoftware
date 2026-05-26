@@ -241,18 +241,27 @@ public class QCWorkflowService
                 
                 foreach (var device in healthCheck.Devices)
                 {
-                    Report.StorageTest.Details.Add($"[SMART] {device.Model}: {device.HealthStatus} ({device.HealthScore}%)");
+                    // Prefer the OS-level storage model when available so reports don't show smartctl scan names
+                    // (e.g. "/dev/sda") on platforms/drivers where smartctl cannot resolve the model reliably.
+                    string smartLabel = device.Model;
                     
                     // Sync SMART data to StorageDetails for the report
                     var storageDevice = Report.StorageDetails?.Devices.FirstOrDefault(d =>
                         // Primary match: device path is always consistent on Linux
                         d.DeviceId.Equals(device.DevicePath, StringComparison.OrdinalIgnoreCase) ||
+                        // Windows: allow matching by serial number when paths differ (e.g. "\\\\.\\PHYSICALDRIVE0" vs smartctl scan name)
+                        (!string.IsNullOrWhiteSpace(d.SerialNumber) &&
+                         !string.IsNullOrWhiteSpace(device.SerialNumber) &&
+                         d.SerialNumber.Equals(device.SerialNumber, StringComparison.OrdinalIgnoreCase)) ||
                         // Fallback: model-name substring
                         d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) ||
                         device.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
 
                     if (storageDevice != null)
                     {
+                        if (!string.IsNullOrWhiteSpace(storageDevice.Model))
+                            smartLabel = storageDevice.Model;
+
                         storageDevice.HealthPercent = device.HealthScore;
                         if (device.Temperature.HasValue)
                             storageDevice.Temperature = device.Temperature.Value;
@@ -265,11 +274,13 @@ public class QCWorkflowService
                         if (string.IsNullOrWhiteSpace(storageDevice.SerialNumber) && !string.IsNullOrWhiteSpace(device.SerialNumber))
                             storageDevice.SerialNumber = device.SerialNumber;
                     }
+
+                    Report.StorageTest.Details.Add($"[SMART] {smartLabel}: {device.HealthStatus} ({device.HealthScore}%)");
                     
                     // Run short self-test if healthy enough
                     if (device.HealthPassed)
                     {
-                        UpdateStatus($"Running Short Self-Test on {device.Model}...", 40);
+                        UpdateStatus($"Running Short Self-Test on {smartLabel}...", 40);
                         var testResult = await _smartTestService.RunShortTestAsync(
                             device.DevicePath,
                             deviceType: device.DeviceType);
@@ -279,14 +290,14 @@ public class QCWorkflowService
                             {
                                 selfTestInconclusiveCount++;
                                 var reason = GetInconclusiveReason(testResult.Message);
-                                var incLine = $"Self-Test Inconclusive: {device.Model} ({reason})";
+                                var incLine = $"Self-Test Inconclusive: {smartLabel} ({reason})";
                                 Report.StorageTest.Details.Add(incLine);
                                 selfTestLines.Add(incLine);
                             }
                             else
                             {
                                 selfTestFailedCount++;
-                                var failLine = $"Self-Test Failed: {device.Model} ({testResult.Message})";
+                                var failLine = $"Self-Test Failed: {smartLabel} ({testResult.Message})";
                                 Report.StorageTest.Details.Add(failLine);
                                 selfTestLines.Add(failLine);
                             }
@@ -294,7 +305,7 @@ public class QCWorkflowService
                         else
                         {
                             selfTestPassedCount++;
-                            var passLine = $"Self-Test Passed: {device.Model}";
+                            var passLine = $"Self-Test Passed: {smartLabel}";
                             Report.StorageTest.Details.Add(passLine);
                             selfTestLines.Add(passLine);
                         }

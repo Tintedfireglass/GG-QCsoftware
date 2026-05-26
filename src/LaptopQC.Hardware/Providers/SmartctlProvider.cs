@@ -135,7 +135,7 @@ public class SmartctlProvider : ISmartctlProvider
             Success = result.ExitCode == 0,
             Message = result.ExitCode == 0 
                 ? "Short self-test started. Estimated completion: ~2 minutes."
-                : $"Failed to start test: {result.Output}"
+                : $"Failed to start test (exit {result.ExitCode}): {result.Output}"
         };
     }
     
