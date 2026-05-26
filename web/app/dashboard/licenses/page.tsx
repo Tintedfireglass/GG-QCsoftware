@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createLicenseKey, getLicenses, toggleLicenseKeyActive, updateLicenseExpiry } from "@/lib/api"
-import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar } from "lucide-react"
+import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar, Power, PowerOff } from "lucide-react"
 
 interface LicenseKey {
     id: number
@@ -416,13 +416,13 @@ export default function LicensesPage() {
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b border-slate-200 bg-white">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Type</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Created</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[220px] whitespace-nowrap">Expires</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[200px] whitespace-nowrap">Activation Size</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-center w-[150px] whitespace-nowrap">Status</th>
-                                <th className="h-12 px-6 align-middle font-medium text-slate-900 text-right w-[150px] whitespace-nowrap">Action</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[110px] whitespace-nowrap">Type</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Created</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Expires</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[130px] whitespace-nowrap">Activations</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Status</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
@@ -439,27 +439,27 @@ export default function LicensesPage() {
                                     const computedStatus = getKeyStatus(k, Date.now())
                                     return (
                                     <tr key={k.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
-                                        <td className="p-6 align-middle text-slate-600 font-medium tracking-wide">
-                                            <div>{k.key}</div>
+                                        <td className="py-4 px-4 align-middle text-slate-600 font-medium tracking-wide">
+                                            <div className="font-mono text-sm">{k.key}</div>
                                             {customerLabel ? (
-                                                <div className="text-xs text-slate-400">Customer: {customerLabel}</div>
+                                                <div className="text-xs text-slate-400 mt-0.5">Customer: {customerLabel}</div>
                                             ) : null}
                                         </td>
-                                        <td className="p-6 align-middle text-center">
+                                        <td className="py-4 px-4 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
                                                 {k.type === "bulk" ? "Bulk" : k.type === "demo" ? "Demo" : "Single use"}
                                             </span>
                                         </td>
-                                        <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 whitespace-nowrap text-sm">
                                             {formatDate(k.created_at)}
                                         </td>
-                                        <td className="p-6 align-middle text-center text-slate-600 whitespace-nowrap">
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 whitespace-nowrap text-sm">
                                             {k.type === 'demo' ? '—' : (k.expires_at ? formatDate(k.expires_at) : 'Forever')}
                                         </td>
-                                        <td className="p-6 align-middle text-center text-slate-600">
+                                        <td className="py-4 px-4 align-middle text-center text-slate-600 text-sm">
                                             {effectiveUses}/{k.max_uses}
                                         </td>
-                                        <td className="p-6 align-middle text-center">
+                                        <td className="py-4 px-4 align-middle text-center">
                                             {computedStatus === "active" ? (
                                                 <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium">
                                                     Active
@@ -478,36 +478,46 @@ export default function LicensesPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="p-6 align-middle text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="rounded-full px-6 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9"
+                                        <td className="py-4 px-4 align-middle text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                {/* Copy */}
+                                                <button
+                                                    title="Copy key"
                                                     onClick={() => handleCopy(k.key)}
+                                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-[var(--brand-purple)] hover:bg-purple-50 transition-colors"
                                                 >
-                                                    Copy
-                                                </Button>
+                                                    <Copy className="h-4 w-4" />
+                                                </button>
+
+                                                {/* Extend expiry */}
                                                 {k.type !== 'demo' && (
-                                                    <Button
-                                                        variant="outline"
-                                                        className="rounded-full px-6 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 bg-white shadow-sm h-9"
+                                                    <button
+                                                        title="Edit expiry date"
                                                         onClick={() => openExtendModal(k)}
+                                                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                                     >
-                                                        Extend
-                                                    </Button>
+                                                        <Calendar className="h-4 w-4" />
+                                                    </button>
                                                 )}
-                                                <Button
-                                                    variant="outline"
-                                                    className={
-                                                        k.is_active
-                                                            ? "rounded-full px-6 border-rose-200 text-rose-600 hover:text-rose-700 hover:border-rose-300 bg-white shadow-sm h-9"
-                                                            : "rounded-full px-6 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 bg-white shadow-sm h-9"
-                                                    }
+
+                                                {/* Enable / Disable */}
+                                                <button
+                                                    title={k.is_active ? 'Disable key' : 'Enable key'}
                                                     onClick={() => handleToggleActive(k)}
                                                     disabled={togglingId === k.id}
+                                                    className={`inline-flex items-center justify-center h-8 w-8 rounded-lg transition-colors disabled:opacity-50 ${
+                                                        k.is_active
+                                                            ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                                                    }`}
                                                 >
-                                                    {togglingId === k.id ? "Updating..." : k.is_active ? "Disable" : "Enable"}
-                                                </Button>
+                                                    {togglingId === k.id
+                                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                                        : k.is_active
+                                                            ? <PowerOff className="h-4 w-4" />
+                                                            : <Power className="h-4 w-4" />
+                                                    }
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
