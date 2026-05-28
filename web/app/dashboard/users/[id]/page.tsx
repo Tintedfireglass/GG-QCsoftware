@@ -468,7 +468,7 @@ export default function EditUserPage() {
                                 ]).map(({ key, label, sub }) => (
                                     <label
                                         key={key}
-                                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
+                                        className={`relative flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
                                             durationPerms[key]
                                                 ? 'border-blue-500 bg-blue-50'
                                                 : 'border-slate-200 hover:border-slate-300'

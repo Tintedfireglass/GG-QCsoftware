@@ -295,7 +295,7 @@ export default function NewUserPage() {
                                     {DURATION_OPTIONS.map(({ key, label, sub }) => (
                                         <label
                                             key={key}
-                                            className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                                            className={`relative flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
                                                 durationPerms[key]
                                                     ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]/5'
                                                     : 'border-slate-100 bg-white hover:border-slate-200'
