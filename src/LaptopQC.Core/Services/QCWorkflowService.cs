@@ -93,11 +93,11 @@ public class QCWorkflowService
                         // It will be set by the caller (MainWindow) from AuthService.MachineId.
                     }
 #if WINDOWS
-                    try
-                    {
-                        var security = new SecurityDiagnostic();
-                        var activation = security.GetWindowsActivationStatus();
-                        var antivirus = security.GetAntivirusStatus();
+	                    try
+	                    {
+	                        var security = new SecurityDiagnostic();
+	                        var activation = security.GetWindowsActivationStatus();
+	                        var antivirus = security.GetAntivirusStatus();
                         var windowsLastUpdatedAt = security.GetWindowsLastUpdatedAt();
                         if (Report.SystemInfo != null)
                         {
@@ -108,8 +108,8 @@ public class QCWorkflowService
                             Report.SystemInfo.AntivirusStatus = antivirus.Summary;
                             Report.SystemInfo.IsAntivirusHealthy = antivirus.IsHealthy;
                         }
-                    }
-                    catch { /* Best-effort only */ }
+	                    }
+	                    catch { /* Best-effort only */ }
 #endif
                 });
             
@@ -371,7 +371,17 @@ public class QCWorkflowService
             }
 
 #if WINDOWS
-                // 4. Stress Tests
+	            if (skipStressTests)
+	            {
+	                UpdateStatus("Skipping stress tests...", 90);
+	                Report.CpuTest.Details.Add("Stress tests skipped");
+	                Report.RamTest.Details.Add("Stress tests skipped");
+	                Report.GpuTest.Tested = false;
+	                Report.GpuTest.Details.Add("Stress tests skipped");
+	            }
+	            else
+	            {
+	                // 4. Stress Tests
             UpdateStatus("Running CPU Stress Test...", 60);
             var cpuStress = new CpuStressTest(durationSeconds: 15);
             cpuStress.OnProgress += (p) => UpdateStatus($"CPU Stress Test: {p.CurrentTemp:F0}°C", 60 + (p.PercentComplete / 5)); // 60-80%
@@ -433,9 +443,10 @@ public class QCWorkflowService
                     Report.GpuTest.Details.Add($"Clock Range: {gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
                 }
             }
-#else
-            UpdateStatus("Stress tests skipped on non-Windows platforms in WorkflowService", 90);
-#endif
+		            }
+		#else
+		            UpdateStatus("Stress tests skipped on non-Windows platforms in WorkflowService", 90);
+		#endif
 
 
             UpdateStatus("Automated Checks Complete", 100);

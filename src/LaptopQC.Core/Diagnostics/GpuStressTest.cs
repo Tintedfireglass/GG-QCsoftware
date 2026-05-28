@@ -44,6 +44,13 @@ public class GpuStressTest : IGpuStressTest
     /// </summary>
     public async Task<GpuStressResult> RunAsync(CancellationToken cancellationToken = default)
     {
+        // Hard timeout: GPU test must finish within duration + 30s grace period
+        using var timeoutCts = new CancellationTokenSource(
+            TimeSpan.FromSeconds(_durationSeconds + 30));
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, timeoutCts.Token);
+        var ct = combinedCts.Token;
+
         // Initialize sensors on background thread
         ISensorProvider? sensors = null;
         bool hasDiscreteGpu = false;
@@ -54,7 +61,7 @@ public class GpuStressTest : IGpuStressTest
             if (_sensorProvider == null) sensors.Initialize();
             hasDiscreteGpu = sensors.HasDiscreteGpu();
             _gpuName = sensors.GetDiscreteGpuName();
-        }, cancellationToken);
+        }, ct);
 
         // Check for discrete GPU
         if (!hasDiscreteGpu || sensors == null)
@@ -83,6 +90,7 @@ public class GpuStressTest : IGpuStressTest
         var stopwatch = Stopwatch.StartNew();
         Device? device = null;
         Thread? stressThread = null;
+        Thread? monitorThread = null;
 
         try
         {
@@ -102,7 +110,7 @@ public class GpuStressTest : IGpuStressTest
             result.GpuName = adapterName ?? _gpuName ?? "Unknown GPU";
 
             // 1. Start dedicated monitoring thread
-            var monitorThread = new Thread(() => MonitorLoop(stopwatch, cancellationToken, sensors))
+            monitorThread = new Thread(() => MonitorLoop(stopwatch, ct, sensors))
             {
                 Priority = ThreadPriority.AboveNormal,
                 IsBackground = true,
@@ -111,11 +119,11 @@ public class GpuStressTest : IGpuStressTest
             monitorThread.Start();
 
             // Small delay to ensure monitor is running
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, ct).ConfigureAwait(false);
 
             // 2. Start GPU stress thread
             var deviceCopy = device;
-            stressThread = new Thread(() => DirectXStressLoop(deviceCopy, cancellationToken))
+            stressThread = new Thread(() => DirectXStressLoop(deviceCopy, ct))
             {
                 Priority = ThreadPriority.Normal,
                 IsBackground = true,
@@ -126,16 +134,19 @@ public class GpuStressTest : IGpuStressTest
             // 3. Wait for test duration
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(_durationSeconds), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(_durationSeconds), ct).ConfigureAwait(false);
             }
-            catch (TaskCanceledException) { }
+            catch (OperationCanceledException) { }
 
-            // 4. Stop everything
+            // 4. Signal threads to stop
             _isRunning = false;
 
-            // Wait for threads to finish
-            stressThread?.Join(2000);
-            monitorThread.Join(1000);
+            // Wait for threads to finish, then interrupt if stuck
+            if (stressThread != null && !stressThread.Join(3000))
+                stressThread.Interrupt();
+            
+            if (monitorThread != null && !monitorThread.Join(1500))
+                monitorThread.Interrupt();
         }
         catch (Exception ex)
         {
@@ -146,8 +157,17 @@ public class GpuStressTest : IGpuStressTest
         }
         finally
         {
-            // Clean up DirectX resources
-            device?.Dispose();
+            _isRunning = false;
+            
+            // Clean up DirectX resources in background so it doesn't block
+            var devToDispose = device;
+            if (devToDispose != null)
+            {
+                _ = Task.Run(() => 
+                {
+                    try { devToDispose.Dispose(); } catch { }
+                });
+            }
         }
 
         stopwatch.Stop();

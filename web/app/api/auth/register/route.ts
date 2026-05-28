@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
         if (roleError) return roleError;
 
         const body: CreateUserRequest = await request.json();
-        const { username, password, email, company_name, display_name, role } = body;
+        const { username, password, email, company_name, display_name, role,
+            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys } = body;
 
         // Validate input
         if (!username || !password || !email) {
@@ -82,11 +83,19 @@ export async function POST(request: NextRequest) {
         // Hash password
         const passwordHash = await hashPassword(password);
 
+        // Only SuperAdmin can set duration permission flags
+        const monthlyFlag = authUser.role === 'SuperAdmin' ? (allow_monthly_keys ?? false) : false;
+        const quarterlyFlag = authUser.role === 'SuperAdmin' ? (allow_quarterly_keys ?? false) : false;
+        const sixMonthFlag = authUser.role === 'SuperAdmin' ? (allow_6month_keys ?? false) : false;
+        const yearlyFlag = authUser.role === 'SuperAdmin' ? (allow_yearly_keys ?? false) : false;
+
         // Insert user with created_by reference
         const result = await query(
-            `INSERT INTO users (username, password_hash, email, company_name, display_name, role, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id, username, email, company_name, display_name, role, created_by, is_active, created_at`,
+            `INSERT INTO users (username, password_hash, email, company_name, display_name, role, created_by,
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             RETURNING id, username, email, company_name, display_name, role, created_by, is_active, created_at,
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys`,
             [
                 username,
                 passwordHash,
@@ -94,7 +103,11 @@ export async function POST(request: NextRequest) {
                 company_name?.trim() || null,
                 display_name || username,
                 role,
-                authUser.id
+                authUser.id,
+                monthlyFlag,
+                quarterlyFlag,
+                sixMonthFlag,
+                yearlyFlag,
             ]
         );
 

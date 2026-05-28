@@ -46,6 +46,7 @@ export default function LicensesPage() {
     const [demoCustomerName, setDemoCustomerName] = useState("")
     const [durationMode, setDurationMode] = useState<"forever" | "temporary">("forever")
     const [expiresAt, setExpiresAt] = useState("")
+    const [selectedDurationDays, setSelectedDurationDays] = useState(30)
     const [generatedKeyString, setGeneratedKeyString] = useState("")
     const [generateError, setGenerateError] = useState("")
     const [togglingId, setTogglingId] = useState<number | null>(null)
@@ -96,11 +97,24 @@ export default function LicensesPage() {
                 return
             }
             const trimmedCustomerName = demoCustomerName.trim()
+            let computedExpiresAt = null;
+            const isPrivilegedUser = user?.role === "SuperAdmin" || user?.role === "Employee";
+            
+            if (durationMode === "temporary") {
+                if (isPrivilegedUser && expiresAt) {
+                    computedExpiresAt = new Date(expiresAt).toISOString();
+                } else if (!isPrivilegedUser && selectedDurationDays > 0) {
+                    const d = new Date();
+                    d.setDate(d.getDate() + selectedDurationDays);
+                    computedExpiresAt = d.toISOString();
+                }
+            }
+
             const data = await createLicenseKey({
                 type: newType as any,
                 max_uses: newType === "demo" ? 1 : maxUsesValue,
                 demo_customer_name: trimmedCustomerName ? trimmedCustomerName : undefined,
-                expires_at: durationMode === "temporary" && expiresAt ? new Date(expiresAt).toISOString() : null,
+                expires_at: computedExpiresAt,
             })
 
             setGeneratedKeyString(data.key.key)
@@ -573,35 +587,71 @@ export default function LicensesPage() {
                                 </select>
                             </div>
 
-                            {newType !== "demo" && (user?.role === "SuperAdmin" || user?.role === "Employee") && (
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
-                                        Duration
-                                    </label>
-                                    <select
-                                        value={durationMode}
-                                        onChange={(e) => setDurationMode(e.target.value as any)}
-                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
-                                    >
-                                        <option value="forever">Forever</option>
-                                        <option value="temporary">Temporary</option>
-                                    </select>
+                            {newType !== "demo" && (() => {
+                                const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee";
+                                const hasPerms = user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys;
+                                
+                                if (!isPrivileged && !hasPerms) return null; // Forever only, silently
 
-                                    {durationMode === "temporary" && (
+                                if (isPrivileged) {
+                                    return (
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-900 mb-2">
-                                                Expiration Date
+                                                Duration
                                             </label>
-                                            <Input
-                                                type="date"
-                                                value={expiresAt}
-                                                onChange={(e) => setExpiresAt(e.target.value)}
-                                                className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
-                                            />
+                                            <select
+                                                value={durationMode}
+                                                onChange={(e) => setDurationMode(e.target.value as any)}
+                                                className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                            >
+                                                <option value="forever">Forever</option>
+                                                <option value="temporary">Temporary</option>
+                                            </select>
+
+                                            {durationMode === "temporary" && (
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                                        Expiration Date
+                                                    </label>
+                                                    <Input
+                                                        type="date"
+                                                        value={expiresAt}
+                                                        onChange={(e) => setExpiresAt(e.target.value)}
+                                                        className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    );
+                                }
+
+                                // Non-privileged but has perms -> Dropdown of specific durations
+                                return (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                            Duration
+                                        </label>
+                                        <select
+                                            value={durationMode === "forever" ? "forever" : String(selectedDurationDays)}
+                                            onChange={(e) => {
+                                                if (e.target.value === "forever") {
+                                                    setDurationMode("forever");
+                                                } else {
+                                                    setDurationMode("temporary");
+                                                    setSelectedDurationDays(Number(e.target.value));
+                                                }
+                                            }}
+                                            className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
+                                        >
+                                            <option value="forever">Forever</option>
+                                            {user?.allow_monthly_keys && <option value="30">Monthly (30 Days)</option>}
+                                            {user?.allow_quarterly_keys && <option value="90">Quarterly (90 Days)</option>}
+                                            {user?.allow_6month_keys && <option value="180">6-Month (180 Days)</option>}
+                                            {user?.allow_yearly_keys && <option value="365">Yearly (365 Days)</option>}
+                                        </select>
+                                    </div>
+                                );
+                            })()}
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">

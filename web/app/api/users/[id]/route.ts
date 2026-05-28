@@ -41,6 +41,10 @@ export async function GET(
                 u.created_by,
                 u.is_active, 
                 u.license_credits,
+                u.allow_monthly_keys,
+                u.allow_quarterly_keys,
+                u.allow_6month_keys,
+                u.allow_yearly_keys,
                 u.created_at,
                 creator.username as creator_username,
                 (SELECT COUNT(*) FROM users WHERE created_by = u.id) as team_size
@@ -134,7 +138,8 @@ export async function PUT(
         }
 
         const body: UpdateUserRequest = await request.json();
-        const { email, display_name, role, is_active, password, license_credits } = body;
+        const { email, display_name, role, is_active, password, license_credits,
+            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys } = body;
 
         // Build update query dynamically
         const updates: string[] = [];
@@ -188,6 +193,26 @@ export async function PUT(
             const passwordHash = await hashPassword(password);
             updates.push(`password_hash = $${paramIndex++}`);
             values.push(passwordHash);
+        }
+
+        // Duration permission flags — SuperAdmin only
+        if (authUser.role === 'SuperAdmin') {
+            if (allow_monthly_keys !== undefined) {
+                updates.push(`allow_monthly_keys = $${paramIndex++}`);
+                values.push(allow_monthly_keys);
+            }
+            if (allow_quarterly_keys !== undefined) {
+                updates.push(`allow_quarterly_keys = $${paramIndex++}`);
+                values.push(allow_quarterly_keys);
+            }
+            if (allow_6month_keys !== undefined) {
+                updates.push(`allow_6month_keys = $${paramIndex++}`);
+                values.push(allow_6month_keys);
+            }
+            if (allow_yearly_keys !== undefined) {
+                updates.push(`allow_yearly_keys = $${paramIndex++}`);
+                values.push(allow_yearly_keys);
+            }
         }
 
         const isResellerAllocatingCredits = authUser.role === 'Reseller' && license_credits !== undefined;
@@ -286,7 +311,8 @@ export async function PUT(
             `UPDATE users 
              SET ${updates.join(', ')}
              WHERE id = $${paramIndex}
-             RETURNING id, username, email, display_name, role, created_by, is_active, license_credits, created_at`,
+             RETURNING id, username, email, display_name, role, created_by, is_active, license_credits,
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, created_at`,
             values
         );
 

@@ -85,6 +85,40 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Validation Error', message: 'Customer name is required for demo keys' }, { status: 400 });
         }
 
+        // Validate expires_at duration against per-user permissions for non-SuperAdmin/Employee users
+        const isPrivilegedUser = authUser.role === 'SuperAdmin' || authUser.role === 'Employee';
+        if (!isPrivilegedUser && expires_at && type !== 'demo') {
+            // Fetch the user's permission flags fresh from DB
+            const userPerms = await query(
+                'SELECT allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys FROM users WHERE id = $1',
+                [authUser.id]
+            );
+            const perms = userPerms[0] || {};
+            const expiryDate = new Date(expires_at);
+            const nowDate = new Date();
+            const diffDays = Math.round((expiryDate.getTime() - nowDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            const DURATION_MAP = [
+                { days: 30, flag: perms.allow_monthly_keys, label: 'monthly' },
+                { days: 90, flag: perms.allow_quarterly_keys, label: 'quarterly' },
+                { days: 180, flag: perms.allow_6month_keys, label: '6-month' },
+                { days: 365, flag: perms.allow_yearly_keys, label: 'yearly' },
+            ];
+
+            const matched = DURATION_MAP.find(d => d.flag && Math.abs(diffDays - d.days) <= 2);
+            if (!matched) {
+                return NextResponse.json(
+                    { error: 'Authorization Error', message: 'You are not permitted to set this expiry duration' },
+                    { status: 403 }
+                );
+            }
+        }
+
+        // Prevent non-privileged users from setting expires_at when they have no permissions
+        if (!isPrivilegedUser && expires_at && type !== 'demo') {
+            // Already validated above — this block intentionally left as a guard
+        }
+
         // Generate the 16-digit code
         const assignedKey = generateRandomKey();
 

@@ -114,8 +114,12 @@ public partial class QCWizardViewModel : ObservableObject
         _reportGenerator = new ReportGenerator();
         _submissionService = new QCSubmissionService();
 
-        _workflowService.OnStatusUpdate += (status) => AutomatedStatus = status;
-        _workflowService.OnProgressUpdate += (progress) => AutomatedProgress = progress;
+        // These events fire from background threads (inside Task.Run in QCWorkflowService).
+        // Marshal back to the UI thread to avoid cross-thread WPF exceptions.
+        _workflowService.OnStatusUpdate += (status) =>
+            Application.Current.Dispatcher.Invoke(() => AutomatedStatus = status);
+        _workflowService.OnProgressUpdate += (progress) =>
+            Application.Current.Dispatcher.Invoke(() => AutomatedProgress = progress);
     }
 
     [RelayCommand]
@@ -134,7 +138,8 @@ public partial class QCWizardViewModel : ObservableObject
 
         try
         {
-            await _workflowService.RunAutomatedChecksAsync();
+            // Stress tests are mandatory in Full QC
+            await _workflowService.RunAutomatedChecksAsync(skipStressTests: false);
             
             // Move to interactive
             IsAutomatedStep = false;

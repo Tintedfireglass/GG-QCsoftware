@@ -33,6 +33,32 @@ public partial class App : Application
     public App()
     {
         Services = ConfigureServices();
+
+        // ── Global crash logger ───────────────────────────────────────────────
+        // Writes every unhandled exception to Desktop\pramaan_crash.log
+        var logPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            "pramaan_crash.log");
+
+        DispatcherUnhandledException += (_, e) =>
+        {
+            File.AppendAllText(logPath,
+                $"[{DateTime.Now:u}] DispatcherUnhandledException:\n{e.Exception}\n\n");
+            e.Handled = false;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            File.AppendAllText(logPath,
+                $"[{DateTime.Now:u}] UnhandledException (IsTerminating={e.IsTerminating}):\n{e.ExceptionObject}\n\n");
+        };
+
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            File.AppendAllText(logPath,
+                $"[{DateTime.Now:u}] UnobservedTaskException:\n{e.Exception}\n\n");
+            e.SetObserved();
+        };
     }
 
     private static IServiceProvider ConfigureServices()

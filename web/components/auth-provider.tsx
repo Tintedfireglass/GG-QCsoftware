@@ -9,6 +9,11 @@ interface User {
     username: string
     role: UserRole
     display_name?: string
+    // Temporary key duration permission flags (fetched fresh from /api/users/me)
+    allow_monthly_keys?: boolean
+    allow_quarterly_keys?: boolean
+    allow_6month_keys?: boolean
+    allow_yearly_keys?: boolean
 }
 
 interface AuthContextType {
@@ -81,6 +86,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
 
+    // On mount (or whenever token changes), fetch fresh user data including permission flags
+    useEffect(() => {
+        if (!token) return
+        fetch("/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) return null
+                return res.json()
+            })
+            .then((data) => {
+                if (!data?.user) return
+                setUser((prev) => {
+                    if (!prev) return prev
+                    return {
+                        ...prev,
+                        allow_monthly_keys: data.user.allow_monthly_keys ?? false,
+                        allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
+                        allow_6month_keys: data.user.allow_6month_keys ?? false,
+                        allow_yearly_keys: data.user.allow_yearly_keys ?? false,
+                    }
+                })
+            })
+            .catch(() => {
+                // Silently fail — permission flags just won't be populated
+            })
+    }, [token])
+
     useEffect(() => {
         // Redirect logic
         const isPublicRoute =
@@ -132,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Permission checks
     const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canViewAllResults = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
-    const canViewMachines = () => isSuperAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()  // Enterprise/OEM/Insurer/Reseller + SA manage fleet
+    const canViewMachines = () => isSuperAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canManageFleet = () => isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canExportBulk = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
 

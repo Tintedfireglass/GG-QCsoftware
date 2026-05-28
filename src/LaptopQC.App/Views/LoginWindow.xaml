@@ -1,7 +1,7 @@
 <Window x:Class="LaptopQC.App.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{Binding Source={DynamicResource AppDisplayName}, StringFormat=Activation - {0}}" Width="420"
+        Title="{DynamicResource AppDisplayName}" Width="420"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
