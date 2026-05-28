@@ -607,12 +607,12 @@
                                         IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
                                         Margin="15,0,0,0"
                                         ToolTip="Test each USB port by plugging in a device"/>
-                                <TextBlock Style="{StaticResource InfoLabel}" VerticalAlignment="Center" Margin="15,0,0,0">
-                                    <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                    <Run Text=" USB 3.x .. "/>
-                                    <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/>
-                                    <Run Text=" USB 2.0"/>
-                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
+                                    <TextBlock Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}" Style="{StaticResource InfoLabel}"/>
+                                    <TextBlock Text=" USB 3.x .. " Style="{StaticResource InfoLabel}"/>
+                                    <TextBlock Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}" Style="{StaticResource InfoLabel}"/>
+                                    <TextBlock Text=" USB 2.0" Style="{StaticResource InfoLabel}"/>
+                                </StackPanel>
                             </StackPanel>
                             
                             <Border Style="{StaticResource StatusBoxSuccess}" Margin="0,12,0,0">

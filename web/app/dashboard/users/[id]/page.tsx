@@ -37,6 +37,12 @@ export default function EditUserPage() {
         confirmPassword: "",
         license_credits: 0
     })
+    const [durationPerms, setDurationPerms] = useState({
+        allow_monthly_keys: false,
+        allow_quarterly_keys: false,
+        allow_6month_keys: false,
+        allow_yearly_keys: false,
+    })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -59,6 +65,12 @@ export default function EditUserPage() {
                 password: "",
                 confirmPassword: "",
                 license_credits: data.user.license_credits || 0
+            })
+            setDurationPerms({
+                allow_monthly_keys: data.user.allow_monthly_keys ?? false,
+                allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
+                allow_6month_keys: data.user.allow_6month_keys ?? false,
+                allow_yearly_keys: data.user.allow_yearly_keys ?? false,
             })
         } catch (err) {
             console.error("Failed to load user:", err)
@@ -107,6 +119,14 @@ export default function EditUserPage() {
             // License credits: SuperAdmin can set for supported roles, Reseller can allocate to Client
             if (isSuperAdmin() || (isReseller() && userData?.role === 'Client')) {
                 updateData.license_credits = formData.license_credits
+            }
+
+            // Duration permission flags — SuperAdmin only, for eligible roles
+            if (isSuperAdmin() && userData?.role !== 'SuperAdmin' && userData?.role !== 'Employee') {
+                updateData.allow_monthly_keys = durationPerms.allow_monthly_keys
+                updateData.allow_quarterly_keys = durationPerms.allow_quarterly_keys
+                updateData.allow_6month_keys = durationPerms.allow_6month_keys
+                updateData.allow_yearly_keys = durationPerms.allow_yearly_keys
             }
 
             // Include password if provided
@@ -431,6 +451,63 @@ export default function EditUserPage() {
                             </Link>
                         </div>
                     </form>
+
+                    {/* Duration Permissions — SuperAdmin only, eligible roles only */}
+                    {isSuperAdmin() && userData.role !== 'SuperAdmin' && userData.role !== 'Employee' && (
+                        <div className="mt-6 pt-6 border-t">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-1">Temporary Key Permissions</h3>
+                            <p className="text-xs text-slate-500 mb-4">
+                                Choose which expiry durations this user can apply when generating license keys.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    { key: 'allow_monthly_keys' as const, label: 'Monthly', sub: '30-day keys' },
+                                    { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: '90-day keys' },
+                                    { key: 'allow_6month_keys' as const, label: '6-Month', sub: '180-day keys' },
+                                    { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: '365-day keys' },
+                                ]).map(({ key, label, sub }) => (
+                                    <label
+                                        key={key}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
+                                            durationPerms[key]
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                            durationPerms[key] ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
+                                        }`}>
+                                            {durationPerms[key] && (
+                                                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={durationPerms[key]}
+                                            onChange={(e) => setDurationPerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                        />
+                                        <div>
+                                            <div className="font-medium text-slate-900 text-sm">{label}</div>
+                                            <div className="text-xs text-slate-500">{sub}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={saving}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {saving ? 'Saving...' : 'Save Permissions'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

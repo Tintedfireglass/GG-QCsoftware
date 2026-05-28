@@ -29,6 +29,12 @@ export default function NewUserPage() {
         display_name: "",
         role: "Technician" as UserRole
     })
+    const [durationPerms, setDurationPerms] = useState({
+        allow_monthly_keys: false,
+        allow_quarterly_keys: false,
+        allow_6month_keys: false,
+        allow_yearly_keys: false,
+    })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -57,17 +63,24 @@ export default function NewUserPage() {
         B2CDevice: { title: "B2C Device", description: "Consumer devices initiated via B2C plans" }
     }
 
+    const DURATION_OPTIONS = [
+        { key: 'allow_monthly_keys' as const, label: 'Monthly', sub: 'Keys expire in exactly 30 days' },
+        { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: 'Keys expire in exactly 90 days' },
+        { key: 'allow_6month_keys' as const, label: '6-Month', sub: 'Keys expire in exactly 180 days' },
+        { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: 'Keys expire in exactly 365 days' },
+    ]
+
+    const showDurationSection = isSuperAdmin() && formData.role !== 'SuperAdmin' && formData.role !== 'Employee'
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setError(null)
 
-        // Validate password length
         if (formData.password.length < 6) {
             setError("Password must be at least 6 characters")
             return
         }
 
-        // Validate role
         if (!creatableRoles.includes(formData.role)) {
             setError("You cannot create users with this role")
             return
@@ -92,7 +105,9 @@ export default function NewUserPage() {
                 email: formData.email || undefined,
                 company_name: formData.company_name.trim() || undefined,
                 display_name: formData.display_name || undefined,
-                role: formData.role
+                role: formData.role,
+                // Duration permission flags — only sent when role is eligible
+                ...(showDurationSection ? durationPerms : {})
             })
 
             router.push("/dashboard/users")
@@ -221,7 +236,7 @@ export default function NewUserPage() {
                                     className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-[var(--brand-purple)] focus-visible:bg-white"
                                 />
                             </div>
-                            <div className="hidden md:block"></div> {/* Empty spacer (removed Time Zone per user request) */}
+                            <div className="hidden md:block"></div> {/* Empty spacer */}
                         </div>
 
                         {/* Role Selection */}
@@ -264,6 +279,52 @@ export default function NewUserPage() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* Temporary Key Permissions — SuperAdmin only, not for SuperAdmin/Employee roles */}
+                        {showDurationSection && (
+                            <div className="pt-6 border-t border-slate-100">
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-slate-700">
+                                        Temporary Key Permissions
+                                    </label>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Choose which expiry durations this user can apply when generating license keys. If none selected, they can only create forever keys.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {DURATION_OPTIONS.map(({ key, label, sub }) => (
+                                        <label
+                                            key={key}
+                                            className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                                                durationPerms[key]
+                                                    ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]/5'
+                                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                            }`}
+                                        >
+                                            <div className="mt-0.5">
+                                                <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                    durationPerms[key]
+                                                        ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]'
+                                                        : 'border-slate-300 bg-white'
+                                                }`}>
+                                                    {durationPerms[key] && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only"
+                                                checked={durationPerms[key]}
+                                                onChange={(e) => setDurationPerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                            />
+                                            <div>
+                                                <div className="font-semibold text-slate-900 text-sm">{label}</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">{sub}</div>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Submit Button */}
                         <div className="pt-6 border-t border-slate-100 flex justify-end">
