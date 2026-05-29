@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -364,76 +364,112 @@ public partial class MainViewModel : ObservableObject
         
         try
         {
-            // CPU Stress Test
-            StatusMessage = "Stress testing CPU... (Initializing)";
-            var cpuStress = new CpuStressTest(durationSeconds: 15);
-            cpuStress.OnProgress += (p) => 
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                var temp = p.CurrentTemp > 0 ? $"{p.CurrentTemp:F0}°C" : "N/A";
-                var speed = p.CurrentClock > 0 ? $" @ {p.CurrentClock:F0}MHz" : "";
-                Dispatcher.UIThread.Post(() =>
-                    StatusMessage = $"Stress testing CPU: {p.PercentComplete}% | Temp: {temp}{speed}");
-            };
-            
-            var cpuResult = await cpuStress.RunAsync();
-            AddResult("CPU", "Stress Test", cpuResult.Passed, cpuResult.Message);
-            
-            // Add detailed metrics
-            if (cpuResult.MaxTemp > 0)
-                AddResult("CPU", "Max Temperature", cpuResult.MaxTemp <= 90, $"{cpuResult.MaxTemp:F1}°C");
-            if (cpuResult.MaxClock > 0)
-            {
-                double throttlePercent = cpuResult.MaxClock > 0 ? (1 - cpuResult.MinClock / cpuResult.MaxClock) * 100 : 0;
-                AddResult("CPU", "Clock Range", throttlePercent < 25, $"{cpuResult.MinClock:F0} - {cpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
-            }
-            
-            CpuStatus = cpuResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+#if WINDOWS
+                // CPU Stress Test
+                StatusMessage = "Stress testing CPU... (Initializing)";
+                var cpuStress = new CpuStressTest(durationSeconds: 15);
+                cpuStress.OnProgress += (p) => 
+                {
+                    var temp = p.CurrentTemp > 0 ? $"{p.CurrentTemp:F0}°C" : "N/A";
+                    var speed = p.CurrentClock > 0 ? $" @ {p.CurrentClock:F0}MHz" : "";
+                    Dispatcher.UIThread.Post(() =>
+                        StatusMessage = $"Stress testing CPU: {p.PercentComplete}% | Temp: {temp}{speed}");
+                };
+                
+                var cpuResult = await cpuStress.RunAsync();
+                AddResult("CPU", "Stress Test", cpuResult.Passed, cpuResult.Message);
+                
+                // Add detailed metrics
+                if (cpuResult.MaxTemp > 0)
+                    AddResult("CPU", "Max Temperature", cpuResult.MaxTemp <= 90, $"{cpuResult.MaxTemp:F1}°C");
+                if (cpuResult.MaxClock > 0)
+                {
+                    double throttlePercent = cpuResult.MaxClock > 0 ? (1 - cpuResult.MinClock / cpuResult.MaxClock) * 100 : 0;
+                    AddResult("CPU", "Clock Range", throttlePercent < 25, $"{cpuResult.MinClock:F0} - {cpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
+                }
+                
+                CpuStatus = cpuResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
 
-            // RAM Stress Test
-            StatusMessage = "Stress testing RAM...";
-            var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
-            ramStress.OnProgress += (p) => 
-            {
-                Dispatcher.UIThread.Post(() =>
-                    StatusMessage = $"Stress testing RAM: {p.PercentComplete}%");
-            };
+                // RAM Stress Test
+                StatusMessage = "Stress testing RAM...";
+                var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
+                ramStress.OnProgress += (p) => 
+                {
+                    Dispatcher.UIThread.Post(() =>
+                        StatusMessage = $"Stress testing RAM: {p.PercentComplete}%");
+                };
 
-            var ramResult = await ramStress.RunAsync();
-            AddResult("RAM", "Stress Test", ramResult.Passed, ramResult.Message);
-            RamStatus = ramResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+                var ramResult = await ramStress.RunAsync();
+                AddResult("RAM", "Stress Test", ramResult.Passed, ramResult.Message);
+                RamStatus = ramResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
 
-            // GPU Stress Test (only if discrete GPU is detected)
-            StatusMessage = "Checking for discrete GPU...";
-            var gpuStress = new GpuStressTest(durationSeconds: 15);
-            gpuStress.OnProgress += (p) =>
-            {
-                var temp = p.CurrentTemp > 0 ? $"{p.CurrentTemp:F0}°C" : "N/A";
-                var load = p.CurrentLoad > 0 ? $" | Load: {p.CurrentLoad:F0}%" : "";
-                var speed = p.CurrentClock > 0 ? $" @ {p.CurrentClock:F0}MHz" : "";
-                Dispatcher.UIThread.Post(() =>
-                    StatusMessage = $"Stress testing GPU ({p.GpuName}): {p.PercentComplete}% | Temp: {temp}{load}{speed}");
-            };
+                // GPU Stress Test (only if discrete GPU is detected)
+                StatusMessage = "Checking for discrete GPU...";
+                var gpuStress = new GpuStressTest(durationSeconds: 15);
+                gpuStress.OnProgress += (p) =>
+                {
+                    var temp = p.CurrentTemp > 0 ? $"{p.CurrentTemp:F0}°C" : "N/A";
+                    var load = p.CurrentLoad > 0 ? $" | Load: {p.CurrentLoad:F0}%" : "";
+                    var speed = p.CurrentClock > 0 ? $" @ {p.CurrentClock:F0}MHz" : "";
+                    Dispatcher.UIThread.Post(() =>
+                        StatusMessage = $"Stress testing GPU ({p.GpuName}): {p.PercentComplete}% | Temp: {temp}{load}{speed}");
+                };
 
-            var gpuResult = await gpuStress.RunAsync();
-            
-            if (gpuResult.Skipped)
-            {
-                AddResult("GPU", "Stress Test", true, gpuResult.Message);
+                var gpuResult = await gpuStress.RunAsync();
+                
+                if (gpuResult.Skipped)
+                {
+                    AddResult("GPU", "Stress Test", true, gpuResult.Message);
+                }
+                else
+                {
+                    AddResult("GPU", "Stress Test", gpuResult.Passed, gpuResult.Message);
+                    
+                    // Add detailed GPU metrics
+                    if (gpuResult.MaxTemp > 0)
+                        AddResult("GPU", "Max Temperature", gpuResult.MaxTemp <= 90, $"{gpuResult.MaxTemp:F1}°C");
+                    if (gpuResult.MaxLoad > 0)
+                        AddResult("GPU", "Load", true, $"{gpuResult.AvgLoad:F0}% avg, {gpuResult.MaxLoad:F0}% max");
+                    if (gpuResult.MaxClock > 0)
+                    {
+                        double throttlePercent = gpuResult.MaxClock > 0 ? (1 - gpuResult.MinClock / gpuResult.MaxClock) * 100 : 0;
+                        AddResult("GPU", "Clock Range", throttlePercent < 30, $"{gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
+                    }
+                }
+#endif
             }
             else
             {
-                AddResult("GPU", "Stress Test", gpuResult.Passed, gpuResult.Message);
-                
-                // Add detailed GPU metrics
-                if (gpuResult.MaxTemp > 0)
-                    AddResult("GPU", "Max Temperature", gpuResult.MaxTemp <= 90, $"{gpuResult.MaxTemp:F1}°C");
-                if (gpuResult.MaxLoad > 0)
-                    AddResult("GPU", "Load", true, $"{gpuResult.AvgLoad:F0}% avg, {gpuResult.MaxLoad:F0}% max");
-                if (gpuResult.MaxClock > 0)
+                // macOS: run RAM stress (pure .NET, cross-platform) and skip CPU/GPU sensor-based tests
+                StatusMessage = "Stress testing RAM...";
+                var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
+                ramStress.OnProgress += (p) =>
                 {
-                    double throttlePercent = gpuResult.MaxClock > 0 ? (1 - gpuResult.MinClock / gpuResult.MaxClock) * 100 : 0;
-                    AddResult("GPU", "Clock Range", throttlePercent < 30, $"{gpuResult.MinClock:F0} - {gpuResult.MaxClock:F0} MHz ({throttlePercent:F0}% drop)");
-                }
+                    Dispatcher.UIThread.Post(() =>
+                        StatusMessage = $"Stress testing RAM: {p.PercentComplete}%");
+                };
+
+                var ramResult = await ramStress.RunAsync();
+                AddResult("RAM", "Stress Test", ramResult.Passed, ramResult.Message);
+                RamStatus = ramResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+
+                // CPU stress: macOS performance-based throttling test
+                StatusMessage = "Stress testing CPU...";
+                var macCpuStress = new LaptopQC.Core.Diagnostics.MacCpuStressTest(durationSeconds: 15);
+                macCpuStress.OnProgress += (p) =>
+                {
+                    var speed = p.CurrentClock > 0 ? $" | Speed: {p.CurrentClock:F1}M ops/s" : "";
+                    Dispatcher.UIThread.Post(() => 
+                        StatusMessage = $"Stress testing CPU: {p.PercentComplete}%{speed} (Math loop)");
+                };
+
+                var macCpuResult = await macCpuStress.RunAsync();
+                AddResult("CPU", "Stress Test", macCpuResult.Passed, macCpuResult.Message);
+                CpuStatus = macCpuResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+
+                AddResult("GPU", "Stress Test", true, "GPU stress test not available on macOS (DirectX not supported)");
             }
 
             StatusMessage = "Stress tests complete!";

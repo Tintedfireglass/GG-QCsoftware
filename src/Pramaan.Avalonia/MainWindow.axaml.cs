@@ -71,7 +71,7 @@ public partial class MainWindow : Window
         else
         {
             var loginWindow = new Views.LoginWindow(App.AuthService);
-            loginWindow.ShowDialog(this).ContinueWith(_ => 
+            _ = loginWindow.ShowDialog(this).ContinueWith(_ => 
             {
                 Dispatcher.UIThread.Post(UpdateUserStatusDisplay);
             });

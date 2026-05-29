@@ -15,6 +15,13 @@ public partial class LoginWindow : Window
     public UserInfo? LoggedInUser => _authService.CurrentUser;
     public int? TechnicianId => _authService.GetTechnicianId();
 
+    // Required by Avalonia runtime loader
+    public LoginWindow()
+    {
+        InitializeComponent();
+        _authService = null!;
+    }
+
     public LoginWindow(AuthService authService)
     {
         InitializeComponent();

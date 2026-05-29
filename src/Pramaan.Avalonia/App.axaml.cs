@@ -71,34 +71,31 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // ── Windows implementations ──
-            services.AddSingleton<IWmiProvider, WmiProvider>();
-            services.AddSingleton<ISensorProvider, SensorProvider>();
-            services.AddSingleton<ISmartctlProvider, SmartctlProvider>();
-            
-            services.AddTransient<ISystemDiagnostic, SystemDiagnostic>();
-            services.AddTransient<ICpuDiagnostic, CpuDiagnostic>();
-            services.AddTransient<IRamDiagnostic, RamDiagnostic>();
-            services.AddTransient<IStorageDiagnostic, StorageDiagnostic>();
-            services.AddTransient<IBatteryDiagnostic, BatteryDiagnostic>();
-            services.AddTransient<IDeviceDiagnostic, DeviceDiagnostic>();
-            services.AddTransient<ISmartTestService, SmartTestService>();
-            services.AddTransient<IAudioVideoTestService, AudioVideoTestService>();
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            // ── macOS implementations ──
-            services.AddTransient<ISystemDiagnostic, MacOSDiag.MacSystemDiagnostic>();
-            services.AddTransient<ICpuDiagnostic, MacOSDiag.MacCpuDiagnostic>();
-            services.AddTransient<IRamDiagnostic, MacOSDiag.MacRamDiagnostic>();
-            services.AddTransient<IStorageDiagnostic, MacOSDiag.MacStorageDiagnostic>();
-            services.AddTransient<IBatteryDiagnostic, MacOSDiag.MacBatteryDiagnostic>();
-            services.AddTransient<IDeviceDiagnostic, MacOSDiag.MacDeviceDiagnostic>();
-            services.AddTransient<ISmartTestService, MacOSDiag.MacSmartTestService>();
-            services.AddTransient<IAudioVideoTestService, MacOSDiag.MacAudioVideoTestService>();
-        }
+#if WINDOWS
+        // ── Windows implementations ──
+        services.AddSingleton<IWmiProvider, WmiProvider>();
+        services.AddSingleton<ISensorProvider, SensorProvider>();
+        services.AddSingleton<ISmartctlProvider, SmartctlProvider>();
+        
+        services.AddTransient<ISystemDiagnostic, SystemDiagnostic>();
+        services.AddTransient<ICpuDiagnostic, CpuDiagnostic>();
+        services.AddTransient<IRamDiagnostic, RamDiagnostic>();
+        services.AddTransient<IStorageDiagnostic, StorageDiagnostic>();
+        services.AddTransient<IBatteryDiagnostic, BatteryDiagnostic>();
+        services.AddTransient<IDeviceDiagnostic, DeviceDiagnostic>();
+        services.AddTransient<ISmartTestService, SmartTestService>();
+        services.AddTransient<IAudioVideoTestService, AudioVideoTestService>();
+#else
+        // ── macOS implementations ──
+        services.AddTransient<ISystemDiagnostic, MacOSDiag.MacSystemDiagnostic>();
+        services.AddTransient<ICpuDiagnostic, MacOSDiag.MacCpuDiagnostic>();
+        services.AddTransient<IRamDiagnostic, MacOSDiag.MacRamDiagnostic>();
+        services.AddTransient<IStorageDiagnostic, MacOSDiag.MacStorageDiagnostic>();
+        services.AddTransient<IBatteryDiagnostic, MacOSDiag.MacBatteryDiagnostic>();
+        services.AddTransient<IDeviceDiagnostic, MacOSDiag.MacDeviceDiagnostic>();
+        services.AddTransient<ISmartTestService, MacOSDiag.MacSmartTestService>();
+        services.AddTransient<IAudioVideoTestService, MacOSDiag.MacAudioVideoTestService>();
+#endif
         
         // ── Platform-neutral services ──
         services.AddTransient<QCWorkflowService>();

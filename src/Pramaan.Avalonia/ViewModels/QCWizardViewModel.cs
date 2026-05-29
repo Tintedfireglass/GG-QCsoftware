@@ -279,10 +279,10 @@ public partial class QCWizardViewModel : ObservableObject
                 if (isVirtual) continue;
 
                 if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
-                    { wifi = true; wifiName = ni.Name; }
+                    { wifi = true; wifiName = ni.Name ?? "Unknown"; }
                 else if (ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
                          ni.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet)
-                    { ethernet = true; ethName = ni.Name; }
+                    { ethernet = true; ethName = ni.Name ?? "Unknown"; }
             }
 
             var parts = new List<string>();

@@ -1,0 +1,42 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual trigger from the GitHub UI
+
+jobs:
+  build-mac:
+    # Use macos-latest (which is macOS 14 / Apple Silicon on GitHub Actions)
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Make Build Script Executable
+      run: chmod +x publish_mac.sh
+
+    - name: Run Build Script
+      run: ./publish_mac.sh
+      
+    - name: Archive macOS App Artifact (Apple Silicon)
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pramaan_QC_Tool_macOS_arm64
+        path: publish/osx-arm64/
+        retention-days: 7
+        
+    - name: Archive macOS App Artifact (Intel)
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pramaan_QC_Tool_macOS_x64
+        path: publish/osx-x64/
+        retention-days: 7

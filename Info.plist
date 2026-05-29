@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <!-- ── Identity ── -->
+    <key>CFBundleName</key>
+    <string>PRAMAAN</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>PRAMAAN QC Tool</string>
+
+    <key>CFBundleIdentifier</key>
+    <string>com.pramaan.qctool</string>
+
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+
+    <!-- Matches the filename of the compiled executable inside Contents/MacOS/ -->
+    <key>CFBundleExecutable</key>
+    <string>Pramaan.Avalonia</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <!-- ── Icon ── -->
+    <!-- Drop an AppIcon.icns into src/Pramaan.Avalonia/Assets/ and the publish script will copy it -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <!-- ── OS Requirements ── -->
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+
+    <!-- Support both Apple Silicon and Intel from the same bundle if using a universal binary -->
+    <key>LSArchitecturePriority</key>
+    <array>
+        <string>arm64</string>
+        <string>x86_64</string>
+    </array>
+
+    <!-- ── Display ── -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Opt in to dark mode support (Avalonia handles this automatically) -->
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+
+    <!-- ── Privacy Usage Descriptions ──
+         Required by macOS Gatekeeper for any API that touches user data.
+         Add/remove keys depending on which hardware tests are actually run.
+    -->
+
+    <!-- Camera: for webcam detection in DeviceDiagnostic -->
+    <key>NSCameraUsageDescription</key>
+    <string>PRAMAAN QC Tool reads the list of available cameras to verify the built-in webcam is functioning.</string>
+
+    <!-- Microphone: for audio output/input tests in AudioVideoTestService -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>PRAMAAN QC Tool plays a test tone and records briefly to verify the microphone and speakers.</string>
+
+    <!-- Local Network: for WiFi / Ethernet connectivity check -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>PRAMAAN QC Tool checks network adapter status and internet connectivity as part of the QC workflow.</string>
+
+    <!-- ── Security / Sandbox ──
+         Pramaan is NOT sandboxed — it needs access to hardware sensors,
+         system profiler, ioreg, diskutil, etc.
+    -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Needed for smartctl / system_profiler subprocess calls -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+
+    <!-- ── Dock / UI hints ── -->
+    <key>LSUIElement</key>
+    <false/>
+
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+</dict>
+</plist>

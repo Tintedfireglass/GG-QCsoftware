@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace LaptopQC.Core.Services;
 
@@ -6,6 +7,7 @@ namespace LaptopQC.Core.Services;
 /// Registers/manages the Windows Scheduled Task for the QC reminder.
 /// The task runs PramaanReminder.exe at logon to check if a QC test is overdue.
 /// Always re-registers on startup so application updates are automatically applied.
+/// On macOS: no-op for v1 (launchd support planned for a future release).
 /// </summary>
 public static class ReminderTaskService
 {
@@ -18,6 +20,10 @@ public static class ReminderTaskService
     /// </summary>
     public static void EnsureRegistered()
     {
+        // Windows-only: macOS uses launchd instead (not yet implemented for v1)
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         try
         {
             // Always re-register so updates to the exe path or task settings

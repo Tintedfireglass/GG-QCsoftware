@@ -1,0 +1,274 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Pramaan.Avalonia.ViewModels"
+        x:Class="Pramaan.Avalonia.Views.CleanupWindow"
+        Title="Junk Cleanup"
+        Height="560" Width="980"
+        WindowStartupLocation="CenterOwner"
+        Background="#f5f5f5">
+
+    <Window.DataContext>
+        <vm:CleanupViewModel/>
+    </Window.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.HeaderText">
+            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style Selector="TextBlock.SectionTitle">
+            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style Selector="TextBlock.InfoLabel">
+            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style Selector="TextBlock.ValueText">
+            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16a34a"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#9ca3af"/>
+        </Style>
+        <Style Selector="Button.OutlineButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#22c55e"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.OutlineButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#f0fdf4"/>
+        </Style>
+        <Style Selector="Button.SmallButton">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.SmallButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+        </Style>
+        <Style Selector="Border.CardPanel">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header row -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Junk Cleanup" Classes="HeaderText" Margin="0,0,16,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                <TextBlock Text="Total" Classes="InfoLabel" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TotalSizeLabel}" Classes="ValueText" VerticalAlignment="Center"/>
+                <TextBlock Text="Selected" Classes="InfoLabel" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                <TextBlock Text="{Binding SelectedSizeLabel}" Classes="ValueText" VerticalAlignment="Center"/>
+                <Button Content="Scan"
+                        Command="{Binding ScanCommand}"
+                        IsEnabled="{Binding !IsScanning}"
+                        Classes="OutlineButton"
+                        Padding="16,10"/>
+                <Button Content="Clean Selected"
+                        Command="{Binding CleanCommand}"
+                        IsEnabled="{Binding !IsCleaning}"
+                        Classes="PrimaryButton"
+                        Padding="16,10"/>
+                <Button Content="Close"
+                        Classes="OutlineButton"
+                        Padding="12,6"
+                        Click="Close_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Categories table -->
+        <Border Grid.Row="1" Classes="CardPanel">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Table header row -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Cleanup Categories" Classes="SectionTitle"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <Button Content="Select All"
+                                Command="{Binding SelectAllCommand}"
+                                Classes="OutlineButton" Padding="10,6"/>
+                        <Button Content="Select None"
+                                Command="{Binding SelectNoneCommand}"
+                                Classes="OutlineButton" Padding="10,6"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Column headers -->
+                <Border Grid.Row="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <Grid Grid.Row="0" Background="#f9fafb">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="50"/>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="260"/>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Use" Classes="InfoLabel" Margin="4,8"/>
+                            <TextBlock Grid.Column="1" Text="Category" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="2" Text="Description" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="3" Text="Files" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="4" Text="Size" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="5" Text="Available" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="6" Text="Actions" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="7" Text="Approx" Classes="InfoLabel" Margin="4,8" FontWeight="SemiBold"
+                                       IsVisible="{Binding ShowApproxColumn}"/>
+                        </Grid>
+
+                        <!-- Data rows -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Categories}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="0,2">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50"/>
+                                                    <ColumnDefinition Width="170"/>
+                                                    <ColumnDefinition Width="260"/>
+                                                    <ColumnDefinition Width="70"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0"
+                                                          IsChecked="{Binding IsSelected}"
+                                                          IsEnabled="{Binding IsAvailable}"
+                                                          Margin="4,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                           Classes="ValueText" Margin="4,8"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Description}"
+                                                           Classes="InfoLabel" Margin="4,8"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding FileCount}"
+                                                           Classes="InfoLabel" Margin="4,8"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding SizeLabel}"
+                                                           Classes="InfoLabel" Margin="4,8"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding AvailabilityLabel}"
+                                                           Classes="InfoLabel" Margin="4,8"/>
+                                                <Button Grid.Column="6"
+                                                        Content="Deep Scan"
+                                                        Classes="SmallButton"
+                                                        Padding="10,4"
+                                                        IsEnabled="{Binding CanDeepScan}"
+                                                        IsVisible="{Binding IsWindowsUpdate}"
+                                                        Command="{Binding $parent[Window].DataContext.DeepScanWindowsUpdateCommand}"
+                                                        Margin="4,4"/>
+                                                <TextBlock Grid.Column="7"
+                                                           Text="{Binding ApproximateLabel}"
+                                                           Classes="InfoLabel" Margin="4,8"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="1"
+                CornerRadius="6" Padding="12" Margin="5,12,5,0">
+            <StackPanel Spacing="6">
+                <ProgressBar Height="4"
+                             IsIndeterminate="True"
+                             IsVisible="{Binding IsScanning}"
+                             Background="#e5e7eb"
+                             Foreground="#0f766e"/>
+                <ProgressBar Height="4"
+                             IsIndeterminate="True"
+                             IsVisible="{Binding IsCleaning}"
+                             Background="#e5e7eb"
+                             Foreground="#22c55e"/>
+                <ProgressBar Height="4"
+                             IsIndeterminate="True"
+                             IsVisible="{Binding IsDeepScanning}"
+                             Background="#e5e7eb"
+                             Foreground="#2563eb"/>
+                <TextBlock Text="{Binding StatusMessage}" Classes="InfoLabel"/>
+                <TextBlock Text="{Binding CurrentOperation}"
+                           Foreground="#9ca3af"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           FontFamily="Segoe UI"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,8 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Diagnostics;
 using System.Collections.ObjectModel;
+#if WINDOWS
 using System.Management;
+#endif
 using System.Text.RegularExpressions;
 
 namespace Pramaan.Avalonia.ViewModels;
@@ -13,8 +15,10 @@ namespace Pramaan.Avalonia.ViewModels;
 public partial class UsbPortTestViewModel : ObservableObject, IDisposable
 {
     private readonly InputTestService.UsbTestState _testState;
+#if WINDOWS
     private ManagementEventWatcher? _insertWatcher;
     private ManagementEventWatcher? _removeWatcher;
+#endif
     
     // Global debounce - only count one port insertion every N seconds
     private DateTime _lastPortCountTime = DateTime.MinValue;
@@ -87,6 +91,7 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
 
         try
         {
+#if WINDOWS
             // Watch for USB device insertion
             var insertQuery = new WqlEventQuery(
                 "SELECT * FROM __InstanceCreationEvent WITHIN 1 WHERE TargetInstance ISA 'Win32_USBHub'");
@@ -102,7 +107,11 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
             _removeWatcher.Start();
 
             IsWatching = true;
-            Instructions = "ðŸ”Œ Listening for USB insertions... Plug devices into each port.";
+            Instructions = "🔌 Listening for USB insertions... Plug devices into each port.";
+#else
+            IsWatching = true;
+            Instructions = "🔌 Automated USB insertion testing is a Windows-only feature. Please click Complete if ports are functional.";
+#endif
         }
         catch (Exception ex)
         {
@@ -116,6 +125,7 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void StopWatching()
     {
+#if WINDOWS
         _insertWatcher?.Stop();
         _insertWatcher?.Dispose();
         _insertWatcher = null;
@@ -123,11 +133,13 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
         _removeWatcher?.Stop();
         _removeWatcher?.Dispose();
         _removeWatcher = null;
+#endif
 
         IsWatching = false;
         Instructions = "USB watching stopped. Click Start to resume.";
     }
 
+#if WINDOWS
     private void OnDeviceInserted(object sender, EventArrivedEventArgs e)
     {
         try
@@ -378,6 +390,7 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
         
         return false;
     }
+#endif
 
     /// <summary>
     /// Fallback: Extracts the port path (instance ID) from a full device ID

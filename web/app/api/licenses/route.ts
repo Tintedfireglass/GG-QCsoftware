@@ -96,8 +96,17 @@ export async function POST(request: NextRequest) {
             const perms = userPerms[0] || {};
             
             if (!expires_at) {
-                // Perpetual key request
+                // Perpetual key request — only allowed if explicitly permitted
                 if (!perms.allow_perpetual_keys) {
+                    // If the user has other duration permissions, they likely sent a bad request
+                    // (e.g., no expires_at when they should have set one). Give a clearer error.
+                    const hasAnyDuration = perms.allow_monthly_keys || perms.allow_quarterly_keys || perms.allow_6month_keys || perms.allow_yearly_keys;
+                    if (hasAnyDuration) {
+                        return NextResponse.json(
+                            { error: 'Authorization Error', message: 'Please select a valid expiry duration for this key' },
+                            { status: 403 }
+                        );
+                    }
                     return NextResponse.json(
                         { error: 'Authorization Error', message: 'You are not permitted to generate perpetual keys' },
                         { status: 403 }
@@ -124,6 +133,7 @@ export async function POST(request: NextRequest) {
                     );
                 }
             }
+
         }
 
         // Prevent non-privileged users from setting expires_at when they have no permissions

@@ -264,9 +264,24 @@ export default function LicensesPage() {
                         setNewType(defaultType)
                         setNewMaxUses("1")
                         setDemoCustomerName("")
-                        setDurationMode("forever")
                         setExpiresAt("")
                         setGenerateError("")
+                        // Default duration based on user permissions:
+                        // non-privileged users without perpetual access should start on "temporary"
+                        const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee"
+                        if (!isPrivileged && !user?.allow_perpetual_keys) {
+                            setDurationMode("temporary")
+                            // Pick first allowed duration
+                            const firstDuration =
+                                user?.allow_monthly_keys ? 30
+                                : user?.allow_quarterly_keys ? 90
+                                : user?.allow_6month_keys ? 180
+                                : user?.allow_yearly_keys ? 365
+                                : 30
+                            setSelectedDurationDays(firstDuration)
+                        } else {
+                            setDurationMode("forever")
+                        }
                         setIsGenerateModalOpen(true)
                     }}
                 >
