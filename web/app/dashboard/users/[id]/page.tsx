@@ -42,6 +42,7 @@ export default function EditUserPage() {
         allow_quarterly_keys: false,
         allow_6month_keys: false,
         allow_yearly_keys: false,
+        allow_perpetual_keys: true,
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -71,6 +72,7 @@ export default function EditUserPage() {
                 allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
                 allow_6month_keys: data.user.allow_6month_keys ?? false,
                 allow_yearly_keys: data.user.allow_yearly_keys ?? false,
+                allow_perpetual_keys: data.user.allow_perpetual_keys ?? true,
             })
         } catch (err) {
             console.error("Failed to load user:", err)
@@ -127,6 +129,7 @@ export default function EditUserPage() {
                 updateData.allow_quarterly_keys = durationPerms.allow_quarterly_keys
                 updateData.allow_6month_keys = durationPerms.allow_6month_keys
                 updateData.allow_yearly_keys = durationPerms.allow_yearly_keys
+                updateData.allow_perpetual_keys = durationPerms.allow_perpetual_keys
             }
 
             // Include password if provided
@@ -455,9 +458,9 @@ export default function EditUserPage() {
                     {/* Duration Permissions — SuperAdmin only, eligible roles only */}
                     {isSuperAdmin() && userData.role !== 'SuperAdmin' && userData.role !== 'Employee' && (
                         <div className="mt-6 pt-6 border-t">
-                            <h3 className="text-sm font-semibold text-slate-700 mb-1">Temporary Key Permissions</h3>
+                            <h3 className="text-sm font-semibold text-slate-700 mb-1">Key Permissions</h3>
                             <p className="text-xs text-slate-500 mb-4">
-                                Choose which expiry durations this user can apply when generating license keys.
+                                Choose which expiry durations this user can apply when generating license keys. If all are unchecked, they will not be able to generate keys.
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 {([
@@ -465,6 +468,7 @@ export default function EditUserPage() {
                                     { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: '90-day keys' },
                                     { key: 'allow_6month_keys' as const, label: '6-Month', sub: '180-day keys' },
                                     { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: '365-day keys' },
+                                    { key: 'allow_perpetual_keys' as const, label: 'Perpetual', sub: 'Forever keys' },
                                 ]).map(({ key, label, sub }) => (
                                     <label
                                         key={key}

@@ -589,9 +589,15 @@ export default function LicensesPage() {
 
                             {newType !== "demo" && (() => {
                                 const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee";
-                                const hasPerms = user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys;
+                                const hasPerms = user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys;
                                 
-                                if (!isPrivileged && !hasPerms) return null; // Forever only, silently
+                                if (!isPrivileged && !hasPerms) {
+                                    return (
+                                        <div className="text-sm text-rose-500 mb-4 p-3 bg-rose-50 rounded-lg">
+                                            You do not have permission to generate licenses of this type.
+                                        </div>
+                                    );
+                                }
 
                                 if (isPrivileged) {
                                     return (
@@ -643,7 +649,7 @@ export default function LicensesPage() {
                                             }}
                                             className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
                                         >
-                                            <option value="forever">Forever</option>
+                                            {user?.allow_perpetual_keys && <option value="forever">Perpetual (Forever)</option>}
                                             {user?.allow_monthly_keys && <option value="30">Monthly (30 Days)</option>}
                                             {user?.allow_quarterly_keys && <option value="90">Quarterly (90 Days)</option>}
                                             {user?.allow_6month_keys && <option value="180">6-Month (180 Days)</option>}
@@ -691,7 +697,7 @@ export default function LicensesPage() {
                             <Button
                                 className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
                                 onClick={handleGenerate}
-                                disabled={isGenerating}
+                                disabled={isGenerating || (newType !== 'demo' && !(user?.role === 'SuperAdmin' || user?.role === 'Employee') && !(user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys))}
                             >
                                 {isGenerating ? "Generating..." : "Generate License Key"}
                             </Button>

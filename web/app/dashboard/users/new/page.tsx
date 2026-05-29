@@ -34,6 +34,7 @@ export default function NewUserPage() {
         allow_quarterly_keys: false,
         allow_6month_keys: false,
         allow_yearly_keys: false,
+        allow_perpetual_keys: true,
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -68,6 +69,7 @@ export default function NewUserPage() {
         { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: 'Keys expire in exactly 90 days' },
         { key: 'allow_6month_keys' as const, label: '6-Month', sub: 'Keys expire in exactly 180 days' },
         { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: 'Keys expire in exactly 365 days' },
+        { key: 'allow_perpetual_keys' as const, label: 'Perpetual', sub: 'Keys never expire (Forever keys)' },
     ]
 
     const showDurationSection = isSuperAdmin() && formData.role !== 'SuperAdmin' && formData.role !== 'Employee'
@@ -280,15 +282,14 @@ export default function NewUserPage() {
                             </div>
                         </div>
 
-                        {/* Temporary Key Permissions — SuperAdmin only, not for SuperAdmin/Employee roles */}
                         {showDurationSection && (
                             <div className="pt-6 border-t border-slate-100">
                                 <div className="mb-4">
                                     <label className="block text-sm font-semibold text-slate-700">
-                                        Temporary Key Permissions
+                                        Key Permissions
                                     </label>
                                     <p className="text-xs text-slate-500 mt-1">
-                                        Choose which expiry durations this user can apply when generating license keys. If none selected, they can only create forever keys.
+                                        Choose which expiry durations this user can apply when generating license keys. If all are unchecked, they will not be able to generate keys.
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
