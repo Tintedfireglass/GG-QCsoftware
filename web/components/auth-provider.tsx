@@ -11,7 +11,6 @@ interface User {
     display_name?: string
     // Temporary key duration permission flags (fetched fresh from /api/users/me)
     allow_monthly_keys?: boolean
-    allow_monthly_keys?: boolean
     allow_quarterly_keys?: boolean
     allow_6month_keys?: boolean
     allow_yearly_keys?: boolean
