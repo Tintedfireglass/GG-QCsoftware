@@ -23,7 +23,7 @@ public class KeyPositionConverter : global::Avalonia.Data.Converters.IValueConve
         return 0.0;
     }
 
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+    public object[]? ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -55,7 +55,7 @@ public class KeyWidthConverter : global::Avalonia.Data.Converters.IValueConverte
     private const double KeyWidth = 48;
     private const double Margin = 3;
 
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double width)
         {
@@ -64,7 +64,7 @@ public class KeyWidthConverter : global::Avalonia.Data.Converters.IValueConverte
         return KeyWidth - Margin;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
