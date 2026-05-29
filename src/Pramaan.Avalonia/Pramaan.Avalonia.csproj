@@ -1,12 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <!-- Use Exe so the entry point is cross-platform (not WinExe which is Windows-only) -->
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <!-- Windows-only: UAC manifest for admin elevation -->
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <!-- macOS: .app bundle metadata -->
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <CFBundleName>PRAMAAN</CFBundleName>
+    <CFBundleIdentifier>com.pramaan.qctool</CFBundleIdentifier>
+    <CFBundleShortVersionString>1.0.0</CFBundleShortVersionString>
+    <CFBundleVersion>1.0.0</CFBundleVersion>
   </PropertyGroup>
 
   <ItemGroup>

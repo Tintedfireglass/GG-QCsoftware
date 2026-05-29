@@ -1,0 +1,151 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Pramaan.Avalonia.Views.WifiTestWindow"
+        Title="PRAMAAN"
+        Width="440"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#f5f5f5">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.CardTitle">
+            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.CardSubtitle">
+            <Setter Property="Foreground" Value="#6b7280"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.AdapterLabel">
+            <Setter Property="Foreground" Value="#1f2937"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style Selector="TextBlock.AdapterStatus">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#6b7280"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="12,12"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16a34a"/>
+        </Style>
+        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#9ca3af"/>
+        </Style>
+        <Style Selector="Border.AdapterRow">
+            <Setter Property="Background" Value="#f9fafb"/>
+            <Setter Property="BorderBrush" Value="#e5e7eb"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,4"/>
+        </Style>
+    </Window.Styles>
+
+    <Border Background="White"
+            BorderBrush="#e5e7eb"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="20"
+            Padding="30">
+        <StackPanel Spacing="0">
+            <!-- Header -->
+            <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                <Border Background="#f0f9ff" CornerRadius="30" Width="60" Height="60"
+                        HorizontalAlignment="Center" Margin="0,0,0,12">
+                    <TextBlock Text="📶" FontSize="28"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Network Connectivity Test" Classes="CardTitle"/>
+                <TextBlock Text="Checking WiFi, Ethernet, and Internet connectivity..."
+                           Classes="CardSubtitle" Margin="0,6,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- Loading indicator -->
+            <StackPanel Name="LoadingPanel" HorizontalAlignment="Center" Margin="0,0,0,16">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="4"
+                             Background="#e5e7eb" Foreground="#22c55e"/>
+                <TextBlock Name="LoadingText" Text="Scanning network adapters..."
+                           HorizontalAlignment="Center" Foreground="#6b7280"
+                           FontFamily="Segoe UI" FontSize="12" Margin="0,8,0,0"/>
+            </StackPanel>
+
+            <!-- Results (hidden until test completes) -->
+            <StackPanel Name="ResultsPanel" IsVisible="False" Margin="0,0,0,16">
+                <!-- WiFi Status -->
+                <Border Classes="AdapterRow">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="WifiIcon" Text="📡" FontSize="16"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <StackPanel>
+                            <TextBlock Text="WiFi" Classes="AdapterLabel"/>
+                            <TextBlock Name="WifiStatusText" Text="-" Classes="AdapterStatus"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Ethernet Status -->
+                <Border Classes="AdapterRow">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="EthernetIcon" Text="🔌" FontSize="16"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Ethernet" Classes="AdapterLabel"/>
+                            <TextBlock Name="EthernetStatusText" Text="-" Classes="AdapterStatus"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Internet Status -->
+                <Border Classes="AdapterRow">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="InternetIcon" Text="🌐" FontSize="16"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Internet" Classes="AdapterLabel"/>
+                            <TextBlock Name="InternetStatusText" Text="-" Classes="AdapterStatus"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Overall Result -->
+                <Border Name="OverallResultBorder" CornerRadius="6" Padding="10,8" Margin="0,12,0,0"
+                        Background="#dcfce7">
+                    <TextBlock Name="OverallResultText"
+                               HorizontalAlignment="Center"
+                               FontWeight="SemiBold"
+                               FontFamily="Segoe UI"
+                               FontSize="13"
+                               Foreground="#15803d"/>
+                </Border>
+            </StackPanel>
+
+            <!-- Continue Button -->
+            <Button Name="ContinueButton"
+                    Content="Continue"
+                    IsEnabled="False"
+                    Classes="PrimaryButton"
+                    Click="ContinueButton_Click"/>
+        </StackPanel>
+    </Border>
+</Window>

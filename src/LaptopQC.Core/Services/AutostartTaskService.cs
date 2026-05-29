@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace LaptopQC.Core.Services;
@@ -10,6 +11,7 @@ namespace LaptopQC.Core.Services;
 /// - Passes --background flag so the app starts silently with a tray icon and no UI.
 /// - Runs at highest available privilege level.
 /// - StartWhenAvailable=true so it catches up if logon happened while offline.
+/// On macOS: no-op for v1 (launchd support planned for a future release).
 /// </summary>
 public static class AutostartTaskService
 {
@@ -17,6 +19,10 @@ public static class AutostartTaskService
 
     public static void EnsureRegistered()
     {
+        // Windows-only: macOS uses launchd instead (not yet implemented for v1)
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return;
+
         try
         {
             // Always re-register on startup so updates to the exe path or task settings
