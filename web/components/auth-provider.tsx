@@ -14,6 +14,7 @@ interface User {
     allow_quarterly_keys?: boolean
     allow_6month_keys?: boolean
     allow_yearly_keys?: boolean
+    allow_perpetual_keys?: boolean
 }
 
 interface AuthContextType {
@@ -106,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
                         allow_6month_keys: data.user.allow_6month_keys ?? false,
                         allow_yearly_keys: data.user.allow_yearly_keys ?? false,
+                        allow_perpetual_keys: data.user.allow_perpetual_keys ?? true,
                     }
                 })
             })

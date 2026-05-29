@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
         const body: CreateUserRequest = await request.json();
         const { username, password, email, company_name, display_name, role,
-            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys } = body;
+            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys } = body;
 
         // Validate input
         if (!username || !password || !email) {
@@ -88,14 +88,15 @@ export async function POST(request: NextRequest) {
         const quarterlyFlag = authUser.role === 'SuperAdmin' ? (allow_quarterly_keys ?? false) : false;
         const sixMonthFlag = authUser.role === 'SuperAdmin' ? (allow_6month_keys ?? false) : false;
         const yearlyFlag = authUser.role === 'SuperAdmin' ? (allow_yearly_keys ?? false) : false;
+        const perpetualFlag = authUser.role === 'SuperAdmin' ? (allow_perpetual_keys ?? true) : true;
 
         // Insert user with created_by reference
         const result = await query(
             `INSERT INTO users (username, password_hash, email, company_name, display_name, role, created_by,
-                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id, username, email, company_name, display_name, role, created_by, is_active, created_at,
-                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys`,
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys`,
             [
                 username,
                 passwordHash,
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
                 quarterlyFlag,
                 sixMonthFlag,
                 yearlyFlag,
+                perpetualFlag,
             ]
         );
 

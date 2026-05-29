@@ -116,6 +116,7 @@ export interface User {
     allow_quarterly_keys?: boolean;
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
+    allow_perpetual_keys?: boolean;
     created_at: Date;
 }
 
@@ -127,6 +128,7 @@ export interface UserWithCreator extends Omit<User, 'password_hash'> {
     allow_quarterly_keys?: boolean;
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
+    allow_perpetual_keys?: boolean;
 }
 
 // User creation request
@@ -142,6 +144,7 @@ export interface CreateUserRequest {
     allow_quarterly_keys?: boolean;
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
+    allow_perpetual_keys?: boolean;
 }
 
 // User update request
@@ -157,6 +160,7 @@ export interface UpdateUserRequest {
     allow_quarterly_keys?: boolean;
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
+    allow_perpetual_keys?: boolean;
 }
 
 // DTOs for API requests/responses

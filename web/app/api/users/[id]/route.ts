@@ -45,6 +45,7 @@ export async function GET(
                 u.allow_quarterly_keys,
                 u.allow_6month_keys,
                 u.allow_yearly_keys,
+                u.allow_perpetual_keys,
                 u.created_at,
                 creator.username as creator_username,
                 (SELECT COUNT(*) FROM users WHERE created_by = u.id) as team_size
@@ -139,7 +140,7 @@ export async function PUT(
 
         const body: UpdateUserRequest = await request.json();
         const { email, display_name, role, is_active, password, license_credits,
-            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys } = body;
+            allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys } = body;
 
         // Build update query dynamically
         const updates: string[] = [];
@@ -212,6 +213,10 @@ export async function PUT(
             if (allow_yearly_keys !== undefined) {
                 updates.push(`allow_yearly_keys = $${paramIndex++}`);
                 values.push(allow_yearly_keys);
+            }
+            if (allow_perpetual_keys !== undefined) {
+                updates.push(`allow_perpetual_keys = $${paramIndex++}`);
+                values.push(allow_perpetual_keys);
             }
         }
 
@@ -312,7 +317,7 @@ export async function PUT(
              SET ${updates.join(', ')}
              WHERE id = $${paramIndex}
              RETURNING id, username, email, display_name, role, created_by, is_active, license_credits,
-                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, created_at`,
+                allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys, created_at`,
             values
         );
 

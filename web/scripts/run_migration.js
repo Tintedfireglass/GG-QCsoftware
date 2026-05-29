@@ -18,14 +18,14 @@ function getConnectionString() {
 }
 
 async function runMigration() {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // force reject unauthorized false globally for this script
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; 
     
     const pool = new Pool({
         connectionString: getConnectionString(),
         ssl: { rejectUnauthorized: false },
     });
 
-    const sql = fs.readFileSync(path.join(__dirname, '../migrations/024_user_key_duration_permissions.sql'), 'utf-8');
+    const sql = fs.readFileSync(path.join(__dirname, '../migrations/025_user_perpetual_key_permission.sql'), 'utf-8');
     
     try {
         console.log('Running migration...');
