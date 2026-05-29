@@ -9,7 +9,7 @@ namespace Pramaan.Avalonia.Converters;
 /// </summary>
 public class GradeToColorConverter : global::Avalonia.Data.Converters.IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var grade = value?.ToString() ?? "";
         
@@ -25,7 +25,7 @@ public class GradeToColorConverter : global::Avalonia.Data.Converters.IValueConv
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

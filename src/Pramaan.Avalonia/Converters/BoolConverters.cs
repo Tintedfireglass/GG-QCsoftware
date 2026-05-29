@@ -10,14 +10,14 @@ namespace Pramaan.Avalonia.Converters;
 /// </summary>
 public class BoolToPassFailConverter : global::Avalonia.Data.Converters.IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool boolValue)
             return boolValue ? "✓" : "✗";
         return "?";
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -28,7 +28,7 @@ public class BoolToPassFailConverter : global::Avalonia.Data.Converters.IValueCo
 /// </summary>
 public class BoolToColorConverter : global::Avalonia.Data.Converters.IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool boolValue)
         {
@@ -47,7 +47,7 @@ public class BoolToColorConverter : global::Avalonia.Data.Converters.IValueConve
         return new SolidColorBrush(Color.FromRgb(160, 160, 160));
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

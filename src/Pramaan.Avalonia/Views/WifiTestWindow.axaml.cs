@@ -65,12 +65,12 @@ public partial class WifiTestWindow : Window
                     if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
                     {
                         wifiConnected = true;
-                        if (string.IsNullOrEmpty(wifiName)) wifiName = ni.Name;
+                        if (string.IsNullOrEmpty(wifiName)) wifiName = ni.Name ?? "Unknown";
                     }
                     else
                     {
                         ethernetConnected = true;
-                        if (string.IsNullOrEmpty(ethName)) ethName = ni.Name;
+                        if (string.IsNullOrEmpty(ethName)) ethName = ni.Name ?? "Unknown";
                     }
                 }
             });
