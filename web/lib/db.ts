@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 
 // Helper to clean connection string of sslmode and ensure we control SSL
 const getConnectionString = () => {
@@ -34,39 +34,6 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }, // Explicitly allow self-signed certs
 });
 
+// The pg Pool is the single connection source for the app; lib/drizzle.ts wraps
+// it. All data access goes through Drizzle (db / db.execute / db.transaction).
 export default pool;
-
-// Helper function to execute queries
-export async function query<T = any>(text: string, params?: any[]): Promise<T[]> {
-    const start = Date.now();
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-
-    if (process.env.NODE_ENV === 'development') {
-        console.log('Executed query', { text, duration, rows: res.rowCount });
-    }
-
-    return res.rows as T[];
-}
-
-// Helper to get a single row
-export async function queryOne<T = any>(text: string, params?: any[]): Promise<T | null> {
-    const rows = await query<T>(text, params);
-    return rows.length > 0 ? rows[0] : null;
-}
-
-// Helper to wrap queries in a transaction
-export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const result = await callback(client);
-        await client.query('COMMIT');
-        return result;
-    } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-    } finally {
-        client.release();
-    }
-}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { sql } from 'drizzle-orm';
+import { db } from '@/lib/drizzle';
 import { authenticateRequest } from '@/lib/auth-middleware';
 
 // GET /api/users/me - Returns the full profile of the authenticated user
@@ -12,15 +13,14 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const rows = await query(
-            `SELECT
+        const { rows } = await db.execute(sql`
+            SELECT
                 id, username, email, display_name, role,
                 is_active, license_credits, created_at,
                 allow_monthly_keys, allow_quarterly_keys,
                 allow_6month_keys, allow_yearly_keys, allow_perpetual_keys
-             FROM users WHERE id = $1`,
-            [authUser.id]
-        );
+             FROM users WHERE id = ${authUser.id}
+        `);
 
         if (rows.length === 0) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });

@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { sql } from 'drizzle-orm';
+import { db } from '@/lib/drizzle';
 
 export async function GET() {
     try {
-        // Test database connection
-        const result = await query('SELECT NOW() as current_time, version() as pg_version');
+        const { rows } = await db.execute(sql`SELECT NOW() as current_time, version() as pg_version`);
+        const row = rows[0] as { current_time?: unknown; pg_version?: unknown } | undefined;
 
         return NextResponse.json({
             status: 'OK',
             message: 'API is running',
             database: {
                 connected: true,
-                currentTime: result[0]?.current_time,
-                version: result[0]?.pg_version,
+                currentTime: row?.current_time,
+                version: row?.pg_version,
             },
             endpoints: {
                 auth: {
@@ -30,12 +31,12 @@ export async function GET() {
                 },
             },
         });
-    } catch (error: any) {
+    } catch (error) {
         return NextResponse.json(
             {
                 status: 'ERROR',
                 message: 'Database connection failed',
-                error: error.message,
+                error: error instanceof Error ? error.message : String(error),
                 hint: 'Make sure your DATABASE_URL is set correctly in .env.local',
             },
             { status: 500 }

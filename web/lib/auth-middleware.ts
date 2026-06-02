@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { and, eq, or } from 'drizzle-orm';
 import { verifyToken, extractToken } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { db, schema } from '@/lib/drizzle';
 import { UserRole, ApiError } from '@/lib/types';
+
+const { users } = schema;
 
 export interface AuthenticatedUser {
     id: number;
@@ -78,12 +81,13 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
 
     // Get full user info from database
-    const users = await query(
-        'SELECT id, username, role, created_by FROM users WHERE id = $1 AND is_active = true',
-        [payload.userId]
-    );
+    const rows = await db
+        .select({ id: users.id, username: users.username, role: users.role, created_by: users.createdBy })
+        .from(users)
+        .where(and(eq(users.id, payload.userId), eq(users.isActive, true)))
+        .limit(1);
 
-    if (users.length === 0) {
+    if (rows.length === 0) {
         return {
             user: null,
             error: NextResponse.json(
@@ -93,8 +97,9 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
         };
     }
 
+    const u = rows[0];
     return {
-        user: users[0] as AuthenticatedUser,
+        user: { id: u.id, username: u.username, role: u.role as UserRole, created_by: u.created_by ?? undefined },
         error: null,
     };
 }
@@ -149,14 +154,12 @@ export function requireRole(user: AuthenticatedUser, allowedRoles: UserRole[]): 
 // Get users that the authenticated user can see
 export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]> {
     if (user.role === 'SuperAdmin') {
-        const users = await query('SELECT id FROM users');
-        return users.map((u: any) => u.id);
+        const rows = await db.select({ id: users.id }).from(users);
+        return rows.map((u) => u.id);
     } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'OEM' || user.role === 'Insurer' || user.role === 'Reseller') {
-        const users = await query(
-            'SELECT id FROM users WHERE created_by = $1 OR id = $1',
-            [user.id]
-        );
-        return users.map((u: any) => u.id);
+        const rows = await db.select({ id: users.id }).from(users)
+            .where(or(eq(users.createdBy, user.id), eq(users.id, user.id)));
+        return rows.map((u) => u.id);
     } else {
         return [user.id];
     }

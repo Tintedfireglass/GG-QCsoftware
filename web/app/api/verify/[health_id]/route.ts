@@ -1,57 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { findCertByHealthId } from '@/lib/repositories/qc-results.repo';
 
-// GET /api/verify/{health_id} — Public verification endpoint
-// Returns ONLY structured verification summary. NO raw data exposed.
+// GET /api/verify/{health_id} — Public verification endpoint.
+// Returns ONLY a structured verification summary. No raw data exposed.
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ health_id: string }> }
 ) {
     try {
         const { health_id } = await params;
-
         if (!health_id) {
-            return NextResponse.json(
-                { error: 'Missing health_id parameter' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Missing health_id parameter' }, { status: 400 });
         }
 
-        // Look up by health_id
-        const results = await query(
-            `SELECT 
-                report_id,
-                health_id,
-                pramaan_hash,
-                pramaan_score,
-                pramaan_grade,
-                pramaan_algorithm_version,
-                app_version,
-                timestamp,
-                system_model,
-                system_manufacturer
-            FROM qc_results 
-            WHERE health_id = $1 AND pramaan_score IS NOT NULL`,
-            [health_id]
-        );
-
-        if (results.length === 0) {
+        const result = await findCertByHealthId(health_id);
+        if (!result) {
             return NextResponse.json(
-                {
-                    verified: false,
-                    error: 'Certificate not found',
-                    message: 'No PRAMAAN certification found for this Health ID',
-                },
+                { verified: false, error: 'Certificate not found', message: 'No PRAMAAN certification found for this Health ID' },
                 { status: 404 }
             );
         }
 
-        const result = results[0] as any;
-        const certDate = new Date(result.timestamp);
-        const validityDays = 180; // Default; future: from scoring_config
+        const certDate = new Date(result.timestamp as string);
+        const validityDays = 180;
         const validUntil = new Date(certDate);
         validUntil.setDate(validUntil.getDate() + validityDays);
-
         const isExpired = new Date() > validUntil;
 
         return NextResponse.json({
@@ -61,7 +34,7 @@ export async function GET(
             reportId: result.report_id,
             score: result.pramaan_score,
             grade: result.pramaan_grade,
-            gradeLabel: getGradeLabel(result.pramaan_grade),
+            gradeLabel: getGradeLabel(result.pramaan_grade as string | null),
             certificationDate: certDate.toISOString(),
             validUntil: validUntil.toISOString(),
             validityDays,
@@ -75,10 +48,7 @@ export async function GET(
         });
     } catch (error) {
         console.error('Error verifying health ID:', error);
-        return NextResponse.json(
-            { verified: false, error: 'Server error during verification' },
-            { status: 500 }
-        );
+        return NextResponse.json({ verified: false, error: 'Server error during verification' }, { status: 500 });
     }
 }
 

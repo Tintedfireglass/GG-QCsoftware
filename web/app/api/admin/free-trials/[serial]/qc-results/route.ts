@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { sql } from "drizzle-orm"
+import { db } from "@/lib/drizzle"
 import { authenticateRequest, requireRole } from "@/lib/auth-middleware"
 
 export async function GET(
@@ -22,8 +23,8 @@ export async function GET(
 
         // Fetch auto QC runs from machine_history for this machine serial.
         // Match by the machine's serial_number OR machine_id identifier.
-        const results = await query(
-            `SELECT
+        const { rows } = await db.execute(sql`
+            SELECT
                 mh.id,
                 mh.timestamp,
                 mh.source,
@@ -36,14 +37,13 @@ export async function GET(
                 m.model
             FROM machine_history mh
             JOIN machines m ON mh.machine_id = m.id
-            WHERE m.serial_number = $1
-               OR m.machine_id    = $1
+            WHERE m.serial_number = ${machineSerial}
+               OR m.machine_id    = ${machineSerial}
             ORDER BY mh.timestamp DESC
-            LIMIT 50`,
-            [machineSerial]
-        )
+            LIMIT 50
+        `)
 
-        return NextResponse.json({ results, serial: machineSerial })
+        return NextResponse.json({ results: rows, serial: machineSerial })
     } catch (error) {
         console.error("Trial auto QC results fetch error:", error)
         return NextResponse.json({ error: "Server Error" }, { status: 500 })
