@@ -123,12 +123,7 @@ export interface User {
 // Extended user interface with creator info for API responses
 export interface UserWithCreator extends Omit<User, 'password_hash'> {
     creator_username?: string;
-    team_size?: number;
-    allow_monthly_keys?: boolean;
-    allow_quarterly_keys?: boolean;
-    allow_6month_keys?: boolean;
-    allow_yearly_keys?: boolean;
-    allow_perpetual_keys?: boolean;
+    team_size?: number; // For Admins: number of users they manage
 }
 
 // User creation request
@@ -140,11 +135,6 @@ export interface CreateUserRequest {
     display_name?: string;
     role: UserRole;
     license_credits?: number;
-    allow_monthly_keys?: boolean;
-    allow_quarterly_keys?: boolean;
-    allow_6month_keys?: boolean;
-    allow_yearly_keys?: boolean;
-    allow_perpetual_keys?: boolean;
 }
 
 // User update request
@@ -155,12 +145,7 @@ export interface UpdateUserRequest {
     role?: UserRole;
     is_active?: boolean;
     license_credits?: number;
-    password?: string;
-    allow_monthly_keys?: boolean;
-    allow_quarterly_keys?: boolean;
-    allow_6month_keys?: boolean;
-    allow_yearly_keys?: boolean;
-    allow_perpetual_keys?: boolean;
+    password?: string; // Optional: only if changing password
 }
 
 // DTOs for API requests/responses
