@@ -74,6 +74,76 @@ export async function getResultDetail(user: AuthenticatedUser, id: string) {
     return { ...qcResult, test_results, previous_result };
 }
 
+/** 
+ * Workaround for a bug in desktop clients where a USB drive (e.g., VendorC ProductCode) 
+ * causes the primary drive's SMART mapping to fail, resulting in an "Inconclusive" 
+ * storage flag despite successful SMART telemetry.
+ */
+function applyVendorCFix(body: SubmitInput): void {
+    const storageTest = body.testResults.find(t => t.testType === 'Storage' || t.testType === 'Smart');
+    if (!storageTest) return;
+
+    const details = storageTest.details;
+    if (!Array.isArray(details)) return;
+
+    const hasVendorC = details.some((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart] vendorc'));
+    const isInconclusive = details.some((d: any) => typeof d === 'string' && d.includes('Storage Inconclusive'));
+
+    if (hasVendorC && isInconclusive) {
+        // Clear inconclusive flags in StorageDetails
+        if (body.storageDetails) {
+            body.storageDetails.isInconclusive = false;
+            body.storageDetails.inconclusiveReason = '';
+            if (Array.isArray(body.storageDetails.devices)) {
+                body.storageDetails.devices.forEach((d: any) => {
+                    d.isInconclusive = false;
+                    d.inconclusiveReason = '';
+                });
+            }
+        }
+
+        // Clean up storage test details
+        storageTest.details = details.filter((d: any) => typeof d === 'string' && !d.includes('Storage Inconclusive'));
+        storageTest.message = 'Healthy';
+        storageTest.passed = true;
+
+        // Find actual health score from other SMART lines (e.g., SAMSUNG)
+        let storageScore = 100;
+        const smartMatch = storageTest.details.find((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart]') && !d.toLowerCase().includes('vendorc'));
+        if (smartMatch) {
+            const match = (smartMatch as string).match(/\((\d+)%\)/);
+            if (match) storageScore = parseInt(match[1], 10);
+        }
+
+        storageTest.score = storageScore;
+        storageTest.grade = storageScore >= 80 ? 'A' : storageScore >= 60 ? 'B' : storageScore >= 40 ? 'C' : 'F';
+
+        // Recompute Pramaan score
+        if (body.pramaanCategoryScores && typeof body.pramaanCategoryScores === 'object') {
+            const catScores = body.pramaanCategoryScores as Record<string, number>;
+            catScores.storage = storageScore;
+
+            const weights: Record<string, number> = { storage: 0.25, thermal: 0.20, battery: 0.20, cpu_ram: 0.15, physical_ports: 0.10, repair_modifier: 0.10 };
+            
+            let totalWeightedScore = 0;
+            let totalWeight = 0;
+
+            for (const [key, weight] of Object.entries(weights)) {
+                if (catScores[key] !== undefined) {
+                    totalWeightedScore += catScores[key] * weight;
+                    totalWeight += weight;
+                }
+            }
+
+            if (totalWeight > 0) {
+                const ps = Math.round(totalWeightedScore / totalWeight);
+                body.pramaanScore = Math.max(0, Math.min(ps, 100));
+                body.pramaanGrade = ps >= 90 ? 'A+' : ps >= 80 ? 'A' : ps >= 65 ? 'B' : ps >= 50 ? 'C' : 'Reject';
+            }
+        }
+    }
+}
+
 /** Flag storage as tampered: 0% health but a passed SMART self-test. Mutates `body`. */
 function applyTamperDetection(body: SubmitInput): void {
     const devices = body.storageDetails?.devices;
@@ -144,6 +214,7 @@ export async function submitResult(
     authUserId: number | null,
     submissionIp: string | null
 ): Promise<SubmitResult> {
+    applyVendorCFix(body);
     applyTamperDetection(body);
 
     const machineIdRaw = body.machineId.trim();
