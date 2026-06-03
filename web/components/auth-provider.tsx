@@ -74,6 +74,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
 
+    // On mount (or when token changes): refresh the user profile from the server
+    // so that permission changes made by an admin take effect without re-login.
+    useEffect(() => {
+        if (!token) return
+        fetch("/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data?.user) {
+                    const fresh = data.user as User
+                    setUser(fresh)
+                    localStorage.setItem("qc_user", JSON.stringify(fresh))
+                }
+            })
+            .catch(() => { /* network error — keep stale data */ })
+    }, [token])
+
     useEffect(() => {
         // Redirect logic
         const isPublicRoute =
