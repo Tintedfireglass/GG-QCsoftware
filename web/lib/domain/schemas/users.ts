@@ -19,6 +19,11 @@ export const updateUserSchema = z.object({
     is_active: z.boolean().optional(),
     password: z.string().optional(),
     license_credits: z.number().nullish(),
-}).loose();
+    allow_monthly_keys: z.boolean().optional(),
+    allow_quarterly_keys: z.boolean().optional(),
+    allow_6month_keys: z.boolean().optional(),
+    allow_yearly_keys: z.boolean().optional(),
+    allow_perpetual_keys: z.boolean().optional(),
+});
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
