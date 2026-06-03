@@ -18,7 +18,8 @@ import {
     UserCheck,
     UserX,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    KeyRound
 } from "lucide-react"
 
 interface UserData {
@@ -31,6 +32,7 @@ interface UserData {
     creator_username?: string
     team_size?: number
     is_active: boolean
+    license_credits?: number | null
     created_at: string
 }
 
@@ -117,7 +119,7 @@ export default function UsersPage() {
         return (
             <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
-                <p className="text-slate-600 mt-2">You don't have permission to manage users.</p>
+                <p className="text-slate-600 mt-2">You don&apos;t have permission to manage users.</p>
             </div>
         )
     }
@@ -302,6 +304,17 @@ export default function UsersPage() {
                                                 <div className="text-xs text-slate-400 mb-1">Created By</div>
                                                 <div className="font-medium text-slate-700 truncate">{userItem.creator_username || '-'}</div>
                                             </div>
+                                            <div>
+                                                <div className="text-xs text-slate-400 mb-1">License Credits</div>
+                                                {userItem.license_credits != null && userItem.license_credits > 0 ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                                        <KeyRound className="h-3 w-3" />
+                                                        {userItem.license_credits}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 text-xs">—</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -320,6 +333,7 @@ export default function UsersPage() {
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Created By</th>
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Status</th>
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Team Size</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">License Credits</th>
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right whitespace-nowrap">Actions</th>
                                         </tr>
                                     </thead>
@@ -366,6 +380,16 @@ export default function UsersPage() {
                                                 <td className="p-4 align-middle text-slate-500 whitespace-nowrap">
                                                     {(userItem.role === 'Refurbisher' || userItem.role === 'Enterprise' || userItem.role === 'OEM' || userItem.role === 'Insurer' || userItem.role === 'Reseller') ? userItem.team_size || 0 : '-'}
                                                 </td>
+                                                <td className="p-4 align-middle whitespace-nowrap">
+                                                    {userItem.license_credits != null && userItem.license_credits > 0 ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                                            <KeyRound className="h-3 w-3" />
+                                                            {userItem.license_credits}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400">—</span>
+                                                    )}
+                                                </td>
                                                 <td className="p-4 align-middle text-right whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Link href={`/dashboard/users/${userItem.id}`}>
@@ -407,7 +431,7 @@ export default function UsersPage() {
                                         ))}
                                         {users.length === 0 && (
                                             <tr>
-                                                <td colSpan={6} className="p-4 text-center text-slate-500">
+                                                <td colSpan={7} className="p-4 text-center text-slate-500">
                                                     No users found
                                                 </td>
                                             </tr>
