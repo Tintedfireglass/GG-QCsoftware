@@ -260,7 +260,8 @@ export default function LicensesPage() {
                 <Button
                     className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white px-6 h-11 rounded-lg font-medium shadow-sm transition-colors"
                     onClick={() => {
-                        const defaultType = user?.role === "Employee" ? "demo" : "single_use"
+                        const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee"
+                        const defaultType = isPrivileged ? (user?.role === "Employee" ? "demo" : "single_use") : "single_use"
                         setNewType(defaultType)
                         setNewMaxUses("1")
                         setDemoCustomerName("")
@@ -598,7 +599,7 @@ export default function LicensesPage() {
                                 >
                                     {user?.role !== "Employee" && <option value="single_use">Single Use (1 Device)</option>}
                                     {user?.role !== "Employee" && <option value="bulk">Bulk Use (Multi Device)</option>}
-                                    <option value="demo">Demo Key (1 Full QC)</option>
+                                    {(user?.role === "SuperAdmin" || user?.role === "Employee") && <option value="demo">Demo Key (1 Full QC)</option>}
                                 </select>
                             </div>
 
