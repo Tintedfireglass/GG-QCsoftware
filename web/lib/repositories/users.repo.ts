@@ -23,6 +23,11 @@ const userDetailColumns = {
     is_active: users.isActive,
     license_credits: users.licenseCredits,
     created_at: users.createdAt,
+    allow_monthly_keys: users.allowMonthlyKeys,
+    allow_quarterly_keys: users.allowQuarterlyKeys,
+    allow_6month_keys: users.allow6MonthKeys,
+    allow_yearly_keys: users.allowYearlyKeys,
+    allow_perpetual_keys: users.allowPerpetualKeys,
 };
 
 /** Mutable fields on a user update (camelCase schema keys). */
@@ -33,6 +38,11 @@ export interface UserUpdateSet {
     isActive?: boolean;
     passwordHash?: string;
     licenseCredits?: number;
+    allowMonthlyKeys?: boolean;
+    allowQuarterlyKeys?: boolean;
+    allow6MonthKeys?: boolean;
+    allowYearlyKeys?: boolean;
+    allowPerpetualKeys?: boolean;
 }
 
 export interface ManageableUser {
@@ -125,6 +135,8 @@ export async function findUserDetail(userId: number): Promise<Record<string, unk
         SELECT
             u.id, u.username, u.email, u.display_name, u.role, u.created_by,
             u.is_active, u.license_credits, u.created_at,
+            u.allow_monthly_keys, u.allow_quarterly_keys, u.allow_6month_keys,
+            u.allow_yearly_keys, u.allow_perpetual_keys,
             creator.username as creator_username,
             (SELECT COUNT(*) FROM users WHERE created_by = u.id) as team_size
         FROM users u

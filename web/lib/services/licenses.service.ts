@@ -30,6 +30,9 @@ export async function generateLicense(user: AuthenticatedUser, input: GenerateLi
     if (user.role === 'Employee' && type !== 'demo') {
         throw new ForbiddenError('Employees can only generate demo keys');
     }
+    if (type === 'demo' && user.role !== 'SuperAdmin' && user.role !== 'Employee') {
+        throw new ForbiddenError('Only SuperAdmin and Employee users can generate demo keys');
+    }
 
     const normalizedMaxUses = type === 'demo' ? 1 : max_uses;
     if (!normalizedMaxUses || normalizedMaxUses < 1) {

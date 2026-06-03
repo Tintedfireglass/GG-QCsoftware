@@ -65,7 +65,9 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
         throw new ForbiddenError('You cannot modify this user');
     }
 
-    const { email, display_name, role, is_active, password, license_credits } = body;
+    const { email, display_name, role, is_active, password, license_credits,
+        allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys
+    } = body;
     const set: UserUpdateSet = {};
 
     if (email !== undefined) {
@@ -81,6 +83,15 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
     if (is_active !== undefined) set.isActive = is_active;
     if (password) set.passwordHash = await hashPassword(password);
     if (license_credits != null && authUser.role === 'SuperAdmin') set.licenseCredits = license_credits;
+
+    // Duration permission flags — SuperAdmin only, for eligible (non-admin) roles
+    if (authUser.role === 'SuperAdmin' && target.role !== 'SuperAdmin' && target.role !== 'Employee') {
+        if (allow_monthly_keys !== undefined) set.allowMonthlyKeys = allow_monthly_keys;
+        if (allow_quarterly_keys !== undefined) set.allowQuarterlyKeys = allow_quarterly_keys;
+        if (allow_6month_keys !== undefined) set.allow6MonthKeys = allow_6month_keys;
+        if (allow_yearly_keys !== undefined) set.allowYearlyKeys = allow_yearly_keys;
+        if (allow_perpetual_keys !== undefined) set.allowPerpetualKeys = allow_perpetual_keys;
+    }
 
     const hasFieldUpdates = Object.keys(set).length > 0;
     const isResellerAllocatingCredits = authUser.role === 'Reseller' && license_credits != null;
