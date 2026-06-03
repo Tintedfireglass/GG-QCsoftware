@@ -269,7 +269,6 @@ export default function LicensesPage() {
                         setGenerateError("")
                         // Default duration based on user permissions:
                         // non-privileged users without perpetual access should start on "temporary"
-                        const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee"
                         if (!isPrivileged && !user?.allow_perpetual_keys) {
                             setDurationMode("temporary")
                             // Pick first allowed duration
