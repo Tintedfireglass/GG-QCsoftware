@@ -86,7 +86,7 @@ export async function listUsers(user: AuthenticatedUser, opts: ListUsersOptions)
         db.execute(sql`
             SELECT
                 u.id, u.username, u.email, u.display_name, u.role, u.created_by,
-                u.is_active, u.created_at,
+                u.is_active, u.license_credits, u.created_at,
                 creator.username as creator_username,
                 COALESCE(team.team_size, 0) as team_size
              FROM users u
