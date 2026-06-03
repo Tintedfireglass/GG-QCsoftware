@@ -42,7 +42,7 @@ export default function EditUserPage() {
         allow_quarterly_keys: false,
         allow_6month_keys: false,
         allow_yearly_keys: false,
-        allow_perpetual_keys: true,
+        allow_perpetual_keys: false,
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -72,7 +72,7 @@ export default function EditUserPage() {
                 allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
                 allow_6month_keys: data.user.allow_6month_keys ?? false,
                 allow_yearly_keys: data.user.allow_yearly_keys ?? false,
-                allow_perpetual_keys: data.user.allow_perpetual_keys ?? true,
+                allow_perpetual_keys: data.user.allow_perpetual_keys ?? false,
             })
         } catch (err) {
             console.error("Failed to load user:", err)
@@ -148,6 +148,28 @@ export default function EditUserPage() {
         } catch (err) {
             console.error("Failed to update user:", err)
             setError(err instanceof Error ? err.message : "Failed to update user")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleSavePermissions() {
+        setError(null)
+        setSuccess(null)
+        setSaving(true)
+        try {
+            await updateUser(userId, {
+                allow_monthly_keys: durationPerms.allow_monthly_keys,
+                allow_quarterly_keys: durationPerms.allow_quarterly_keys,
+                allow_6month_keys: durationPerms.allow_6month_keys,
+                allow_yearly_keys: durationPerms.allow_yearly_keys,
+                allow_perpetual_keys: durationPerms.allow_perpetual_keys,
+            })
+            setSuccess("Permissions updated successfully")
+            loadUser()
+        } catch (err) {
+            console.error("Failed to update permissions:", err)
+            setError(err instanceof Error ? err.message : "Failed to update permissions")
         } finally {
             setSaving(false)
         }
@@ -503,7 +525,7 @@ export default function EditUserPage() {
                             <div className="mt-4">
                                 <Button
                                     type="button"
-                                    onClick={handleSubmit}
+                                    onClick={handleSavePermissions}
                                     disabled={saving}
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >

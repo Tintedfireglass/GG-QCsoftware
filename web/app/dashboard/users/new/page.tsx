@@ -34,7 +34,7 @@ export default function NewUserPage() {
         allow_quarterly_keys: false,
         allow_6month_keys: false,
         allow_yearly_keys: false,
-        allow_perpetual_keys: true,
+        allow_perpetual_keys: false,
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)

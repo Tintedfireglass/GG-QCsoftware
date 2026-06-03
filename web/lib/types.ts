@@ -146,6 +146,11 @@ export interface UpdateUserRequest {
     is_active?: boolean;
     license_credits?: number;
     password?: string; // Optional: only if changing password
+    allow_monthly_keys?: boolean;
+    allow_quarterly_keys?: boolean;
+    allow_6month_keys?: boolean;
+    allow_yearly_keys?: boolean;
+    allow_perpetual_keys?: boolean;
 }
 
 // DTOs for API requests/responses
