@@ -290,6 +290,83 @@ export async function listLatestPerMachineForExport(
     return rows as Record<string, unknown>[];
 }
 
+/**
+ * Fetch the newest `goodCount` results with good grades (A+/A/B) and
+ * `poorCount` results with poor grades (C/D) for the sample dataset export.
+ * Excludes records where storage OR battery is tampered or inconclusive.
+ * Returns at most goodCount + poorCount rows, ordered newest-first.
+ */
+export async function listResultsByGradesForSample(
+    user: AuthenticatedUser,
+    opts: { goodGrades: string[]; goodCount: number; poorGrades: string[]; poorCount: number }
+): Promise<Record<string, unknown>[]> {
+    const vis = ownerVisibilitySql(user, 'qr.technician_id');
+    const visClause = vis ? sql`AND ${vis}` : sql``;
+
+    // Exclusion filter: skip tampered or inconclusive storage/battery
+    const excludeSql = sql.raw(`
+        AND (qr.storage_details_json IS NULL OR (
+            (qr.storage_details_json->>'isTampered')::boolean IS NOT TRUE
+            AND (qr.storage_details_json->>'isInconclusive')::boolean IS NOT TRUE
+        ))
+        AND (qr.battery_details_json IS NULL OR (
+            (qr.battery_details_json->>'isTampered')::boolean IS NOT TRUE
+            AND (qr.battery_details_json->>'isInconclusive')::boolean IS NOT TRUE
+        ))
+    `);
+
+    const goodGradeList = opts.goodGrades.map(g => `'${g}'`).join(', ');
+    const poorGradeList = opts.poorGrades.map(g => `'${g}'`).join(', ');
+    const goodCountVal = Math.max(0, opts.goodCount);
+    const poorCountVal = Math.max(0, opts.poorCount);
+
+    const { rows } = await db.execute(sql`
+        WITH base AS (
+            SELECT
+                qr.*,
+                m.machine_id   AS machine_identifier,
+                m.computer_name,
+                u.username     AS technician_username,
+                u.display_name AS technician_name
+            FROM qc_results qr
+            LEFT JOIN machines m ON qr.machine_id = m.id
+            LEFT JOIN users u   ON qr.technician_id = u.id
+            WHERE qr.pramaan_grade IS NOT NULL
+              ${visClause}
+              ${excludeSql}
+        ),
+        good_rows AS (
+            SELECT * FROM base
+            WHERE pramaan_grade IN (${sql.raw(goodGradeList)})
+            ORDER BY timestamp DESC, id DESC
+            LIMIT ${goodCountVal}
+        ),
+        poor_rows AS (
+            SELECT * FROM base
+            WHERE pramaan_grade IN (${sql.raw(poorGradeList)})
+            ORDER BY timestamp DESC, id DESC
+            LIMIT ${poorCountVal}
+        )
+        SELECT * FROM good_rows
+        UNION ALL
+        SELECT * FROM poor_rows
+        ORDER BY timestamp DESC, id DESC
+    `);
+    return rows as Record<string, unknown>[];
+}
+
+/** Also fetch test_results for a set of QC result IDs (used by sample PDF export). */
+export async function listTestResultsForIds(ids: number[]): Promise<Record<string, unknown>[]> {
+    if (ids.length === 0) return [];
+    const idList = ids.join(', ');
+    const { rows } = await db.execute(sql`
+        SELECT * FROM test_results
+        WHERE qc_result_id IN (${sql.raw(idList)})
+        ORDER BY qc_result_id, test_type
+    `);
+    return rows as Record<string, unknown>[];
+}
+
 /** Public verification lookup by health_id (only scored results). */
 export async function findCertByHealthId(healthId: string): Promise<Record<string, unknown> | null> {
     const { rows } = await db.execute(sql`

@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -613,5 +614,599 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         body: toArrayBuffer(fileBuffer as ArrayBuffer),
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         filename: `qc_results_export_${dateStamp}.xlsx`,
+    };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Individual report PDF (mirrors /report/[id] page layout)
+// ────────────────────────────────────────────────────────────────────────────────
+
+type TestResultRow = {
+    test_type: string;
+    grade: string;
+    score: number | null;
+    passed: boolean;
+    message: string | null;
+    details_json: unknown;
+};
+
+type SampleRecord = Record<string, unknown>;
+
+function safeStr(v: unknown): string {
+    return v == null ? '' : String(v);
+}
+
+function safeNum(v: unknown): number | null {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function formatDbDateTimeSimple(value: unknown, timeZone = 'Asia/Kolkata'): string {
+    if (!value) return '-';
+    const d = new Date(value as string);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone });
+}
+
+function formatDbDateSimple(value: unknown, timeZone = 'Asia/Kolkata'): string {
+    if (!value) return '-';
+    const d = new Date(value as string);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone });
+}
+
+function gradeColorRgb(grade: string): [number, number, number] {
+    switch (grade) {
+        case 'A+': return [0.07, 0.53, 0.31];
+        case 'A':  return [0.13, 0.55, 0.23];
+        case 'B':  return [0.09, 0.52, 0.52];
+        case 'C':  return [0.70, 0.40, 0.05];
+        case 'D':  return [0.78, 0.28, 0.00];
+        default:   return [0.50, 0.50, 0.50];
+    }
+}
+
+function gradeBgRgb(grade: string): [number, number, number] {
+    switch (grade) {
+        case 'A+': return [0.88, 0.98, 0.93];
+        case 'A':  return [0.90, 0.98, 0.89];
+        case 'B':  return [0.88, 0.97, 0.97];
+        case 'C':  return [1.00, 0.95, 0.80];
+        case 'D':  return [1.00, 0.92, 0.82];
+        default:   return [0.94, 0.94, 0.94];
+    }
+}
+
+function gradeLabelStr(grade: string): string {
+    switch (grade) {
+        case 'A+': return 'Certified Premium';
+        case 'A':  return 'Certified';
+        case 'B':  return 'Good Condition';
+        case 'C':  return 'Acceptable';
+        case 'D':  return 'Below Average';
+        default:   return 'Unknown';
+    }
+}
+
+function winActivationText(sysInfo: JsonRecord): string {
+    const isActivated = sysInfo.isWindowsActivated;
+    const status = safeStr(sysInfo.windowsActivationStatus);
+    if (typeof isActivated === 'boolean') {
+        return isActivated ? `Activated${status ? ` (${status})` : ''}` : `Not Activated${status ? ` (${status})` : ''}`;
+    }
+    return status || 'Unknown';
+}
+
+function winVersionText(sysInfo: JsonRecord): string {
+    const osRaw = safeStr(sysInfo.osVersion);
+    const prodName = safeStr(sysInfo.windowsProductName);
+    const { edition, release } = parseWindowsVersion(osRaw, prodName);
+    const finalEdition = prodName ? cleanWindowsProductName(prodName, edition) : edition;
+    if (release) return `${finalEdition} ${release}`;
+    return finalEdition || 'Unknown';
+}
+
+function antivirusTextStr(sysInfo: JsonRecord): string {
+    const healthy = sysInfo.isAntivirusHealthy;
+    const status = safeStr(sysInfo.antivirusStatus);
+    if (typeof healthy === 'boolean') {
+        return healthy ? `Healthy${status ? ` (${status})` : ''}` : `Not Healthy${status ? ` (${status})` : ''}`;
+    }
+    return status || 'Unknown';
+}
+
+function storageTotalLabelStr(storageJson: unknown): string {
+    const st = (storageJson as JsonRecord | null) || {};
+    const vols = Array.isArray(st.volumes) ? (st.volumes as StorageVolume[]) : [];
+    const totalBytes = vols.reduce((s, v) => s + (typeof v?.totalBytes === 'number' ? v.totalBytes : 0), 0);
+    if (totalBytes > 0) return `${(totalBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    const cap = safeNum(st.totalCapacityGB);
+    return cap ? `${cap.toFixed(0)} GB` : 'N/A';
+}
+
+/** Build a single-page A4-portrait PDF replicating the /report/[id] layout. */
+export async function buildIndividualReportPdf(
+    rec: SampleRecord,
+    testResults: TestResultRow[],
+    timeZone = 'Asia/Kolkata'
+): Promise<Uint8Array> {
+    const pdf = await PDFDocument.create();
+    // A4 portrait: 595 x 842 pts
+    const PW = 595;
+    const PH = 842;
+    const page = pdf.addPage([PW, PH]);
+    const font      = await pdf.embedFont(StandardFonts.Helvetica);
+    const boldFont  = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const monoFont  = await pdf.embedFont(StandardFonts.Courier);
+
+    const M = 36; // margin
+    const contentW = PW - M * 2;
+    let y = PH - M;
+
+    const drawText = (text: string, x: number, yy: number, size: number, f: PDFFont, color = rgb(0.1, 0.1, 0.1)) =>
+        page.drawText(text, { x, y: yy, size, font: f, color });
+
+    const hRule = (yy: number, thick = 0.8, clr = rgb(0.7, 0.7, 0.7)) =>
+        page.drawLine({ start: { x: M, y: yy }, end: { x: PW - M, y: yy }, thickness: thick, color: clr });
+
+    const twoColRow = (
+        label: string, value: string, x1: number, x2: number, yy: number,
+        labelSz = 8, valSz = 8
+    ) => {
+        drawText(label, x1, yy, labelSz, font, rgb(0.4, 0.4, 0.4));
+        const maxW = (PW - M) - x2 - 4;
+        let v = value;
+        while (v.length > 0 && font.widthOfTextAtSize(v, valSz) > maxW) v = v.slice(0, -1);
+        if (v !== value) v += '…';
+        drawText(v, x2, yy, valSz, font, rgb(0.1, 0.1, 0.1));
+        const lineY = yy - 4;
+        for (let lx = x1; lx < PW - M; lx += 4) {
+            page.drawLine({ start: { x: lx, y: lineY }, end: { x: Math.min(lx + 2, PW - M), y: lineY }, thickness: 0.3, color: rgb(0.8, 0.8, 0.8) });
+        }
+    };
+
+    // ── HEADER BAND ──────────────────────────────────────────────────────────────
+    page.drawRectangle({ x: 0, y: PH - 52, width: PW, height: 52, color: rgb(0.06, 0.10, 0.18) });
+    drawText('QC Certificate', M, PH - 22, 16, boldFont, rgb(1, 1, 1));
+    drawText('Quality Control Report', M, PH - 36, 8, font, rgb(0.7, 0.8, 0.9));
+    const testId = `Test ID: #${safeStr(rec.id)}`;
+    const testIdW = boldFont.widthOfTextAtSize(testId, 9);
+    drawText(testId, PW - M - testIdW, PH - 22, 9, boldFont, rgb(1, 1, 1));
+    const tsStr = formatDbDateTimeSimple(rec.timestamp, timeZone);
+    const tsW = font.widthOfTextAtSize(tsStr, 8);
+    drawText(tsStr, PW - M - tsW, PH - 36, 8, font, rgb(0.7, 0.8, 0.9));
+    y = PH - 64;
+
+    // ── GRADE HERO PANEL ──────────────────────────────────────────────────────────
+    const grade = safeStr(rec.pramaan_grade);
+    const score = safeNum(rec.pramaan_score);
+    const [gr, gg, gb2] = gradeColorRgb(grade);
+    const [bgr, bgg, bgb] = gradeBgRgb(grade);
+    page.drawRectangle({ x: M, y: y - 58, width: contentW, height: 58, color: rgb(bgr, bgg, bgb), borderColor: rgb(gr, gg, gb2), borderWidth: 1 });
+    drawText('PRAMAAN Health Score', M + 10, y - 14, 7.5, font, rgb(0.35, 0.35, 0.35));
+    drawText(grade || 'N/A', M + 10, y - 38, 26, boldFont, rgb(gr, gg, gb2));
+    drawText(gradeLabelStr(grade), M + 10, y - 50, 8, font, rgb(0.35, 0.35, 0.35));
+    if (score !== null) drawText(`${score}/100`, M + 68, y - 42, 14, boldFont, rgb(gr, gg, gb2));
+
+    // Device ID on right
+    const devId = safeStr(rec.machine_identifier || rec.machine_id);
+    drawText('Device ID', PW - M - 120, y - 14, 7, font, rgb(0.4, 0.4, 0.4));
+    drawText(devId.slice(0, 20), PW - M - 120, y - 28, 8, monoFont, rgb(0.1, 0.1, 0.1));
+    const reportId = safeStr(rec.report_id);
+    if (reportId) {
+        drawText('Report ID', PW - M - 120, y - 42, 7, font, rgb(0.4, 0.4, 0.4));
+        const shortId = reportId.length > 18 ? reportId.slice(0, 18) + '…' : reportId;
+        drawText(shortId, PW - M - 120, y - 55, 7, monoFont, rgb(0.3, 0.3, 0.3));
+    }
+    y -= 68;
+
+    // ── SYSTEM INFO GRID (two columns) ────────────────────────────────────────────
+    const col1x = M;
+    const col2x = M + contentW / 2 + 8;
+    const colW  = contentW / 2 - 10;
+    const labelX1 = col1x;
+    const valX1   = col1x + colW * 0.42;
+    const labelX2 = col2x;
+    const valX2   = col2x + colW * 0.42;
+
+    const drawSectionHeader = (text: string, xPos: number, yy: number) => {
+        drawText(text.toUpperCase(), xPos, yy, 6.5, boldFont, rgb(0.15, 0.15, 0.15));
+        page.drawLine({ start: { x: xPos, y: yy - 4 }, end: { x: xPos + colW, y: yy - 4 }, thickness: 1, color: rgb(0.15, 0.15, 0.15) });
+    };
+
+    drawSectionHeader('System Specification', col1x, y);
+    drawSectionHeader('Hardware Details', col2x, y);
+    y -= 14;
+
+    const sysInfo = ((rec.system_info_json as JsonRecord | null) || {});
+    const storageJson = rec.storage_details_json;
+    const battJson = (rec.battery_details_json as JsonRecord | null);
+    const ramGbRaw = safeNum(rec.ram_total);
+    const ramGbVal = ramGbRaw ? `${Math.round(ramGbRaw / (1024 * 1024 * 1024))} GB` : 'N/A';
+    const battWear = battJson ? (battJson.isTampered ? 'Tampered' : `Wear: ${safeStr(battJson.wearLevelPercent)}%`) : 'N/A';
+    const battBrand = battJson ? safeStr(battJson.manufactureName || battJson.name || battJson.partNumber) : '';
+
+    const leftRows: [string, string][] = [
+        ['Manufacturer', safeStr(rec.system_manufacturer)],
+        ['Model',        safeStr(rec.system_model)],
+        ['Computer',     safeStr(rec.computer_name)],
+        ['Serial No.',   safeStr(rec.system_serial)],
+        ['MAC Address',  safeStr(rec.mac_address)],
+        ['Windows',      winVersionText(sysInfo)],
+        ['Win Updated',  formatDbDateSimple(sysInfo.windowsLastUpdatedAt, timeZone)],
+        ['Activation',   winActivationText(sysInfo)],
+        ['Antivirus',    antivirusTextStr(sysInfo)],
+    ];
+
+    const rightRows: [string, string][] = [
+        ['Processor',    safeStr(rec.cpu_model)],
+        ['RAM',          ramGbVal],
+        ['Storage',      storageTotalLabelStr(storageJson)],
+        ['Battery',      battWear],
+    ];
+    if (battBrand) rightRows.push(['Bat. Brand', battBrand]);
+
+    const rowH = 14;
+    const startY = y;
+    leftRows.forEach((row, i) => {
+        twoColRow(row[0], row[1], labelX1, valX1, startY - i * rowH);
+    });
+    rightRows.forEach((row, i) => {
+        twoColRow(row[0], row[1], labelX2, valX2, startY - i * rowH);
+    });
+    y = startY - Math.max(leftRows.length, rightRows.length) * rowH - 10;
+
+    // ── DIAGNOSTIC RESULTS TABLE ──────────────────────────────────────────────────
+    hRule(y + 6, 1.2, rgb(0.06, 0.10, 0.18));
+    drawText('DIAGNOSTIC RESULTS', M, y - 2, 6.5, boldFont, rgb(0.1, 0.1, 0.1));
+    y -= 14;
+
+    const colWidths = [130, 44, 44, contentW - 218];
+    const colHeaders = ['Test Component', 'Grade', 'Score', 'Notes / Details'];
+    page.drawRectangle({ x: M, y: y - 13, width: contentW, height: 13, color: rgb(0.93, 0.94, 0.96) });
+    let hx = M + 4;
+    colHeaders.forEach((h, ci) => {
+        drawText(h, hx, y - 10, 7.5, boldFont, rgb(0.2, 0.2, 0.3));
+        hx += colWidths[ci];
+    });
+    y -= 15;
+
+    // Filter out SMART if Storage present (same logic as report page)
+    const rawTests = Array.isArray(testResults) ? testResults : [];
+    const hasStorage = rawTests.some(t => safeStr(t.test_type).toLowerCase() === 'storage');
+    const filteredTests = rawTests.filter(t => !(hasStorage && safeStr(t.test_type).toLowerCase() === 'smart'));
+
+    for (const [idx, test] of filteredTests.entries()) {
+        if (y < M + 40) break;
+        const tGrade = safeStr(test.grade);
+        const [tgr, tgg, tgb] = tGrade ? gradeColorRgb(tGrade) : [0.3, 0.3, 0.3];
+        const [tbgr, tbgg, tbgb] = tGrade ? gradeBgRgb(tGrade) : [0.95, 0.95, 0.95];
+        const rowBg = idx % 2 === 0 ? rgb(1, 1, 1) : rgb(0.975, 0.978, 0.985);
+        const rH = 13;
+        page.drawRectangle({ x: M, y: y - rH, width: contentW, height: rH, color: rowBg, borderColor: rgb(0.88, 0.88, 0.92), borderWidth: 0.3 });
+
+        let cx = M + 4;
+        drawText(safeStr(test.test_type), cx, y - 10, 7.5, font, rgb(0.15, 0.15, 0.15));
+        cx += colWidths[0];
+
+        if (tGrade) {
+            page.drawRectangle({ x: cx, y: y - rH + 2, width: 34, height: rH - 4, color: rgb(tbgr, tbgg, tbgb) });
+            const gw = boldFont.widthOfTextAtSize(tGrade, 7);
+            drawText(tGrade, cx + (34 - gw) / 2, y - 9, 7, boldFont, rgb(tgr, tgg, tgb));
+        } else {
+            const passTxt = test.passed ? 'PASS' : 'FAIL';
+            const pClr = test.passed ? rgb(0.13, 0.55, 0.23) : rgb(0.75, 0.10, 0.10);
+            const pw2 = boldFont.widthOfTextAtSize(passTxt, 7);
+            drawText(passTxt, cx + (34 - pw2) / 2, y - 9, 7, boldFont, pClr);
+        }
+        cx += colWidths[1];
+
+        const scoreStr = test.score != null ? String(test.score) : '—';
+        const sw = font.widthOfTextAtSize(scoreStr, 7.5);
+        drawText(scoreStr, cx + (colWidths[2] - sw) / 2, y - 9, 7.5, font, rgb(0.2, 0.2, 0.2));
+        cx += colWidths[2];
+
+        const notesW = colWidths[3] - 6;
+        let noteText = safeStr(test.message);
+        if (Array.isArray(test.details_json) && (test.details_json as unknown[]).length > 0) {
+            const extra = safeStr((test.details_json as unknown[])[0]);
+            if (extra && extra !== noteText) noteText += (noteText ? ' · ' : '') + extra;
+        }
+        while (noteText.length > 0 && font.widthOfTextAtSize(noteText, 7) > notesW) noteText = noteText.slice(0, -1);
+        if (noteText.length < safeStr(test.message).length) noteText += '…';
+        drawText(noteText, cx, y - 9, 7, font, rgb(0.35, 0.35, 0.35));
+
+        y -= rH + 1;
+    }
+
+    // ── TECHNICIAN NOTES ─────────────────────────────────────────────────────────
+    const techNotes = safeStr(rec.technician_notes);
+    if (techNotes && y > M + 50) {
+        y -= 8;
+        page.drawRectangle({ x: M, y: y - 28, width: contentW, height: 28, color: rgb(0.97, 0.97, 0.97), borderColor: rgb(0.82, 0.82, 0.82), borderWidth: 0.6 });
+        drawText('TECHNICIAN NOTES', M + 6, y - 8, 6, boldFont, rgb(0.4, 0.4, 0.4));
+        let nt = techNotes;
+        while (nt.length > 0 && font.widthOfTextAtSize(nt, 7.5) > contentW - 12) nt = nt.slice(0, -1);
+        if (nt !== techNotes) nt += '…';
+        drawText(nt, M + 6, y - 20, 7.5, font, rgb(0.25, 0.25, 0.25));
+    }
+
+    // ── FOOTER ───────────────────────────────────────────────────────────────────
+    hRule(M + 22, 0.6, rgb(0.75, 0.75, 0.75));
+    const footerItems: [string, number][] = [
+        ['Generated by Pramaan', M],
+        [`App Version: ${(safeStr(rec.app_version) || 'Unknown').split('+')[0]}`, M + 120],
+        [`Test ID: #${safeStr(rec.id)}`, M + 270],
+        [`Date Printed: ${new Date().toLocaleDateString('en-GB')}`, M + 370],
+    ];
+    footerItems.forEach(([txt, x]) => drawText(txt, x, M + 12, 6.5, font, rgb(0.5, 0.5, 0.5)));
+
+    return pdf.save();
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Sample dataset export: 90 good + 10 poor, ZIP of PDFs or XLSX
+// ────────────────────────────────────────────────────────────────────────────────
+
+export interface SampleExportOptions {
+    goodCount?: number;
+    poorCount?: number;
+    format: 'zip' | 'xlsx';
+    timeZone: string;
+}
+
+export interface SampleExportResult {
+    body: ArrayBuffer;
+    contentType: string;
+    filename: string;
+}
+
+const GOOD_GRADES = ['A+', 'A', 'B'];
+const POOR_GRADES = ['C', 'D'];
+
+export async function exportSampleDataset(
+    user: AuthenticatedUser,
+    opts: SampleExportOptions
+): Promise<SampleExportResult> {
+    const goodCount = opts.goodCount ?? 90;
+    const poorCount = opts.poorCount ?? 10;
+
+    const results = await repo.listResultsByGradesForSample(user, {
+        goodGrades: GOOD_GRADES,
+        goodCount,
+        poorGrades: POOR_GRADES,
+        poorCount,
+    });
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+
+    // ── XLSX export ────────────────────────────────────────────────────────────────
+    if (opts.format === 'xlsx') {
+        const issueMap: Record<IssueKey, Set<string>> = {
+            stale: new Set(), criticalStorage: new Set(), lowStorage: new Set(),
+            tampered: new Set(), inactiveWindows: new Set(), thermal: new Set(),
+        };
+        const now = new Date();
+        const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+
+        const exportRows: ExportRow[] = results.map((resultRow, index) => {
+            const r = resultRow as JsonRecord;
+            const sysInfo = (r.system_info_json as JsonRecord | null) || {};
+            const storageInfo = (r.storage_details_json as StorageInfo | null) || {};
+
+            const volumes = Array.isArray(storageInfo.volumes) ? storageInfo.volumes : [];
+            const totalStorageBytes = volumes.reduce((sum, vol) => sum + (typeof vol?.totalBytes === 'number' ? vol.totalBytes : 0), 0);
+            const freeStorageBytes = volumes.reduce((sum, vol) => sum + (typeof vol?.freeBytes === 'number' ? vol.freeBytes : 0), 0);
+            const freePercent = totalStorageBytes > 0 ? (freeStorageBytes / totalStorageBytes) * 100 : null;
+
+            const { label: diskHealthLabel, isTampered } = getStorageHealthSummary(storageInfo);
+
+            const isActivated = sysInfo.isWindowsActivated;
+            const activationLabel = typeof isActivated === 'boolean'
+                ? isActivated ? 'Active' : 'Not Active'
+                : ((sysInfo.windowsActivationStatus as string | undefined) || '');
+            const isWindowsInactive = activationLabel.toLowerCase().includes('not active') || activationLabel.toLowerCase().includes('inactive');
+
+            const { edition: parsedEdition, release: winRelease } = parseWindowsVersion(
+                (sysInfo.osVersion as string | undefined) || '',
+                (sysInfo.windowsProductName as string | undefined) || ''
+            );
+            const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
+            const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
+            const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+            const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
+            const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
+            const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
+            const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
+            const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
+            const hasThermalIssue = riskFlags.thermal === true;
+            const serialNo = (r.system_serial as string | undefined) || '';
+
+            const lastReportDate = r.timestamp ? new Date(r.timestamp as string) : null;
+            const isStale = lastReportDate ? (now.getTime() - lastReportDate.getTime()) > staleThresholdMs : false;
+
+            if (isStale) issueMap.stale.add(computerName);
+            if (freePercent != null && freePercent <= 10) issueMap.criticalStorage.add(computerName);
+            if (freePercent != null && freePercent < 25) issueMap.lowStorage.add(computerName);
+            if (isTampered) issueMap.tampered.add(computerName);
+            if (isWindowsInactive) issueMap.inactiveWindows.add(computerName);
+            if (hasThermalIssue) issueMap.thermal.add(computerName);
+
+            const rowValues = [
+                String(index + 1),
+                (r.computer_name as string | undefined) || '',
+                formatShiftDate((r.timestamp as string | Date | null | undefined) || null, opts.timeZone),
+                osEdition,
+                activationLabel,
+                winRelease,
+                formatShiftDate((sysInfo.windowsLastUpdatedAt as string | Date | null | undefined) || null, opts.timeZone),
+                compactProcessor,
+                String(ramGb),
+                antivirus,
+                totalStorageBytes > 0 ? formatBytes(totalStorageBytes) : '',
+                freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
+                diskHealthLabel,
+                isTampered ? 'Tampered' : 'Clean',
+                (r.pramaan_grade as string | undefined) || '',
+                r.pramaan_score != null ? String(r.pramaan_score) : '',
+                serialNo,
+                (r.mac_address as string | undefined) || '',
+                (r.system_manufacturer as string | undefined) || '',
+                (r.system_model as string | undefined) || '',
+                (r.technician_name as string | undefined) || (r.technician_username as string | undefined) || '',
+            ];
+
+            return { rowValues, freePercent, isWindowsInactive, isTampered, hasThermalIssue, isStale, computerName, compactProcessor, serialNo };
+        });
+
+        const issueRows = getIssueSummaryRows(issueMap);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('QC Results — Sample 100');
+        worksheet.addRow(HEADERS);
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+        worksheet.columns = [
+            { width: 8 }, { width: 24 }, { width: 14 }, { width: 24 }, { width: 14 }, { width: 12 },
+            { width: 16 }, { width: 12 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 36 },
+            { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 }, { width: 22 }, { width: 18 },
+            { width: 20 }, { width: 20 },
+        ];
+
+        const freeStorageColIdx = 11;
+        const windowsColIdx = 5;
+        const diskHealthColIdx = 12;
+        const tamperColIdx = 13;
+
+        exportRows.forEach((entry) => {
+            const row = worksheet.addRow(entry.rowValues);
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    right: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                };
+                cell.alignment = { vertical: 'middle', wrapText: true };
+            });
+
+            if (entry.isStale) {
+                row.eachCell((cell) => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4E4' } };
+                    cell.font = { color: { argb: 'FF8B0000' } };
+                });
+            } else if (row.number % 2 === 0) {
+                row.eachCell((cell) => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                });
+            }
+
+            const freeStorageCell = worksheet.getCell(row.number, freeStorageColIdx);
+            if (entry.freePercent != null && entry.freePercent <= 10) {
+                freeStorageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+                freeStorageCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+            } else if (entry.freePercent != null && entry.freePercent < 25) {
+                freeStorageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+                freeStorageCell.font = { color: { argb: 'FF000000' }, bold: true };
+            }
+
+            if (entry.isWindowsInactive) {
+                const windowsCell = worksheet.getCell(row.number, windowsColIdx);
+                windowsCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+                windowsCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+            }
+
+            if (entry.isTampered) {
+                const diskHealthCell = worksheet.getCell(row.number, diskHealthColIdx);
+                const tamperCell = worksheet.getCell(row.number, tamperColIdx);
+                [diskHealthCell, tamperCell].forEach((cell) => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                });
+            } else if (entry.hasThermalIssue) {
+                const diskHealthCell = worksheet.getCell(row.number, diskHealthColIdx);
+                diskHealthCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+            }
+        });
+
+        // Issue Summary sheet
+        const summarySheet = workbook.addWorksheet('Issue Summary');
+        summarySheet.addRow(['Issue Type', 'Count', 'Affected Systems']);
+        summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7F6000' } };
+        summarySheet.columns = [{ width: 34 }, { width: 12 }, { width: 110 }];
+        issueRows.forEach((row) => {
+            const added = summarySheet.addRow(row);
+            added.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                    right: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                };
+                cell.alignment = { vertical: 'top', wrapText: true };
+            });
+        });
+
+        // Grade distribution meta sheet
+        const metaSheet = workbook.addWorksheet('Dataset Info');
+        metaSheet.addRow(['Pramaan Sample Dataset — 100 Reports']);
+        metaSheet.getRow(1).font = { bold: true, size: 14 };
+        metaSheet.addRow([]);
+        metaSheet.addRow(['Grade', 'Count', 'Category']);
+        metaSheet.getRow(3).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        metaSheet.getRow(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+        const gradeCountMap: Record<string, number> = {};
+        results.forEach((r) => {
+            const g = (r.pramaan_grade as string) || 'Unknown';
+            gradeCountMap[g] = (gradeCountMap[g] || 0) + 1;
+        });
+        Object.entries(gradeCountMap).sort().forEach(([g, cnt]) => {
+            const cat = GOOD_GRADES.includes(g) ? 'Good (A+/A/B)' : POOR_GRADES.includes(g) ? 'Poor (C/D)' : 'Other';
+            metaSheet.addRow([g, cnt, cat]);
+        });
+        metaSheet.addRow([]);
+        metaSheet.addRow(['Total records', results.length]);
+        metaSheet.addRow(['Generated', new Date().toISOString()]);
+        metaSheet.addRow(['Filters applied', 'Excluded tampered/inconclusive storage & battery']);
+        metaSheet.columns = [{ width: 18 }, { width: 12 }, { width: 30 }];
+
+        const fileBuffer2 = await workbook.xlsx.writeBuffer();
+        return {
+            body: toArrayBuffer(fileBuffer2 as ArrayBuffer),
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename: `pramaan_sample_100_${dateStamp}.xlsx`,
+        };
+    }
+
+    // ── ZIP of individual PDFs ───────────────────────────────────────────────────
+    const resultIds = results.map(r => r.id as number).filter(Boolean);
+    const allTestRows = await repo.listTestResultsForIds(resultIds);
+
+    // Group test rows by qc_result_id
+    const testsByResultId = new Map<number, TestResultRow[]>();
+    allTestRows.forEach((tr) => {
+        const rid = tr.qc_result_id as number;
+        if (!testsByResultId.has(rid)) testsByResultId.set(rid, []);
+        testsByResultId.get(rid)!.push(tr as unknown as TestResultRow);
+    });
+
+    const zip = new JSZip();
+    const pdfFolder = zip.folder('pramaan_reports')!;
+
+    for (const rec of results) {
+        const id = rec.id as number;
+        const testRows = testsByResultId.get(id) || [];
+        const pdfBytes = await buildIndividualReportPdf(rec, testRows, opts.timeZone);
+        const serial = (rec.system_serial as string | undefined) || `id${id}`;
+        const safeName = serial.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+        pdfFolder.file(`${safeName}_report_${id}.pdf`, pdfBytes);
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    return {
+        body: zipBuffer,
+        contentType: 'application/zip',
+        filename: `pramaan_sample_100_reports_${dateStamp}.zip`,
     };
 }
