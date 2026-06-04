@@ -29,6 +29,8 @@ export default function ResultsPage() {
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [exportingExcel, setExportingExcel] = useState(false)
     const [exportingPdf, setExportingPdf] = useState(false)
+    const [exportingSampleXlsx, setExportingSampleXlsx] = useState(false)
+    const [exportingSampleZip, setExportingSampleZip] = useState(false)
     const [showIssuesOnly, setShowIssuesOnly] = useState(false)
     const [isInitialized, setIsInitialized] = useState(false)
     const limit = 20
@@ -168,6 +170,41 @@ export default function ResultsPage() {
         } finally {
             if (format === "xlsx") setExportingExcel(false)
             else setExportingPdf(false)
+        }
+    }
+
+    const handleSampleExport = async (format: "xlsx" | "zip") => {
+        if (format === "xlsx") setExportingSampleXlsx(true)
+        else setExportingSampleZip(true)
+        try {
+            const token = localStorage.getItem("qc_token")
+            const params = new URLSearchParams()
+            params.append("format", format)
+            params.append("goodCount", "90")
+            params.append("poorCount", "10")
+            params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
+            const res = await fetch(`/api/qc-results/export/sample?${params.toString()}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!res.ok) throw new Error("Sample export failed")
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            const dateStamp = new Date().toISOString().slice(0, 10)
+            a.download = format === "xlsx"
+                ? `pramaan_sample_100_${dateStamp}.xlsx`
+                : `pramaan_sample_100_reports_${dateStamp}.zip`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error("Sample export error:", error)
+            alert("Sample export failed. Please try again.")
+        } finally {
+            if (format === "xlsx") setExportingSampleXlsx(false)
+            else setExportingSampleZip(false)
         }
     }
 
@@ -406,6 +443,29 @@ export default function ResultsPage() {
                         >
                             <Download className="h-4 w-4 mr-1" />
                             {exportingPdf ? "Exporting PDF..." : "Export PDF"}
+                        </Button>
+                        <div className="w-px h-6 bg-slate-200 mx-1" />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                            onClick={() => handleSampleExport("xlsx")}
+                            disabled={exportingSampleXlsx}
+                            title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as Excel"
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            {exportingSampleXlsx ? "Building..." : "Sample 100 XLSX"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                            onClick={() => handleSampleExport("zip")}
+                            disabled={exportingSampleZip}
+                            title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as ZIP of individual PDFs"
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            {exportingSampleZip ? "Building PDFs..." : "Sample 100 ZIP"}
                         </Button>
                     </div>
                 </div>
