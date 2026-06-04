@@ -186,7 +186,14 @@ export default function ResultsPage() {
             const res = await fetch(`/api/qc-results/export/sample?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })
-            if (!res.ok) throw new Error("Sample export failed")
+            if (!res.ok) {
+                let detail = `HTTP ${res.status}`
+                try {
+                    const json = await res.json()
+                    detail = json.detail || json.message || JSON.stringify(json)
+                } catch { /* ignore */ }
+                throw new Error(detail)
+            }
             const blob = await res.blob()
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
@@ -201,7 +208,7 @@ export default function ResultsPage() {
             URL.revokeObjectURL(url)
         } catch (error) {
             console.error("Sample export error:", error)
-            alert("Sample export failed. Please try again.")
+            alert(`Sample export failed: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
             if (format === "xlsx") setExportingSampleXlsx(false)
             else setExportingSampleZip(false)
@@ -444,29 +451,31 @@ export default function ResultsPage() {
                             <Download className="h-4 w-4 mr-1" />
                             {exportingPdf ? "Exporting PDF..." : "Export PDF"}
                         </Button>
-                        <div className="w-px h-6 bg-slate-200 mx-1" />
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
-                            onClick={() => handleSampleExport("xlsx")}
-                            disabled={exportingSampleXlsx}
-                            title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as Excel"
-                        >
-                            <Download className="h-4 w-4 mr-1" />
-                            {exportingSampleXlsx ? "Building..." : "Sample 100 XLSX"}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
-                            onClick={() => handleSampleExport("zip")}
-                            disabled={exportingSampleZip}
-                            title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as ZIP of individual PDFs"
-                        >
-                            <Download className="h-4 w-4 mr-1" />
-                            {exportingSampleZip ? "Building PDFs..." : "Sample 100 ZIP"}
-                        </Button>
+                        {isSuperAdmin() && (<>
+                            <div className="w-px h-6 bg-slate-200 mx-1" />
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                                onClick={() => handleSampleExport("xlsx")}
+                                disabled={exportingSampleXlsx}
+                                title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as Excel"
+                            >
+                                <Download className="h-4 w-4 mr-1" />
+                                {exportingSampleXlsx ? "Building..." : "Sample 100 XLSX"}
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10 border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                                onClick={() => handleSampleExport("zip")}
+                                disabled={exportingSampleZip}
+                                title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as ZIP of individual PDFs"
+                            >
+                                <Download className="h-4 w-4 mr-1" />
+                                {exportingSampleZip ? "Building PDFs..." : "Sample 100 ZIP"}
+                            </Button>
+                        </>)}
                     </div>
                 </div>
             </div>
