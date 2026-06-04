@@ -633,7 +633,27 @@ type TestResultRow = {
 type SampleRecord = Record<string, unknown>;
 
 function safeStr(v: unknown): string {
-    return v == null ? '' : String(v);
+    if (v == null) return '';
+    const str = String(v);
+    // pdf-lib's StandardFonts use WinAnsiEncoding which can't handle full Unicode.
+    // Replace common unsupported characters with ASCII equivalents, and default to '?' for others.
+    return str.replace(/[^\x00-\x7F\xA0-\xFF]/g, (char) => {
+        switch (char) {
+            case '✓': return '[Pass]';
+            case '✗': return '[Fail]';
+            case '—':
+            case '–': return '-';
+            case '“':
+            case '”': return '"';
+            case '‘':
+            case '’': return "'";
+            case '©': return '(c)';
+            case '®': return '(r)';
+            case '™': return '(tm)';
+            case '°': return ' deg';
+            default: return '?';
+        }
+    });
 }
 
 function safeNum(v: unknown): number | null {
