@@ -173,19 +173,25 @@ export default function ResultsPage() {
         }
     }
 
+    const [pdfExportProgress, setPdfExportProgress] = useState<string>("");
+
     const handleSampleExport = async (format: "xlsx" | "zip") => {
         if (format === "xlsx") setExportingSampleXlsx(true)
         else setExportingSampleZip(true)
+        
         try {
             const token = localStorage.getItem("qc_token")
             const params = new URLSearchParams()
-            params.append("format", format)
+            // If ZIP, request JSON to render client-side
+            params.append("format", format === "zip" ? "json" : format)
             params.append("goodCount", "90")
             params.append("poorCount", "10")
             params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
+            
             const res = await fetch(`/api/qc-results/export/sample?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })
+            
             if (!res.ok) {
                 let detail = `HTTP ${res.status}`
                 try {
@@ -194,7 +200,19 @@ export default function ResultsPage() {
                 } catch { /* ignore */ }
                 throw new Error(detail)
             }
-            const blob = await res.blob()
+
+            let blob: Blob;
+            if (format === "zip") {
+                const reportsData = await res.json();
+                const { generateSampleReportsZip } = await import('@/lib/services/client-pdf-export');
+                blob = await generateSampleReportsZip(reportsData, (current, total) => {
+                    setPdfExportProgress(`Building PDFs... ${current}/${total}`);
+                });
+                setPdfExportProgress("");
+            } else {
+                blob = await res.blob();
+            }
+
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
@@ -209,6 +227,7 @@ export default function ResultsPage() {
         } catch (error) {
             console.error("Sample export error:", error)
             alert(`Sample export failed: ${error instanceof Error ? error.message : String(error)}`)
+            setPdfExportProgress("");
         } finally {
             if (format === "xlsx") setExportingSampleXlsx(false)
             else setExportingSampleZip(false)
@@ -473,7 +492,7 @@ export default function ResultsPage() {
                                 title="Download 100-report sample dataset (90 A+/A/B + 10 C/D) as ZIP of individual PDFs"
                             >
                                 <Download className="h-4 w-4 mr-1" />
-                                {exportingSampleZip ? "Building PDFs..." : "Sample 100 ZIP"}
+                                {exportingSampleZip ? (pdfExportProgress || "Fetching data...") : "Sample 100 ZIP"}
                             </Button>
                         </>)}
                     </div>

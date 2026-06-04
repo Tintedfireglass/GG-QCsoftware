@@ -971,7 +971,7 @@ export async function buildIndividualReportPdf(
 export interface SampleExportOptions {
     goodCount?: number;
     poorCount?: number;
-    format: 'zip' | 'xlsx';
+    format: 'zip' | 'xlsx' | 'json';
     timeZone: string;
 }
 
@@ -997,6 +997,31 @@ export async function exportSampleDataset(
         poorGrades: POOR_GRADES,
         poorCount,
     });
+
+    // ── JSON export (Client-Side Rendering Data) ───────────────────────────────────
+    if (opts.format === 'json') {
+        const resultIds = results.map(r => r.id as number).filter(Boolean);
+        const allTestRows = await repo.listTestResultsForIds(resultIds);
+        const testsByResultId = new Map<number, TestResultRow[]>();
+        allTestRows.forEach((tr) => {
+            const rid = tr.qc_result_id as number;
+            if (!testsByResultId.has(rid)) testsByResultId.set(rid, []);
+            testsByResultId.get(rid)!.push(tr as unknown as TestResultRow);
+        });
+        const combined = results.map(rec => ({
+            ...rec,
+            test_results: testsByResultId.get(rec.id as number) || []
+        }));
+        
+        const jsonStr = JSON.stringify(combined);
+        const encoder = new TextEncoder();
+        
+        return {
+            body: encoder.encode(jsonStr).buffer as ArrayBuffer,
+            contentType: 'application/json',
+            filename: 'sample_data.json',
+        };
+    }
 
     const dateStamp = new Date().toISOString().slice(0, 10);
 
