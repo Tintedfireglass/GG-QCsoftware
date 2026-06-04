@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import html2canvas from 'html2canvas';
+import { toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import { ReportLayout } from '@/components/report-layout';
@@ -16,7 +16,7 @@ async function generateSingleReportPdfBlob(data: any): Promise<Blob> {
     // Add white background so it doesn't render transparent
     container.style.backgroundColor = 'white';
     
-    // We add it to the body because html2canvas needs elements to be in the DOM to render
+    // We add it to the body because elements need to be in the DOM to render
     document.body.appendChild(container);
 
     // 2. Render the React component into the container
@@ -32,22 +32,26 @@ async function generateSingleReportPdfBlob(data: any): Promise<Blob> {
     // Wait for the React tree to fully render and DOM to update
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // 3. Render the container to a canvas
-    // scale: 2 improves text crispness but keeps file size reasonable
-    const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
+    // 3. Render the container to a canvas JPEG
+    // html-to-image supports modern CSS colors (like Tailwind v4 oklch/lab) 
+    // by using native SVG foreignObject instead of manual parsing.
+    const imgData = await toJpeg(container, {
+        quality: 0.95,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2 // equivalent to scale: 2 for crispness
     });
 
     // 4. Clean up the DOM
     root.unmount();
     document.body.removeChild(container);
 
-    // 5. Convert canvas to PDF
-    // A4 dimensions at 72 DPI (jsPDF default) are 210mm x 297mm
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    // 5. Convert JPEG to PDF
+    const img = new Image();
+    img.src = imgData;
+    await new Promise((resolve) => {
+        img.onload = resolve;
+    });
+
     const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -55,7 +59,7 @@ async function generateSingleReportPdfBlob(data: any): Promise<Blob> {
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pdfHeight = (img.height * pdfWidth) / img.width;
     
     let heightLeft = pdfHeight;
     let position = 0;
