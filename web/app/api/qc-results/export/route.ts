@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/http/handler';
-import { exportQcResults } from '@/lib/services/qc-export.service';
+import { exportQcResults } from '@/lib/platforms/windows/services/qc-export.service';
 
 // GET /api/qc-results/export - export latest-per-machine QC results as XLSX or PDF
 export const GET = withAuth(null, async (request, { user }) => {

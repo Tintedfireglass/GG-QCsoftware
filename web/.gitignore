@@ -44,3 +44,16 @@ next-env.d.ts
 
 Agents.md
 .env*.local
+
+# Local DB backups (contain password hashes + PII — never commit)
+db_backup/
+db_export/
+
+# Uploaded desktop app installers (served by /api/updates)
+/storage/
+
+# AI assistant tool workspaces (generated, machine-local)
+.amazonq/
+.cursor/
+
+PRAMAAN_Mobile_API.postman_collection.json

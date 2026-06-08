@@ -3,8 +3,8 @@ import { verifyApiKey } from '@/lib/auth';
 import { wrap, json } from '@/lib/http/handler';
 import { UnauthorizedError } from '@/lib/http/errors';
 import { parseBody } from '@/lib/http/validate';
-import { submitMachineHistorySchema } from '@/lib/domain/schemas/machine-history';
-import { submitMachineHistory } from '@/lib/services/machine-history.service';
+import { submitMachineHistorySchema } from '@/lib/platforms/windows/domain/schemas/machine-history';
+import { submitMachineHistory } from '@/lib/platforms/windows/services/machine-history.service';
 
 // POST /api/machine-history - submit component-grade history (API key + JWT)
 export const POST = wrap(async (request) => {

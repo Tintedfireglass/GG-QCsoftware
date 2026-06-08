@@ -161,6 +161,41 @@ export async function getQCResult(id: string) {
     return cachedGetJson(`/api/qc-results/${id}`, TTL.long);
 }
 
+// ── Mobile (B2C Android) reports — admin/reseller view ──────────────────────────
+export interface MobileReportRow {
+    reportId: string;
+    reportType: string;
+    testType: string | null;
+    result: string | null;
+    score: number | null;
+    grade: string | null;
+    passedCount: number | null;
+    failedCount: number | null;
+    deviceId: string;
+    deviceModel: string | null;
+    testedAt: string | null;
+    createdAt: string | null;
+    customer: { id: number; name: string | null; phone: string | null; email: string | null };
+    reseller: { id: number; name: string | null; role: string | null; licenseKey: string | null } | null;
+}
+
+export async function getMobileReports(
+    page = 1,
+    limit = 20,
+    filters: Record<string, string | undefined> = {}
+): Promise<{ reports: MobileReportRow[]; pagination: { total: number | null; limit: number; offset: number } }> {
+    const offset = (page - 1) * limit;
+    const params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value != null && value !== "") params.append(key, value);
+    });
+    return cachedGetJson(`/api/admin/mobile-reports?${params.toString()}`, TTL.short);
+}
+
+export async function getMobileReport(reportId: string): Promise<{ report: MobileReportRow & { payload: Record<string, unknown>; deviceSnapshot: Record<string, unknown> | null; stressSamples: Array<{ elapsedSec: number; gips: number | null; phase: string | null }> } }> {
+    return cachedGetJson(`/api/admin/mobile-reports/${encodeURIComponent(reportId)}`, TTL.long);
+}
+
 export async function getMachines() {
     return cachedGetJson("/api/machines", TTL.medium);
 }
@@ -319,6 +354,8 @@ export async function createLicenseKey(data: {
     max_uses: number
     expires_at?: string | null
     demo_customer_name?: string
+    product_scope?: string[]
+    platform_caps?: Record<string, number>
 }) {
     const res = await fetchWithAuth("/api/licenses", {
         method: "POST",
@@ -328,6 +365,247 @@ export async function createLicenseKey(data: {
     if (!res.ok) {
         throw new Error(json?.message || json?.error || "Failed to generate key");
     }
+    clearClientCache();
+    return json;
+}
+
+export interface PlanDTO {
+    id: number
+    name: string
+    description: string | null
+    price_cents: number
+    currency: string
+    product_scope: string[]
+    platform_caps: Record<string, number>
+    duration_days: number | null
+    features: string[] | null
+    allow_auto_renew: boolean
+    is_active: boolean
+    sort_order: number
+}
+
+export async function getAdminPlans(): Promise<{ plans: PlanDTO[] }> {
+    const res = await fetchWithAuth("/api/admin/plans");
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load plans");
+    return json;
+}
+
+export async function createPlan(data: Record<string, unknown>) {
+    const res = await fetchWithAuth("/api/admin/plans", { method: "POST", body: JSON.stringify(data) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to create plan");
+    clearClientCache();
+    return json;
+}
+
+export async function updatePlan(id: number, data: Record<string, unknown>) {
+    const res = await fetchWithAuth(`/api/admin/plans/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to update plan");
+    clearClientCache();
+    return json;
+}
+
+export async function deletePlan(id: number) {
+    const res = await fetchWithAuth(`/api/admin/plans/${id}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete plan");
+    clearClientCache();
+    return json;
+}
+
+export async function getCustomerPlans(): Promise<{ plans: PlanDTO[] }> {
+    const res = await fetch("/api/customer/plans");
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load plans");
+    return json;
+}
+
+export interface ContactDTO {
+    id: number
+    name: string
+    company_name: string | null
+    phone: string | null
+    email: string
+    service: string | null
+    description: string | null
+    source: string | null
+    status: "new" | "read" | "archived"
+    created_at: string
+}
+
+export async function getAdminContacts(params: { status?: string; page?: number; limit?: number } = {}): Promise<{ contacts: ContactDTO[]; newCount: number; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const qs = new URLSearchParams()
+    if (params.status) qs.set("status", params.status)
+    if (params.page) qs.set("page", String(params.page))
+    if (params.limit) qs.set("limit", String(params.limit))
+    const res = await fetchWithAuth(`/api/admin/contacts?${qs.toString()}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load contacts")
+    return json
+}
+
+export async function updateContactStatus(id: number, status: "new" | "read" | "archived") {
+    const res = await fetchWithAuth(`/api/admin/contacts/${id}`, { method: "PATCH", body: JSON.stringify({ status }) })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to update status")
+    clearClientCache()
+    return json
+}
+
+export async function deleteContact(id: number) {
+    const res = await fetchWithAuth(`/api/admin/contacts/${id}`, { method: "DELETE" })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete submission")
+    clearClientCache()
+    return json
+}
+
+export interface AnalyticsOverview {
+    range: { key: string; days: number; since: string }
+    kpis: {
+        visitors: number
+        sessions: number
+        pageviews: number
+        events: number
+        bounceRate: number
+        pagesPerSession: number
+    }
+    timeseries: { day: string; pageviews: number; visitors: number }[]
+    topPages: { path: string; views: number }[]
+    sources: { source: string; sessions: number }[]
+    devices: { name: string; value: number }[]
+    browsers: { name: string; value: number }[]
+    os: { name: string; value: number }[]
+    countries: { name: string; value: number }[]
+    topEvents: { name: string; count: number }[]
+    funnel: { visitors: number; checkoutStarted: number; purchases: number }
+}
+
+export async function getAnalyticsOverview(range: string): Promise<AnalyticsOverview> {
+    const res = await fetchWithAuth(`/api/admin/analytics/overview?range=${encodeURIComponent(range)}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load analytics")
+    return json
+}
+
+export interface CouponDTO {
+    id: number
+    code: string
+    description: string | null
+    discount_type: "percent" | "fixed"
+    discount_value: number
+    max_discount_cents: number | null
+    currency: string | null
+    min_order_cents: number
+    max_redemptions: number | null
+    times_redeemed: number
+    per_customer_limit: number | null
+    applicable_plan_ids: number[] | null
+    valid_from: string | null
+    valid_until: string | null
+    is_active: boolean
+    is_public: boolean
+    created_at: string
+    updated_at: string
+}
+
+export async function getAdminCoupons(): Promise<{ coupons: CouponDTO[] }> {
+    const res = await fetchWithAuth("/api/admin/coupons")
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load coupons")
+    return json
+}
+
+export async function createCoupon(data: Record<string, unknown>) {
+    const res = await fetchWithAuth("/api/admin/coupons", { method: "POST", body: JSON.stringify(data) })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to create coupon")
+    clearClientCache()
+    return json
+}
+
+export async function updateCoupon(id: number, data: Record<string, unknown>) {
+    const res = await fetchWithAuth(`/api/admin/coupons/${id}`, { method: "PATCH", body: JSON.stringify(data) })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to update coupon")
+    clearClientCache()
+    return json
+}
+
+export async function deleteCoupon(id: number) {
+    const res = await fetchWithAuth(`/api/admin/coupons/${id}`, { method: "DELETE" })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete coupon")
+    clearClientCache()
+    return json
+}
+
+export interface CouponPreview {
+    valid: boolean
+    code: string
+    subtotal_cents: number
+    discount_cents: number
+    total_cents: number
+    currency: string
+}
+
+export interface OrderDTO {
+    id: number
+    plan: string | null
+    plan_id: number | null
+    plan_name: string | null
+    amount_cents: number
+    currency: string
+    status: string
+    payment_reference: string | null
+    gateway_reference: string | null
+    generated_license_key_id: number | null
+    license_key: string | null
+    customer_email: string | null
+    customer_name: string | null
+    created_at: string
+    updated_at: string
+    // Detail-only fields (populated by GET /api/admin/orders/[id])
+    subtotal_cents?: number | null
+    discount_cents?: number | null
+    coupon_id?: number | null
+    coupon_code?: string | null
+    auto_renew?: boolean | null
+    is_renewal?: boolean | null
+    license_active?: boolean | null
+    billing_type?: string | null
+}
+
+export interface OrdersPage {
+    orders: OrderDTO[]
+    pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+export async function getAdminOrders(params: { status?: string; search?: string; page?: number; limit?: number } = {}): Promise<OrdersPage> {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.search) qs.set("search", params.search);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    const res = await fetchWithAuth(`/api/admin/orders?${qs.toString()}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load orders");
+    return json;
+}
+
+export async function getAdminOrder(id: number): Promise<{ order: OrderDTO }> {
+    const res = await fetchWithAuth(`/api/admin/orders/${id}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load order");
+    return json;
+}
+
+export async function refundOrder(id: number) {
+    const res = await fetchWithAuth(`/api/admin/orders/${id}/refund`, { method: "POST" });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Refund failed");
     clearClientCache();
     return json;
 }
@@ -415,4 +693,139 @@ export async function getTrialMachineAutoQCRuns(
         throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
     }
     return res.json()
+}
+
+// ── App Releases (desktop auto-update) ──────────────────────────────────────────
+export type ReleasePlatform = "windows" | "mac" | "android" | "ios"
+export type ReleaseChannel = "stable" | "beta"
+
+export interface AppRelease {
+    id: number
+    platform: ReleasePlatform
+    channel: ReleaseChannel
+    version: string
+    notes: string | null
+    mandatory: boolean
+    store_url: string | null
+    file_name: string | null
+    file_size: number | null
+    content_type: string | null
+    sha256: string | null
+    is_published: boolean
+    download_count: number
+    created_by: number | null
+    created_at: string
+    published_at: string | null
+}
+
+export async function getReleases(): Promise<{ releases: AppRelease[] }> {
+    const res = await fetchWithAuth("/api/admin/releases")
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+/** Multipart upload — must NOT set Content-Type (the browser adds the boundary). */
+export async function uploadRelease(form: FormData): Promise<AppRelease> {
+    const token = localStorage.getItem("qc_token")
+    const res = await fetch("/api/admin/releases", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: form,
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Upload failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+export async function updateRelease(
+    id: number,
+    patch: { isPublished?: boolean; mandatory?: boolean; notes?: string | null; storeUrl?: string | null }
+): Promise<AppRelease> {
+    const res = await fetchWithAuth(`/api/admin/releases/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+export async function deleteRelease(id: number): Promise<void> {
+    const res = await fetchWithAuth(`/api/admin/releases/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+}
+
+// ── SMS Providers (OTP delivery, e.g. MSG91) ────────────────────────────────────
+export interface SmsProvider {
+    id: number
+    provider: string
+    isActive: boolean
+    config: Record<string, string>
+    secretsPresent: Record<string, boolean>
+    createdAt: string | null
+    updatedAt: string | null
+}
+
+export async function getSmsProviders(): Promise<{ providers: SmsProvider[] }> {
+    const res = await fetchWithAuth("/api/admin/sms/providers")
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+export async function saveSmsProvider(
+    provider: string,
+    config: Record<string, string | undefined>,
+    isActive: boolean
+): Promise<void> {
+    const res = await fetchWithAuth("/api/admin/sms/providers", {
+        method: "POST",
+        body: JSON.stringify({ provider, config, isActive }),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+}
+
+export async function activateSmsProvider(id: number): Promise<void> {
+    const res = await fetchWithAuth(`/api/admin/sms/providers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ activate: true }),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+}
+
+export async function deleteSmsProvider(id: number): Promise<void> {
+    const res = await fetchWithAuth(`/api/admin/sms/providers/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+}
+
+export async function sendTestSms(to: string, countryCode?: string): Promise<void> {
+    const res = await fetchWithAuth("/api/admin/sms/test", {
+        method: "POST",
+        body: JSON.stringify({ to, countryCode }),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
 }

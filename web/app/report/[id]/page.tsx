@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
-import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
+import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/platforms/windows/grades"
 import { QRCodeSVG } from "qrcode.react"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 

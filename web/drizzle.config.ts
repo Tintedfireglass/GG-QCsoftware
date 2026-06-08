@@ -1,4 +1,8 @@
 import { defineConfig } from 'drizzle-kit';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config({ path: '.env.local' });
 
 // Parse DATABASE_URL into discrete credentials. drizzle-kit ignores the `ssl`
 // option when a `url` is supplied, which stalls against DO's SSL-required DB,
@@ -22,8 +26,7 @@ function dbCredentials() {
 
 export default defineConfig({
     dialect: 'postgresql',
-    // `drizzle-kit pull` writes the introspected schema here.
-    schema: './lib/db/schema.ts',
+    schema: './drizzle/schema.ts',
     out: './drizzle',
     dbCredentials: dbCredentials(),
 });

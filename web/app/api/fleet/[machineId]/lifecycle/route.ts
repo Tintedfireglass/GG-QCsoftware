@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { lifecycleEventSchema } from '@/lib/domain/schemas/fleet';
-import { getLifecycle, addLifecycleEvent } from '@/lib/services/fleet.service';
+import { lifecycleEventSchema } from '@/lib/platforms/windows/domain/schemas/fleet';
+import { getLifecycle, addLifecycleEvent } from '@/lib/platforms/windows/services/fleet.service';
 
 const FLEET_ROLES = ['SuperAdmin', 'Enterprise', 'Reseller'] as const;
 

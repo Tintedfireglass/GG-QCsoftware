@@ -22,6 +22,18 @@ interface LicenseKey {
     customer_name?: string | null
     demo_runs_used?: number | null
     demo_max_runs?: number | null
+    product_scope?: string[] | null
+    platform_caps?: Record<string, number> | null
+}
+
+const PLATFORMS: { id: string; label: string }[] = [
+    { id: "windows", label: "Windows (PC)" },
+    { id: "android", label: "Android" },
+    { id: "ios", label: "iPhone (iOS)" },
+    { id: "mac", label: "Mac" },
+]
+const PLATFORM_LABELS: Record<string, string> = {
+    windows: "Windows", android: "Android", ios: "iOS", mac: "Mac",
 }
 
 export default function LicensesPage() {
@@ -43,6 +55,13 @@ export default function LicensesPage() {
     const [isGenerating, setIsGenerating] = useState(false)
     const [newType, setNewType] = useState("single_use")
     const [newMaxUses, setNewMaxUses] = useState("1")
+    // Per-platform selection + device caps for the key being generated.
+    const [platformSel, setPlatformSel] = useState<Record<string, { on: boolean; cap: string }>>({
+        windows: { on: true, cap: "1" },
+        android: { on: false, cap: "1" },
+        ios: { on: false, cap: "1" },
+        mac: { on: false, cap: "1" },
+    })
     const [demoCustomerName, setDemoCustomerName] = useState("")
     const [durationMode, setDurationMode] = useState<"forever" | "temporary">("forever")
     const [expiresAt, setExpiresAt] = useState("")
@@ -82,24 +101,61 @@ export default function LicensesPage() {
         }
     }
 
+    // Toggle a platform on/off. For single_use, only one platform may be selected at a time.
+    const togglePlatform = (id: string) => {
+        setPlatformSel((prev) => {
+            const next = { ...prev, [id]: { ...prev[id], on: !prev[id].on } }
+            // single_use and demo are single-device → only one platform may be selected.
+            if ((newType === "single_use" || newType === "demo") && next[id].on) {
+                for (const p of PLATFORMS) if (p.id !== id) next[p.id] = { ...next[p.id], on: false }
+            }
+            return next
+        })
+    }
+    const setPlatformCap = (id: string, cap: string) =>
+        setPlatformSel((prev) => ({ ...prev, [id]: { ...prev[id], cap } }))
+
+    const selectedPlatforms = useMemo(
+        () => PLATFORMS.filter((p) => platformSel[p.id]?.on),
+        [platformSel]
+    )
+    const totalDevices = useMemo(
+        () => selectedPlatforms.reduce((sum, p) => sum + (parseInt(platformSel[p.id].cap, 10) || 0), 0),
+        [selectedPlatforms, platformSel]
+    )
+
     const handleGenerate = async () => {
         setGenerateError("")
         setIsGenerating(true)
 
         try {
-            const maxUsesValue = parseInt(newMaxUses, 10)
-            if (Number.isNaN(maxUsesValue) || maxUsesValue < 1) {
-                setGenerateError("Max device activations must be a number of 1 or more.")
-                return
-            }
-            if (newType === "demo" && !demoCustomerName.trim()) {
+            const trimmedCustomerName = demoCustomerName.trim()
+            if (newType === "demo" && !trimmedCustomerName) {
                 setGenerateError("Customer name is required for demo keys.")
                 return
             }
-            const trimmedCustomerName = demoCustomerName.trim()
+
+            // Build per-platform caps from the selection. single_use & demo are single-device (cap 1).
+            if (selectedPlatforms.length === 0) {
+                setGenerateError("Select at least one platform for this key.")
+                return
+            }
+            const singleDevice = newType === "single_use" || newType === "demo"
+            const platformCaps: Record<string, number> = {}
+            for (const p of selectedPlatforms) {
+                const cap = singleDevice ? 1 : parseInt(platformSel[p.id].cap, 10)
+                if (Number.isNaN(cap) || cap < 1) {
+                    setGenerateError(`Device limit for ${p.label} must be 1 or more.`)
+                    return
+                }
+                platformCaps[p.id] = cap
+            }
+            const productScope = selectedPlatforms.map((p) => p.id)
+            const maxUses = Object.values(platformCaps).reduce((a, b) => a + b, 0)
+
             let computedExpiresAt = null;
             const isPrivilegedUser = user?.role === "SuperAdmin" || user?.role === "Employee";
-            
+
             if (durationMode === "temporary") {
                 if (isPrivilegedUser && expiresAt) {
                     computedExpiresAt = new Date(expiresAt).toISOString();
@@ -112,9 +168,11 @@ export default function LicensesPage() {
 
             const data = await createLicenseKey({
                 type: newType as any,
-                max_uses: newType === "demo" ? 1 : maxUsesValue,
+                max_uses: maxUses,
                 demo_customer_name: trimmedCustomerName ? trimmedCustomerName : undefined,
                 expires_at: computedExpiresAt,
+                product_scope: productScope,
+                platform_caps: platformCaps,
             })
 
             setGeneratedKeyString(data.key.key)
@@ -200,6 +258,19 @@ export default function LicensesPage() {
         return d.toLocaleString()
     }
 
+    const renderPlatforms = (k: LicenseKey) => {
+        const scope = k.product_scope && k.product_scope.length ? k.product_scope : ["windows"]
+        return (
+            <div className="flex flex-wrap gap-1 mt-1">
+                {scope.map((p) => (
+                    <span key={p} className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        {PLATFORM_LABELS[p] || p}{k.platform_caps?.[p] ? ` ×${k.platform_caps[p]}` : ""}
+                    </span>
+                ))}
+            </div>
+        )
+    }
+
     const getKeyStatus = (k: LicenseKey, nowMs: number) => {
         if (!k.is_active) return "revoked" as const
         const expiresMs = parseDateMs(k.expires_at)
@@ -264,6 +335,12 @@ export default function LicensesPage() {
                         const defaultType = isPrivileged ? (user?.role === "Employee" ? "demo" : "single_use") : "single_use"
                         setNewType(defaultType)
                         setNewMaxUses("1")
+                        setPlatformSel({
+                            windows: { on: true, cap: "1" },
+                            android: { on: false, cap: "1" },
+                            ios: { on: false, cap: "1" },
+                            mac: { on: false, cap: "1" },
+                        })
                         setDemoCustomerName("")
                         setExpiresAt("")
                         setGenerateError("")
@@ -390,6 +467,11 @@ export default function LicensesPage() {
                                         ) : null}
                                     </div>
 
+                                    <div className="mb-3">
+                                        <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Platforms</div>
+                                        {renderPlatforms(k)}
+                                    </div>
+
                                     <div className="text-xs text-slate-400 mb-3">
                                         Created: {formatDate(k.created_at)}
                                         {k.type !== 'demo' && (
@@ -473,6 +555,7 @@ export default function LicensesPage() {
                                             {customerLabel ? (
                                                 <div className="text-xs text-slate-400 mt-0.5">Customer: {customerLabel}</div>
                                             ) : null}
+                                            {renderPlatforms(k)}
                                         </td>
                                         <td className="py-4 px-4 align-middle text-center">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium">
@@ -590,9 +673,19 @@ export default function LicensesPage() {
                                 <select
                                     value={newType}
                                     onChange={(e) => {
-                                        setNewType(e.target.value)
-                                        if (e.target.value === "single_use") setNewMaxUses("1")
-                                        if (e.target.value === "demo") setNewMaxUses("1")
+                                        const t = e.target.value
+                                        setNewType(t)
+                                        if (t === "single_use" || t === "demo") {
+                                            setNewMaxUses("1")
+                                            // Collapse to a single selected platform (prefer windows, else first selected).
+                                            setPlatformSel((prev) => {
+                                                const firstOn = PLATFORMS.find((p) => prev[p.id].on)?.id ?? "windows"
+                                                const keep = prev.windows.on ? "windows" : firstOn
+                                                const next: typeof prev = { ...prev }
+                                                for (const p of PLATFORMS) next[p.id] = { on: p.id === keep, cap: "1" }
+                                                return next
+                                            })
+                                        }
                                     }}
                                     className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer"
                                 >
@@ -674,24 +767,60 @@ export default function LicensesPage() {
                                 );
                             })()}
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-900 mb-2">
-                                    Max Device Activations
-                                </label>
-                                <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    min={1}
-                                    step={1}
-                                    value={newMaxUses}
-                                    onChange={(e) => setNewMaxUses(e.target.value)}
-                                    disabled={newType === "single_use" || newType === "demo"}
-                                    className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-60 disabled:cursor-not-allowed"
-                                />
-                                <p className="mt-2 text-xs text-slate-500">
-                                    Enter any number of activations you need (for example: 37 or 1000).
-                                </p>
-                            </div>
+                            {(() => {
+                                const singleDevice = newType === "single_use" || newType === "demo"
+                                return (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                            Platforms &amp; device limits
+                                        </label>
+                                        <p className="mb-3 text-xs text-slate-500">
+                                            {newType === "demo"
+                                                ? "Demo keys run one full QC on a single device — pick the platform."
+                                                : newType === "single_use"
+                                                    ? "Single-use keys cover one platform and one device."
+                                                    : "Pick each platform this key unlocks and how many devices it allows on that platform."}
+                                        </p>
+                                        <div className="space-y-2">
+                                            {PLATFORMS.map((p) => {
+                                                const sel = platformSel[p.id]
+                                                return (
+                                                    <div key={p.id} className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2">
+                                                        <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={sel.on}
+                                                                onChange={() => togglePlatform(p.id)}
+                                                                className="h-4 w-4 rounded border-slate-300 text-[var(--brand-purple)] focus:ring-[var(--brand-purple)]"
+                                                            />
+                                                            <span className="text-sm font-medium text-slate-700">{p.label}</span>
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            inputMode="numeric"
+                                                            min={1}
+                                                            step={1}
+                                                            value={singleDevice ? "1" : sel.cap}
+                                                            onChange={(e) => setPlatformCap(p.id, e.target.value)}
+                                                            disabled={!sel.on || singleDevice}
+                                                            title="Device limit for this platform"
+                                                            className="w-24 h-9 px-3 text-sm border border-slate-200 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        />
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between text-xs">
+                                            <span className="text-slate-500">
+                                                Scope: {selectedPlatforms.length ? selectedPlatforms.map((p) => p.label).join(", ") : "none selected"}
+                                            </span>
+                                            <span className="font-semibold text-slate-700">
+                                                Total devices: {singleDevice ? (selectedPlatforms.length ? 1 : 0) : totalDevices}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )
+                            })()}
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">

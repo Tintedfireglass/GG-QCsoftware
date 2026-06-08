@@ -15,7 +15,19 @@ import {
     Shield,
     Key,
     Server,
-    Hourglass
+    Smartphone,
+    Hourglass,
+    CreditCard,
+    Package,
+    ShoppingCart,
+    Ticket,
+    BarChart3,
+    Mail,
+    Settings,
+    AtSign,
+    DownloadCloud,
+    MessageSquare,
+    Code2
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -50,6 +62,12 @@ export function Sidebar() {
         //     roles: ['Enterprise'],
         // },
         {
+            href: "/dashboard/mobile-reports",
+            label: "Mobile Reports",
+            icon: Smartphone,
+            roles: ['SuperAdmin', 'Reseller', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer'] // B2C Android QC reports
+        },
+        {
             href: "/dashboard/machines",
             label: "Machines",
             icon: Monitor,
@@ -71,6 +89,72 @@ export function Sidebar() {
             href: "/dashboard/free-trials",
             label: "Free Trials",
             icon: Hourglass,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/plans",
+            label: "Pricing Plans",
+            icon: Package,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/orders",
+            label: "Orders",
+            icon: ShoppingCart,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/coupons",
+            label: "Coupons",
+            icon: Ticket,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/analytics",
+            label: "Analytics",
+            icon: BarChart3,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/contacts",
+            label: "Contacts",
+            icon: Mail,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/payment-gateways",
+            label: "Payment Gateways",
+            icon: CreditCard,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/email",
+            label: "Email Settings",
+            icon: AtSign,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/sms",
+            label: "SMS Settings",
+            icon: MessageSquare,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/releases",
+            label: "App Updates",
+            icon: DownloadCloud,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/settings",
+            label: "System Settings",
+            icon: Settings,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/api-reference",
+            label: "API Reference",
+            icon: Code2,
             roles: ['SuperAdmin']
         },
     ]

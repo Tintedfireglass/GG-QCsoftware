@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/grades"
+import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
-import { isIssue } from "@/lib/issues"
+import { isIssue } from "@/lib/platforms/windows/issues"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
 

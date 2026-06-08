@@ -1,0 +1,45 @@
+/* Ported from the inline <style> block in eula.php */
+.terms-content {
+  line-height: 1.6;
+  color: #333;
+}
+.terms-content h1 {
+  color: #2c3e50;
+  margin-bottom: 30px;
+  border-bottom: 3px solid #007bff;
+  padding-bottom: 10px;
+}
+.terms-content h2 {
+  color: #34495e;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+.terms-content h3 {
+  color: #5a6c7d;
+  margin-top: 25px;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+.terms-content p {
+  margin-bottom: 15px;
+}
+.terms-content ul {
+  margin-bottom: 20px;
+}
+.terms-content li {
+  margin-bottom: 8px;
+}
+.effective-date {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-left: 4px solid #007bff;
+  margin-bottom: 30px;
+}
+.important-notice {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 30px;
+}

@@ -1,6 +1,6 @@
 import { wrap, json } from '@/lib/http/handler';
 import { requireCustomer } from '@/lib/http/customer-auth';
-import { getProfile } from '@/lib/services/customer.service';
+import { getProfile } from '@/lib/shared/services/customer.service';
 
 // GET /api/customer/me - current B2C customer profile
 export const GET = wrap(async (request) => {

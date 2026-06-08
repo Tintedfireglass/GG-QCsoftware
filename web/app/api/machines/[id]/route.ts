@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { renameMachineSchema } from '@/lib/domain/schemas/machines';
-import { getMachineDetails, renameMachine } from '@/lib/services/machines.service';
+import { renameMachineSchema } from '@/lib/platforms/windows/domain/schemas/machines';
+import { getMachineDetails, renameMachine } from '@/lib/platforms/windows/services/machines.service';
 
 // GET machine detail + test/component history (any authenticated user; role-scoped)
 export const GET = withAuth(null, async (_request, { user, params }) => {

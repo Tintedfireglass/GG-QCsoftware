@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { generateLicenseSchema, toggleLicenseSchema } from '@/lib/domain/schemas/licenses';
-import { listLicenses, generateLicense, toggleLicense } from '@/lib/services/licenses.service';
+import { generateLicenseSchema, toggleLicenseSchema } from '@/lib/shared/domain/schemas/licenses';
+import { listLicenses, generateLicense, toggleLicense } from '@/lib/shared/services/licenses.service';
 
 const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
 const TOGGLE_ROLES = ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;

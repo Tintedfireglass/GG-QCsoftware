@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseQuery } from '@/lib/http/validate';
-import { listQuerySchema } from '@/lib/domain/schemas/qc-results';
-import { countResults } from '@/lib/services/qc-results.service';
+import { listQuerySchema } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { countResults } from '@/lib/platforms/windows/services/qc-results.service';
 
 // GET /api/qc-results/count - count-only helper for dashboards (JWT required)
 export const GET = withAuth(null, async (request, { user }) => {

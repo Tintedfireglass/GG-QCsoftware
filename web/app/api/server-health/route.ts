@@ -1,5 +1,5 @@
 import { withAuth, json } from '@/lib/http/handler';
-import { submitServerHealth } from '@/lib/services/server-health.service';
+import { submitServerHealth } from '@/lib/shared/services/server-health.service';
 
 // POST /api/server-health - submit a server health report (JWT / device token)
 export const POST = withAuth(null, async (request, { user }) => {
