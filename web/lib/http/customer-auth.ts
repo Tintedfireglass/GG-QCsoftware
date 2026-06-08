@@ -5,6 +5,7 @@ import { UnauthorizedError } from './errors';
 export interface CustomerPrincipal {
     customerId: number;
     email: string;
+    phone?: string;
 }
 
 /** Authenticate a B2C customer request via the customer JWT, or throw 401. */
@@ -13,5 +14,6 @@ export function requireCustomer(request: NextRequest): CustomerPrincipal {
     if (!token) throw new UnauthorizedError('Missing token');
     const decoded = verifyCustomerToken(token);
     if (!decoded) throw new UnauthorizedError('Invalid token');
-    return { customerId: decoded.customerId, email: decoded.email };
+    // email is optional for phone+OTP app users; default to '' to keep the shape.
+    return { customerId: decoded.customerId, email: decoded.email ?? '', phone: decoded.phone };
 }

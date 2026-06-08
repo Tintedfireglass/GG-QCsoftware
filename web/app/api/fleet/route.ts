@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseQuery, parseBody } from '@/lib/http/validate';
-import { fleetListQuerySchema, fleetEnrollSchema } from '@/lib/domain/schemas/fleet';
-import { listFleet, enrollMachine } from '@/lib/services/fleet.service';
+import { fleetListQuerySchema, fleetEnrollSchema } from '@/lib/platforms/windows/domain/schemas/fleet';
+import { listFleet, enrollMachine } from '@/lib/platforms/windows/services/fleet.service';
 
 const FLEET_ROLES = ['SuperAdmin', 'Enterprise', 'Reseller'] as const;
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/http/handler';
-import { exportSampleDataset } from '@/lib/services/qc-export.service';
+import { exportSampleDataset } from '@/lib/platforms/windows/services/qc-export.service';
 
 /**
  * GET /api/qc-results/export/sample

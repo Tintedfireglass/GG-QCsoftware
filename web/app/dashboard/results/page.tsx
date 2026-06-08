@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Search, ChevronLeft, ChevronRight, Printer, Download } from "lucide-react"
-import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
+import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatDbDateTime } from "@/lib/utils"
 
 export default function ResultsPage() {

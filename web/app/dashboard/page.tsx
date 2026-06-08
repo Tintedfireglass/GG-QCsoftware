@@ -7,7 +7,7 @@ import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
+import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatDbDateTime, cn } from "@/lib/utils"
 import {
     Activity,

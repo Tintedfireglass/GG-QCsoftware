@@ -1,0 +1,381 @@
+/* Ported from the inline <style> block in privacy-policy.php.
+   The original styled `body` directly; here it is scoped to `.pp-page` so the
+   background/font do not leak into other routes. */
+
+.pp-page {
+  --ink: #1a1f2e;
+  --ink-light: #4a5568;
+  --ink-muted: #718096;
+  --accent: #1a56db;
+  --accent-soft: #ebf2ff;
+  --border: #e2e8f0;
+  --bg: #fafbfd;
+  --white: #ffffff;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-weight: 400;
+}
+
+.pp-wrap {
+  margin: 0 auto;
+  padding: 60px 120px;
+}
+
+/* Hero header */
+.pp-hero {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 40px;
+  margin-bottom: 48px;
+}
+
+.pp-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.pp-brand::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.pp-hero h1 {
+  font-family: "DM Serif Display", serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.pp-hero .subtitle {
+  font-size: 15px;
+  color: var(--ink-light);
+  margin: 0 0 28px;
+  font-weight: 300;
+}
+
+.pp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pp-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid #c3d9f8;
+}
+
+/* TOC */
+.pp-toc {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px 32px;
+  margin-bottom: 56px;
+}
+
+.pp-toc-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 16px;
+}
+
+.pp-toc ol {
+  margin: 0;
+  padding-left: 20px;
+  columns: 2;
+  column-gap: 32px;
+}
+
+.pp-toc li {
+  margin-bottom: 6px;
+  font-size: 13.5px;
+  color: var(--ink-light);
+  break-inside: avoid;
+}
+
+.pp-toc a {
+  color: var(--ink-light);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.pp-toc a:hover {
+  color: var(--accent);
+}
+
+/* Sections */
+.pp-section {
+  margin-bottom: 52px;
+  scroll-margin-top: 80px;
+}
+
+.pp-section-num {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.pp-section h2 {
+  font-family: "DM Serif Display", serif;
+  font-size: 1.45rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.3;
+}
+
+.pp-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 28px 0 10px;
+  letter-spacing: 0.01em;
+}
+
+.pp-section p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink-light);
+  margin-bottom: 14px;
+}
+
+.pp-section ul {
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.pp-section ul li {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-light);
+  padding: 4px 0 4px 20px;
+  position: relative;
+}
+
+.pp-section ul li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Info box */
+.pp-infobox {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: var(--ink-light);
+  line-height: 1.65;
+}
+
+.pp-infobox strong {
+  color: var(--ink);
+}
+
+/* Warning box */
+.pp-notebox {
+  background: #fffbf0;
+  border-left: 3px solid #d97706;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.65;
+}
+
+/* Tables */
+.pp-table-wrap {
+  overflow-x: auto;
+  margin: 20px 0 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--white);
+}
+
+.pp-table thead {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.pp-table thead th {
+  padding: 11px 16px;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.pp-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.pp-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.pp-table tbody tr:hover {
+  background: #f7faff;
+}
+
+.pp-table td {
+  padding: 11px 16px;
+  color: var(--ink-light);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.pp-table td:first-child {
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Contact card */
+.pp-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pp-contact-item {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.pp-contact-item .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 5px;
+}
+
+.pp-contact-item .value {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.pp-contact-item .value a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pp-contact-item .value a:hover {
+  text-decoration: underline;
+}
+
+/* Fiduciary card */
+.pp-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.pp-card-header {
+  background: var(--ink);
+  color: var(--white);
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pp-card-body {
+  padding: 0;
+}
+
+.pp-card-row {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.pp-card-row:last-child {
+  border-bottom: none;
+}
+
+.pp-card-key {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  background: #f8fafc;
+  border-right: 1px solid var(--border);
+}
+
+.pp-card-val {
+  padding: 12px 18px;
+  font-size: 13px;
+  color: var(--ink-light);
+  flex: 1;
+}
+
+.pp-card-val a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .pp-wrap {
+    padding: 36px 18px 72px;
+  }
+  .pp-toc ol {
+    columns: 1;
+  }
+  .pp-contact-grid {
+    grid-template-columns: 1fr;
+  }
+  .pp-card-key {
+    width: 140px;
+  }
+}

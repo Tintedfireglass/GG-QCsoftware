@@ -1,7 +1,7 @@
 import { wrap, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { customerCredentialsSchema } from '@/lib/domain/schemas/customer';
-import { login } from '@/lib/services/customer.service';
+import { customerCredentialsSchema } from '@/lib/shared/domain/schemas/customer';
+import { login } from '@/lib/shared/services/customer.service';
 
 // POST /api/customer/auth/login - B2C customer login
 export const POST = wrap(async (request) => {

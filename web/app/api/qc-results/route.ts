@@ -3,8 +3,8 @@ import { verifyApiKey } from '@/lib/auth';
 import { wrap, withAuth, json, clientIp } from '@/lib/http/handler';
 import { UnauthorizedError, UpgradeRequiredError } from '@/lib/http/errors';
 import { parseBody, parseQuery } from '@/lib/http/validate';
-import { listQuerySchema, submitSchema } from '@/lib/domain/schemas/qc-results';
-import { listResults, submitResult } from '@/lib/services/qc-results.service';
+import { listQuerySchema, submitSchema } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { listResults, submitResult } from '@/lib/platforms/windows/services/qc-results.service';
 
 const LIST_CACHE = 'private, max-age=5, stale-while-revalidate=25';
 

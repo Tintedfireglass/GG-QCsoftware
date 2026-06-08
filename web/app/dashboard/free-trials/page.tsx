@@ -12,7 +12,7 @@ import {
 } from "@/lib/api"
 import { Input } from "@/components/ui/input"
 import { RefreshCw, Search, FlaskConical, X, ChevronDown, ChevronRight } from "lucide-react"
-import { getGradeStyle, gradeHeroColor } from "@/lib/grades"
+import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 
 type TrialStatus = "Active" | "Expired" | "Revoked"
 

@@ -1,7 +1,7 @@
 import { wrap, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { licenseActivateSchema } from '@/lib/domain/schemas/auth';
-import { activateLicense } from '@/lib/services/auth.service';
+import { licenseActivateSchema } from '@/lib/shared/domain/schemas/auth';
+import { activateLicense } from '@/lib/shared/services/auth.service';
 
 // POST /api/auth/license - activate a license key for a machine, issue a token
 export const POST = wrap(async (request) => {

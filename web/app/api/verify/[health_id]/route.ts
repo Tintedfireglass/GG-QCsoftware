@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findCertByHealthId } from '@/lib/repositories/qc-results.repo';
+import { findCertByHealthId } from '@/lib/platforms/windows/repositories/qc-results.repo';
 
 // GET /api/verify/{health_id} — Public verification endpoint.
 // Returns ONLY a structured verification summary. No raw data exposed.

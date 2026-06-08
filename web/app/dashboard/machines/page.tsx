@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Monitor, ExternalLink, Search } from "lucide-react"
 import { formatDbDate } from "@/lib/utils"
-import { getGradeStyle } from "@/lib/grades"
-import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/machine-status"
+import { getGradeStyle } from "@/lib/platforms/windows/grades"
+import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
 
 export default function MachinesPage() {
     const router = useRouter()

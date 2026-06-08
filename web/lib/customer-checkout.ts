@@ -8,7 +8,7 @@ const CHECKOUT_SECRET = process.env.CUSTOMER_CHECKOUT_SECRET
 export interface CheckoutPayload {
     orderId: number;
     customerId: number;
-    plan: 'one_time';
+    plan: string;
     scope: 'customer_checkout';
 }
 

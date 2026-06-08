@@ -5,7 +5,9 @@ const CUSTOMER_JWT_EXPIRES_IN = '30d';
 
 export interface CustomerJwtPayload {
     customerId: number;
-    email: string;
+    // Optional: phone+OTP app users may have no email; web users always do.
+    email?: string;
+    phone?: string;
     scope: 'customer';
 }
 

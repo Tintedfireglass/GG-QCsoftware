@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseQuery } from '@/lib/http/validate';
-import { alertsQuerySchema } from '@/lib/domain/schemas/machine-history';
-import { machineHistoryAlerts } from '@/lib/services/machine-history.service';
+import { alertsQuerySchema } from '@/lib/platforms/windows/domain/schemas/machine-history';
+import { machineHistoryAlerts } from '@/lib/platforms/windows/services/machine-history.service';
 
 // GET /api/machine-history/alerts - component grade-regression alerts
 export const GET = withAuth(null, async (request, { user }) => {

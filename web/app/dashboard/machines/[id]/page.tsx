@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDbDateTime, formatBytes } from "@/lib/utils"
-import { getGradeStyle } from "@/lib/grades"
+import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { ArrowLeft, ExternalLink, Monitor, TrendingUp, TrendingDown, Minus } from "lucide-react"
-import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/machine-status"
+import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
 
 type MachineDetail = {
     machine: any
