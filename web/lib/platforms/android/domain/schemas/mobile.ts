@@ -136,6 +136,20 @@ export const historyQuerySchema = z.object({
     deviceId: z.string().trim().optional(),
 });
 
+// ── Support (Contact Support) ────────────────────────────────────────────────────
+export const supportContactSchema = z.object({
+    subject: z.string().trim().min(3, 'Subject is required').max(160),
+    message: z.string().trim().min(5, 'Message is required').max(4000),
+    category: z.string().trim().max(80).optional(),
+    deviceId: z.string().trim().max(120).optional(),
+    appVersion: z.string().trim().max(40).optional(),
+});
+
+export const supportListQuerySchema = z.object({
+    page: z.coerce.number().int().catch(1).transform((n) => Math.max(1, n)),
+    limit: z.coerce.number().int().catch(20).transform((n) => Math.min(100, Math.max(1, n))),
+});
+
 // ── License (key activation) ─────────────────────────────────────────────────────
 export const licenseActivateSchema = z.object({
     key: z.string().trim().min(1, 'key is required'),
