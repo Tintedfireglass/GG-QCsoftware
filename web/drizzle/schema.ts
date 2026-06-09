@@ -59,6 +59,7 @@ export const qcResults = pgTable("qc_results", {
 	submissionIp: varchar("submission_ip"),
 	isDemo: boolean("is_demo").default(false),
 	demoLicenseKeyId: integer("demo_license_key_id"),
+	isHidden: boolean("is_hidden").default(false).notNull(),
 }, (table) => [
 	index("idx_qc_results_machine").using("btree", table.machineId.asc().nullsLast().op("int4_ops")),
 	uniqueIndex("idx_qc_results_report_id").using("btree", table.reportId.asc().nullsLast().op("text_ops")),

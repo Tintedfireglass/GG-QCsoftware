@@ -5,7 +5,7 @@ import { getQCResult } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/platforms/windows/grades"
 import { QRCodeSVG } from "qrcode.react"
-import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 
 export default function DedicatedReportPage() {
     const { id } = useParams()
@@ -68,7 +68,8 @@ export default function DedicatedReportPage() {
         typeof isActivated === "boolean"
             ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
             : (activationStatus || "Unknown")
-    const antivirusStatus = data?.system_info_json?.antivirusStatus
+    const rawAntivirusStatus = data?.system_info_json?.antivirusStatus
+    const antivirusStatus = typeof rawAntivirusStatus === 'string' ? deduplicateAntivirus(rawAntivirusStatus) : rawAntivirusStatus;
     const isAntivirusHealthy = data?.system_info_json?.isAntivirusHealthy
     const antivirusText =
         typeof isAntivirusHealthy === "boolean"

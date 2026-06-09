@@ -146,3 +146,10 @@ export function formatWindowsVersion(osVersionRaw?: string | null, productName?:
     if (release) return `${finalEdition} ${release}`;
     return finalEdition || "Unknown";
 }
+
+export function deduplicateAntivirus(status: string | null | undefined): string {
+    if (!status) return "";
+    const parts = status.split(",").map((s) => s.trim()).filter(Boolean);
+    const unique = Array.from(new Set(parts));
+    return unique.join(", ");
+}

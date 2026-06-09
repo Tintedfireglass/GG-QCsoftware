@@ -161,6 +161,16 @@ export async function getQCResult(id: string) {
     return cachedGetJson(`/api/qc-results/${id}`, TTL.long);
 }
 
+export async function hideQCResult(id: string) {
+    const res = await fetchWithAuth(`/api/qc-results/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error || json?.message || "Failed to hide result");
+    }
+    clearClientCache();
+    return res.json();
+}
+
 // ── Mobile (B2C Android) reports — admin/reseller view ──────────────────────────
 export interface MobileReportRow {
     reportId: string;
