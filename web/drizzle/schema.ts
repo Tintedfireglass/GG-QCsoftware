@@ -458,6 +458,31 @@ export const contactSubmissions = pgTable("contact_submissions", {
 	check("contact_submissions_status_check", sql`(status)::text = ANY ((ARRAY['new'::character varying, 'read'::character varying, 'archived'::character varying])::text[])`),
 ]);
 
+// Support tickets raised by B2C mobile customers (Android "Contact Support").
+export const supportTickets = pgTable("support_tickets", {
+	id: serial().primaryKey().notNull(),
+	ticketId: varchar("ticket_id").notNull(),
+	customerUserId: integer("customer_user_id").notNull(),
+	subject: varchar().notNull(),
+	category: varchar(),
+	message: text().notNull(),
+	deviceId: varchar("device_id"),
+	appVersion: varchar("app_version"),
+	status: varchar().default('open').notNull(),
+	priority: varchar().default('normal').notNull(),
+	adminNote: text("admin_note"),
+	submissionIp: varchar("submission_ip"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	uniqueIndex("idx_support_tickets_ticket_id").on(table.ticketId),
+	index("idx_support_tickets_status").on(table.status),
+	index("idx_support_tickets_created").on(table.createdAt),
+	index("idx_support_tickets_customer").on(table.customerUserId, table.createdAt),
+	check("support_tickets_status_check", sql`(status)::text = ANY ((ARRAY['open'::character varying, 'in_progress'::character varying, 'resolved'::character varying, 'closed'::character varying])::text[])`),
+	check("support_tickets_priority_check", sql`(priority)::text = ANY ((ARRAY['low'::character varying, 'normal'::character varying, 'high'::character varying])::text[])`),
+]);
+
 export const freeTrials = pgTable("free_trials", {
 	id: serial().primaryKey().notNull(),
 	email: varchar().notNull(),

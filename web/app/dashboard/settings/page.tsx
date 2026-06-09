@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Settings, Shield, CheckCircle2, Mail } from "lucide-react"
+import { Settings, Shield, CheckCircle2, Mail, FileText } from "lucide-react"
 import Link from "next/link"
 
 interface GeneralSettings {
@@ -26,6 +26,15 @@ const FIELDS: { key: keyof GeneralSettings; label: string; placeholder: string; 
 
 const empty: GeneralSettings = { siteName: "", supportEmail: "", companyName: "", companyAddress: "", loginUrl: "" }
 
+interface LegalContent {
+    termsContent: string
+    privacyContent: string
+    termsUpdatedAt: string | null
+    privacyUpdatedAt: string | null
+}
+
+const emptyLegal: LegalContent = { termsContent: "", privacyContent: "", termsUpdatedAt: null, privacyUpdatedAt: null }
+
 export default function SystemSettingsPage() {
     const { isSuperAdmin } = useAuth()
     const [form, setForm] = useState<GeneralSettings>(empty)
@@ -34,19 +43,56 @@ export default function SystemSettingsPage() {
     const [error, setError] = useState<string | null>(null)
     const [saved, setSaved] = useState(false)
 
+    const [legal, setLegal] = useState<LegalContent>(emptyLegal)
+    const [savingLegal, setSavingLegal] = useState(false)
+    const [savedLegal, setSavedLegal] = useState(false)
+
     async function load() {
         setLoading(true)
         setError(null)
         try {
             const token = localStorage.getItem("qc_token")
-            const res = await fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } })
-            if (!res.ok) throw new Error("Failed to load settings")
-            const data = await res.json()
+            const [sRes, lRes] = await Promise.all([
+                fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } }),
+                fetch("/api/admin/legal", { headers: { Authorization: `Bearer ${token}` } }),
+            ])
+            if (!sRes.ok) throw new Error("Failed to load settings")
+            const data = await sRes.json()
             setForm({ ...empty, ...data.settings })
+            if (lRes.ok) {
+                const ldata = await lRes.json()
+                setLegal({ ...emptyLegal, ...ldata.legal })
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load settings")
         } finally {
             setLoading(false)
+        }
+    }
+
+    async function saveLegal() {
+        setSavingLegal(true)
+        setError(null)
+        setSavedLegal(false)
+        try {
+            const token = localStorage.getItem("qc_token")
+            const res = await fetch("/api/admin/legal", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ termsContent: legal.termsContent, privacyContent: legal.privacyContent }),
+            })
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(data.error || "Failed to save legal content")
+            }
+            const data = await res.json()
+            setLegal({ ...emptyLegal, ...data.legal })
+            setSavedLegal(true)
+            setTimeout(() => setSavedLegal(false), 2500)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to save legal content")
+        } finally {
+            setSavingLegal(false)
         }
     }
 
@@ -94,7 +140,7 @@ export default function SystemSettingsPage() {
         <div className="space-y-6 max-w-3xl">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
-                <p className="text-slate-500 mt-1">General branding and company details used across emails and the storefront.</p>
+                <p className="text-slate-500 mt-1">General branding, company details, and legal content used across emails, the storefront, and the mobile app.</p>
             </div>
 
             {error && <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">{error}</div>}
@@ -132,6 +178,64 @@ export default function SystemSettingsPage() {
                                     {saving ? "Saving..." : "Save Settings"}
                                 </Button>
                                 {saved && (
+                                    <span className="inline-flex items-center gap-1 text-sm text-green-600">
+                                        <CheckCircle2 className="h-4 w-4" /> Saved
+                                    </span>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Legal Content
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {loading ? (
+                        <div className="text-center py-8 text-slate-500">Loading...</div>
+                    ) : (
+                        <>
+                            <p className="text-xs text-slate-500">
+                                Served to the mobile app at <code>/api/mobile/legal</code> and shown in-app under Terms &amp; Privacy.
+                            </p>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Terms &amp; Conditions</label>
+                                <textarea
+                                    className="flex min-h-[180px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Terms & Conditions text or HTML…"
+                                    value={legal.termsContent}
+                                    onChange={(e) => setLegal({ ...legal, termsContent: e.target.value })}
+                                />
+                                {legal.termsUpdatedAt && (
+                                    <p className="text-xs text-slate-500 mt-1">Last updated {new Date(legal.termsUpdatedAt).toLocaleString()}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Privacy Policy</label>
+                                <textarea
+                                    className="flex min-h-[180px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Privacy Policy text or HTML…"
+                                    value={legal.privacyContent}
+                                    onChange={(e) => setLegal({ ...legal, privacyContent: e.target.value })}
+                                />
+                                {legal.privacyUpdatedAt && (
+                                    <p className="text-xs text-slate-500 mt-1">Last updated {new Date(legal.privacyUpdatedAt).toLocaleString()}</p>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button
+                                    onClick={saveLegal}
+                                    disabled={savingLegal}
+                                    className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white"
+                                >
+                                    {savingLegal ? "Saving..." : "Save Legal Content"}
+                                </Button>
+                                {savedLegal && (
                                     <span className="inline-flex items-center gap-1 text-sm text-green-600">
                                         <CheckCircle2 className="h-4 w-4" /> Saved
                                     </span>
