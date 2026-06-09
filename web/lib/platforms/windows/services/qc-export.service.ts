@@ -6,7 +6,7 @@ import path from 'node:path';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { SELF_ONLY_ROLES } from '@/lib/shared/domain/visibility';
 import { ValidationError, ForbiddenError } from '@/lib/http/errors';
-import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
+import { parseWindowsVersion, cleanWindowsProductName, deduplicateAntivirus } from '@/lib/utils';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
 
 type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
@@ -464,7 +464,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         );
         const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
         const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
-        const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+        const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+        const antivirus = deduplicateAntivirus(rawAntivirus);
         const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
         const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
         const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
@@ -728,7 +729,8 @@ function winVersionText(sysInfo: JsonRecord): string {
 
 function antivirusTextStr(sysInfo: JsonRecord): string {
     const healthy = sysInfo.isAntivirusHealthy;
-    const status = safeStr(sysInfo.antivirusStatus);
+    const rawStatus = safeStr(sysInfo.antivirusStatus);
+    const status = deduplicateAntivirus(rawStatus);
     if (typeof healthy === 'boolean') {
         return healthy ? `Healthy${status ? ` (${status})` : ''}` : `Not Healthy${status ? ` (${status})` : ''}`;
     }
@@ -1058,7 +1060,8 @@ export async function exportSampleDataset(
             );
             const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
             const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
-            const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+            const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+            const antivirus = deduplicateAntivirus(rawAntivirus);
             const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
             const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
             const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');

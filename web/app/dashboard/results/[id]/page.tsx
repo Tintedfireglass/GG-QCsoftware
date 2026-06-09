@@ -8,7 +8,7 @@ import { ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
-import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 import { isIssue } from "@/lib/platforms/windows/issues"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
@@ -173,7 +173,8 @@ export default function ResultDetailPage() {
         typeof isActivated === "boolean"
             ? `${isActivated ? "Activated" : "Not Activated"}${activationStatus ? ` (${activationStatus})` : ""}`
             : (activationStatus || "Unknown")
-    const antivirusStatus = safeData?.system_info_json?.antivirusStatus
+    const rawAntivirusStatus = safeData?.system_info_json?.antivirusStatus
+    const antivirusStatus = typeof rawAntivirusStatus === 'string' ? deduplicateAntivirus(rawAntivirusStatus) : rawAntivirusStatus;
     const isAntivirusHealthy = safeData?.system_info_json?.isAntivirusHealthy
     const antivirusText =
         typeof isAntivirusHealthy === "boolean"

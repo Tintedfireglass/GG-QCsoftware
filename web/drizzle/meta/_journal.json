@@ -8,6 +8,13 @@
       "when": 1779694788646,
       "tag": "0000_next_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780997251137,
+      "tag": "0001_narrow_toad",
+      "breakpoints": true
     }
   ]
 }

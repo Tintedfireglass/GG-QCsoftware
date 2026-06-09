@@ -324,6 +324,70 @@ export default function ResultsPage() {
                             <span className="inline">Search</span>
                         </Button>
                     </form>
+                    {canManageUsers() && (
+                            <div className="relative" ref={clientFilterRef}>
+                                <button
+                                    type="button"
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 flex items-center justify-between gap-3 min-w-[190px]"
+                                    aria-label="Filter by client"
+                                    onClick={() => {
+                                        setIsClientFilterOpen((v) => !v)
+                                        setClientFilterSearch("")
+                                    }}
+                                >
+                                    <span className="truncate">{selectedClientLabel}</span>
+                                    <span className="text-slate-400">▾</span>
+                                </button>
+
+                                {isClientFilterOpen && (
+                                    <div className="absolute z-50 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white shadow-lg p-2">
+                                        <Input
+                                            value={clientFilterSearch}
+                                            onChange={(e) => setClientFilterSearch(e.target.value)}
+                                            placeholder="Search client..."
+                                            className="h-9 border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                                        />
+                                        <div className="mt-2 max-h-64 overflow-auto">
+                                            <button
+                                                type="button"
+                                                className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${selectedUserId === "" ? "bg-slate-50 font-semibold" : ""}`}
+                                                onClick={() => {
+                                                    setPage(1)
+                                                    setSelectedUserId("")
+                                                    setIsClientFilterOpen(false)
+                                                }}
+                                            >
+                                                Client: All
+                                            </button>
+
+                                            {filteredClients.length === 0 ? (
+                                                <div className="px-2 py-2 text-sm text-slate-400">No matches</div>
+                                            ) : (
+                                                filteredClients.map((u) => {
+                                                    const value = String(u.id)
+                                                    const label = getClientLabel(u)
+                                                    const isSelected = selectedUserId === value
+                                                    return (
+                                                        <button
+                                                            key={u.id}
+                                                            type="button"
+                                                            className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${isSelected ? "bg-slate-50 font-semibold" : ""}`}
+                                                            onClick={() => {
+                                                                setPage(1)
+                                                                setSelectedUserId(value)
+                                                                setIsClientFilterOpen(false)
+                                                            }}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     <div className="flex items-center gap-2">
                         <Button
                             size="sm"
@@ -561,10 +625,37 @@ export default function ResultsPage() {
                                                 <span className="font-semibold text-slate-700">Computer:</span> {test.computer_name}
                                             </div>
                                         )}
+                                        {showIssuesOnly && test.latest_issue && (
+                                            <div className="mt-2">
+                                                <span className="bg-red-50 text-red-600 border border-red-100 rounded px-2 py-0.5 text-xs whitespace-nowrap">
+                                                    {test.latest_issue}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center justify-between text-sm pt-3 border-t border-slate-100">
-                                        <div className="text-slate-500 text-xs">{dateStr}</div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-slate-500 text-xs">{dateStr}</div>
+                                            <button
+                                                type="button"
+                                                className="text-slate-400 hover:text-red-600 flex items-center"
+                                                onClick={async () => {
+                                                    if (confirm("Are you sure you want to hide this report?")) {
+                                                        try {
+                                                            const { hideQCResult } = await import('@/lib/api');
+                                                            await hideQCResult(test.id);
+                                                            setResults((prev) => prev.filter((r) => r.id !== test.id));
+                                                        } catch (error) {
+                                                            alert(error instanceof Error ? error.message : 'Failed to hide report');
+                                                        }
+                                                    }
+                                                }}
+                                                title="Hide Report"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                                            </button>
+                                        </div>
                                         <Link href={`/dashboard/results/${test.id}`} className="text-[var(--brand-purple)] font-semibold text-xs tracking-wider uppercase flex items-center gap-1 hover:underline">
                                             View Details
                                             <ChevronRight className="h-4 w-4" />
@@ -592,15 +683,18 @@ export default function ResultsPage() {
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 max-w-[200px]">Model</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[90px]">Version</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[130px]">Serial No.</th>
+                                {showIssuesOnly && (
+                                    <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[150px]">Latest Issue</th>
+                                )}
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 w-[120px]">Date</th>
                                 <th className="h-10 px-2 align-middle font-medium text-slate-500 text-right w-[120px]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={showTechnicianColumn ? 10 : 9} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? (showIssuesOnly ? 11 : 10) : (showIssuesOnly ? 10 : 9)} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : sortedResults.length === 0 ? (
-                                <tr><td colSpan={showTechnicianColumn ? 10 : 9} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
+                                <tr><td colSpan={showTechnicianColumn ? (showIssuesOnly ? 11 : 10) : (showIssuesOnly ? 10 : 9)} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
                             ) : (
                                 sortedResults.map((test) => {
                                     const dateObj = new Date(test.timestamp);
@@ -673,6 +767,17 @@ export default function ResultsPage() {
                                             <td className="p-2 align-middle text-slate-500 break-words">
                                                 <div className="truncate" title={test.system_serial}>{test.system_serial}</div>
                                             </td>
+                                            {showIssuesOnly && (
+                                                <td className="p-2 align-middle text-slate-500 break-words text-xs">
+                                                    {test.latest_issue ? (
+                                                        <span className="bg-red-50 text-red-600 border border-red-100 rounded px-2 py-0.5 whitespace-nowrap">
+                                                            {test.latest_issue}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-300">—</span>
+                                                    )}
+                                                </td>
+                                            )}
                                             <td className="p-2 align-middle text-slate-500">
                                                 <div>{dateStr}</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">{timeStr}</div>
@@ -689,6 +794,25 @@ export default function ResultsPage() {
                                                             <Printer className="h-4 w-4" />
                                                         </Button>
                                                     </Link>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-red-600"
+                                                        onClick={async () => {
+                                                            if (confirm("Are you sure you want to hide this report?")) {
+                                                                try {
+                                                                    const { hideQCResult } = await import('@/lib/api');
+                                                                    await hideQCResult(test.id);
+                                                                    setResults((prev) => prev.filter((r) => r.id !== test.id));
+                                                                } catch (error) {
+                                                                    alert(error instanceof Error ? error.message : 'Failed to hide report');
+                                                                }
+                                                            }
+                                                        }}
+                                                        title="Hide Report"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
