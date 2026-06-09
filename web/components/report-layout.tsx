@@ -1,6 +1,6 @@
 "use client"
 
-import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/grades"
+import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/platforms/windows/grades"
 import { QRCodeSVG } from "qrcode.react"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion } from "@/lib/utils"
 
