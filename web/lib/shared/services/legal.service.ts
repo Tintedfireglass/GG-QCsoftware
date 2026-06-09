@@ -19,6 +19,23 @@ export async function getLegalContent(): Promise<LegalContent> {
     return { ...defaults(), ...saved };
 }
 
+export interface LegalSection {
+    content: string;
+    updatedAt: string | null;
+}
+
+/** Just the Terms & Conditions section. */
+export async function getTermsContent(): Promise<LegalSection> {
+    const legal = await getLegalContent();
+    return { content: legal.termsContent, updatedAt: legal.termsUpdatedAt };
+}
+
+/** Just the Privacy Policy section. */
+export async function getPrivacyContent(): Promise<LegalSection> {
+    const legal = await getLegalContent();
+    return { content: legal.privacyContent, updatedAt: legal.privacyUpdatedAt };
+}
+
 /**
  * Persist legal content. Each section's `*UpdatedAt` is stamped when its body
  * changes. `now` is passed in so the caller controls the clock.
