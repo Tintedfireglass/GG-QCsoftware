@@ -12,33 +12,12 @@ const BATTERY_PRESENT_FROM_JSON = `(
 )`;
 
 /**
- * Build the "has issues" EXISTS predicate. Shared by the list filter (keyed on
- * `qr.id`, battery checked against the JSON column) and the per-row projection
- * (keyed on `page_rows.id`, battery read from the precomputed flag).
+ * Build the "has issues" EXISTS predicate.
  */
-function hasIssuesExists(rowIdRef: string, batteryPresentExpr: string): string {
-    return `EXISTS (
-        SELECT 1 FROM test_results tr
-        WHERE tr.qc_result_id = ${rowIdRef}
-          AND tr.score < 70
-          AND (
-            LOWER(tr.test_type) LIKE 'cpu%'
-            OR LOWER(tr.test_type) LIKE 'memory%'
-            OR LOWER(tr.test_type) LIKE 'ram%'
-            OR LOWER(tr.test_type) LIKE 'storage%'
-            OR LOWER(tr.test_type) LIKE 'nvme%'
-            OR LOWER(tr.test_type) LIKE 'ssd%'
-            OR LOWER(tr.test_type) LIKE 'smart%'
-            OR (
-              (LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%')
-              AND tr.score > 0
-            )
-            OR (
-              LOWER(tr.test_type) LIKE 'battery%'
-              AND ${batteryPresentExpr}
-            )
-          )
-    )`;
+function hasIssuesExists(rowIdRef: string): string {
+    return `(
+        SELECT pramaan_score FROM qc_results WHERE id = ${rowIdRef}
+    ) < 70`;
 }
 
 /** License/activation row fields consulted during submission. */
@@ -64,6 +43,8 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     const scope = ownerVisibilitySql(user, 'qr.technician_id');
     if (scope) conds.push(scope);
 
+    conds.push(sql`qr.is_hidden = false`);
+
     if (q.userId !== undefined) conds.push(sql`qr.technician_id = ${q.userId}`);
     if (q.refurbishId) conds.push(sql`qr.refurbish_id = ${q.refurbishId}`);
     if (q.overallPass !== undefined) conds.push(sql`qr.overall_pass = ${q.overallPass}`);
@@ -77,7 +58,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
             CAST(qr.id AS TEXT) ILIKE ${like}
         )`);
     }
-    if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id', BATTERY_PRESENT_FROM_JSON)));
+    if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;
@@ -102,7 +83,13 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
         LIMIT ${q.limit} OFFSET ${q.offset}
       )
       SELECT page_rows.*,
-        ${sql.raw(hasIssuesExists('page_rows.id', 'page_rows.battery_present'))} AS has_issues
+        ${sql.raw(hasIssuesExists('page_rows.id'))} AS has_issues,
+        (
+          SELECT tr.test_type || ': ' || tr.message
+          FROM test_results tr
+          WHERE tr.qc_result_id = page_rows.id AND tr.score < 70
+          ORDER BY tr.test_type ASC LIMIT 1
+        ) AS latest_issue
       FROM page_rows
       ORDER BY timestamp DESC, id DESC
     `;
@@ -152,6 +139,7 @@ export async function countQcResults(user: AuthenticatedUser, f: CountFilters): 
     const conds: SQL[] = [];
     const vis = countVisibilitySql(user);
     if (vis) conds.push(vis);
+    conds.push(sql`qr.is_hidden = false`);
     if (f.userId !== undefined) conds.push(sql`qr.technician_id = ${f.userId}`);
     if (f.refurbishId) conds.push(sql`qr.refurbish_id = ${f.refurbishId}`);
     if (f.overallPass !== undefined) conds.push(sql`qr.overall_pass = ${f.overallPass}`);
@@ -192,16 +180,15 @@ export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDev
     const { rows } = await db.execute(sql`
       WITH latest_per_machine AS (
         SELECT DISTINCT ON (qr.machine_id)
-          qr.id AS result_id, qr.machine_id, qr.battery_details_json
+          qr.id AS result_id, qr.machine_id, qr.pramaan_score
         FROM qc_results qr
-        WHERE ${whereSql}
+        WHERE ${whereSql} AND qr.is_hidden = false
         ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
       ),
       issues AS (
-        SELECT DISTINCT lpm.machine_id
+        SELECT lpm.machine_id
         FROM latest_per_machine lpm
-        JOIN test_results tr ON tr.qc_result_id = lpm.result_id
-        WHERE tr.score < 70 AND ${issuesCoreTestSql()}
+        WHERE lpm.pramaan_score < 70
       )
       SELECT
         (SELECT COUNT(*) FROM latest_per_machine) AS total_devices,
@@ -257,7 +244,7 @@ export async function listLatestPerMachineForExport(
     user: AuthenticatedUser,
     opts: { search?: string; userId?: number }
 ): Promise<Record<string, unknown>[]> {
-    const conds: SQL[] = [];
+    const conds: SQL[] = [sql`qr.is_hidden = false`];
     const vis = ownerVisibilitySql(user, 'qr.technician_id');
     if (vis) conds.push(vis);
     if (opts.userId !== undefined) conds.push(sql`qr.technician_id = ${opts.userId}`);
@@ -313,6 +300,7 @@ export async function listResultsByGradesForSample(
             (qr.battery_details_json->>'isTampered')::boolean IS NOT TRUE
             AND (qr.battery_details_json->>'isInconclusive')::boolean IS NOT TRUE
         ))
+        AND qr.is_hidden = false
     `);
 
     const goodGradeList = opts.goodGrades.map(g => `'${g}'`).join(', ');
@@ -568,4 +556,15 @@ export async function incrementDemoRuns(tx: Tx, demoKeyId: number): Promise<void
         demoRunsUsed: sql`COALESCE(demo_runs_used, 0) + 1`,
         isActive: sql`CASE WHEN COALESCE(demo_runs_used, 0) + 1 >= COALESCE(demo_max_runs, 1) THEN false ELSE is_active END`,
     }).where(eq(licenseKeys.id, demoKeyId));
+}
+
+export async function hideQcResult(user: AuthenticatedUser, id: number): Promise<void> {
+    const vis = ownerVisibilitySql(user, 'technician_id');
+    const visClause = vis ? sql` AND ${vis}` : sql``;
+    
+    await db.execute(sql`
+        UPDATE qc_results
+        SET is_hidden = true
+        WHERE id = ${id}${visClause}
+    `);
 }

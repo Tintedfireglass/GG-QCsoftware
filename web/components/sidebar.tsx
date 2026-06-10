@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import {
     LayoutDashboard,
     ClipboardList,
+    Layers,
     Monitor,
     LogOut,
     Users,
@@ -27,6 +28,7 @@ import {
     AtSign,
     DownloadCloud,
     MessageSquare,
+    LifeBuoy,
     Code2
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
@@ -53,6 +55,11 @@ export function Sidebar() {
             href: "/dashboard/results",
             label: "QC Results",
             icon: ClipboardList
+        },
+        {
+            href: "/dashboard/reports",
+            label: "All Reports",
+            icon: Layers
         },
         // Fleet Management – hidden while still in development
         // {
@@ -119,6 +126,12 @@ export function Sidebar() {
             href: "/dashboard/contacts",
             label: "Contacts",
             icon: Mail,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/support",
+            label: "Support",
+            icon: LifeBuoy,
             roles: ['SuperAdmin']
         },
         {

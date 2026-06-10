@@ -97,7 +97,7 @@ export async function listHistory(
 
     const { rows } = await db.execute(sql`
         SELECT mr.report_id, mr.report_type, mr.test_type, mr.result, mr.score, mr.grade,
-               mr.passed_count, mr.failed_count, mr.tested_at,
+               mr.passed_count, mr.failed_count, mr.tested_at, mr.created_at, mr.device_id,
                COALESCE(md.model, mr.device_snapshot_json->>'model') AS device_model
         FROM mobile_reports mr
         LEFT JOIN mobile_devices md

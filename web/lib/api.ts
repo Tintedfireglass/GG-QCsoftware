@@ -161,6 +161,16 @@ export async function getQCResult(id: string) {
     return cachedGetJson(`/api/qc-results/${id}`, TTL.long);
 }
 
+export async function hideQCResult(id: string) {
+    const res = await fetchWithAuth(`/api/qc-results/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error || json?.message || "Failed to hide result");
+    }
+    clearClientCache();
+    return res.json();
+}
+
 // ── Mobile (B2C Android) reports — admin/reseller view ──────────────────────────
 export interface MobileReportRow {
     reportId: string;
@@ -458,6 +468,53 @@ export async function deleteContact(id: number) {
     const res = await fetchWithAuth(`/api/admin/contacts/${id}`, { method: "DELETE" })
     const json = await res.json()
     if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete submission")
+    clearClientCache()
+    return json
+}
+
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed"
+export type TicketPriority = "low" | "normal" | "high"
+
+export interface SupportTicketDTO {
+    id: number
+    ticketId: string
+    subject: string
+    category: string | null
+    message: string
+    deviceId: string | null
+    appVersion: string | null
+    status: TicketStatus
+    priority: TicketPriority
+    adminNote: string | null
+    createdAt: string
+    updatedAt: string
+    customer: { id: number; name: string | null; phone: string | null; email: string | null }
+}
+
+export async function getAdminSupportTickets(params: { status?: string; search?: string; page?: number; limit?: number } = {}): Promise<{ tickets: SupportTicketDTO[]; openCount: number; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const qs = new URLSearchParams()
+    if (params.status) qs.set("status", params.status)
+    if (params.search) qs.set("search", params.search)
+    if (params.page) qs.set("page", String(params.page))
+    if (params.limit) qs.set("limit", String(params.limit))
+    const res = await fetchWithAuth(`/api/admin/support?${qs.toString()}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load support tickets")
+    return json
+}
+
+export async function updateSupportTicket(id: number, patch: { status?: TicketStatus; priority?: TicketPriority; adminNote?: string | null }) {
+    const res = await fetchWithAuth(`/api/admin/support/${id}`, { method: "PATCH", body: JSON.stringify(patch) })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to update ticket")
+    clearClientCache()
+    return json
+}
+
+export async function deleteSupportTicket(id: number) {
+    const res = await fetchWithAuth(`/api/admin/support/${id}`, { method: "DELETE" })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete ticket")
     clearClientCache()
     return json
 }

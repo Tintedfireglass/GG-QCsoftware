@@ -1,43 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getQCResult } from "@/lib/api"
-import { useParams } from "next/navigation"
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/platforms/windows/grades"
 import { QRCodeSVG } from "qrcode.react"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 
-export default function DedicatedReportPage() {
-    const { id } = useParams()
-    const [data, setData] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        async function load() {
-            if (!id) return
-            try {
-                const result = await getQCResult(id as string)
-                setData(result)
-            } catch (error) {
-                console.error(error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        load()
-    }, [id])
-
-    // Auto-print when data is loaded
-    useEffect(() => {
-        if (!loading && data) {
-            setTimeout(() => {
-                window.print()
-            }, 800)
-        }
-    }, [loading, data])
-
-    if (loading) return <div className="p-10 font-sans text-center">Loading Report...</div>
-    if (!data) return <div className="p-10 font-sans text-center text-red-600">Report not found.</div>
+export function ReportLayout({ data }: { data: any }) {
+    if (!data) return null;
 
     const rawTestResults = Array.isArray(data?.test_results) ? data.test_results : []
     const hasStorageResult = rawTestResults.some((test: any) => String(test?.test_type || "").toLowerCase() === "storage")
@@ -238,7 +206,7 @@ export default function DedicatedReportPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {test_results.map((test: any, i: number) => {
+                        {test_results.map((test: any) => {
                             const s = getGradeStyle(test.grade);
                             return (
                                 <tr key={test.id} className="border-b border-gray-200">
@@ -286,21 +254,6 @@ export default function DedicatedReportPage() {
                 <div>Submission IP: {data.submission_ip || "N/A"}</div>
                 <div>Date Printed: {new Date().toLocaleDateString()}</div>
             </footer>
-
-            <style jsx global>{`
-                @page {
-                    size: A4;
-                    margin: 0;
-                }
-                @media print {
-                    body {
-                        background: white;
-                    }
-                    .no-print {
-                        display: none;
-                    }
-                }
-            `}</style>
         </div>
     )
 }

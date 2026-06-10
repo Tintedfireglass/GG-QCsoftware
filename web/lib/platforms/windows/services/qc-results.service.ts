@@ -311,3 +311,11 @@ export async function submitResult(
 
     return { id, reportId: body.reportId, demoExhausted };
 }
+
+export async function hideResult(user: AuthenticatedUser, id: string) {
+    const resultId = parseInt(id, 10);
+    if (!Number.isInteger(resultId) || resultId <= 0) throw new NotFoundError('QC result not found');
+
+    // Repo enforces visibility rules (users can only hide their own or team's results)
+    await repo.hideQcResult(user, resultId);
+}

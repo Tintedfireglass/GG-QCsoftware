@@ -8,7 +8,8 @@ import {
 } from '@/lib/platforms/android/domain/schemas/mobile';
 
 const ABBR: Record<string, string> = {
-    BATTERY: 'bat', DISPLAY: 'dsp', SENSORS: 'sns', SINGLE: 'sng', FULL_QC: 'qc', STRESS_TEST: 'str',
+    BATTERY: 'bat', DISPLAY: 'dsp', SENSORS: 'sns', SINGLE: 'sng',
+    FULL_QC: 'qc', BASIC_QC: 'bqc', STRESS_TEST: 'str',
 };
 
 function makeReportId(type: string): string {
@@ -67,10 +68,12 @@ export async function submitSingle(ctx: Ctx, body: z.infer<typeof singleTestSche
     return { data: { reportId, testType: body.testType, result: body.result, savedAt: saved.created_at } };
 }
 
-export async function submitFullQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>) {
-    const reportId = makeReportId('FULL_QC');
+// Basic QC and Full QC share the identical payload and differ only by the stored
+// reportType, so the dashboard can tell a quick check from a full health run.
+async function submitQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>, reportType: 'FULL_QC' | 'BASIC_QC') {
+    const reportId = makeReportId(reportType);
     const saved = await repo.insertReport({
-        reportId, customerUserId: ctx.customerId, deviceId: body.deviceId, reportType: 'FULL_QC',
+        reportId, customerUserId: ctx.customerId, deviceId: body.deviceId, reportType,
         testType: null, result: body.overallResult, score: null, grade: null,
         passedCount: body.passedCount, failedCount: body.failedCount,
         testedAt: toIso(body.testedAt), payloadJson: body,
@@ -78,10 +81,18 @@ export async function submitFullQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>)
     });
     return {
         data: {
-            reportId, reportType: 'FULL_QC', overallResult: body.overallResult,
+            reportId, reportType, overallResult: body.overallResult,
             passedCount: body.passedCount, failedCount: body.failedCount, savedAt: saved.created_at,
         },
     };
+}
+
+export function submitFullQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>) {
+    return submitQc(ctx, body, 'FULL_QC');
+}
+
+export function submitBasicQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>) {
+    return submitQc(ctx, body, 'BASIC_QC');
 }
 
 export async function submitStress(ctx: Ctx, body: z.infer<typeof stressReportSchema>) {
@@ -113,15 +124,20 @@ export async function getHistory(customerId: number, query: z.infer<typeof histo
     });
     const mapped = reports.map((r) => ({
         reportId: r.report_id,
+        // `type` mirrors `reportType` — the Android client reads `type`.
+        type: r.report_type,
         reportType: r.report_type,
         testType: r.test_type ?? null,
         result: r.result ?? null,
+        overallResult: r.result ?? null,
         score: r.score ?? null,
         grade: r.grade ?? null,
         passedCount: r.passed_count ?? null,
         failedCount: r.failed_count ?? null,
+        deviceId: r.device_id ?? null,
         deviceModel: r.device_model ?? null,
         testedAt: r.tested_at ?? null,
+        createdAt: r.created_at ?? null,
     }));
     return {
         data: {
@@ -129,6 +145,8 @@ export async function getHistory(customerId: number, query: z.infer<typeof histo
             pagination: {
                 page: query.page,
                 limit: query.limit,
+                // `total` is the client's field name; `totalReports` kept for back-compat.
+                total,
                 totalReports: total,
                 totalPages: Math.max(1, Math.ceil(total / query.limit)),
             },

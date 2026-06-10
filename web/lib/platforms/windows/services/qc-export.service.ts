@@ -6,7 +6,7 @@ import path from 'node:path';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { SELF_ONLY_ROLES } from '@/lib/shared/domain/visibility';
 import { ValidationError, ForbiddenError } from '@/lib/http/errors';
-import { parseWindowsVersion, cleanWindowsProductName } from '@/lib/utils';
+import { parseWindowsVersion, cleanWindowsProductName, deduplicateAntivirus } from '@/lib/utils';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
 
 type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
@@ -464,7 +464,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         );
         const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
         const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
-        const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+        const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+        const antivirus = deduplicateAntivirus(rawAntivirus);
         const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
         const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
         const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
@@ -633,7 +634,27 @@ type TestResultRow = {
 type SampleRecord = Record<string, unknown>;
 
 function safeStr(v: unknown): string {
-    return v == null ? '' : String(v);
+    if (v == null) return '';
+    const str = String(v);
+    // pdf-lib's StandardFonts use WinAnsiEncoding which can't handle full Unicode.
+    // Replace common unsupported characters with ASCII equivalents, and default to '?' for others.
+    return str.replace(/[^\x00-\x7F\xA0-\xFF]/g, (char) => {
+        switch (char) {
+            case '✓': return '[Pass]';
+            case '✗': return '[Fail]';
+            case '—':
+            case '–': return '-';
+            case '“':
+            case '”': return '"';
+            case '‘':
+            case '’': return "'";
+            case '©': return '(c)';
+            case '®': return '(r)';
+            case '™': return '(tm)';
+            case '°': return ' deg';
+            default: return '?';
+        }
+    });
 }
 
 function safeNum(v: unknown): number | null {
@@ -708,7 +729,8 @@ function winVersionText(sysInfo: JsonRecord): string {
 
 function antivirusTextStr(sysInfo: JsonRecord): string {
     const healthy = sysInfo.isAntivirusHealthy;
-    const status = safeStr(sysInfo.antivirusStatus);
+    const rawStatus = safeStr(sysInfo.antivirusStatus);
+    const status = deduplicateAntivirus(rawStatus);
     if (typeof healthy === 'boolean') {
         return healthy ? `Healthy${status ? ` (${status})` : ''}` : `Not Healthy${status ? ` (${status})` : ''}`;
     }
@@ -951,7 +973,7 @@ export async function buildIndividualReportPdf(
 export interface SampleExportOptions {
     goodCount?: number;
     poorCount?: number;
-    format: 'zip' | 'xlsx';
+    format: 'zip' | 'xlsx' | 'json';
     timeZone: string;
 }
 
@@ -977,6 +999,31 @@ export async function exportSampleDataset(
         poorGrades: POOR_GRADES,
         poorCount,
     });
+
+    // ── JSON export (Client-Side Rendering Data) ───────────────────────────────────
+    if (opts.format === 'json') {
+        const resultIds = results.map(r => r.id as number).filter(Boolean);
+        const allTestRows = await repo.listTestResultsForIds(resultIds);
+        const testsByResultId = new Map<number, TestResultRow[]>();
+        allTestRows.forEach((tr) => {
+            const rid = tr.qc_result_id as number;
+            if (!testsByResultId.has(rid)) testsByResultId.set(rid, []);
+            testsByResultId.get(rid)!.push(tr as unknown as TestResultRow);
+        });
+        const combined = results.map(rec => ({
+            ...rec,
+            test_results: testsByResultId.get(rec.id as number) || []
+        }));
+        
+        const jsonStr = JSON.stringify(combined);
+        const encoder = new TextEncoder();
+        
+        return {
+            body: encoder.encode(jsonStr).buffer as ArrayBuffer,
+            contentType: 'application/json',
+            filename: 'sample_data.json',
+        };
+    }
 
     const dateStamp = new Date().toISOString().slice(0, 10);
 
@@ -1013,7 +1060,8 @@ export async function exportSampleDataset(
             );
             const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
             const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
-            const antivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+            const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';
+            const antivirus = deduplicateAntivirus(rawAntivirus);
             const ramTotal = toFiniteNumber(r.ram_total) ?? 0;
             const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
             const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
