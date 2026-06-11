@@ -1,123 +1,278 @@
 <Window x:Class="Pramaan.Avalonia.Views.LoginWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Login - PRAMAAN" Width="400"
+        Title="Activate PRAMAAN"
+        Width="420"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="#f5f5f5">
-    
+
     <Window.Styles>
+
+        <!-- Purple primary button (Activate) -->
         <Style Selector="Button.Primary">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Button.Primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.Primary:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#6B2D66"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
+
+        <!-- Amber trial confirm button (Start 7-Day Free Trial - action button) -->
+        <Style Selector="Button.TrialPrimary">
+            <Setter Property="Background" Value="#d97706"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.TrialPrimary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#b45309"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.TrialPrimary:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#92400e"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Amber outlined trial start button -->
+        <Style Selector="Button.TrialOutline">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#d97706"/>
+            <Setter Property="BorderBrush" Value="#d97706"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.TrialOutline:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#fffbeb"/>
+            <Setter Property="Foreground" Value="#b45309"/>
+        </Style>
+        <Style Selector="Button.TrialOutline:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#fef3c7"/>
+            <Setter Property="Foreground" Value="#92400e"/>
+        </Style>
+
     </Window.Styles>
 
     <Grid>
-        <Border Background="White" 
-                BorderBrush="#e5e7eb"
+        <Border Background="White"
+                BorderBrush="#E5E7EB"
                 BorderThickness="1"
-                CornerRadius="12" 
-                Margin="20" 
+                CornerRadius="12"
+                Margin="20"
                 Padding="30"
                 BoxShadow="0 4 6 0 #1A000000">
-            <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, *, Auto">
 
-                <!-- Header -->
-                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
-                    <Border Background="#dcfce7" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
-                        <TextBlock Text="🔐" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <StackPanel>
+
+                <!-- ══ HEADER ══ -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,0,0,24">
+                    <Border Background="#dcfce7"
+                            CornerRadius="50"
+                            Width="50"
+                            Height="50"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,12">
+                        <TextBlock Text="🔑"
+                                   FontSize="24"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="PRAMAAN Login" FontSize="20" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI"/>
-                    <TextBlock Text="Login to associate results with your account" 
-                               FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI"
-                               HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    <TextBlock FontSize="20"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="#1F2937"
+                               FontFamily="Segoe UI">
+                        <Run Text="Activate "/>
+                        <Run Text="PRAMAAN" Foreground="#8B3D88"/>
+                    </TextBlock>
+                    <TextBlock Text="Enter your license key or start a free 7-day trial"
+                               FontSize="12"
+                               Foreground="#6B7280"
+                               FontFamily="Segoe UI"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Margin="0,6,0,0"/>
                 </StackPanel>
 
-                <!-- Username -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                    <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                    <TextBox Name="UsernameBox" 
-                             Padding="12,10" 
-                             FontSize="14"
-                             FontFamily="Segoe UI"
-                             Background="#f9fafb"
-                             BorderBrush="#d1d5db"
-                             BorderThickness="1"/>
+                <!-- ══ LICENSE LOGIN PANEL (default visible) ══ -->
+                <StackPanel Name="LicenseLoginPanel" IsVisible="True" Margin="0,0,0,0">
+
+                    <!-- License Key input -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="16-Digit License Key"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   Margin="0,0,0,6"
+                                   Foreground="#374151"
+                                   FontFamily="Segoe UI"/>
+                        <TextBox Name="LicenseBox"
+                                 Padding="12,10"
+                                 FontSize="14"
+                                 FontFamily="Consolas, Segoe UI"
+                                 TextAlignment="Center"
+                                 MaxLength="19"
+                                 Watermark="XXXX-XXXX-XXXX-XXXX"
+                                 Background="#f9fafb"
+                                 BorderBrush="#D1D5DB"
+                                 BorderThickness="1"
+                                 KeyDown="LicenseBox_KeyDown"/>
+                    </StackPanel>
+
                 </StackPanel>
 
-                <!-- Password -->
-                <StackPanel Grid.Row="2" Margin="0,0,0,16">
-                    <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI"/>
-                    <TextBox Name="PasswordBox" 
-                             PasswordChar="●"
-                             Padding="12,10" 
-                             FontSize="14"
-                             FontFamily="Segoe UI"
-                             Background="#f9fafb"
-                             BorderBrush="#d1d5db"
-                             BorderThickness="1"
-                             KeyDown="PasswordBox_KeyDown"/>
+                <!-- ══ TRIAL EMAIL PANEL (hidden by default) ══ -->
+                <StackPanel Name="TrialEmailPanel" IsVisible="False" Margin="0,0,0,0">
+
+                    <!-- Back button -->
+                    <Button Content="← Back to license key"
+                            Click="BackToLicense_Click"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#6B7280"
+                            Cursor="Hand"
+                            FontSize="12"
+                            FontFamily="Segoe UI"
+                            Padding="0,0,0,8"
+                            HorizontalAlignment="Left"/>
+
+                    <!-- Amber trial info banner -->
+                    <Border Background="#fef3c7"
+                            BorderBrush="#fcd34d"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,10"
+                            Margin="0,0,0,16">
+                        <TextBlock FontSize="12"
+                                   Foreground="#92400e"
+                                   FontFamily="Segoe UI"
+                                   TextWrapping="Wrap">
+                            <Run Text="⏱ "/>
+                            <Run Text="Your 7-day free trial gives full access to all PRAMAAN features. No credit card required." FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Border>
+
+                    <!-- Email input -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Email Address"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   Margin="0,0,0,6"
+                                   Foreground="#374151"
+                                   FontFamily="Segoe UI"/>
+                        <TextBox Name="EmailBox"
+                                 Padding="12,10"
+                                 FontSize="14"
+                                 FontFamily="Segoe UI"
+                                 Watermark="you@example.com"
+                                 Background="#f9fafb"
+                                 BorderBrush="#D1D5DB"
+                                 BorderThickness="1"
+                                 KeyDown="EmailBox_KeyDown"/>
+                    </StackPanel>
+
                 </StackPanel>
 
-                <!-- Error Message -->
-                <TextBlock Name="ErrorMessage" 
-                           Grid.Row="3" 
-                           Foreground="#dc2626" 
+                <!-- ══ ERROR MESSAGE ══ -->
+                <TextBlock Name="ErrorMessage"
+                           Foreground="#DC2626"
                            FontFamily="Segoe UI"
+                           FontSize="12"
                            TextWrapping="Wrap"
                            IsVisible="False"
                            Margin="0,0,0,12"/>
 
-                <!-- Login Button -->
+                <!-- ══ ACTION BUTTONS (Grid.Row=3 equivalent) ══ -->
                 <Button Name="LoginButton"
-                        Grid.Row="4" 
-                        Content="Login" 
+                        Content="Activate"
                         Click="LoginButton_Click"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        FontFamily="Segoe UI"
-                        BorderThickness="0"
-                        Cursor="Hand"
-                        Classes="Primary"/>
+                        HorizontalAlignment="Stretch"
+                        IsVisible="True"
+                        Classes="Primary"
+                        Margin="0,0,0,0"/>
 
+                <Button Name="TrialConfirmButton"
+                        Content="Start 7-Day Free Trial"
+                        Click="TrialConfirmButton_Click"
+                        HorizontalAlignment="Stretch"
+                        IsVisible="False"
+                        Classes="TrialPrimary"
+                        Margin="0,0,0,0"/>
 
-                <!-- Loading indicator -->
-                <TextBlock Name="LoadingText" 
-                           Grid.Row="5" 
-                           Text="Logging in..." 
+                <!-- ══ LOADING TEXT ══ -->
+                <TextBlock Name="LoadingText"
+                           Text="Activating..."
                            HorizontalAlignment="Center"
-                           Foreground="#6b7280"
+                           Foreground="#6B7280"
                            FontFamily="Segoe UI"
+                           FontSize="13"
                            IsVisible="False"
                            Margin="0,12,0,0"/>
 
-                <!-- Skip link -->
-                <Button Grid.Row="7" 
-                        Content="Skip - Work Offline" 
+                <!-- ══ OR DIVIDER (hidden in trial mode) ══ -->
+                <Grid Name="OrDivider" Margin="0,20,0,0" ColumnDefinitions="*,Auto,*">
+                    <Border Grid.Column="0"
+                            BorderBrush="#E5E7EB"
+                            BorderThickness="0,0,0,1"
+                            Height="1"
+                            VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1"
+                               Text="or"
+                               FontSize="12"
+                               Foreground="#9CA3AF"
+                               FontFamily="Segoe UI"
+                               Margin="12,0"/>
+                    <Border Grid.Column="2"
+                            BorderBrush="#E5E7EB"
+                            BorderThickness="0,0,0,1"
+                            Height="1"
+                            VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- ══ START TRIAL OUTLINED BUTTON ══ -->
+                <Button Name="StartTrialButton"
+                        Content="⏱ Start 7-Day Free Trial"
+                        Click="StartTrialButton_Click"
+                        HorizontalAlignment="Stretch"
+                        Classes="TrialOutline"
+                        Margin="0,12,0,0"/>
+
+                <!-- ══ SKIP BUTTON ══ -->
+                <Button Content="Skip - Work Offline"
                         Click="SkipButton_Click"
                         Background="Transparent"
                         BorderThickness="0"
-                        Foreground="#6b7280"
+                        Foreground="#6B7280"
                         Cursor="Hand"
                         FontSize="12"
                         FontFamily="Segoe UI"
                         HorizontalAlignment="Center"
-                        Margin="0,16,0,0"/>
-            </Grid>
+                        Margin="0,12,0,0"/>
+
+            </StackPanel>
         </Border>
     </Grid>
 </Window>

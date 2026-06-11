@@ -47,16 +47,16 @@
         </Style>
 
         <Style Selector="Button.passBtn">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <Style Selector="Button.passBtn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.passBtn:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#5C2B5C"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
@@ -95,14 +95,14 @@
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
                 <TextBlock Text="🔊" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="Audio &amp; Video Diagnostics" 
-                           FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" 
+                           FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" 
                            VerticalAlignment="Center"/>
             </StackPanel>
 
             <!-- Progress/Step -->
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,16">
                 <TextBlock Text="{Binding CurrentStepName}" 
-                           FontSize="16" FontWeight="SemiBold" Foreground="#0891b2" 
+                           FontSize="16" FontWeight="SemiBold" Foreground="#8B3D88" 
                            HorizontalAlignment="Center"/>
                 <TextBlock Text="{Binding Instructions}" 
                            FontSize="13" Foreground="#6b7280" 

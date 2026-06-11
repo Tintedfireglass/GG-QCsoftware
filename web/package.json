@@ -11,7 +11,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:backup": "node scripts/backup-db.mjs",
-    "db:fix-sequences": "node scripts/fix-sequences.mjs"
+    "db:fix-sequences": "node scripts/fix-sequences.mjs",
+    "db:push-do": "drizzle-kit push --config drizzle.config.do.ts",
+    "db:migrate-to-do": "node scripts/migrate-supabase-to-do.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

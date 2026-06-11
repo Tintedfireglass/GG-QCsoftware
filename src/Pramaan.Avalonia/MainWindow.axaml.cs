@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Pramaan.Avalonia.ViewModels;
 
 namespace Pramaan.Avalonia;
 
@@ -59,23 +60,40 @@ public partial class MainWindow : Window
             var noBtn = (Button)btnPanel.Children[1];
             yesBtn.Click += (s2, e2) => { confirmed = true; confirmWindow.Close(); };
             noBtn.Click += (s2, e2) => { confirmWindow.Close(); };
-            
+
             await confirmWindow.ShowDialog(this);
-            
+
             if (confirmed)
             {
                 App.AuthService.Logout();
                 UpdateUserStatusDisplay();
+                RefreshViewModelLoginState();
             }
         }
         else
         {
             var loginWindow = new Views.LoginWindow(App.AuthService);
-            _ = loginWindow.ShowDialog(this).ContinueWith(_ => 
-            {
-                Dispatcher.UIThread.Post(UpdateUserStatusDisplay);
-            });
+            await loginWindow.ShowDialog(this);
+            UpdateUserStatusDisplay();
+            RefreshViewModelLoginState();
         }
+    }
+
+    private void RefreshViewModelLoginState()
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.RefreshLoginState();
+        }
+    }
+
+    public void RefreshActivationUi()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            UpdateUserStatusDisplay();
+            RefreshViewModelLoginState();
+        });
     }
 
     private void UpdateUserStatusDisplay()
@@ -84,13 +102,13 @@ public partial class MainWindow : Window
         {
             UserStatusIcon.Text = "✓";
             UserStatusText.Text = App.UserDisplayName;
-            UserStatusText.Foreground = SolidColorBrush.Parse("#00d9ff");
-            UserStatusBorder.Background = SolidColorBrush.Parse("#1e3a5f");
+            UserStatusText.Foreground = SolidColorBrush.Parse("#8B3D88");
+            UserStatusBorder.Background = SolidColorBrush.Parse("#f5f0f5");
         }
         else
         {
-            UserStatusIcon.Text = "👤";
-            UserStatusText.Text = "Click to Login";
+            UserStatusIcon.Text = "🔑";
+            UserStatusText.Text = "Click to Activate";
             UserStatusText.Foreground = Brushes.Gray;
             UserStatusBorder.Background = SolidColorBrush.Parse("#f3f4f6");
         }

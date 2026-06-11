@@ -20,139 +20,123 @@
     </Window.Resources>
 
     <Window.Styles>
-        <!-- Light theme styles -->
+        <!-- Light theme styles matching WPF -->
         <Style Selector="TextBlock.HeaderText">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="22"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
-        
+
         <Style Selector="TextBlock.SectionTitle">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
-        
+
         <Style Selector="TextBlock.InfoLabel">
             <Setter Property="Foreground" Value="#6b7280"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
-        
+
         <Style Selector="TextBlock.ValueText">
             <Setter Property="Foreground" Value="#1f2937"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
-        
+
         <Style Selector="TextBlock.LargeValue">
             <Setter Property="Foreground" Value="#1f2937"/>
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
-        
-        <!-- Primary Green Button -->
-        <Style Selector="Button">
-            <Setter Property="Background" Value="#22c55e"/>
+
+        <!-- Primary Purple Button (matching WPF PrimaryButton) -->
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
-
-        <Style Selector="Button:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
-        <Style Selector="Button:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+        <Style Selector="Button.PrimaryButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#6B2C67"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
-
-        <Style Selector="Button:disabled /template/ ContentPresenter">
+        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#d1d5db"/>
             <Setter Property="Foreground" Value="#9ca3af"/>
         </Style>
 
-        <!-- Outline Button -->
+        <!-- Outline Button — transparent bg, purple border, brand-colored text (matches WPF OutlineButton with GreenOutline override) -->
         <Style Selector="Button.OutlineButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#ef4444"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#22c55e"/>
+            <Setter Property="BorderBrush" Value="#8B3D88"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.OutlineButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#fef2f2"/>
-            <Setter Property="Foreground" Value="#ef4444"/>
+            <Setter Property="Background" Value="#f5f0f5"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
         </Style>
         <Style Selector="Button.OutlineButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#fee2e2"/>
-            <Setter Property="Foreground" Value="#ef4444"/>
+            <Setter Property="Background" Value="#ead9ea"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
         </Style>
         <Style Selector="Button.OutlineButton:disabled /template/ ContentPresenter">
-            <Setter Property="BorderBrush" Value="#d1d5db"/>
             <Setter Property="Foreground" Value="#9ca3af"/>
         </Style>
 
-        <!-- Cyan text Outline Button -->
-        <Style Selector="Button.CyanButton">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#0891b2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#22c55e"/>
-        </Style>
-        <Style Selector="Button.CyanButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#ecfeff"/>
-            <Setter Property="Foreground" Value="#0891b2"/>
-        </Style>
-        <Style Selector="Button.CyanButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#cffafe"/>
-            <Setter Property="Foreground" Value="#0891b2"/>
-        </Style>
-
-        <!-- Green text Outline Button -->
-        <Style Selector="Button.GreenOutlineButton">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#22c55e"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#22c55e"/>
-        </Style>
-        <Style Selector="Button.GreenOutlineButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#f0fdf4"/>
-            <Setter Property="Foreground" Value="#22c55e"/>
-        </Style>
-        <Style Selector="Button.GreenOutlineButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#dcfce7"/>
-            <Setter Property="Foreground" Value="#22c55e"/>
-        </Style>
-
-        <!-- Small Test Button -->
+        <!-- Small Test Button — purple filled, compact -->
         <Style Selector="Button.SmallTestButton">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.SmallTestButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.SmallTestButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#6B2C67"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
+        <Style Selector="Button.SmallTestButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#d1d5db"/>
+            <Setter Property="Foreground" Value="#9ca3af"/>
+        </Style>
 
+        <!-- Card Panel Border -->
         <Style Selector="Border.CardPanel">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#e5e7eb"/>
@@ -160,12 +144,18 @@
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="Margin" Value="5"/>
-            <!-- BoxShadow is simplified in Avalonia for cards -->
             <Setter Property="BoxShadow" Value="0 4 6 0 #1A000000"/>
         </Style>
 
         <Style Selector="Border.StatusBoxSuccess">
             <Setter Property="Background" Value="#dcfce7"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+
+        <Style Selector="Border.StatusBoxInfo">
+            <Setter Property="Background" Value="#f0f9ff"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="Margin" Value="0,10,0,0"/>
@@ -182,90 +172,91 @@
     </Window.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="24" RowDefinitions="Auto, Auto, *, Auto, Auto">
-            
+        <Grid Margin="24" RowDefinitions="Auto, Auto, Auto, Auto, Auto">
+
             <!-- Header -->
             <Grid Grid.Row="0" Margin="0,0,0,20" ColumnDefinitions="Auto, *, Auto">
                 <Image Grid.Column="0" Source="avares://Pramaan.Avalonia/Assets/pramana_logo.png" Width="50" Margin="0,0,16,0" VerticalAlignment="Center" />
-                
+
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="PRAMAAN" FontSize="20" FontWeight="Bold" Foreground="#1f2937" FontFamily="Segoe UI"/>
-                    <TextBlock Text="the device health &amp; lifecycle intelligence layer for refurbished electronics." 
+                    <TextBlock Text="the device health &amp; lifecycle intelligence layer for refurbished electronics."
                                Foreground="#6b7280" FontSize="12" FontFamily="Segoe UI"/>
                 </StackPanel>
-                
+
                 <!-- User Status / Login -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Name="UserStatusBorder" 
-                            Background="#f3f4f6" 
+                    <Border Name="UserStatusBorder"
+                            Background="#f3f4f6"
                             BorderBrush="#e5e7eb"
                             BorderThickness="1"
-                            CornerRadius="6" 
+                            CornerRadius="6"
                             Padding="12,8"
                             PointerPressed="UserStatus_Click"
                             Cursor="Hand">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Name="UserStatusIcon" Text="👤" FontSize="14" VerticalAlignment="Center"/>
-                            <TextBlock Name="UserStatusText" 
-                                       Text="Click to Login" 
-                                       Foreground="#6b7280" 
-                                       FontSize="12" 
+                            <TextBlock Name="UserStatusIcon" Text="🔑" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Name="UserStatusText"
+                                       Text="Click to Activate"
+                                       Foreground="#6b7280"
+                                       FontSize="12"
                                        FontFamily="Segoe UI"
-                                       VerticalAlignment="Center" 
+                                       VerticalAlignment="Center"
                                        Margin="8,0,0,0"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </Grid>
-            
+
             <!-- System Info Card -->
             <Border Grid.Row="1" Classes="CardPanel">
                 <Grid ColumnDefinitions="*, Auto">
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="System Information" Classes="SectionTitle" Margin="0,0,0,12"/>
                         <Grid ColumnDefinitions="80, *" RowDefinitions="24, 24, 24, 24">
-                            
+
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Computer :" Classes="InfoLabel" VerticalAlignment="Center"/>
                             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SystemInfo.ComputerName, FallbackValue='-'}" Classes="ValueText" VerticalAlignment="Center"/>
-                            
+
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Model :" Classes="InfoLabel" VerticalAlignment="Center"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SystemInfo.Model, FallbackValue='-'}" Classes="ValueText" VerticalAlignment="Center"/>
-                            
+
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Serial :" Classes="InfoLabel" VerticalAlignment="Center"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SystemInfo.SerialNumber, FallbackValue='-'}" Classes="ValueText" VerticalAlignment="Center"/>
-                            
+
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Mac :" Classes="InfoLabel" VerticalAlignment="Center"/>
                             <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SystemInfo.MacAddress, FallbackValue='-'}" Classes="ValueText" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
-                    
+
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Stress Test -->
-                        <Button Content="Stress Test" 
-                                Command="{Binding RunStressTestsCommand}"
-                                IsEnabled="{Binding !IsScanning}"
-                                Classes="OutlineButton"
-                                Margin="0,0,10,0"/>
-                        
-                        <!-- Full QC -->
-                        <Button Content="Full QC" 
+                        <!-- Full QC - Primary filled purple style -->
+                        <Button Content="Full QC"
                                 Command="{Binding StartFullQcCommand}"
-                                IsEnabled="{Binding !IsScanning}"
-                                Classes="CyanButton"
+                                IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                IsVisible="{Binding IsFullQcVisible, FallbackValue=True}"
+                                Classes="PrimaryButton"
                                 Margin="0,0,10,0"/>
 
-                        <!-- Run Diagnostics -->
-                        <Button Content="Run Diagnostics" 
+                        <!-- Basic QC - Outline style with brand text -->
+                        <Button Content="Basic QC"
                                 Command="{Binding RunDiagnosticsCommand}"
-                                IsEnabled="{Binding !IsScanning}"
-                                Classes="GreenOutlineButton"/>
+                                IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                Classes="OutlineButton"
+                                Margin="0,0,10,0"/>
+
+                        <!-- Junk Cleanup - Outline style with brand text -->
+                        <Button Content="Junk Cleanup"
+                                Command="{Binding OpenCleanupCommand}"
+                                IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                Classes="OutlineButton"/>
                     </StackPanel>
                 </Grid>
             </Border>
-            
+
             <!-- Results Grid -->
             <Grid Grid.Row="2" Margin="0,5" RowDefinitions="Auto, Auto, Auto, *">
-                
+
                 <!-- CPU and Memory Cards Row -->
                 <Grid Grid.Row="0" ColumnDefinitions="*, *">
                     <!-- CPU Card -->
@@ -275,19 +266,19 @@
                                 <TextBlock Text="💻" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="CPU" Classes="SectionTitle"/>
                             </StackPanel>
-                            
+
                             <Grid ColumnDefinitions="*, *">
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Processor" Classes="InfoLabel"/>
                                     <TextBlock Text="{Binding CpuInfo.Name, FallbackValue='-'}" Classes="ValueText" TextWrapping="Wrap" FontWeight="Bold"/>
                                 </StackPanel>
-                                
+
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="Graphics card" Classes="InfoLabel"/>
                                     <TextBlock Text="{Binding GpuInfo.Name, FallbackValue='-'}" Classes="ValueText" TextWrapping="Wrap" FontWeight="Bold"/>
                                 </StackPanel>
                             </Grid>
-                            
+
                             <Grid Margin="0,12,0,0" ColumnDefinitions="*, *">
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Cores/Threads" Classes="InfoLabel"/>
@@ -295,7 +286,7 @@
                                         <Run Text="{Binding CpuInfo.Cores, FallbackValue='-'}"/> / <Run Text="{Binding CpuInfo.Threads, FallbackValue='-'}"/>
                                     </TextBlock>
                                 </StackPanel>
-                                
+
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="Base Clock" Classes="InfoLabel"/>
                                     <TextBlock Classes="LargeValue">
@@ -303,13 +294,13 @@
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>
-                            
+
                             <Border Classes="StatusBoxSuccess">
                                 <TextBlock Text="{Binding CpuStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
                             </Border>
                         </StackPanel>
                     </Border>
-                    
+
                     <!-- Memory Card -->
                     <Border Grid.Column="1" Classes="CardPanel">
                         <StackPanel>
@@ -317,7 +308,7 @@
                                 <TextBlock Text="🧠" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="Memory" Classes="SectionTitle"/>
                             </StackPanel>
-                            
+
                             <StackPanel>
                                 <TextBlock Text="RAM" Classes="InfoLabel"/>
                                 <StackPanel Orientation="Horizontal">
@@ -325,38 +316,32 @@
                                     <TextBlock Text=" GB" Foreground="#6b7280" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                 </StackPanel>
                             </StackPanel>
-                            
+
                             <StackPanel Margin="0,12,0,0">
                                 <TextBlock Text="Slots" Classes="InfoLabel"/>
                                 <TextBlock Classes="ValueText">
                                     <Run Text="{Binding RamInfo.UsedSlots, FallbackValue='-'}"/> of <Run Text="{Binding RamInfo.TotalSlots, FallbackValue='-'}"/> slots
                                 </TextBlock>
                             </StackPanel>
-                            
+
                             <Border Classes="StatusBoxSuccess">
                                 <TextBlock Text="{Binding RamStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
                             </Border>
                         </StackPanel>
                     </Border>
                 </Grid>
-                
-                <!-- Storage and Battery Cards Row -->
-                <Grid Grid.Row="1" Margin="0,0,0,0" ColumnDefinitions="*, *">
+
+                <!-- Storage and Battery Cards Row — hidden until logged in -->
+                <Grid Grid.Row="1" Margin="0,0,0,0" ColumnDefinitions="*, *"
+                      IsVisible="{Binding IsLoggedIn, FallbackValue=False}">
                     <!-- Storage Card -->
                     <Border Grid.Column="0" Classes="CardPanel">
                         <StackPanel>
-                            <Grid ColumnDefinitions="*, Auto">
-                                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                    <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="Storage" Classes="SectionTitle"/>
-                                </StackPanel>
-                                
-                                <Button Grid.Column="1" Content="📊 Smart test" 
-                                        Command="{Binding RunSmartTestCommand}"
-                                        IsEnabled="{Binding !IsSmartTestRunning}"
-                                        Classes="SmallTestButton"/>
-                            </Grid>
-                            
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💾" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Storage" Classes="SectionTitle"/>
+                            </StackPanel>
+
                             <StackPanel Margin="0,12,0,0">
                                 <TextBlock Text="Total" Classes="InfoLabel"/>
                                 <StackPanel Orientation="Horizontal">
@@ -364,7 +349,7 @@
                                     <TextBlock Text=" GB" Foreground="#6b7280" FontSize="14" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                 </StackPanel>
                             </StackPanel>
-                            
+
                             <ItemsControl ItemsSource="{Binding StorageInfo.Devices}" Margin="0,8,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -377,23 +362,23 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            
+
                             <StackPanel IsVisible="{Binding IsSmartTestRunning}">
-                                <ProgressBar Value="{Binding SmartTestProgress}" 
+                                <ProgressBar Value="{Binding SmartTestProgress}"
                                              Minimum="0" Maximum="100"
-                                             Height="4" 
+                                             Height="4"
                                              Background="#e5e7eb"
-                                             Foreground="#22c55e"
+                                             Foreground="#8B3D88"
                                              Margin="0,8,0,4"/>
                                 <TextBlock Text="{Binding SmartTestStatus}" Foreground="#6b7280" FontSize="10"/>
                             </StackPanel>
-                            
+
                             <Border Classes="StatusBoxSuccess">
                                 <TextBlock Text="{Binding StorageStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
                             </Border>
                         </StackPanel>
                     </Border>
-                    
+
                     <!-- Battery Card -->
                     <Border Grid.Column="1" Classes="CardPanel">
                         <StackPanel>
@@ -401,163 +386,220 @@
                                 <TextBlock Text="🔋" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="Battery" Classes="SectionTitle"/>
                             </StackPanel>
-                            
+
                             <Grid ColumnDefinitions="*, *">
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Charge" Classes="InfoLabel"/>
-                                    <TextBlock Foreground="#22c55e" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI">
-                                        <Run Text="{Binding BatteryInfo.EstimatedChargeRemaining, FallbackValue='-'}"/> %
+                                    <TextBlock Foreground="#8B3D88" FontSize="24" FontWeight="Bold" FontFamily="Segoe UI">
+                                        <Run Text="{Binding BatteryInfo.EstimatedChargeRemaining, FallbackValue='-'}"/>
+                                        <Run Text=" %" FontSize="16"/>
                                     </TextBlock>
                                 </StackPanel>
-                                
+
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="Health" Classes="InfoLabel"/>
                                     <TextBlock Classes="LargeValue">
-                                        <Run Text="{Binding BatteryInfo.HealthPercent, FallbackValue='-'}"/> %
+                                        <Run Text="{Binding BatteryInfo.HealthPercent, FallbackValue='-'}"/>
+                                        <Run Text=" %" FontSize="16" FontWeight="Normal"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>
-                            
+
                             <Border Classes="DeviceItemBox" Margin="0,12,0,0">
                                 <TextBlock Classes="InfoLabel">
-                                <Run Text="Wear: "/> <Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-', TargetNullValue='-'}" Foreground="#22c55e"/>
-                                <Run Text="%  |  Cycles: "/> <Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-', TargetNullValue='-'}" Foreground="#22c55e"/>
+                                    <Run Text="Wear: "/><Run Text="{Binding BatteryInfo.WearLevelPercent, FallbackValue='-', TargetNullValue='-'}" Foreground="#8B3D88"/>
+                                    <Run Text="%  |  Cycles: "/><Run Text="{Binding BatteryInfo.CycleCount, FallbackValue='-', TargetNullValue='-'}" Foreground="#8B3D88"/>
                                 </TextBlock>
                             </Border>
-                            
+
                             <Border Classes="StatusBoxSuccess">
                                 <TextBlock Text="{Binding BatteryStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI"/>
                             </Border>
                         </StackPanel>
                     </Border>
                 </Grid>
-                
-                <!-- Devices Card -->
-                <Border Grid.Row="2" Classes="CardPanel" Margin="5,0,5,0">
-                    <Grid ColumnDefinitions="*, Auto">
-                        <StackPanel Grid.Column="0">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                <TextBlock Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="Devices" Classes="SectionTitle"/>
+
+                <!-- Devices + Security Row — hidden until logged in -->
+                <Grid Grid.Row="2" Margin="5,0,5,0" ColumnDefinitions="*, *"
+                      IsVisible="{Binding IsLoggedIn, FallbackValue=False}">
+
+                    <!-- Devices Card -->
+                    <Border Grid.Column="0" Classes="CardPanel">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="🔌" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Devices" Classes="SectionTitle"/>
+                                </StackPanel>
+
+                                <Grid ColumnDefinitions="*, *, *" RowDefinitions="Auto, Auto, Auto">
+                                    <!-- Row 1: Input Devices label -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="Input Devices" Classes="InfoLabel" Margin="0,0,0,6"/>
+
+                                    <!-- Keyboard -->
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="Keyboard" Classes="ValueText" VerticalAlignment="Center"/>
+                                        <Button Content="Test"
+                                                Command="{Binding OpenKeyboardTestCommand}"
+                                                Classes="SmallTestButton"
+                                                IsEnabled="{Binding IsInteractionEnabled, FallbackValue=True}"
+                                                Margin="10,0,0,0"
+                                                ToolTip.Tip="Test all keyboard keys"/>
+                                    </StackPanel>
+
+                                    <!-- Trackpad -->
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="Trackpad" Classes="ValueText" VerticalAlignment="Center"/>
+                                        <Button Content="Test"
+                                                Command="{Binding OpenTrackpadTestCommand}"
+                                                Classes="SmallTestButton"
+                                                IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
+                                                Margin="10,0,0,0"
+                                                ToolTip.Tip="Test trackpad movement, clicks, and scroll"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Camera row -->
+                                <TextBlock Text="Camera" Classes="InfoLabel" Margin="0,12,0,6"/>
+                                <Grid ColumnDefinitions="*, *, *">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="Webcam" Classes="ValueText" VerticalAlignment="Center"/>
+                                        <Button Content="Test A/V"
+                                                Command="{Binding OpenAudioVideoTestCommand}"
+                                                Classes="SmallTestButton"
+                                                IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
+                                                Margin="10,0,0,0"
+                                                ToolTip.Tip="Test Speakers, Microphone, and Camera"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- USB Controllers -->
+                                <TextBlock Text="USB  Controllers" Classes="InfoLabel" Margin="0,12,0,6"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" Classes="LargeValue"/>
+                                    <TextBlock Text=" Total" Foreground="#6b7280" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                                    <Button Content="Test"
+                                            Command="{Binding OpenUsbPortTestCommand}"
+                                            Classes="SmallTestButton"
+                                            IsEnabled="{Binding IsOtherDeviceTestsEnabled, FallbackValue=True}"
+                                            Margin="15,0,0,0"
+                                            ToolTip.Tip="Test each USB port by plugging in a device"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
+                                        <TextBlock Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}" Classes="InfoLabel"/>
+                                        <TextBlock Text=" USB 3.x .. " Classes="InfoLabel"/>
+                                        <TextBlock Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}" Classes="InfoLabel"/>
+                                        <TextBlock Text=" USB 2.0" Classes="InfoLabel"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Classes="StatusBoxSuccess" Margin="0,12,0,0">
+                                    <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                                </Border>
                             </StackPanel>
-                            
-                            <Grid ColumnDefinitions="*, *, *" RowDefinitions="Auto, Auto, Auto">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="Input Devices" Classes="InfoLabel" Margin="0,0,0,6"/>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="Keyboard" Classes="ValueText" VerticalAlignment="Center"/>
-                                    <Button Content="Test" 
-                                            Command="{Binding OpenKeyboardTestCommand}"
-                                            Classes="SmallTestButton"
-                                            Margin="10,0,0,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Security Card -->
+                    <Border Grid.Column="1" Classes="CardPanel">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock Text="🛡️" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Security" Classes="SectionTitle"/>
                                 </StackPanel>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="Trackpad" Classes="ValueText" VerticalAlignment="Center"/>
-                                    <Button Content="Test" 
-                                            Command="{Binding OpenTrackpadTestCommand}"
-                                            Classes="SmallTestButton"
-                                            Margin="10,0,0,0"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="Mouse" Classes="ValueText" VerticalAlignment="Center"/>
-                                    <Button Content="Test" 
-                                            Classes="SmallTestButton"
-                                            Margin="10,0,0,0"
-                                            IsEnabled="False"/>
-                                </StackPanel>
-                            </Grid>
-                            
-                            <!-- Camera / Display -->
-                            <TextBlock Text="Camera/Display" Classes="InfoLabel" Margin="0,12,0,6"/>
-                            <Grid ColumnDefinitions="*, *, *">
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Text="Webcam" Classes="ValueText" VerticalAlignment="Center"/>
-                                    <Button Content="Test A/V" 
-                                            Command="{Binding OpenAudioVideoTestCommand}"
-                                            Classes="SmallTestButton"
-                                            Margin="10,0,0,0"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4">
-                                    <TextBlock Classes="ValueText" VerticalAlignment="Center">
-                                        <Run Text="Display "/> <Run Text="{Binding DevicesInfo.Displays.Count, Mode=OneWay, FallbackValue='0'}"/>
-                                    </TextBlock>
-                                    <Button Content="Test" 
-                                            Classes="SmallTestButton"
-                                            Margin="10,0,0,0"
-                                            IsEnabled="False"/>
-                                </StackPanel>
-                            </Grid>
-                            
-                            <!-- USB -->
-                            <TextBlock Text="USB  Controllers" Classes="InfoLabel" Margin="0,12,0,6"/>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding DevicesInfo.TotalUsbPorts, Mode=OneWay, FallbackValue='0'}" Classes="LargeValue"/>
-                                <TextBlock Text=" Total" Foreground="#6b7280" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
-                                <Button Content="Test" 
-                                        Command="{Binding OpenUsbPortTestCommand}"
+
+                                <Button Grid.Column="1"
+                                        Content="Refresh"
+                                        Command="{Binding RefreshSecurityCommand}"
+                                        IsEnabled="{Binding IsSecurityRefreshEnabled, FallbackValue=True}"
                                         Classes="SmallTestButton"
-                                        Margin="15,0,0,0"/>
-                                <TextBlock Classes="InfoLabel" VerticalAlignment="Center" Margin="15,0,0,0">
-                                    <Run Text="{Binding DevicesInfo.Usb3Ports, Mode=OneWay, FallbackValue='0'}"/> USB 3.x .. 
-                                    <Run Text="{Binding DevicesInfo.Usb2Ports, Mode=OneWay, FallbackValue='0'}"/> USB 2.0
-                                </TextBlock>
+                                        Padding="10,6"
+                                        ToolTip.Tip="Refresh Windows activation and antivirus status"/>
+                            </Grid>
+
+                            <StackPanel>
+                                <TextBlock Text="Windows Activation" Classes="InfoLabel"/>
+                                <TextBlock Text="{Binding WindowsActivationStatus, FallbackValue='Not scanned'}" Classes="ValueText" TextWrapping="Wrap"/>
                             </StackPanel>
-                            
+
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock Text="Antivirus" Classes="InfoLabel"/>
+                                <TextBlock Text="{Binding AntivirusStatus, FallbackValue='Not scanned'}" Classes="ValueText" TextWrapping="Wrap"/>
+                            </StackPanel>
+
                             <Border Classes="StatusBoxSuccess" Margin="0,12,0,0">
-                                <TextBlock Text="{Binding DevicesStatus, FallbackValue='Not scanned'}" Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
+                                <TextBlock Text="Security checks reflect Windows license and antivirus status only."
+                                           Foreground="#15803d" FontSize="12" FontFamily="Segoe UI" TextWrapping="Wrap"/>
                             </Border>
                         </StackPanel>
-                        
-                        <!-- Smart test button on right -->
-                        <Button Grid.Column="1" Content="📊 Smart test" 
-                                Classes="SmallTestButton"
-                                VerticalAlignment="Top"
-                                IsEnabled="False"/>
-                    </Grid>
-                </Border>
-                
-                <!-- Test Results Grid -->
-                <Border Grid.Row="3" Classes="CardPanel" Margin="5,5,5,0">
+                    </Border>
+                </Grid>
+
+                <!-- Test Results List -->
+                <Border Grid.Row="3" Classes="CardPanel" Margin="5,5,5,0"
+                        IsVisible="{Binding IsResultsSectionVisible, FallbackValue=False}">
                     <Grid RowDefinitions="Auto, *">
                         <TextBlock Grid.Row="0" Text="Test Results" Classes="SectionTitle" Margin="0,0,0,12"/>
-                        
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="200">
-                            <ItemsControl ItemsSource="{Binding Results}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="8,10">
-                                            <Grid ColumnDefinitions="80, 100, *, Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#22c55e" FontWeight="Medium" VerticalAlignment="Center" FontFamily="Segoe UI"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
-                                                <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#1f2937" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="Segoe UI"/>
-                                                
-                                                <!-- Pass/Fail Badge -->
-                                                <Border Grid.Column="3" CornerRadius="4" Padding="8,4" Margin="10,0,0,0" VerticalAlignment="Center"
-                                                        Background="{Binding Passed, Converter={StaticResource BoolToColorConverter}, ConverterParameter=bg}">
-                                                    <TextBlock Text="{Binding Status}" FontWeight="Medium" FontSize="11" FontFamily="Segoe UI"
-                                                               Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}, ConverterParameter=fg}"/>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+
+                        <Grid Grid.Row="1">
+                            <!-- Results list -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                                <ItemsControl ItemsSource="{Binding Results}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="8,10">
+                                                <Grid ColumnDefinitions="80, 100, *, Auto">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Component}" Foreground="#8B3D88" FontWeight="Medium" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Test}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Details}" Foreground="#1f2937" VerticalAlignment="Center" TextWrapping="Wrap" FontFamily="Segoe UI"/>
+
+                                                    <!-- Pass/Fail Badge -->
+                                                    <Border Grid.Column="3" CornerRadius="4" Padding="8,4" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                            Background="{Binding Passed, Converter={StaticResource BoolToColorConverter}, ConverterParameter=bg}">
+                                                        <TextBlock Text="{Binding Status}" FontWeight="Medium" FontSize="11" FontFamily="Segoe UI"
+                                                                   Foreground="{Binding Passed, Converter={StaticResource BoolToColorConverter}, ConverterParameter=fg}"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- Overlay for Trial Mode -->
+                            <Border IsVisible="{Binding IsTrial, FallbackValue=False}"
+                                    Background="#40FFFFFF" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" CornerRadius="4">
+                                <Border Background="White" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        Padding="24,16" CornerRadius="8" BorderBrush="#e5e7eb" BorderThickness="1"
+                                        BoxShadow="0 4 6 0 #1A000000">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🔒 Results Locked" FontSize="16" FontWeight="SemiBold" Foreground="#8B3D88" HorizontalAlignment="Center" FontFamily="Segoe UI"/>
+                                        <TextBlock Foreground="#6b7280" FontSize="13" Margin="0,8,0,0" HorizontalAlignment="Center" FontFamily="Segoe UI">
+                                            <Run Text="Activate "/>
+                                            <Run Text="PRAMAAN"/>
+                                            <Run Text=" to unlock detailed test results."/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>
-            
+
             <!-- Status Bar -->
             <Border Grid.Row="4" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="6" Padding="15,10" Margin="5,10,5,0">
                 <Grid>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#6b7280" VerticalAlignment="Center" FontFamily="Segoe UI"/>
-                    <ProgressBar IsIndeterminate="{Binding IsScanning}" 
-                                 Height="3" 
+                    <ProgressBar IsIndeterminate="{Binding IsScanning}"
+                                 Height="3"
                                  Background="Transparent"
-                                 Foreground="#22c55e"
+                                 Foreground="#8B3D88"
                                  VerticalAlignment="Bottom"
                                  IsVisible="{Binding IsScanning}"/>
                 </Grid>

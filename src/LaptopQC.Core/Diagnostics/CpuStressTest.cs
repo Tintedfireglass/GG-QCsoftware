@@ -176,7 +176,7 @@ public class CpuStressTest : ICpuStressTest
 
     private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, ISensorProvider sensors)
     {
-        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "stress_debug.log");
+        var logPath = Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "stress_debug.log");
         
         try
         {
@@ -232,7 +232,7 @@ public class CpuStressTest : ICpuStressTest
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "monitor_crash.log"), ex.ToString());
+            File.WriteAllText(Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "monitor_crash.log"), ex.ToString());
         }
     }
 

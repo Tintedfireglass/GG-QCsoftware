@@ -50,6 +50,14 @@ public class SmartTestService : ISmartTestService
                 var key = BuildModelSerialKey(smartData.Model, smartData.SerialNumber);
                 if (usbRemovable.ModelSerials.Contains(key))
                     continue;
+
+                var smartSerial = smartData.SerialNumber.Trim();
+                if (!string.IsNullOrWhiteSpace(smartSerial) && usbRemovable.Serials.Contains(smartSerial))
+                    continue;
+
+                var smartModel = smartData.Model.Trim();
+                if (!string.IsNullOrWhiteSpace(smartModel) && usbRemovable.Models.Any(m => m.Contains(smartModel, StringComparison.OrdinalIgnoreCase) || smartModel.Contains(m, StringComparison.OrdinalIgnoreCase)))
+                    continue;
             }
 
             var model = smartData?.Model;
@@ -57,6 +65,9 @@ public class SmartTestService : ISmartTestService
                 model = drive.DevicePath;
             if (string.IsNullOrWhiteSpace(model))
                 model = "Unknown";
+
+            if (model.Contains("usb", StringComparison.OrdinalIgnoreCase))
+                continue;
 
             devices.Add(new SmartDriveInfo
             {
@@ -252,6 +263,11 @@ public class SmartTestService : ISmartTestService
                 var serial = obj["SerialNumber"]?.ToString() ?? "";
                 if (!string.IsNullOrWhiteSpace(model) && !string.IsNullOrWhiteSpace(serial))
                     info.ModelSerials.Add(BuildModelSerialKey(model, serial));
+                
+                if (!string.IsNullOrWhiteSpace(serial))
+                    info.Serials.Add(serial.Trim());
+                if (!string.IsNullOrWhiteSpace(model))
+                    info.Models.Add(model.Trim());
             }
         }
         catch
@@ -276,8 +292,10 @@ public class SmartTestService : ISmartTestService
 
     private sealed class UsbRemovableInfo
     {
-        public HashSet<string> DeviceIds { get; } = new();
-        public HashSet<string> ModelSerials { get; } = new();
+        public HashSet<string> DeviceIds { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> ModelSerials { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> Serials { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> Models { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }
 #endif

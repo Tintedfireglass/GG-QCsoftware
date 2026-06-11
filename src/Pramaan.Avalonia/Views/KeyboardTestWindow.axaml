@@ -26,8 +26,8 @@
         </Style>
         <!-- Tested key background -->
         <Style Selector="Border.tested">
-            <Setter Property="Background" Value="#22c55e"/>
-            <Setter Property="BorderBrush" Value="#16a34a"/>
+            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="BorderBrush" Value="#7A3376"/>
         </Style>
         <Style Selector="TextBlock.key_label">
             <Setter Property="Foreground" Value="#6b7280"/>
@@ -58,7 +58,7 @@
         
         <!-- Complete button -->
         <Style Selector="Button.completeBtn">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -69,11 +69,11 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.completeBtn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.completeBtn:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#5C2B5C"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
     </Window.Styles>
@@ -99,7 +99,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
                     <TextBlock Text="Keyboard Test" 
                                FontSize="20" FontWeight="SemiBold" 
-                               Foreground="#22c55e" FontFamily="Segoe UI"
+                               Foreground="#8B3D88" FontFamily="Segoe UI"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
@@ -126,7 +126,7 @@
                              Minimum="0" Maximum="100"
                              Height="8" 
                              Background="#e5e7eb"
-                             Foreground="#22c55e"/>
+                             Foreground="#8B3D88"/>
                 <TextBlock Text="{Binding ProgressText}" 
                            Foreground="#6b7280" 
                            FontFamily="Segoe UI"

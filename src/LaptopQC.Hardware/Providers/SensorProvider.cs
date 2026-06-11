@@ -73,7 +73,7 @@ public class SensorProvider : ISensorProvider
                 catch { /* Performance counter not available */ }
                 
                 // Debug Log
-                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sensor_init.log");
+                var logPath = Path.Combine(Path.GetTempPath(), "sensor_init.log");
                 using var w = new StreamWriter(logPath, append: false);
                 w.WriteLine($"Initialized at {DateTime.Now}");
                 w.WriteLine($"WMI Base Clock: {_wmiBaseClockMHz} MHz");
@@ -87,7 +87,7 @@ public class SensorProvider : ISensorProvider
             }
             catch (Exception ex)
             {
-                File.WriteAllText("sensor_error.txt", ex.ToString());
+                File.WriteAllText(Path.Combine(Path.GetTempPath(), "sensor_error.txt"), ex.ToString());
             }
         }
     }
@@ -160,10 +160,10 @@ public class SensorProvider : ISensorProvider
         catch { }
         
         // Log failure for debugging
-        if (!File.Exists("temp_debug.log"))
+        var debugPath = Path.Combine(Path.GetTempPath(), "temp_debug.log");
+        if (!File.Exists(debugPath))
         {
-            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp_debug.log");
-            using var w = new StreamWriter(logPath);
+            using var w = new StreamWriter(debugPath);
             w.WriteLine($"Failed to find temp - CPU: {cpu?.Name ?? "null"}");
             if (cpu != null)
             {

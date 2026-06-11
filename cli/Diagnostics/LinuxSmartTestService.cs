@@ -93,7 +93,11 @@ public class LinuxSmartTestService : ISmartTestService
 
                 var info = BuildDriveInfo(devPath, devArgs);
                 if (info != null)
+                {
+                    if (info.Model?.Contains("usb", StringComparison.OrdinalIgnoreCase) == true)
+                        continue;
                     devices.Add(info);
+                }
             }
 
             // Fallback for Hardware RAID controllers that are missed by --scan

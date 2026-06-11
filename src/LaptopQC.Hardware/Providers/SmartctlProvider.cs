@@ -110,10 +110,13 @@ public class SmartctlProvider : ISmartctlProvider
         }
         catch (Exception ex)
         {
-            // Log parsing errors
-            File.WriteAllText(
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "smartctl_parse_error.log"),
-                $"{DateTime.Now}: {ex.Message}\n\nOutput:\n{result.Output}");
+            try
+            {
+                File.WriteAllText(
+                    Path.Combine(Path.GetTempPath(), "smartctl_parse_error.log"),
+                    $"Error parsing output:\n{ex}\n\nOutput:\n{result.Output}");
+            }
+            catch { /* Ignore write errors */ }
             return null;
         }
     }
