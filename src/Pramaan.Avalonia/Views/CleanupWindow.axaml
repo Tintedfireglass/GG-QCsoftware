@@ -13,13 +13,13 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.HeaderText">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         <Style Selector="TextBlock.SectionTitle">
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -36,7 +36,7 @@
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -47,7 +47,7 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
         </Style>
         <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#d1d5db"/>
@@ -55,21 +55,21 @@
         </Style>
         <Style Selector="Button.OutlineButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#22c55e"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#22c55e"/>
+            <Setter Property="BorderBrush" Value="#8B3D88"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style Selector="Button.OutlineButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#f0fdf4"/>
+            <Setter Property="Background" Value="#f5f0f5"/>
         </Style>
         <Style Selector="Button.SmallButton">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -256,7 +256,7 @@
                              IsIndeterminate="True"
                              IsVisible="{Binding IsCleaning}"
                              Background="#e5e7eb"
-                             Foreground="#22c55e"/>
+                             Foreground="#8B3D88"/>
                 <ProgressBar Height="4"
                              IsIndeterminate="True"
                              IsVisible="{Binding IsDeepScanning}"

@@ -34,7 +34,7 @@
             <Setter Property="Foreground" Value="#6b7280"/>
         </Style>
         <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -46,7 +46,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
         </Style>
         <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#d1d5db"/>
@@ -84,7 +84,7 @@
             <!-- Loading indicator -->
             <StackPanel Name="LoadingPanel" HorizontalAlignment="Center" Margin="0,0,0,16">
                 <ProgressBar IsIndeterminate="True" Width="200" Height="4"
-                             Background="#e5e7eb" Foreground="#22c55e"/>
+                             Background="#e5e7eb" Foreground="#8B3D88"/>
                 <TextBlock Name="LoadingText" Text="Scanning network adapters..."
                            HorizontalAlignment="Center" Foreground="#6b7280"
                            FontFamily="Segoe UI" FontSize="12" Margin="0,8,0,0"/>

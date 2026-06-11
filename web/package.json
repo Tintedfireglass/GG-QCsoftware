@@ -14,7 +14,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:backup": "node scripts/backup-db.mjs",
-    "db:fix-sequences": "node scripts/fix-sequences.mjs"
+    "db:fix-sequences": "node scripts/fix-sequences.mjs",
+    "db:push-do": "drizzle-kit push --config drizzle.config.do.ts",
+    "db:migrate-to-do": "node scripts/migrate-supabase-to-do.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1066.0",

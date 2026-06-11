@@ -365,13 +365,13 @@ public class GpuStressTest : IGpuStressTest
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gpu_stress_error.log"), ex.ToString());
+            File.WriteAllText(Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "gpu_stress_error.log"), ex.ToString());
         }
     }
 
     private void MonitorLoop(Stopwatch stopwatch, CancellationToken ct, ISensorProvider sensors)
     {
-        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gpu_stress_debug.log");
+        var logPath = Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "gpu_stress_debug.log");
 
         try
         {
@@ -423,7 +423,7 @@ public class GpuStressTest : IGpuStressTest
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gpu_monitor_crash.log"), ex.ToString());
+            File.WriteAllText(Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "gpu_monitor_crash.log"), ex.ToString());
         }
     }
 }

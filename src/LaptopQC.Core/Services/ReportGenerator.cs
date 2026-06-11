@@ -484,7 +484,7 @@ public class ReportGenerator
     {
         var html = GenerateHtmlReport(report);
         
-        var folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reports");
+        var folder = Path.Combine(LaptopQC.Core.Models.AppPaths.AppDataDir, "Reports");
         Directory.CreateDirectory(folder);
         
         var filename = $"QC_Report_{report.RefurbishId}_{report.Timestamp:yyyyMMdd_HHmmss}.html";

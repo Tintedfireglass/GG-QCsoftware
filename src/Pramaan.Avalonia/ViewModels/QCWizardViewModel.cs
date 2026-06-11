@@ -98,6 +98,32 @@ public partial class QCWizardViewModel : ObservableObject
     [ObservableProperty]
     private string _submissionStatus = "";
 
+    // Submission status color — computed from text
+    public string SubmissionStatusColor => SubmissionStatus.StartsWith("Submitted")
+        ? "#15803d"
+        : SubmissionStatus.StartsWith("Failed") || SubmissionStatus.StartsWith("Submission error") || SubmissionStatus.StartsWith("Activation")
+            ? "#dc2626"
+            : "#6b7280";
+
+    partial void OnSubmissionStatusChanged(string value) => OnPropertyChanged(nameof(SubmissionStatusColor));
+
+    // QR Code — not yet implemented in Avalonia; placeholder
+    public bool HasQrCode => false;
+    public object? QrCodeImage => null;
+
+    // WiFi live status for individual display
+    [ObservableProperty]
+    private bool _isWifiLiveConnected;
+
+    [ObservableProperty]
+    private string _wifiLiveStatusText = "WiFi: Not connected";
+
+    [ObservableProperty]
+    private bool _isEthernetLiveConnected;
+
+    [ObservableProperty]
+    private string _ethernetLiveStatusText = "Ethernet: Not connected";
+
     private readonly QCSubmissionService _submissionService;
 
     public QCWizardViewModel()
@@ -261,7 +287,7 @@ public partial class QCWizardViewModel : ObservableObject
         {
             var interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(n => n.OperationalStatus == OperationalStatus.Up
-                         && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+                             && n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
 
             bool wifi = false, ethernet = false;
             string wifiName = "", ethName = "";
@@ -285,6 +311,12 @@ public partial class QCWizardViewModel : ObservableObject
                     { ethernet = true; ethName = ni.Name ?? "Unknown"; }
             }
 
+            IsWifiLiveConnected = wifi;
+            WifiLiveStatusText = wifi ? $"WiFi: {wifiName}" : "WiFi: Not connected";
+            IsEthernetLiveConnected = ethernet;
+            EthernetLiveStatusText = ethernet ? $"Ethernet: {ethName}" : "Ethernet: Not connected";
+
+            // Also update combined NetworkLiveStatus for backward compat
             var parts = new List<string>();
             parts.Add(wifi ? $"WiFi: {wifiName}" : "WiFi: Not connected");
             parts.Add(ethernet ? $"Ethernet: {ethName}" : "Ethernet: Not connected");
