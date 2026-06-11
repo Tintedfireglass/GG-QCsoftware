@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
 import {
     LayoutDashboard,
-    ClipboardList,
+    Layers,
     Monitor,
     LogOut,
     Users,
@@ -15,7 +15,6 @@ import {
     Shield,
     Key,
     Server,
-    Smartphone,
     Hourglass,
     CreditCard,
     Package,
@@ -27,6 +26,7 @@ import {
     AtSign,
     DownloadCloud,
     MessageSquare,
+    LifeBuoy,
     Code2
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
@@ -50,9 +50,9 @@ export function Sidebar() {
             icon: LayoutDashboard
         },
         {
-            href: "/dashboard/results",
-            label: "QC Results",
-            icon: ClipboardList
+            href: "/dashboard/reports",
+            label: "All Reports",
+            icon: Layers
         },
         // Fleet Management – hidden while still in development
         // {
@@ -61,12 +61,6 @@ export function Sidebar() {
         //     icon: Server,
         //     roles: ['Enterprise'],
         // },
-        {
-            href: "/dashboard/mobile-reports",
-            label: "Mobile Reports",
-            icon: Smartphone,
-            roles: ['SuperAdmin', 'Reseller', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer'] // B2C Android QC reports
-        },
         {
             href: "/dashboard/machines",
             label: "Machines",
@@ -119,6 +113,12 @@ export function Sidebar() {
             href: "/dashboard/contacts",
             label: "Contacts",
             icon: Mail,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/support",
+            label: "Support",
+            icon: LifeBuoy,
             roles: ['SuperAdmin']
         },
         {
