@@ -258,10 +258,10 @@ export default function ResultDetailPage() {
         <div className="space-y-6 max-w-5xl mx-auto pb-10">
             {/* Header Navigation */}
             <div className="flex items-center justify-between no-print">
-                <Link href="/dashboard/results">
+                <Link href="/dashboard/reports">
                     <Button variant="ghost" size="sm">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Results
+                        Back to Reports
                     </Button>
                 </Link>
                 <div className="space-x-2">

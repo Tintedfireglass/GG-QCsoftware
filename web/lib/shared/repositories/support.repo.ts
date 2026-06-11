@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db, schema } from '@/lib/drizzle';
 
-const { supportTickets } = schema;
+const { supportTickets, supportTicketMessages } = schema;
 
 export interface NewTicket {
     ticketId: string;
@@ -37,7 +37,8 @@ export async function listForCustomer(
     p: { limit: number; offset: number }
 ): Promise<{ rows: Record<string, unknown>[]; total: number }> {
     const { rows } = await db.execute(sql`
-        SELECT ticket_id, subject, category, message, status, priority, created_at, updated_at
+        SELECT ticket_id, subject, category, message, status, priority, created_at, updated_at,
+               (SELECT COUNT(*)::int FROM support_ticket_messages m WHERE m.ticket_id = support_tickets.id) AS message_count
         FROM support_tickets
         WHERE customer_user_id = ${customerId}
         ORDER BY created_at DESC
@@ -96,6 +97,49 @@ export async function updateTicket(
 }
 
 export async function deleteTicket(id: number): Promise<boolean> {
+    await db.execute(sql`DELETE FROM support_ticket_messages WHERE ticket_id = ${id}`);
     const { rows } = await db.execute(sql`DELETE FROM support_tickets WHERE id = ${id} RETURNING id`);
     return rows.length > 0;
+}
+
+// ── Conversation messages ───────────────────────────────────────────────────────
+export async function getTicketById(id: number): Promise<Record<string, unknown> | null> {
+    const { rows } = await db.execute(sql`
+        SELECT id, ticket_id, customer_user_id, status FROM support_tickets WHERE id = ${id}`);
+    return (rows[0] as Record<string, unknown>) ?? null;
+}
+
+export async function getTicketForCustomer(ticketId: string, customerId: number): Promise<Record<string, unknown> | null> {
+    const { rows } = await db.execute(sql`
+        SELECT id, ticket_id, status FROM support_tickets
+        WHERE ticket_id = ${ticketId} AND customer_user_id = ${customerId}`);
+    return (rows[0] as Record<string, unknown>) ?? null;
+}
+
+export async function listMessages(ticketDbId: number): Promise<Record<string, unknown>[]> {
+    const { rows } = await db.execute(sql`
+        SELECT id, sender, sender_admin_id, body, created_at
+        FROM support_ticket_messages
+        WHERE ticket_id = ${ticketDbId}
+        ORDER BY created_at ASC, id ASC`);
+    return rows as Record<string, unknown>[];
+}
+
+export async function insertMessage(m: {
+    ticketDbId: number;
+    sender: 'admin' | 'customer';
+    senderAdminId: number | null;
+    body: string;
+}): Promise<{ id: number; created_at: string }> {
+    const rows = await db
+        .insert(supportTicketMessages)
+        .values({
+            ticketId: m.ticketDbId,
+            sender: m.sender,
+            senderAdminId: m.senderAdminId,
+            body: m.body,
+        })
+        .returning({ id: supportTicketMessages.id, created_at: supportTicketMessages.createdAt });
+    await db.execute(sql`UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ${m.ticketDbId}`);
+    return rows[0];
 }

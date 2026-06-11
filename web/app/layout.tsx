@@ -1,5 +1,3 @@
-"use client"
-
 import { AuthProvider } from "@/components/auth-provider"
 import { Inter } from "next/font/google"
 import "./globals.css"

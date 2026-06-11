@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, ChevronRight as Arrow, Smartphone } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Smartphone, Eye, Printer } from "lucide-react"
 import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDbDateTime } from "@/lib/utils"
+import { getGradeStyle } from "@/lib/platforms/windows/grades"
 
 const TYPE_OPTIONS = ["", "FULL_QC", "BASIC_QC", "BATTERY", "DISPLAY", "SENSORS", "STRESS_TEST", "SINGLE"]
 const TYPE_LABELS: Record<string, string> = {
@@ -24,7 +25,8 @@ const TYPE_LABELS: Record<string, string> = {
 function resultBadge(r: MobileReportRow) {
     const v = (r.result || "").toUpperCase()
     if (r.grade) {
-        return <span className="inline-flex items-center rounded-lg px-2.5 py-1 text-sm font-bold bg-[var(--brand-purple)]/10 text-[var(--brand-purple)]">{r.grade}{r.score != null ? `-${r.score}` : ""}</span>
+        const style = getGradeStyle(r.grade)
+        return <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-sm font-bold ${style.bg} ${style.text}`}>{r.grade}{r.score != null ? `-${r.score}` : ""}</span>
     }
     if (v === "PASSED" || v === "PASS") {
         return <span className="font-medium text-emerald-600 flex items-center gap-1.5 text-xs"><div className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> Passed</span>
@@ -130,6 +132,7 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                             </div>
                             <div className="font-bold text-slate-900 text-sm">{r.deviceModel || r.deviceId}</div>
                             <div className="text-xs text-slate-500 mt-1">{r.customer.name || "—"} · {r.customer.phone || r.customer.email || "—"}</div>
+                            <div className="font-mono text-[11px] text-slate-400 mt-1 break-all">Test ID: {r.reportId}</div>
                             {r.reseller && <div className="text-xs text-slate-400 mt-1">Reseller: {r.reseller.name}</div>}
                             <div className="text-xs text-slate-400 mt-2">{r.testedAt ? formatDbDateTime(r.testedAt) : "—"}</div>
                         </Link>
@@ -141,22 +144,26 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                     <table className="w-full table-auto caption-bottom text-sm text-left min-w-[1000px]">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr>
+                                <th className="h-10 px-2 font-medium text-slate-500 w-[160px]">Test ID</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[150px]">Type</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[110px]">Result</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 max-w-[180px]">Device</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 max-w-[180px]">Customer</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[150px]">Reseller</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[140px]">Date</th>
-                                <th className="h-10 px-2 font-medium text-slate-500 text-right w-[90px]">Action</th>
+                                <th className="h-10 px-2 font-medium text-slate-500 text-right w-[110px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={7} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={8} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : reports.length === 0 ? (
-                                <tr><td colSpan={7} className="p-8 text-center text-slate-500">No mobile reports found</td></tr>
+                                <tr><td colSpan={8} className="p-8 text-center text-slate-500">No mobile reports found</td></tr>
                             ) : reports.map((r) => (
                                 <tr key={r.reportId} className="border-b border-slate-100 hover:bg-slate-50/50">
+                                    <td className="p-2 align-middle">
+                                        <span className="font-mono text-[11px] text-slate-600 break-all" title={r.reportId}>{r.reportId}</span>
+                                    </td>
                                     <td className="p-2 align-middle">
                                         <span className="font-medium text-slate-900">{TYPE_LABELS[r.reportType] || r.reportType}</span>
                                         {r.testType && <div className="text-xs text-slate-400">{r.testType}</div>}
@@ -174,12 +181,19 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                                         {r.reseller ? <span className="truncate" title={r.reseller.name || ""}>{r.reseller.name}</span> : <span className="text-slate-300">—</span>}
                                     </td>
                                     <td className="p-2 align-middle text-slate-500 text-xs">{r.testedAt ? formatDbDateTime(r.testedAt) : "—"}</td>
-                                    <td className="p-2 align-middle text-right">
-                                        <Link href={`/dashboard/mobile-reports/${encodeURIComponent(r.reportId)}`}>
-                                            <Button variant="outline" size="sm" className="rounded-full px-4 border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] h-8">
-                                                VIEW <Arrow className="h-3 w-3 ml-1" />
-                                            </Button>
-                                        </Link>
+                                    <td className="p-2 align-middle">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <Link href={`/dashboard/mobile-reports/${encodeURIComponent(r.reportId)}`} title="View report">
+                                                <Button variant="outline" size="icon" className="h-8 w-8 rounded-full border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)]">
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                            <Link href={`/mobile-report/${encodeURIComponent(r.reportId)}`} target="_blank" title="Print report">
+                                                <Button variant="outline" size="icon" className="h-8 w-8 rounded-full border-slate-200 text-slate-700 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)]">
+                                                    <Printer className="h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

@@ -173,7 +173,7 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* Issues Card — always visible, all roles */}
-                <Link href="/dashboard/results?hasIssues=true">
+                <Link href="/dashboard/reports?hasIssues=true">
                     <Card className={cn(
                         "shadow-none cursor-pointer transition-colors",
                         issueStats.devicesWithIssues > 0
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                         </Card>
                     </Link>
 
-                    <Link href="/dashboard/results">
+                    <Link href="/dashboard/reports">
                         <Card className="cursor-pointer hover:border-[var(--brand-purple)] transition-colors shadow-none border border-slate-200">
                             <CardContent className="flex items-center gap-4 p-6">
                                 <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center">
@@ -513,7 +513,7 @@ export default function DashboardPage() {
 
                     {stats.recentTests.length > 0 && (
                         <div className="mt-6 text-center">
-                            <Link href="/dashboard/results">
+                            <Link href="/dashboard/reports">
                                 <Button variant="outline" className="border-slate-200 text-slate-700 hover:text-[var(--brand-purple)]">
                                     View All Results
                                 </Button>

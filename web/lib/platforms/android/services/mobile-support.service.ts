@@ -1,7 +1,8 @@
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
+import { MobileError } from '@/lib/platforms/android/http';
 import * as repo from '@/lib/shared/repositories/support.repo';
-import { supportContactSchema, supportListQuerySchema } from '@/lib/platforms/android/domain/schemas/mobile';
+import { supportContactSchema, supportListQuerySchema, supportMessageSchema } from '@/lib/platforms/android/domain/schemas/mobile';
 
 interface Ctx {
     customerId: number;
@@ -37,6 +38,7 @@ export async function listMyTickets(customerId: number, query: z.infer<typeof su
         message: r.message,
         status: r.status,
         priority: r.priority,
+        messageCount: Number(r.message_count ?? 0),
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     }));
@@ -51,4 +53,39 @@ export async function listMyTickets(customerId: number, query: z.infer<typeof su
             },
         },
     };
+}
+
+// ── Conversation (customer ⇄ support) ───────────────────────────────────────────
+// sender_admin_id stays internal — the app only sees sender: 'admin' | 'customer'.
+export async function listMyTicketMessages(customerId: number, ticketId: string) {
+    const ticket = await repo.getTicketForCustomer(ticketId, customerId);
+    if (!ticket) throw new MobileError(404, 'NOT_FOUND', 'Ticket not found');
+    const rows = await repo.listMessages(Number(ticket.id));
+    return {
+        data: {
+            ticketId,
+            status: ticket.status,
+            messages: rows.map((r) => ({
+                id: r.id,
+                sender: r.sender,
+                message: r.body,
+                createdAt: r.created_at,
+            })),
+        },
+    };
+}
+
+export async function replyToTicket(customerId: number, ticketId: string, body: z.infer<typeof supportMessageSchema>) {
+    const ticket = await repo.getTicketForCustomer(ticketId, customerId);
+    if (!ticket) throw new MobileError(404, 'NOT_FOUND', 'Ticket not found');
+    if (ticket.status === 'closed') {
+        throw new MobileError(409, 'TICKET_CLOSED', 'This ticket is closed. Please raise a new ticket.');
+    }
+    const saved = await repo.insertMessage({
+        ticketDbId: Number(ticket.id),
+        sender: 'customer',
+        senderAdminId: null,
+        body: body.message,
+    });
+    return { data: { id: saved.id, ticketId, createdAt: saved.created_at } };
 }
