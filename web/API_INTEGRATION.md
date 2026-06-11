@@ -1,7 +1,7 @@
 # PRAMAAN Mobile — API Integration Notes
 
 This document records how the Android app integrates the backend API, and **every place the app differs from `PRAMAAN_Mobile_API.postman_collection.json`** (including endpoints added to the collection during integration). Keep it in sync when the contract changes.
-  .. .. 
+
 - **Base URL:** `https://pramaan-dashboard.gadgetguruz.com` — wired via `BuildConfig.BASE_URL` (per build type in `app/build.gradle.kts`), Retrofit appends a trailing `/`.
 - **Auth:** phone + OTP → 30-day customer JWT. Stored in DataStore (`core/session/SessionManager`) and attached as `Authorization: Bearer <token>` by `core/network/AuthInterceptor` on every request once logged in.
 - **Envelope (mobile API):** success `{ success: true, message?, data? }`, error `{ success: false, error: { code, message, details? } }`. Parsed by `core/network/ApiEnvelope` + `safeApiCall`. Repositories return `AppResult.Success/Error` (`core/result/AppResult`).
