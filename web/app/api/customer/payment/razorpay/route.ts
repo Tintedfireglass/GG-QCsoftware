@@ -47,20 +47,14 @@ export async function GET(request: NextRequest) {
     if (!Number.isInteger(amount) || amount <= 0) {
         return errorPage('Invalid payment amount.');
     }
-    // Only allow safe callback URLs to avoid open redirects / data exfiltration.
+    // Only allow same-origin callback URLs to avoid open redirects / data exfiltration.
     let callback: URL;
     try {
         callback = new URL(callbackUrl, request.nextUrl.origin);
     } catch {
         return errorPage('Invalid callback URL.');
     }
-    
-    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin : null;
-    const isAllowed = callback.origin === request.nextUrl.origin || 
-                      (allowedOrigin && callback.origin === allowedOrigin) ||
-                      callback.hostname === request.nextUrl.hostname;
-
-    if (!isAllowed) {
+    if (callback.origin !== request.nextUrl.origin) {
         return errorPage('Invalid callback URL.');
     }
 

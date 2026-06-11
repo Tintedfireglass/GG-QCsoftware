@@ -85,14 +85,7 @@ export async function createCheckout(customerId: number, email: string, appBaseU
     if (planId) {
         const plan = await plansRepo.findPlanById(db, planId);
         if (!plan || !plan.is_active) throw new NotFoundError('Plan not found or inactive');
-        // The customer_orders.plan column has a CHECK constraint: one of
-        // 'one_time' | 'monthly' | 'yearly' | 'lifetime'. Use billing_type
-        // (+ interval for recurring) — NOT the human-readable plan name.
-        if (plan.billing_type === 'recurring' && plan.interval) {
-            planName = plan.interval; // 'monthly' or 'yearly'
-        } else {
-            planName = plan.billing_type; // 'one_time'
-        }
+        planName = plan.name;
         amountCents = plan.price_cents * qty;
         currency = (plan.currency || 'INR').toUpperCase();
         resolvedPlanId = plan.id;

@@ -54,7 +54,6 @@ export interface PlanEntitlement {
     platform_caps: Record<string, number>;
     duration_days: number | null;
     billing_type: string;
-    interval: string | null;
     allow_auto_renew: boolean;
     is_active: boolean;
 }
@@ -69,7 +68,6 @@ export async function findPlanById(tx: Tx | typeof db, id: number): Promise<Plan
         platform_caps: plans.platformCaps,
         duration_days: plans.durationDays,
         billing_type: plans.billingType,
-        interval: plans.interval,
         allow_auto_renew: plans.allowAutoRenew,
         is_active: plans.isActive,
     }).from(plans).where(eq(plans.id, id)).limit(1);

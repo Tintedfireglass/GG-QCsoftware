@@ -92,27 +92,24 @@ export async function createOrder(v: {
     quantity?: number;
     pendingPassword?: string | null;
 }): Promise<number> {
-    // Use raw SQL to avoid a Drizzle ORM column-binding issue where the
-    // Drizzle schema column ordering diverges from the actual DB column order
-    // (columns added via ALTER TABLE land physically after the originals, but
-    // the schema.ts defines them interleaved). The named-column raw INSERT
-    // is unambiguous and immune to that ordering mismatch.
-    const { rows } = await db.execute(sql`
-        INSERT INTO customer_orders
-            (customer_user_id, plan, plan_id, amount_cents, currency, status,
-             checkout_state, auto_renew, is_renewal,
-             subtotal_cents, discount_cents, coupon_id, quantity, pending_password)
-        VALUES
-            (${v.customerId}, ${v.plan}, ${v.planId}, ${v.amountCents}, ${v.currency},
-             ${v.status ?? 'pending'},
-             ${v.checkoutState}, ${v.autoRenew ?? false}, ${v.isRenewal ?? false},
-             ${v.subtotalCents ?? v.amountCents}, ${v.discountCents ?? 0},
-             ${v.couponId ?? null}, ${v.quantity ?? 1}, ${v.pendingPassword ?? null})
-        RETURNING id
-    `);
-    return (rows[0] as { id: number }).id;
+    const rows = await db.insert(customerOrders).values({
+        customerUserId: v.customerId,
+        plan: v.plan,
+        planId: v.planId,
+        amountCents: v.amountCents,
+        currency: v.currency,
+        status: v.status ?? 'pending',
+        checkoutState: v.checkoutState,
+        autoRenew: v.autoRenew ?? false,
+        isRenewal: v.isRenewal ?? false,
+        subtotalCents: v.subtotalCents ?? v.amountCents,
+        discountCents: v.discountCents ?? 0,
+        couponId: v.couponId ?? null,
+        quantity: v.quantity ?? 1,
+        pendingPassword: v.pendingPassword ?? null,
+    }).returning({ id: customerOrders.id });
+    return rows[0].id;
 }
-
 
 /** Recipient + content for the post-purchase confirmation email. */
 export interface OrderEmailInfo {
@@ -138,11 +135,9 @@ export async function clearPendingPassword(orderId: number): Promise<void> {
 }
 
 export async function updateOrderCheckoutState(orderId: number, state: string): Promise<void> {
-    await db.execute(sql`
-        UPDATE customer_orders
-        SET checkout_state = ${state}, updated_at = NOW()
-        WHERE id = ${orderId}
-    `);
+    await db.update(customerOrders)
+        .set({ checkoutState: state, updatedAt: sql`NOW()` })
+        .where(eq(customerOrders.id, orderId));
 }
 
 // ── Payment callback (transactional) ──
