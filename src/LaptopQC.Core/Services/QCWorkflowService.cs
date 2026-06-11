@@ -245,17 +245,38 @@ public class QCWorkflowService
                     // (e.g. "/dev/sda") on platforms/drivers where smartctl cannot resolve the model reliably.
                     string smartLabel = device.Model;
                     
-                    // Sync SMART data to StorageDetails for the report
+                    string normalizedWmiPath = device.DevicePath;
+#if WINDOWS
+                    if (normalizedWmiPath.StartsWith("/dev/sd", StringComparison.OrdinalIgnoreCase) && normalizedWmiPath.Length >= 8)
+                    {
+                        char letter = char.ToLowerInvariant(normalizedWmiPath[7]);
+                        if (letter >= 'a' && letter <= 'z')
+                        {
+                            int index = letter - 'a';
+                            normalizedWmiPath = $"\\\\.\\PHYSICALDRIVE{index}";
+                        }
+                    }
+                    else if (normalizedWmiPath.StartsWith("/dev/pd", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (int.TryParse(normalizedWmiPath.Substring(7), out int pdIndex))
+                            normalizedWmiPath = $"\\\\.\\PHYSICALDRIVE{pdIndex}";
+                    }
+#endif
+
                     var storageDevice = Report.StorageDetails?.Devices.FirstOrDefault(d =>
                         // Primary match: device path is always consistent on Linux
                         d.DeviceId.Equals(device.DevicePath, StringComparison.OrdinalIgnoreCase) ||
+#if WINDOWS
+                        d.DeviceId.Equals(normalizedWmiPath, StringComparison.OrdinalIgnoreCase) ||
+#endif
                         // Windows: allow matching by serial number when paths differ (e.g. "\\\\.\\PHYSICALDRIVE0" vs smartctl scan name)
                         (!string.IsNullOrWhiteSpace(d.SerialNumber) &&
                          !string.IsNullOrWhiteSpace(device.SerialNumber) &&
                          d.SerialNumber.Equals(device.SerialNumber, StringComparison.OrdinalIgnoreCase)) ||
                         // Fallback: model-name substring
-                        d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) ||
-                        device.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase));
+                        (!string.IsNullOrWhiteSpace(d.Model) && !string.IsNullOrWhiteSpace(device.Model) &&
+                         (d.Model.Contains(device.Model, StringComparison.OrdinalIgnoreCase) ||
+                          device.Model.Contains(d.Model, StringComparison.OrdinalIgnoreCase))));
 
                     if (storageDevice != null)
                     {

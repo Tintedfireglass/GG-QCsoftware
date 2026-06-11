@@ -7,18 +7,21 @@
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         CanResize="False">
-    
+
     <Window.DataContext>
         <vm:QCWizardViewModel/>
     </Window.DataContext>
 
     <Window.Resources>
         <conv:GradeToColorConverter x:Key="GradeToColorConverter"/>
+        <conv:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <conv:BoolToPassFailConverter x:Key="BoolToPassFailConverter"/>
     </Window.Resources>
 
     <Window.Styles>
+        <!-- Primary Purple Button matching WPF -->
         <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#22c55e"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -30,14 +33,15 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.PrimaryButton:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#6B2C67"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
-        
+
+        <!-- Secondary / Outline Button -->
         <Style Selector="Button.SecondaryButton">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#374151"/>
@@ -67,22 +71,22 @@
             <StackPanel IsVisible="{Binding IsPrepStep}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
                     <TextBlock Text="📋" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Step 1: Preparation" FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                    <TextBlock Text="Step 1: Preparation" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
-                
+
                 <TextBlock Text="Refurbish ID / Asset Tag:" Margin="0,8" Foreground="#374151" FontFamily="Segoe UI"/>
-                <TextBox Text="{Binding RefurbId, Mode=TwoWay}" 
+                <TextBox Text="{Binding RefurbId, Mode=TwoWay}"
                          Padding="12,10" FontFamily="Segoe UI" FontSize="14"
                          Background="#f9fafb" BorderBrush="#d1d5db" BorderThickness="1"
                          Margin="0,0,0,16"/>
-                
+
                 <TextBlock Text="Technician Notes (Optional):" Margin="0,8" Foreground="#374151" FontFamily="Segoe UI"/>
-                <TextBox Text="{Binding TechnicianNotes}" Height="100" TextWrapping="Wrap" AcceptsReturn="True" 
+                <TextBox Text="{Binding TechnicianNotes}" Height="100" TextWrapping="Wrap" AcceptsReturn="True"
                          Padding="12,10" FontFamily="Segoe UI" FontSize="14"
                          Background="#f9fafb" BorderBrush="#d1d5db" BorderThickness="1"
                          Margin="0,0,0,24"/>
-                
-                <Button Command="{Binding StartTestsCommand}" Content="Start QC Process" 
+
+                <Button Command="{Binding StartTestsCommand}" Content="Start QC Process"
                         Classes="PrimaryButton" Height="44" FontSize="14"/>
             </StackPanel>
 
@@ -91,11 +95,11 @@
                         VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,30">
                     <TextBlock Text="⚙️" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Step 2: Automated System Checks" FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                    <TextBlock Text="Step 2: Automated System Checks" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
-                
-                <ProgressBar Value="{Binding AutomatedProgress}" Height="10" 
-                             Background="#e5e7eb" Foreground="#22c55e" Margin="0,0,0,12"/>
+
+                <ProgressBar Value="{Binding AutomatedProgress}" Height="10"
+                             Background="#e5e7eb" Foreground="#8B3D88" Margin="0,0,0,12"/>
                 <TextBlock Text="{Binding AutomatedStatus}" HorizontalAlignment="Center" FontSize="14" Foreground="#6b7280" FontFamily="Segoe UI"/>
             </StackPanel>
 
@@ -104,26 +108,26 @@
                         VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
                     <TextBlock Text="🧪" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Step 3: Interactive Tests" FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                    <TextBlock Text="Step 3: Interactive Tests" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="{Binding InteractiveInstruction}" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#0891b2" FontFamily="Segoe UI"/>
+                <TextBlock Text="{Binding InteractiveInstruction}" FontSize="15" HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#6C6B6B" FontFamily="Segoe UI"/>
 
-                <Button Command="{Binding RunKeyboardTestCommand}" Content="Run Keyboard Test" 
+                <Button Command="{Binding RunKeyboardTestCommand}" Content="Run Keyboard Test"
                         Classes="PrimaryButton"
                         IsVisible="{Binding IsKeyboardNext}"
                         Height="50" Margin="0,8" FontSize="14"/>
 
-                <Button Command="{Binding RunTrackpadTestCommand}" Content="Run Trackpad Test" 
+                <Button Command="{Binding RunTrackpadTestCommand}" Content="Run Trackpad Test"
                         Classes="PrimaryButton"
                         IsVisible="{Binding IsTrackpadNext}"
                         Height="50" Margin="0,8" FontSize="14"/>
-                
-                <Button Command="{Binding RunUsbTestCommand}" Content="Run USB Port Test" 
+
+                <Button Command="{Binding RunUsbTestCommand}" Content="Run USB Port Test"
                         Classes="PrimaryButton"
                         IsVisible="{Binding IsUsbNext}"
                         Height="50" Margin="0,8" FontSize="14"/>
-                
-                <Button Command="{Binding RunAvTestCommand}" Content="Run Audio &amp; Video Test" 
+
+                <Button Command="{Binding RunAvTestCommand}" Content="Run Audio &amp; Video Test"
                         Classes="PrimaryButton"
                         IsVisible="{Binding IsAvNext}"
                         Height="50" Margin="0,8" FontSize="14"/>
@@ -131,27 +135,40 @@
                 <!-- WiFi / Network Test -->
                 <StackPanel IsVisible="{Binding IsWifiNext}">
                     <TextBlock Text="Connect this machine to WiFi and/or plug in an Ethernet cable."
-                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,8" 
+                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,8"
                                Foreground="#6b7280" FontSize="13" FontFamily="Segoe UI"/>
-                    
-                    <!-- Live connection status -->
-                    <Border Background="#f0f9ff" BorderBrush="#bae6fd" BorderThickness="1" CornerRadius="8" 
-                            Padding="14,10" Margin="0,4,0,12">
-                        <TextBlock Text="{Binding NetworkLiveStatus}" 
-                                   HorizontalAlignment="Center" FontSize="14" FontFamily="Segoe UI"
-                                   Foreground="#0c4a6e"/>
+
+                    <!-- Live connection status — WiFi + Ethernet -->
+                    <Border Background="#f3f4f6" BorderBrush="#d1d5db" BorderThickness="1" CornerRadius="6"
+                            Padding="14,10" Margin="0,4,0,12" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- WiFi -->
+                            <TextBlock Text="{Binding IsWifiLiveConnected, Converter={StaticResource BoolToPassFailConverter}}"
+                                       Foreground="{Binding IsWifiLiveConnected, Converter={StaticResource BoolToColorConverter}}"
+                                       FontFamily="Segoe UI" FontWeight="Bold" Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding WifiLiveStatusText}" Foreground="#1f2937" FontFamily="Segoe UI" Margin="0,0,12,0"/>
+
+                            <!-- Separator -->
+                            <TextBlock Text=" | " Foreground="#6b7280" Margin="0,0,12,0"/>
+
+                            <!-- Ethernet -->
+                            <TextBlock Text="{Binding IsEthernetLiveConnected, Converter={StaticResource BoolToPassFailConverter}}"
+                                       Foreground="{Binding IsEthernetLiveConnected, Converter={StaticResource BoolToColorConverter}}"
+                                       FontFamily="Segoe UI" FontWeight="Bold" Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding EthernetLiveStatusText}" Foreground="#1f2937" FontFamily="Segoe UI"/>
+                        </StackPanel>
                     </Border>
-                    
-                    <Button Command="{Binding RunWifiTestCommand}" Content="🌐 Test Network Connectivity" 
+
+                    <Button Command="{Binding RunWifiTestCommand}" Content="🌐 Test Network Connectivity"
                             Classes="PrimaryButton"
                             Height="50" Margin="0,4" FontSize="14"/>
                 </StackPanel>
-                
+
                 <!-- Network check status (shown while/after testing) -->
-                <TextBlock Text="{Binding WifiStatus}" 
+                <TextBlock Text="{Binding WifiStatus}"
                            IsVisible="{Binding IsCheckingNetwork}"
                            HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="14" Foreground="#0891b2" FontFamily="Segoe UI"/>
-                <TextBlock Text="{Binding WifiStatus}" 
+                <TextBlock Text="{Binding WifiStatus}"
                            IsVisible="{Binding NetworkCheckDone}"
                            HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="15" FontWeight="SemiBold" FontFamily="Segoe UI"/>
             </StackPanel>
@@ -159,21 +176,38 @@
             <!-- Step 4: Report -->
             <StackPanel IsVisible="{Binding IsReportStep}"
                         VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                    <TextBlock Text="✅" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="QC Complete" FontSize="22" FontWeight="SemiBold" Foreground="#22c55e" FontFamily="Segoe UI" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                    <TextBlock Text="✓" FontFamily="Segoe UI" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#15803d"/>
+                    <TextBlock Text="QC Complete" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
-                
-                <TextBlock Text="{Binding CompletionMessage}" FontSize="18" FontWeight="SemiBold" 
+
+                <!-- Checkmark visual (static in Avalonia — animation requires code-behind) -->
+                <Border Width="90" Height="90" Margin="0,0,0,10" HorizontalAlignment="Center"
+                        BorderBrush="#15803d" BorderThickness="5" CornerRadius="16">
+                    <TextBlock Text="✓" FontSize="44" Foreground="#15803d"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontWeight="Bold"/>
+                </Border>
+
+                <TextBlock Text="{Binding CompletionMessage}" FontSize="18" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,0,0,8" FontFamily="Segoe UI"
                            Foreground="{Binding OverallGrade, Converter={StaticResource GradeToColorConverter}}"/>
-                
-                <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
-                
-                <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold" 
-                           HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="#15803d" FontFamily="Segoe UI"/>
 
-                <Button Command="{Binding OpenReportCommand}" Content="View Report" 
+                <!-- QR Code section -->
+                <StackPanel IsVisible="{Binding HasQrCode, FallbackValue=False}" Margin="0,12,0,16" HorizontalAlignment="Center">
+                    <TextBlock Text="PRAMAAN Certification Verification" HorizontalAlignment="Center" FontSize="12" Foreground="#6b7280" Margin="0,0,0,4"/>
+                    <Border BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="4" Padding="6" Background="White">
+                        <Image Source="{Binding QrCodeImage}" Width="110" Height="110"/>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
+
+                <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="0,0,0,24"
+                           Foreground="{Binding SubmissionStatusColor, FallbackValue='#15803d'}" FontFamily="Segoe UI"/>
+
+                <Button Command="{Binding OpenReportCommand}" Content="View Report"
                         Classes="PrimaryButton" Margin="0,0,0,10"/>
             </StackPanel>
         </Grid>

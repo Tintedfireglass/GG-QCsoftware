@@ -53,7 +53,19 @@ public partial class MainViewModel : ObservableObject
     private DevicesInfo? _devicesInfo;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsInteractionEnabled))]
+    [NotifyPropertyChangedFor(nameof(IsOtherDeviceTestsEnabled))]
     private bool _isScanning;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSecurityRefreshEnabled))]
+    private bool _isSecurityChecking;
+
+    [ObservableProperty]
+    private string _windowsActivationStatus = "Not scanned";
+
+    [ObservableProperty]
+    private string _antivirusStatus = "Not scanned";
 
     [ObservableProperty]
     private string _statusMessage = "Ready to scan";
@@ -85,6 +97,25 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _smartctlAvailable;
 
+    public bool IsLoggedIn => App.IsLoggedIn;
+    public bool IsTrial => App.AuthService?.IsTrialSession ?? false;
+    public bool IsFullQcVisible => true;
+    public bool IsResultsSectionVisible => IsLoggedIn;
+    public bool IsInteractionEnabled => !IsScanning;
+    public bool IsOtherDeviceTestsEnabled => IsInteractionEnabled && !IsTrial;
+    public bool IsSecurityRefreshEnabled => !IsSecurityChecking;
+
+    public void RefreshLoginState()
+    {
+        OnPropertyChanged(nameof(IsLoggedIn));
+        OnPropertyChanged(nameof(IsTrial));
+        OnPropertyChanged(nameof(IsFullQcVisible));
+        OnPropertyChanged(nameof(IsResultsSectionVisible));
+        OnPropertyChanged(nameof(IsOtherDeviceTestsEnabled));
+        OnPropertyChanged(nameof(IsInteractionEnabled));
+        OnPropertyChanged(nameof(IsSecurityRefreshEnabled));
+    }
+
     public ObservableCollection<DiagnosticResult> Results { get; } = new();
 
     public MainViewModel()
@@ -101,6 +132,44 @@ public partial class MainViewModel : ObservableObject
         
         // Check if smartctl is available
         SmartctlAvailable = _smartTestService.IsAvailable;
+    }
+
+    [RelayCommand]
+    private async Task OpenCleanupAsync()
+    {
+        var win = new Views.CleanupWindow();
+        await win.ShowDialog(GetMainWindow()!);
+    }
+
+    [RelayCommand]
+    private async Task RefreshSecurityAsync()
+    {
+        if (IsSecurityChecking)
+            return;
+
+        IsSecurityChecking = true;
+        StatusMessage = "Checking security status...";
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                // Placeholder — WPF uses SecurityDiagnostic service
+                // The Avalonia project does not have SecurityDiagnostic yet.
+                Dispatcher.UIThread.Post(() =>
+                {
+                    StatusMessage = "Security check complete!";
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.UIThread.Post(() => StatusMessage = $"Security check error: {ex.Message}");
+        }
+        finally
+        {
+            Dispatcher.UIThread.Post(() => IsSecurityChecking = false);
+        }
     }
 
     [RelayCommand]

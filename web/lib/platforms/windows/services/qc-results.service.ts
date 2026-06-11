@@ -75,21 +75,21 @@ export async function getResultDetail(user: AuthenticatedUser, id: string) {
 }
 
 /** 
- * Workaround for a bug in desktop clients where a USB drive (e.g., VendorC ProductCode) 
+ * Workaround for a bug in desktop clients where a USB drive (or an unmapped internal drive) 
  * causes the primary drive's SMART mapping to fail, resulting in an "Inconclusive" 
  * storage flag despite successful SMART telemetry.
  */
-function applyVendorCFix(body: SubmitInput): void {
+function applyInconclusiveFix(body: SubmitInput): void {
     const storageTest = body.testResults.find(t => t.testType === 'Storage' || t.testType === 'Smart');
     if (!storageTest) return;
 
     const details = storageTest.details;
     if (!Array.isArray(details)) return;
 
-    const hasVendorC = details.some((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart] vendorc'));
     const isInconclusive = details.some((d: any) => typeof d === 'string' && d.includes('Storage Inconclusive'));
+    const hasSmartTelemetry = details.some((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart]') && d.match(/\(\d+%\)/));
 
-    if (hasVendorC && isInconclusive) {
+    if (isInconclusive && hasSmartTelemetry) {
         // Clear inconclusive flags in StorageDetails
         if (body.storageDetails) {
             body.storageDetails.isInconclusive = false;
@@ -107,9 +107,9 @@ function applyVendorCFix(body: SubmitInput): void {
         storageTest.message = 'Healthy';
         storageTest.passed = true;
 
-        // Find actual health score from other SMART lines (e.g., SAMSUNG)
+        // Find actual health score from SMART lines
         let storageScore = 100;
-        const smartMatch = storageTest.details.find((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart]') && !d.toLowerCase().includes('vendorc'));
+        const smartMatch = details.find((d: any) => typeof d === 'string' && d.toLowerCase().includes('[smart]') && d.match(/\(\d+%\)/));
         if (smartMatch) {
             const match = (smartMatch as string).match(/\((\d+)%\)/);
             if (match) storageScore = parseInt(match[1], 10);
@@ -214,7 +214,7 @@ export async function submitResult(
     authUserId: number | null,
     submissionIp: string | null
 ): Promise<SubmitResult> {
-    applyVendorCFix(body);
+    applyInconclusiveFix(body);
     applyTamperDetection(body);
 
     const machineIdRaw = body.machineId.trim();

@@ -19,8 +19,8 @@ class Program
 
         computer.Open();
         
-        string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sensors_dump.txt");
-        using var writer = new StreamWriter(logPath);
+        string logPath = Path.Combine(Path.GetTempPath(), "sensors_dump.txt");
+        using var writer = new StreamWriter(logPath, append: false);
 
         foreach (var hardware in computer.Hardware)
         {

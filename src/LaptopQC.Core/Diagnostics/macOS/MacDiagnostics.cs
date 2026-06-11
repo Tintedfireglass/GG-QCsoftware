@@ -607,7 +607,11 @@ public class MacSmartTestService : ISmartTestService
                 {
                     var deviceInfo = GetDeviceInfo(parts[0]);
                     if (deviceInfo != null)
+                    {
+                        if (deviceInfo.Model?.Contains("usb", StringComparison.OrdinalIgnoreCase) == true)
+                            continue;
                         devices.Add(deviceInfo);
+                    }
                 }
             }
         }

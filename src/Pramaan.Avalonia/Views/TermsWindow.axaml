@@ -11,7 +11,7 @@
     <Window.Styles>
         <Style Selector="Button.Link">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#0891b2"/>
+            <Setter Property="Foreground" Value="#8B3D88"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -46,7 +46,7 @@
         </Style>
 
         <Style Selector="Button.Primary">
-            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="8"/>
@@ -55,11 +55,11 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style Selector="Button.Primary:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#15803d"/>
+            <Setter Property="Background" Value="#7A3376"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.Primary:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#166534"/>
+            <Setter Property="Background" Value="#5C2B5C"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style Selector="Button.Primary:disabled /template/ ContentPresenter">
