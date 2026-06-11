@@ -48,13 +48,19 @@ export async function GET(request: NextRequest) {
         return errorPage('Invalid payment amount.');
     }
     // Only allow same-origin callback URLs to avoid open redirects / data exfiltration.
+    // Validate against the configured public origin (NEXT_PUBLIC_APP_URL) rather than
+    // request.nextUrl.origin: behind a reverse proxy the request origin is the internal
+    // one (e.g. http://localhost:3000) and would never match the public HTTPS origin.
+    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL
+        ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
+        : request.nextUrl.origin;
     let callback: URL;
     try {
-        callback = new URL(callbackUrl, request.nextUrl.origin);
+        callback = new URL(callbackUrl, allowedOrigin);
     } catch {
         return errorPage('Invalid callback URL.');
     }
-    if (callback.origin !== request.nextUrl.origin) {
+    if (callback.origin !== allowedOrigin) {
         return errorPage('Invalid callback URL.');
     }
 
