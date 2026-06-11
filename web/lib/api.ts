@@ -519,6 +519,29 @@ export async function deleteSupportTicket(id: number) {
     return json
 }
 
+export interface SupportTicketMessageDTO {
+    id: number
+    sender: "admin" | "customer"
+    senderAdminId: number | null
+    message: string
+    createdAt: string
+}
+
+export async function getSupportTicketMessages(id: number): Promise<{ messages: SupportTicketMessageDTO[] }> {
+    const res = await fetchWithAuth(`/api/admin/support/${id}/messages`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load conversation")
+    return json
+}
+
+export async function sendSupportTicketReply(id: number, message: string) {
+    const res = await fetchWithAuth(`/api/admin/support/${id}/messages`, { method: "POST", body: JSON.stringify({ message }) })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to send reply")
+    clearClientCache()
+    return json
+}
+
 export interface AnalyticsOverview {
     range: { key: string; days: number; since: string }
     kpis: {

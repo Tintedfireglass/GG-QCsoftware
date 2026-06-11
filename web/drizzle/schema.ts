@@ -484,6 +484,20 @@ export const supportTickets = pgTable("support_tickets", {
 	check("support_tickets_priority_check", sql`(priority)::text = ANY ((ARRAY['low'::character varying, 'normal'::character varying, 'high'::character varying])::text[])`),
 ]);
 
+// Conversation messages on a support ticket (admin <-> mobile customer).
+// ticketId is support_tickets.id (serial PK), not the public varchar ticket_id.
+export const supportTicketMessages = pgTable("support_ticket_messages", {
+	id: serial().primaryKey().notNull(),
+	ticketId: integer("ticket_id").notNull(),
+	sender: varchar().notNull(),
+	senderAdminId: integer("sender_admin_id"),
+	body: text().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("idx_support_ticket_messages_ticket").on(table.ticketId, table.createdAt),
+	check("support_ticket_messages_sender_check", sql`(sender)::text = ANY ((ARRAY['admin'::character varying, 'customer'::character varying])::text[])`),
+]);
+
 export const freeTrials = pgTable("free_trials", {
 	id: serial().primaryKey().notNull(),
 	email: varchar().notNull(),

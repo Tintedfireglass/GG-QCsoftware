@@ -1,5 +1,5 @@
 import { NotFoundError } from '@/lib/http/errors';
-import { VALID_TICKET_STATUSES, UpdateTicketInput } from '@/lib/shared/domain/schemas/support';
+import { VALID_TICKET_STATUSES, UpdateTicketInput, TicketMessageInput } from '@/lib/shared/domain/schemas/support';
 import * as repo from '@/lib/shared/repositories/support.repo';
 
 function customerName(r: Record<string, unknown>): string | null {
@@ -64,4 +64,34 @@ export async function removeTicket(id: number) {
     const ok = await repo.deleteTicket(id);
     if (!ok) throw new NotFoundError('Ticket not found');
     return { message: 'Ticket deleted' };
+}
+
+// ── Conversation (admin ⇄ customer) ─────────────────────────────────────────────
+function mapMessage(r: Record<string, unknown>) {
+    return {
+        id: r.id,
+        sender: r.sender,
+        senderAdminId: r.sender_admin_id ?? null,
+        message: r.body,
+        createdAt: r.created_at,
+    };
+}
+
+export async function listTicketMessages(id: number) {
+    const ticket = await repo.getTicketById(id);
+    if (!ticket) throw new NotFoundError('Ticket not found');
+    const rows = await repo.listMessages(id);
+    return { messages: rows.map(mapMessage) };
+}
+
+export async function addAdminReply(id: number, adminId: number, input: TicketMessageInput) {
+    const ticket = await repo.getTicketById(id);
+    if (!ticket) throw new NotFoundError('Ticket not found');
+    const saved = await repo.insertMessage({
+        ticketDbId: id,
+        sender: 'admin',
+        senderAdminId: adminId,
+        body: input.message,
+    });
+    return { message: 'Reply sent', id: saved.id, createdAt: saved.created_at };
 }

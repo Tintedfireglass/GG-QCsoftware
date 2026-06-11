@@ -100,6 +100,10 @@ export async function buildWikiTree(): Promise<WikiNode> {
     return { type: "dir", name, slug, children }
   }
 
+  if (!(await pathExists(docsRoot))) {
+    return { type: "dir", name: "docs", slug: [], children: [] }
+  }
+
   return walk(docsRoot, [])
 }
 
