@@ -46,7 +46,7 @@ export const POST = withAuth(['SuperAdmin'], async (request, { user }) => {
     if (!request.body) throw new ValidationError('Empty request body');
 
     const fields: Record<string, string> = {};
-    let fileResult: { stored: StoredFile; fileName: string; contentType: string | null } | null = null;
+    let fileResult: { file: StoredFile; fileName: string; contentType: string | null } | null = null;
     let fileError: unknown = null;
 
     const bb = Busboy({ headers: { 'content-type': contentType }, limits: { files: 1, fields: 20 } });
@@ -80,7 +80,7 @@ export const POST = withAuth(['SuperAdmin'], async (request, { user }) => {
                 });
                 const key = buildRelativePath(meta.platform, meta.channel, meta.version, info.filename);
                 const stored = await storeReleaseFile(key, stream);
-                fileResult = { stored, fileName: info.filename, contentType: info.mimeType || null };
+                fileResult = { file: stored, fileName: info.filename, contentType: info.mimeType || null };
             })().catch((err) => {
                 // Capture the error and drain the stream so busboy can finish; the
                 // route surfaces it after parsing completes.
