@@ -16,6 +16,9 @@ web/.env*.local
 # Reports (these are now stored in database, local reports are for backup)
 *.html
 Reports/
+# Don't let the case-insensitive "Reports/" rule swallow source code dirs (Windows core.ignorecase)
+!web/app/dashboard/reports/
+!web/app/api/mobile/reports/
 
 # Logs
 *.log
