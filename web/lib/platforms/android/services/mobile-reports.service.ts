@@ -72,9 +72,12 @@ export async function submitSingle(ctx: Ctx, body: z.infer<typeof singleTestSche
 // reportType, so the dashboard can tell a quick check from a full health run.
 async function submitQc(ctx: Ctx, body: z.infer<typeof fullQcSchema>, reportType: 'FULL_QC' | 'BASIC_QC') {
     const reportId = makeReportId(reportType);
+    // Full Health runs embed a stress summary; surface its score/grade as indexed
+    // columns so the dashboard can show them alongside the hardware verdict.
     const saved = await repo.insertReport({
         reportId, customerUserId: ctx.customerId, deviceId: body.deviceId, reportType,
-        testType: null, result: body.overallResult, score: null, grade: null,
+        testType: null, result: body.overallResult,
+        score: body.stress?.score ?? null, grade: body.stress?.grade ?? null,
         passedCount: body.passedCount, failedCount: body.failedCount,
         testedAt: toIso(body.testedAt), payloadJson: body,
         deviceSnapshotJson: body.deviceSnapshot ?? null, submissionIp: ctx.ip,

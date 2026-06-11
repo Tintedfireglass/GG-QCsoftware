@@ -12,3 +12,9 @@ export const updateTicketSchema = z
     })
     .refine((v) => Object.keys(v).length > 0, 'No fields to update');
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
+
+// Admin reply posted to the ticket conversation — visible to the customer in the app.
+export const ticketMessageSchema = z.object({
+    message: z.string().trim().min(1, 'Message is required').max(4000),
+});
+export type TicketMessageInput = z.infer<typeof ticketMessageSchema>;

@@ -100,6 +100,15 @@ export const fullQcSchema = z
         failedCount: z.coerce.number().int(),
         overallResult: z.enum(['PASSED', 'PARTIAL_PASS', 'FAILED']),
         testResults: z.record(z.string(), z.boolean()),
+        // Present only for Full Health runs (hardware QC + stress folded into one report).
+        stress: z
+            .object({
+                score: z.coerce.number().int(),
+                grade: z.string(),
+                passed: z.boolean(),
+            })
+            .loose()
+            .optional(),
         deviceSnapshot: z.object({}).loose().optional(),
     })
     .loose();
@@ -148,6 +157,11 @@ export const supportContactSchema = z.object({
 export const supportListQuerySchema = z.object({
     page: z.coerce.number().int().catch(1).transform((n) => Math.max(1, n)),
     limit: z.coerce.number().int().catch(20).transform((n) => Math.min(100, Math.max(1, n))),
+});
+
+// Customer message in a ticket conversation.
+export const supportMessageSchema = z.object({
+    message: z.string().trim().min(1, 'Message is required').max(4000),
 });
 
 // ── License (key activation) ─────────────────────────────────────────────────────

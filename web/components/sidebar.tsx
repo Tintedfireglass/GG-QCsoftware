@@ -7,7 +7,6 @@ import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
 import {
     LayoutDashboard,
-    ClipboardList,
     Layers,
     Monitor,
     LogOut,
@@ -16,7 +15,6 @@ import {
     Shield,
     Key,
     Server,
-    Smartphone,
     Hourglass,
     CreditCard,
     Package,
@@ -52,11 +50,6 @@ export function Sidebar() {
             icon: LayoutDashboard
         },
         {
-            href: "/dashboard/results",
-            label: "QC Results",
-            icon: ClipboardList
-        },
-        {
             href: "/dashboard/reports",
             label: "All Reports",
             icon: Layers
@@ -68,12 +61,6 @@ export function Sidebar() {
         //     icon: Server,
         //     roles: ['Enterprise'],
         // },
-        {
-            href: "/dashboard/mobile-reports",
-            label: "Mobile Reports",
-            icon: Smartphone,
-            roles: ['SuperAdmin', 'Reseller', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer'] // B2C Android QC reports
-        },
         {
             href: "/dashboard/machines",
             label: "Machines",

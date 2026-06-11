@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
     getAdminSupportTickets, updateSupportTicket, deleteSupportTicket,
-    SupportTicketDTO, TicketStatus, TicketPriority,
+    getSupportTicketMessages, sendSupportTicketReply,
+    SupportTicketDTO, SupportTicketMessageDTO, TicketStatus, TicketPriority,
 } from "@/lib/api"
-import { Loader2, LifeBuoy, X, Trash2, Inbox, Search } from "lucide-react"
+import { Loader2, LifeBuoy, X, Trash2, Inbox, Search, Send } from "lucide-react"
 
 const STATUS_STYLES: Record<string, string> = {
     open: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -55,6 +56,10 @@ export default function SupportPage() {
     const [busyId, setBusyId] = useState<number | null>(null)
     const [savingNote, setSavingNote] = useState(false)
     const [noteDraft, setNoteDraft] = useState("")
+    const [messages, setMessages] = useState<SupportTicketMessageDTO[]>([])
+    const [loadingMessages, setLoadingMessages] = useState(false)
+    const [replyDraft, setReplyDraft] = useState("")
+    const [sendingReply, setSendingReply] = useState(false)
 
     const fetchTickets = useCallback(async () => {
         try {
@@ -80,6 +85,34 @@ export default function SupportPage() {
     const openTicket = (t: SupportTicketDTO) => {
         setSelected(t)
         setNoteDraft(t.adminNote || "")
+        setReplyDraft("")
+    }
+
+    const selectedId = selected?.id ?? null
+    useEffect(() => {
+        if (selectedId === null) { setMessages([]); return }
+        let cancelled = false
+        setLoadingMessages(true)
+        getSupportTicketMessages(selectedId)
+            .then((r) => { if (!cancelled) setMessages(r.messages) })
+            .catch(() => { if (!cancelled) setMessages([]) })
+            .finally(() => { if (!cancelled) setLoadingMessages(false) })
+        return () => { cancelled = true }
+    }, [selectedId])
+
+    const sendReply = async () => {
+        if (!selected || !replyDraft.trim()) return
+        try {
+            setSendingReply(true)
+            await sendSupportTicketReply(selected.id, replyDraft.trim())
+            setReplyDraft("")
+            const r = await getSupportTicketMessages(selected.id)
+            setMessages(r.messages)
+        } catch (err) {
+            alert(err instanceof Error ? err.message : "Failed to send reply")
+        } finally {
+            setSendingReply(false)
+        }
     }
 
     const patch = async (t: SupportTicketDTO, body: { status?: TicketStatus; priority?: TicketPriority; adminNote?: string | null }) => {
@@ -280,6 +313,36 @@ export default function SupportPage() {
                             <div>
                                 <div className="text-slate-500 mb-1">Message</div>
                                 <div className="text-slate-900 whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-3 border border-slate-100">{selected.message || "—"}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500 mb-1">Conversation</div>
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-2 max-h-[260px] overflow-y-auto">
+                                    {loadingMessages ? (
+                                        <div className="text-center text-slate-400 py-2"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+                                    ) : messages.length === 0 ? (
+                                        <div className="text-center text-xs text-slate-400 py-2">No replies yet. Messages you send here are visible to the customer in the app.</div>
+                                    ) : messages.map((m) => (
+                                        <div key={m.id} className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words ${m.sender === "admin" ? "ml-auto bg-[var(--brand-purple)] text-white" : "mr-auto bg-white border border-slate-200 text-slate-900"}`}>
+                                            {m.message}
+                                            <div className={`text-[10px] mt-1 ${m.sender === "admin" ? "text-white/70" : "text-slate-400"}`}>
+                                                {m.sender === "admin" ? "Support" : selected.customer.name || "Customer"} · {fmtDate(m.createdAt)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                    <Input
+                                        value={replyDraft}
+                                        onChange={(e) => setReplyDraft(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendReply() } }}
+                                        placeholder="Reply to the customer…"
+                                        className="border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                                    />
+                                    <Button size="sm" onClick={sendReply} disabled={sendingReply || !replyDraft.trim()}
+                                        className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white shrink-0 h-10 px-4">
+                                        {sendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                             </div>
                             <div>
                                 <div className="text-slate-500 mb-1">Internal note</div>
