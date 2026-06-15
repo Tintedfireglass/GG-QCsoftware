@@ -242,32 +242,84 @@ public class MacStorageDiagnostic : IStorageDiagnostic
                 using var doc = JsonDocument.Parse(json);
                 var volumes = doc.RootElement.GetProperty("SPStorageDataType");
 
+                // Bug fix: On macOS with APFS, SPStorageDataType returns one entry per
+                // *logical volume* (Macintosh HD, Preboot, Recovery, VM, etc.) that all
+                // share one physical NVMe. We must deduplicate by physical device name so
+                // the report doesn't show 4 "drives" totalling 2TB on a 512GB machine.
+                //
+                // Strategy:
+                //   1. Only add volumes that have a physical_drive section (those are real
+                //      physical disks or at least containers mapped to a physical disk).
+                //   2. Deduplicate by the physical device name.
+                //   3. For the size, take the *largest* size_in_bytes seen for that device
+                //      (the container volume is always the largest; sub-volumes are smaller).
+
+                // Phase 1: collect all volumes that have physical_drive info.
+                var physicalMap = new Dictionary<string, StorageDevice>(StringComparer.OrdinalIgnoreCase);
+
                 foreach (var vol in volumes.EnumerateArray())
                 {
-                    var device = new StorageDevice();
+                    // Only process volumes that map to a physical drive.
+                    if (!vol.TryGetProperty("physical_drive", out var phys))
+                        continue;
 
-                    if (vol.TryGetProperty("_name", out var nameEl))
-                        device.Model = nameEl.GetString() ?? "Unknown";
+                    if (!phys.TryGetProperty("device_name", out var devNameEl))
+                        continue;
 
+                    var physicalName = devNameEl.GetString();
+                    if (string.IsNullOrWhiteSpace(physicalName))
+                        continue;
+
+                    double sizeGb = 0;
                     if (vol.TryGetProperty("size_in_bytes", out var sizeEl) && sizeEl.TryGetInt64(out long sizeBytes))
-                        device.SizeGB = sizeBytes / (1024.0 * 1024 * 1024);
+                        sizeGb = sizeBytes / (1024.0 * 1024 * 1024);
 
-                    if (vol.TryGetProperty("physical_drive", out var phys))
+                    if (!physicalMap.TryGetValue(physicalName, out var existing))
                     {
-                        if (phys.TryGetProperty("device_name", out var devName))
-                            device.Model = devName.GetString() ?? device.Model;
+                        var device = new StorageDevice { Model = physicalName };
 
                         if (phys.TryGetProperty("medium_type", out var medium))
                         {
                             var medStr = medium.GetString() ?? "";
                             device.IsSsd = medStr.Contains("SSD", StringComparison.OrdinalIgnoreCase)
-                                        || medStr.Contains("Solid", StringComparison.OrdinalIgnoreCase);
+                                        || medStr.Contains("Solid", StringComparison.OrdinalIgnoreCase)
+                                        || medStr.Contains("Flash", StringComparison.OrdinalIgnoreCase);
                         }
-                    }
+                        else
+                        {
+                            // Apple NVMe SSDs don't always report medium_type — default to SSD
+                            device.IsSsd = physicalName.Contains("SSD", StringComparison.OrdinalIgnoreCase)
+                                        || physicalName.Contains("APPLE", StringComparison.OrdinalIgnoreCase);
+                        }
 
-                    // Avoid duplicates by model name
-                    if (!info.Devices.Any(d => d.Model == device.Model))
-                        info.Devices.Add(device);
+                        device.SizeGB = sizeGb;
+                        physicalMap[physicalName] = device;
+                    }
+                    else
+                    {
+                        // Keep the largest size seen (the container volume is largest)
+                        if (sizeGb > existing.SizeGB)
+                            existing.SizeGB = sizeGb;
+                    }
+                }
+
+                foreach (var dev in physicalMap.Values)
+                    info.Devices.Add(dev);
+
+                // Fallback: if no physical_drive info at all (edge case), fall back to
+                // the old volume-based listing with name-based deduplication.
+                if (info.Devices.Count == 0)
+                {
+                    foreach (var vol in volumes.EnumerateArray())
+                    {
+                        var device = new StorageDevice();
+                        if (vol.TryGetProperty("_name", out var nameEl))
+                            device.Model = nameEl.GetString() ?? "Unknown";
+                        if (vol.TryGetProperty("size_in_bytes", out var sizeEl) && sizeEl.TryGetInt64(out long sizeBytes))
+                            device.SizeGB = sizeBytes / (1024.0 * 1024 * 1024);
+                        if (!info.Devices.Any(d => d.Model == device.Model))
+                            info.Devices.Add(device);
+                    }
                 }
             }
         }
@@ -409,8 +461,12 @@ public class MacBatteryDiagnostic : IBatteryDiagnostic
 
     private static bool? ParseIoregBool(string output, string key)
     {
-        var match = Regex.Match(output, $"\"{key}\"\\s*=\\s*(Yes|No)", RegexOptions.IgnoreCase);
-        return match.Success ? match.Groups[1].Value.Equals("Yes", StringComparison.OrdinalIgnoreCase) : null;
+        // macOS ioreg outputs booleans as "Yes"/"No" on older macOS,
+        // and as "true"/"false" on macOS 13 Ventura and later.
+        var match = Regex.Match(output, $"\"{key}\"\\s*=\\s*(Yes|No|true|false)", RegexOptions.IgnoreCase);
+        if (!match.Success) return null;
+        var val = match.Groups[1].Value.ToLowerInvariant();
+        return val == "yes" || val == "true";
     }
 }
 
@@ -641,10 +697,25 @@ public class MacSmartTestService : ISmartTestService
         try
         {
             var startOutput = CommandRunner.TryRun(_smartctlPath, $"-t short {devicePath}");
-            if (startOutput.Contains("error") || startOutput.Contains("failed"))
-            {
+
+            // Check for known failure/unsupported conditions before polling.
+            // We look for a positive "started" marker rather than trying to enumerate all
+            // error strings (fragile). Common macOS NVMe drives report "Operation not
+            // supported by device" which doesn't contain "error" or "failed".
+            bool testStarted = startOutput.Contains("has begun", StringComparison.OrdinalIgnoreCase)
+                            || startOutput.Contains("Initiating", StringComparison.OrdinalIgnoreCase)
+                            || startOutput.Contains("start", StringComparison.OrdinalIgnoreCase);
+
+            bool knownUnsupported = startOutput.Contains("not supported", StringComparison.OrdinalIgnoreCase)
+                                 || startOutput.Contains("Operation not supported", StringComparison.OrdinalIgnoreCase)
+                                 || startOutput.Contains("Permission denied", StringComparison.OrdinalIgnoreCase)
+                                 || startOutput.Contains("requires root", StringComparison.OrdinalIgnoreCase);
+
+            if (knownUnsupported)
+                return new SmartTestResultInfo { Success = false, Message = "SMART self-test not supported on this drive" };
+
+            if (!testStarted)
                 return new SmartTestResultInfo { Success = false, Message = "Failed to start SMART test" };
-            }
 
             // Short test typically takes ~2 minutes
             for (int i = 0; i < 24; i++)
@@ -727,29 +798,116 @@ public class MacAudioVideoTestService : IAudioVideoTestService
 
     public void TestSpeaker(bool isLeft)
     {
-        // Use macOS 'say' command for TTS with stereo panning
-        // -r = rate, -v = voice
-        var text = isLeft ? "Testing left speaker" : "Testing right speaker";
+        // Bug fix: macOS 'say' plays through BOTH speakers — it has no stereo-pan option.
+        // Instead, generate a stereo WAV in-process (left or right channel only) and play
+        // it with afplay, which is built into macOS and respects stereo channels.
         try
         {
-            CommandRunner.TryRun("say", $"-r 180 \"{text}\"");
+            var wavPath = GenerateStereoTestTone(isLeft);
+            // Run afplay in the background so it doesn't block the UI thread.
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "afplay",
+                Arguments = $"\"{wavPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
         }
         catch { }
+    }
+
+    /// <summary>
+    /// Generates a short stereo WAV file with a 440 Hz sine tone on the requested
+    /// channel only (the other channel is silent). Uses only System.IO — no external deps.
+    /// </summary>
+    private static string GenerateStereoTestTone(bool isLeft, int durationMs = 1800)
+    {
+        string path = Path.Combine(Path.GetTempPath(), isLeft ? "pramaan_left.wav" : "pramaan_right.wav");
+        const int sampleRate = 44100;
+        const double frequency = 440.0;            // A4 — audible on all speakers
+        const double amplitude = 0.75;              // 75% volume to avoid clipping
+        int numSamples = sampleRate * durationMs / 1000;
+        int dataBytes = numSamples * 4;            // 2 channels × 2 bytes (16-bit PCM)
+
+        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
+        using var bw = new BinaryWriter(fs);
+
+        // RIFF header
+        bw.Write(new[] { (byte)'R', (byte)'I', (byte)'F', (byte)'F' });
+        bw.Write(36 + dataBytes);                   // overall chunk size
+        bw.Write(new[] { (byte)'W', (byte)'A', (byte)'V', (byte)'E' });
+
+        // fmt sub-chunk (PCM, 16-bit, stereo, 44100 Hz)
+        bw.Write(new[] { (byte)'f', (byte)'m', (byte)'t', (byte)' ' });
+        bw.Write(16);                               // sub-chunk size
+        bw.Write((short)1);                         // PCM
+        bw.Write((short)2);                         // 2 channels
+        bw.Write(sampleRate);
+        bw.Write(sampleRate * 4);                   // byte rate
+        bw.Write((short)4);                         // block align
+        bw.Write((short)16);                        // bits per sample
+
+        // data sub-chunk
+        bw.Write(new[] { (byte)'d', (byte)'a', (byte)'t', (byte)'a' });
+        bw.Write(dataBytes);
+
+        for (int i = 0; i < numSamples; i++)
+        {
+            double t = (double)i / sampleRate;
+            short sample = (short)(short.MaxValue * amplitude * Math.Sin(2 * Math.PI * frequency * t));
+            short leftSample  = isLeft  ? sample : (short)0;
+            short rightSample = !isLeft ? sample : (short)0;
+            bw.Write(leftSample);
+            bw.Write(rightSample);
+        }
+
+        return path;
     }
 
     public void StartOneShotMicTest()
     {
         try
         {
-            // Record 5 seconds of audio using afrecord (built into macOS)
-            _recordingPath = Path.Combine(Path.GetTempPath(), "mic_test.wav");
-            _recordProcess = Process.Start(new ProcessStartInfo
+            // Bug fix: 'afrecord' does not exist on modern macOS.
+            // Try 'sox' (installable via Homebrew) first, then 'ffmpeg' as a fallback.
+            // Both produce a valid WAV file that PlaybackMicRecording() can replay.
+            _recordingPath = Path.Combine(Path.GetTempPath(), "pramaan_mic_test.wav");
+
+            // Check for sox first (preferred — no codec negotiation needed)
+            bool hasSox = File.Exists("/opt/homebrew/bin/sox") || File.Exists("/usr/local/bin/sox");
+            bool hasFfmpeg = File.Exists("/opt/homebrew/bin/ffmpeg") || File.Exists("/usr/local/bin/ffmpeg");
+
+            ProcessStartInfo? psi = null;
+
+            if (hasSox)
             {
-                FileName = "afrecord",
-                Arguments = $"-d LEI16 -f WAVE -c 1 -r 44100 -t 5 \"{_recordingPath}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
+                string soxPath = File.Exists("/opt/homebrew/bin/sox") ? "/opt/homebrew/bin/sox" : "/usr/local/bin/sox";
+                psi = new ProcessStartInfo
+                {
+                    FileName = soxPath,
+                    // -d = default audio device, -r = sample rate, -c = channels,
+                    // -e = encoding, -b = bit depth, trim 0 5 = record 5 seconds
+                    Arguments = $"-d -r 44100 -c 1 -e signed-integer -b 16 \"{_recordingPath}\" trim 0 5",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+            }
+            else if (hasFfmpeg)
+            {
+                string ffPath = File.Exists("/opt/homebrew/bin/ffmpeg") ? "/opt/homebrew/bin/ffmpeg" : "/usr/local/bin/ffmpeg";
+                psi = new ProcessStartInfo
+                {
+                    FileName = ffPath,
+                    Arguments = $"-f avfoundation -i \":0\" -t 5 -ar 44100 -ac 1 \"{_recordingPath}\" -y",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+            }
+            // If neither sox nor ffmpeg is available, _recordProcess stays null.
+            // PlaybackMicRecording() checks File.Exists so it will silently skip.
+
+            if (psi != null)
+                _recordProcess = Process.Start(psi);
         }
         catch { }
     }

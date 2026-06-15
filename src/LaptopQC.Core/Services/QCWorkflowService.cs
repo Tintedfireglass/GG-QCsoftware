@@ -491,11 +491,16 @@ public class QCWorkflowService
                     Report.CpuTest.Details.Add($"{cpuResult.Message}");
                 }
 
-                // RAM stress is skipped in automated checks on macOS for now as it's run via UI, or we can use the same dummy here.
-                // For simplicity, we just mark it as passed here since it runs in the UI workflow.
-                Report.RamTest.Tested = true;
-                Report.RamTest.Passed = true;
-                Report.RamTest.Message = "RAM stress test passed";
+                // Bug fix: RAM stress was previously auto-marked Passed=true without running.
+                // Now actually runs the same cross-platform RamStressTest used on Windows.
+                UpdateStatus("Running RAM Stress Test (macOS)...", 75);
+                var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
+                ramStress.OnProgress += (p) => UpdateStatus($"RAM Stress Test: {p.PercentComplete}%", 75 + (p.PercentComplete / 20));
+                var ramResult = await ramStress.RunAsync();
+
+                Report.RamTest.Passed &= ramResult.Passed;
+                if (!ramResult.Passed) Report.RamTest.Details.Add($"Stress Test Failed: {ramResult.Message}");
+                else Report.RamTest.Details.Add($"Stress Test Passed ({ramResult.Message})");
                 
                 Report.GpuTest.Tested = false;
                 Report.GpuTest.Message = "Not available on macOS";

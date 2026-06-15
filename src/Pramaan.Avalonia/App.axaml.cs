@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,12 @@ public partial class App : Application
         {
             if (!Views.TermsWindow.HasAccepted())
             {
+                // Bug fix: When TermsWindow (the current MainWindow) closes, Avalonia's
+                // default ShutdownMode=OnMainWindowClose fires before our Closed handler
+                // can set a new MainWindow \u2014 causing the app to exit on macOS.
+                // Switch to explicit shutdown for the duration of the swap.
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
                 var termsWin = new Views.TermsWindow();
                 desktop.MainWindow = termsWin;
                 
@@ -48,6 +55,8 @@ public partial class App : Application
                         var mainWin = new MainWindow();
                         desktop.MainWindow = mainWin;
                         mainWin.Show();
+                        // Restore normal shutdown behaviour now that MainWindow is live.
+                        desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
                     }
                     else
                     {

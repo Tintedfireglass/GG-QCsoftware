@@ -27,8 +27,22 @@ internal static class CommandRunner
         };
 
         process.Start();
-        string output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit(timeoutMs);
+
+        // Read stdout and stderr concurrently to avoid the classic deadlock:
+        // if the child process fills its stderr buffer it blocks; if we're
+        // blocked on ReadToEnd(stdout) we never drain stderr → deadlock.
+        var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+        var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
+
+        bool exited = process.WaitForExit(timeoutMs);
+        if (!exited)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+        }
+
+        // Always drain both streams so the Tasks complete cleanly.
+        string output = stdoutTask.GetAwaiter().GetResult();
+        stderrTask.GetAwaiter().GetResult(); // discard stderr output, just drain it
 
         return output;
     }

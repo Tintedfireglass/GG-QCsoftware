@@ -15,10 +15,12 @@ public partial class LoginWindow : Window
     public UserInfo? LoggedInUser => _authService.CurrentUser;
     public int? TechnicianId => _authService.GetTechnicianId();
 
-    // Required by Avalonia runtime loader
+    // Required by Avalonia XAML loader / designer — do NOT call from application code.
     public LoginWindow()
     {
         InitializeComponent();
+        if (!Design.IsDesignMode)
+            throw new InvalidOperationException("Use LoginWindow(AuthService authService) instead of the parameterless constructor.");
         _authService = null!;
     }
 

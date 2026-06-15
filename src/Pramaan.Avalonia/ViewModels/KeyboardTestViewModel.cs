@@ -1,7 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Diagnostics;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 
 namespace Pramaan.Avalonia.ViewModels;
 
@@ -11,6 +12,7 @@ namespace Pramaan.Avalonia.ViewModels;
 public partial class KeyboardTestViewModel : ObservableObject
 {
     private readonly InputTestService.KeyboardTestState _testState;
+    private readonly bool _isMac;
 
     [ObservableProperty]
     private double _progressPercent;
@@ -48,6 +50,8 @@ public partial class KeyboardTestViewModel : ObservableObject
     public KeyboardTestViewModel()
     {
         _testState = new InputTestService.KeyboardTestState();
+        // Detect platform once; used to display Mac-appropriate key labels (⌘, ⌥) vs. Win/Alt
+        _isMac = !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         InitializeKeyboard();
     }
 
@@ -158,12 +162,13 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0xA1, "Shift", 4, 12.25, 2.75); // Right Shift
 
         // Row 5: Bottom row (Note: Fn key cannot be detected - it's hardware-level)
-        AddKey(0xA2, "Ctrl", 5, 0, 1.25);  // Left Ctrl
-        AddKey(0x5B, "Win", 5, 1.25, 1.25);
-        AddKey(0xA4, "Alt", 5, 2.5, 1.25);  // Left Alt
-        AddKey(0x20, "Space", 5, 3.75, 6);  // Spacebar
-        AddKey(0xA5, "Alt", 5, 9.75, 1.25);  // Right Alt (VK_RMENU)
-        AddKey(0xA3, "Ctrl", 5, 11, 1.25);  // Right Ctrl (VK_RCONTROL)
+        // Bug fix: On macOS, Win→⌘ (Command) and Alt→⌥ (Option) for correct key labelling.
+        AddKey(0xA2, "Ctrl", 5, 0, 1.25);           // Left Ctrl
+        AddKey(0x5B, _isMac ? "⌘" : "Win", 5, 1.25, 1.25);
+        AddKey(0xA4, _isMac ? "⌥" : "Alt", 5, 2.5, 1.25);  // Left Alt / Option
+        AddKey(0x20, "Space", 5, 3.75, 6);           // Spacebar
+        AddKey(0xA5, _isMac ? "⌥" : "Alt", 5, 9.75, 1.25); // Right Alt / Option (VK_RMENU)
+        AddKey(0xA3, "Ctrl", 5, 11, 1.25);           // Right Ctrl (VK_RCONTROL)
 
         // Arrow keys
         AddKey(0x25, "Left", 5, 12.25);

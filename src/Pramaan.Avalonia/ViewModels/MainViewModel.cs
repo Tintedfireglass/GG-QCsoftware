@@ -154,12 +154,24 @@ public partial class MainViewModel : ObservableObject
         {
             await Task.Run(() =>
             {
+#if WINDOWS
                 // Placeholder — WPF uses SecurityDiagnostic service
                 // The Avalonia project does not have SecurityDiagnostic yet.
                 Dispatcher.UIThread.Post(() =>
                 {
                     StatusMessage = "Security check complete!";
                 });
+#else
+                // Security diagnostics (Windows Activation, Antivirus) are not
+                // available on macOS. Show a clear message rather than silently
+                // reporting "complete" when nothing was checked.
+                Dispatcher.UIThread.Post(() =>
+                {
+                    StatusMessage = "Security check not available on macOS.";
+                    WindowsActivationStatus = "N/A (macOS)";
+                    AntivirusStatus = "N/A (macOS)";
+                });
+#endif
             });
         }
         catch (Exception ex)
@@ -577,8 +589,15 @@ public partial class MainViewModel : ObservableObject
     {
         if (!SmartctlAvailable)
         {
-            StatusMessage = "smartctl.exe not found. Please install smartmontools.";
-            AddResult("Storage", "SMART Test", false, "smartctl.exe not found");
+            StatusMessage = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows)
+                ? "smartctl.exe not found. Please install smartmontools."
+                : "smartctl not found. Install via: brew install smartmontools";
+            AddResult("Storage", "SMART Test", false,
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                    System.Runtime.InteropServices.OSPlatform.Windows)
+                ? "smartctl.exe not found"
+                : "smartctl not found. Install: brew install smartmontools");
             return;
         }
 
@@ -671,7 +690,10 @@ public partial class MainViewModel : ObservableObject
     {
         if (!SmartctlAvailable)
         {
-            StatusMessage = "smartctl.exe not found.";
+            StatusMessage = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows)
+                ? "smartctl.exe not found."
+                : "smartctl not found. Install via: brew install smartmontools";
             return;
         }
 
