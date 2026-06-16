@@ -18,8 +18,7 @@ public partial class MainWindow : Window
     {
         if (App.IsLoggedIn)
         {
-            // Show confirmation dialog before logout
-            bool confirmed = false;
+            var confirmed = false;
             var confirmWindow = new Window
             {
                 Title = "Confirm Logout",
@@ -36,7 +35,7 @@ public partial class MainWindow : Window
                         new TextBlock
                         {
                             Text = $"Logged in as {App.UserDisplayName}.\nDo you want to log out?",
-                            TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
+                            TextWrapping = TextWrapping.Wrap,
                             FontSize = 14,
                             Margin = new global::Avalonia.Thickness(0, 0, 0, 16)
                         },
@@ -54,12 +53,13 @@ public partial class MainWindow : Window
                     }
                 }
             };
-            var panel = (StackPanel)confirmWindow.Content;
+
+            var panel = (StackPanel)confirmWindow.Content!;
             var btnPanel = (StackPanel)panel.Children[1];
             var yesBtn = (Button)btnPanel.Children[0];
             var noBtn = (Button)btnPanel.Children[1];
-            yesBtn.Click += (s2, e2) => { confirmed = true; confirmWindow.Close(); };
-            noBtn.Click += (s2, e2) => { confirmWindow.Close(); };
+            yesBtn.Click += (_, _) => { confirmed = true; confirmWindow.Close(); };
+            noBtn.Click += (_, _) => confirmWindow.Close();
 
             await confirmWindow.ShowDialog(this);
 
@@ -82,9 +82,7 @@ public partial class MainWindow : Window
     private void RefreshViewModelLoginState()
     {
         if (DataContext is MainViewModel vm)
-        {
             vm.RefreshLoginState();
-        }
     }
 
     public void RefreshActivationUi()
@@ -100,14 +98,14 @@ public partial class MainWindow : Window
     {
         if (App.IsLoggedIn)
         {
-            UserStatusIcon.Text = "✓";
+            UserStatusIcon.Text = "[OK]";
             UserStatusText.Text = App.UserDisplayName;
             UserStatusText.Foreground = SolidColorBrush.Parse("#8B3D88");
             UserStatusBorder.Background = SolidColorBrush.Parse("#f5f0f5");
         }
         else
         {
-            UserStatusIcon.Text = "🔑";
+            UserStatusIcon.Text = "[LOCK]";
             UserStatusText.Text = "Click to Activate";
             UserStatusText.Foreground = Brushes.Gray;
             UserStatusBorder.Background = SolidColorBrush.Parse("#f3f4f6");

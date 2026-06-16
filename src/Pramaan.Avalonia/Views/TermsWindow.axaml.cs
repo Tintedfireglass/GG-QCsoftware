@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using System.IO;
 using Avalonia.Controls;
@@ -35,11 +34,11 @@ public partial class TermsWindow : Window
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-            catch { }
+            catch
+            {
+            }
         }
     }
-
-    // ── Persistence ─────────────────────────────────────────
 
     private static string AcceptanceFlagPath =>
         Path.Combine(
@@ -55,6 +54,8 @@ public partial class TermsWindow : Window
             Directory.CreateDirectory(Path.GetDirectoryName(AcceptanceFlagPath)!);
             File.WriteAllText(AcceptanceFlagPath, $"Accepted: {DateTime.UtcNow:o}");
         }
-        catch { }
+        catch
+        {
+        }
     }
 }

@@ -1,11 +1,11 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Diagnostics;
 
 namespace Pramaan.Avalonia.ViewModels;
 
 /// <summary>
-/// ViewModel for the trackpad test window
+/// ViewModel for the trackpad test window.
 /// </summary>
 public partial class TrackpadTestViewModel : ObservableObject
 {
@@ -29,7 +29,6 @@ public partial class TrackpadTestViewModel : ObservableObject
     [ObservableProperty]
     private string _resultMessage = "";
 
-    // Individual test status for UI display
     [ObservableProperty]
     private bool _movementTested;
 
@@ -47,9 +46,6 @@ public partial class TrackpadTestViewModel : ObservableObject
         _testState = new InputTestService.TrackpadTestState();
     }
 
-    /// <summary>
-    /// Register cursor movement
-    /// </summary>
     public void RegisterMovement(int deltaX, int deltaY)
     {
         _testState.RegisterMovement(deltaX, deltaY);
@@ -57,9 +53,6 @@ public partial class TrackpadTestViewModel : ObservableObject
         UpdateProgress();
     }
 
-    /// <summary>
-    /// Register a mouse click
-    /// </summary>
     public void RegisterClick(bool isRightClick)
     {
         _testState.RegisterClick(isRightClick);
@@ -68,9 +61,6 @@ public partial class TrackpadTestViewModel : ObservableObject
         UpdateProgress();
     }
 
-    /// <summary>
-    /// Register scroll action
-    /// </summary>
     public void RegisterScroll(int delta)
     {
         _testState.RegisterScroll(delta);
@@ -81,26 +71,21 @@ public partial class TrackpadTestViewModel : ObservableObject
     private void UpdateProgress()
     {
         ProgressPercent = _testState.PercentComplete;
+
         var tested = 0;
         if (MovementTested) tested++;
         if (LeftClickTested) tested++;
         if (RightClickTested) tested++;
         if (ScrollTested) tested++;
+
         ProgressText = $"{ProgressPercent:F0}% tested ({tested}/4 actions)";
 
         if (ProgressPercent >= 100)
-        {
-            Instructions = "âœ“ All trackpad functions tested! Click Complete to finish.";
-        }
+            Instructions = "All trackpad functions tested! Click Complete to finish.";
         else if (ProgressPercent >= 75)
-        {
             Instructions = "Almost done! One more action to test.";
-        }
     }
 
-    /// <summary>
-    /// Complete the test and get results
-    /// </summary>
     [RelayCommand]
     private void CompleteTest()
     {
@@ -110,9 +95,6 @@ public partial class TrackpadTestViewModel : ObservableObject
         IsComplete = true;
     }
 
-    /// <summary>
-    /// Cancel the test
-    /// </summary>
     [RelayCommand]
     private void CancelTest()
     {
@@ -121,5 +103,3 @@ public partial class TrackpadTestViewModel : ObservableObject
         IsComplete = true;
     }
 }
-
-

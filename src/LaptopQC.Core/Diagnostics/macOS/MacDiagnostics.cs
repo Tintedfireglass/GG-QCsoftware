@@ -43,11 +43,13 @@ public class MacSystemDiagnostic : ISystemDiagnostic
                 info.OsVersion = $"macOS {Environment.OSVersion.Version}";
             }
 
-            // Get MAC address from primary interface
-            var ifconfig = CommandRunner.TryRun("ifconfig", "en0");
+            // Get MAC address from the first active interface we can find.
+            var ifconfig = CommandRunner.TryRun("ifconfig", "-a");
             var macMatch = Regex.Match(ifconfig, @"ether\s+([0-9a-f:]{17})", RegexOptions.IgnoreCase);
             if (macMatch.Success)
-                info.MacAddress = macMatch.Groups[1].Value.ToUpper();
+            {
+                info.MacAddress = macMatch.Groups[1].Value.ToUpperInvariant();
+            }
         }
         catch (Exception ex)
         {
@@ -952,11 +954,21 @@ public class MacAudioVideoTestService : IAudioVideoTestService
     {
         try
         {
-            // Play a system sound to test headphone output
-            CommandRunner.TryRun("afplay", "/System/Library/Sounds/Glass.aiff");
-            return true;
+            // Play a system sound to test headphone output.
+            var started = Process.Start(new ProcessStartInfo
+            {
+                FileName = "afplay",
+                Arguments = "/System/Library/Sounds/Glass.aiff",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            return started != null;
         }
-        catch { return false; }
+        catch
+        {
+            return false;
+        }
     }
 
     public void StopJackPlayback()
@@ -969,12 +981,16 @@ public class MacAudioVideoTestService : IAudioVideoTestService
         try
         {
             // Open Photo Booth (built-in camera app)
-            Process.Start(new ProcessStartInfo
+            var started = Process.Start(new ProcessStartInfo
             {
                 FileName = "open",
                 Arguments = "-a \"Photo Booth\"",
-                UseShellExecute = false
+                UseShellExecute = false,
+                CreateNoWindow = true
             });
+
+            if (started == null)
+                throw new InvalidOperationException("Failed to launch Photo Booth.");
         }
         catch { }
     }

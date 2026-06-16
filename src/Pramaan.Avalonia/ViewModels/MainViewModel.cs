@@ -23,6 +23,15 @@ public partial class MainViewModel : ObservableObject
         return null;
     }
 
+    private static async Task ShowWindowAsync(global::Avalonia.Controls.Window window)
+    {
+        var owner = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (owner != null)
+            await window.ShowDialog(owner);
+        else
+            window.Show();
+    }
+
     private readonly ICpuDiagnostic _cpuDiagnostic;
     private readonly IRamDiagnostic _ramDiagnostic;
     private readonly ISystemDiagnostic _systemDiagnostic;
@@ -138,7 +147,7 @@ public partial class MainViewModel : ObservableObject
     private async Task OpenCleanupAsync()
     {
         var win = new Views.CleanupWindow();
-        await win.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(win);
     }
 
     [RelayCommand]
@@ -188,7 +197,7 @@ public partial class MainViewModel : ObservableObject
     private async Task StartFullQcAsync()
     {
         var wizard = new Views.QCWizardWindow();
-        await wizard.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(wizard);
     }
 
     [RelayCommand]
@@ -197,7 +206,7 @@ public partial class MainViewModel : ObservableObject
         var keyboardWindow = new Views.KeyboardTestWindow();
         StatusMessage = "Testing keyboard... Press all keys.";
         
-        await keyboardWindow.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(keyboardWindow);
         
         var (passed, message) = keyboardWindow.GetResult();
         if (passed || !string.IsNullOrEmpty(message)) // Valid execution and closed
@@ -218,7 +227,7 @@ public partial class MainViewModel : ObservableObject
         var avWindow = new Views.AudioVideoTestWindow();
         StatusMessage = "Testing Audio/Video... Follow on-screen instructions.";
 
-        await avWindow.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(avWindow);
 
         if (avWindow.DataContext is AudioVideoTestViewModel vm && vm.IsComplete)
         {
@@ -245,7 +254,7 @@ public partial class MainViewModel : ObservableObject
         var trackpadWindow = new Views.TrackpadTestWindow();
         StatusMessage = "Testing trackpad... Move, click, and scroll.";
         
-        await trackpadWindow.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(trackpadWindow);
         
         var (passed, message) = trackpadWindow.GetResult();
         if (passed || !string.IsNullOrEmpty(message))
@@ -266,7 +275,7 @@ public partial class MainViewModel : ObservableObject
         var usbWindow = new Views.UsbPortTestWindow();
         StatusMessage = "Testing USB ports... Plug devices into each port.";
         
-        await usbWindow.ShowDialog(GetMainWindow()!);
+        await ShowWindowAsync(usbWindow);
         
         var (passed, message) = usbWindow.GetResult();
         if (passed || !string.IsNullOrEmpty(message))
