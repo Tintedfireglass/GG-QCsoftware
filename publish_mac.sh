@@ -7,6 +7,8 @@
 # Outputs:
 #   publish/osx-arm64/Pramaan.app    (Apple Silicon)
 #   publish/osx-x64/Pramaan.app      (Intel)
+#   publish/Pramaan_QC_Tool_macOS_arm64.zip
+#   publish/Pramaan_QC_Tool_macOS_x64.zip
 
 set -euo pipefail
 
@@ -22,6 +24,8 @@ build_arch() {
     local rid="$1"
     local out_dir="$OUT_BASE/$rid"
     local app_dir="$out_dir/$APP_NAME.app"
+    local zip_name="Pramaan_QC_Tool_macOS_${rid#osx-}.zip"
+    local zip_path="$OUT_BASE/$zip_name"
 
     echo ""
     echo "══════════════════════════════════════════"
@@ -89,7 +93,12 @@ PLIST
         echo "  ⚠  codesign not available — skipping signing"
     fi
 
+    # Package the app bundle as a single zip file for GitHub Actions artifacts.
+    rm -f "$zip_path"
+    ditto -c -k --sequesterRsrc --keepParent "$app_dir" "$zip_path"
+
     echo "  ✓ Done → $app_dir"
+    echo "  ✓ Packaged → $zip_path"
 }
 
 case "$ARCH" in

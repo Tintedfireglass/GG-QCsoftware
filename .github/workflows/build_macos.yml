@@ -31,12 +31,12 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_arm64
-        path: publish/osx-arm64/
+        path: publish/Pramaan_QC_Tool_macOS_arm64.zip
         retention-days: 7
         
     - name: Archive macOS App Artifact (Intel)
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_x64
-        path: publish/osx-x64/
+        path: publish/Pramaan_QC_Tool_macOS_x64.zip
         retention-days: 7
