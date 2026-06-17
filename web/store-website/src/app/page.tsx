@@ -17,9 +17,9 @@ import {
 import { getWindowsDownloadUrl } from "@/lib/releases";
 
 export const metadata: Metadata = {
-  title: "Pramaan – Electronics Lifecycle Infrastructure",
+  title: "Pramaan – Electronics Lifecycle Intelligence Platform",
   description:
-    "Pramaan is a hardware diagnostic and device health testing software that evaluates laptops and electronics through automated diagnostics, stress tests and QC certification.",
+    "Standardized testing, certification and device intelligence for repair, refurbishment, insurance and asset management.",
   keywords:
     "laptop diagnostic software, device health testing software, hardware testing software, laptop QC testing tool, device lifecycle analytics, laptop performance testing, hardware diagnostics tool, refurbished device testing, IT asset testing software",
   alternates: { canonical: "/" },
