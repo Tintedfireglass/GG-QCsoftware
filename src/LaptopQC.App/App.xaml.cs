@@ -212,6 +212,38 @@ public partial class App : Application
         Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
         Task.Run(() => HeartbeatTaskService.EnsureRegistered());
         Task.Run(() => AutostartTaskService.EnsureRegistered());
+
+        // Run auto QC immediately if the app was just updated to a new version
+        Task.Run(() => RunAutoQcIfUpdatedAsync());
+    }
+
+    /// <summary>
+    /// Compares the current app version with the last recorded version.
+    /// If the version changed (i.e. the app was updated), runs an immediate auto QC
+    /// so the server gets a fresh health report reflecting the new build.
+    /// </summary>
+    private async Task RunAutoQcIfUpdatedAsync()
+    {
+        try
+        {
+            var versionFile = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                BrandInfo.AppDataFolderName, "last_known_version.txt");
+
+            var currentVersion = AppVersionProvider.GetVersion().Split('+')[0].Trim();
+            var lastVersion = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : null;
+
+            // Always update the stored version
+            Directory.CreateDirectory(Path.GetDirectoryName(versionFile)!);
+            File.WriteAllText(versionFile, currentVersion);
+
+            if (lastVersion != null && lastVersion != currentVersion)
+            {
+                // Version changed — run auto QC immediately
+                await RunAutoBasicQcAsync();
+            }
+        }
+        catch { /* best-effort */ }
     }
 
     /// <summary>
@@ -229,7 +261,7 @@ public partial class App : Application
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
-            File.AppendAllText(logFile, $"Serial: {serial}\n");
+            File.AppendAllText(logFile, $"[{DateTime.Now:u}] Starting auto basic QC. Serial: {serial}\n");
 
             // License-activated: re-validate the key and refresh the token.
             // Trial users already have a valid token from StartTrialSession — skip re-auth.
@@ -238,7 +270,10 @@ public partial class App : Application
                 var loginResult = await AuthService.LoginWithLicenseAsync(AuthService.LicenseKey, serial, mac, computerName);
                 if (!loginResult.Success)
                 {
-                    AuthService.Logout();
+                    File.AppendAllText(logFile, $"[{DateTime.Now:u}] Re-auth failed (IsAuthError={loginResult.IsAuthError}): {loginResult.Message}\n");
+                    // Only logout if the server explicitly rejected the key (not a network/timeout failure)
+                    if (loginResult.IsAuthError)
+                        AuthService.Logout();
                     return;
                 }
             }
@@ -257,11 +292,11 @@ public partial class App : Application
 
             if (componentGrades.Count == 0)
             {
-                File.AppendAllText(logFile, "No component grades produced. Returning.\n");
+                File.AppendAllText(logFile, $"[{DateTime.Now:u}] No component grades produced. Returning.\n");
                 return;
             }
 
-            File.AppendAllText(logFile, $"Submitting {componentGrades.Count} grades...\n");
+            File.AppendAllText(logFile, $"[{DateTime.Now:u}] Submitting {componentGrades.Count} grades...\n");
             var submission = new MachineHistorySubmissionService();
             var submitResult = await submission.SubmitComponentGradesAsync(
                 workflow.Report,
@@ -269,14 +304,29 @@ public partial class App : Application
                 "auto_basic_qc",
                 AuthService.Token);
 
-            File.AppendAllText(logFile, $"Submission result: Success={submitResult.Success}, Error={submitResult.ErrorMessage}\n");
+            File.AppendAllText(logFile, $"[{DateTime.Now:u}] Submission result: Success={submitResult.Success}, Error={submitResult.ErrorMessage}\n");
 
-            if (!submitResult.Success && submitResult.IsAuthError)
+            if (submitResult.Success)
+            {
+                // Update the timestamp so the 7-day timer resets correctly
+                try
+                {
+                    var timestampFile = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                        BrandInfo.AppDataFolderName, "last_qc_test.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(timestampFile)!);
+                    File.WriteAllText(timestampFile, DateTime.UtcNow.ToString("O"));
+                }
+                catch { /* best-effort */ }
+            }
+            else if (submitResult.IsAuthError)
+            {
                 AuthService.Logout();
+            }
         }
         catch (Exception ex)
         {
-            File.AppendAllText(logFile, $"Exception: {ex.Message}\n{ex.StackTrace}\n");
+            File.AppendAllText(logFile, $"[{DateTime.Now:u}] Exception: {ex.Message}\n{ex.StackTrace}\n");
             System.Diagnostics.Debug.WriteLine($"Auto basic QC failed: {ex.Message}");
         }
     }

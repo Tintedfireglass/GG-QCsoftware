@@ -121,7 +121,7 @@ public class AuthService
             }
             
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>();
-            return new LoginResult { Success = false, Message = error?.Message ?? "License Login failed" };
+            return new LoginResult { Success = false, IsAuthError = true, Message = error?.Message ?? "License Login failed" };
         }
         catch (HttpRequestException ex)
         {
@@ -319,6 +319,12 @@ public class LoginResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = "";
+    /// <summary>
+    /// True only when the server explicitly rejects the credentials (HTTP 4xx).
+    /// False for network errors, timeouts, or other transient failures.
+    /// Background tasks should only logout when this is true.
+    /// </summary>
+    public bool IsAuthError { get; set; }
 }
 
 public class LoginResponse

@@ -70,6 +70,10 @@ public partial class LoginWindow : Window
             {
                 // If the user had a trial, clear it when they activate a proper license
                 App.TrialService.ClearTrial();
+
+                // Run an immediate auto QC so the server gets a health report on first activation
+                _ = App.Current.RunAutoBasicQcInBackgroundAsync();
+
                 DialogResult = true;
                 Close();
             }

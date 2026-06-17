@@ -28,14 +28,38 @@ public static class AutoBasicQcTaskService
             if (exePath == null)
                 return;
 
-            // Always re-register to pick up the latest QC anchor time
-            // (e.g. first run had no QC yet; after first QC we want the real schedule).
+            // Only register the task if it doesn't already exist.
+            // Re-creating it every startup (with /F) wipes its execution history and
+            // breaks the StartWhenAvailable catch-up mechanism in Windows Task Scheduler.
+            if (TaskExists())
+                return;
+
             RegisterTask(exePath);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Auto basic QC task registration failed: {ex.Message}");
         }
+    }
+
+    private static bool TaskExists()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "schtasks.exe",
+                Arguments = $"/Query /TN \"{TaskName}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            process?.WaitForExit(5000);
+            return process?.ExitCode == 0;
+        }
+        catch { return false; }
     }
 
     private static string? FindAppExe()
