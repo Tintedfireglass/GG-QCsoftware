@@ -41,6 +41,12 @@ export async function activate(customerId: number, key: string, deviceId: string
             used += 1;
         }
 
+        // Bind an unowned key to this customer so status/entitlement queries (which key off
+        // customer_user_id) can find it on later app restarts. No-op if already owned.
+        if (lic.customer_user_id == null) {
+            await authRepo.claimLicenseForCustomer(tx, lic.id, customerId);
+        }
+
         return {
             message: already ? 'Device already activated' : 'License activated',
             data: {
