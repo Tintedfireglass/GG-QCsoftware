@@ -54,19 +54,26 @@ function ComponentGradeRow({ name, cg }: { name: string; cg: any }) {
     )
 }
 
+function scoreToGrade(score: number): string {
+    if (score >= 90) return "A"
+    if (score >= 80) return "B"
+    if (score >= 70) return "C"
+    if (score >= 50) return "D"
+    if (score > 0) return "E"
+    return "F"
+}
+
 function AutoQCRunCard({ run }: { run: any }) {
     const [expanded, setExpanded] = useState(false)
     const grades = parseJson(run.component_grades) || {}
     const components = Object.entries(grades)
 
-    const gradeOrder = ["A+", "A", "B", "C", "D", "E", "F", "Reject"]
-    const worstGrade = components.reduce((worst: string, [, cg]: any) => {
-        const wi = gradeOrder.indexOf(worst)
-        const ci = gradeOrder.indexOf(cg.grade)
-        return ci > wi ? cg.grade : worst
-    }, "A+")
+    const totalScore = components.reduce((sum: number, [, cg]: any) => sum + (cg.score || 0), 0)
+    const avgScore = components.length > 0 ? Math.round(totalScore / components.length) : 0
+    const avgGrade = components.length > 0 ? scoreToGrade(avgScore) : "N/A"
 
-    const gs = getGradeStyle(worstGrade)
+    const gs = getGradeStyle(avgGrade)
+    const appVersion = run.app_version ? run.app_version.split("+")[0] : null
 
     return (
         <div className="flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
@@ -78,16 +85,16 @@ function AutoQCRunCard({ run }: { run: any }) {
                             {run.source}
                         </span>
                     </div>
-                    {run.app_version && (
-                        <div className="text-xs text-slate-500 mt-0.5">App Version: {run.app_version}</div>
+                    {appVersion && (
+                        <div className="text-xs text-slate-500 mt-0.5">App Version: {appVersion}</div>
                     )}
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1">
-                    <span className={`text-xl font-black ${gradeHeroColor ? gradeHeroColor(worstGrade) : ""}`}>
-                        {worstGrade}
+                    <span className={`text-xl font-black ${gradeHeroColor ? gradeHeroColor(avgGrade) : ""}`}>
+                        {avgGrade} <span className="text-sm text-slate-400 font-medium tracking-normal">({avgScore}%)</span>
                     </span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${gs.bg} ${gs.text}`}>
-                        worst component
+                        average score
                     </span>
                 </div>
             </div>
