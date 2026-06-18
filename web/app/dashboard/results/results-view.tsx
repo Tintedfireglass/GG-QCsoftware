@@ -19,7 +19,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const [searchInput, setSearchInput] = useState("")
     const [appliedSearch, setAppliedSearch] = useState("")
     const [selectedUserId, setSelectedUserId] = useState("")
-    const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string }>>([])
+    const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string; is_active?: boolean }>>([])
     const [isClientFilterOpen, setIsClientFilterOpen] = useState(false)
     const [clientFilterSearch, setClientFilterSearch] = useState("")
     const clientFilterRef = useRef<HTMLDivElement | null>(null)
@@ -118,7 +118,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
         u.display_name || u.username || `Client #${u.id}`
 
     const sortedClients = useMemo(() => {
-        const list = [...users]
+        // Only offer active clients as filter options (inactive ones are hidden).
+        const list = users.filter((u) => u.is_active !== false)
         return list.sort((a, b) => getClientLabel(a).localeCompare(getClientLabel(b), undefined, { sensitivity: "base" }))
     }, [users])
 

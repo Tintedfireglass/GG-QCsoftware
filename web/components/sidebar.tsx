@@ -12,6 +12,7 @@ import {
     LogOut,
     Users,
     UserPlus,
+    Contact,
     Shield,
     Key,
     Server,
@@ -89,6 +90,12 @@ export function Sidebar() {
             href: "/dashboard/plans",
             label: "Pricing Plans",
             icon: Package,
+            roles: ['SuperAdmin']
+        },
+        {
+            href: "/dashboard/customers",
+            label: "Customers",
+            icon: Contact,
             roles: ['SuperAdmin']
         },
         {

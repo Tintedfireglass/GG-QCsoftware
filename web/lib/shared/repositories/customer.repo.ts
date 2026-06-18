@@ -33,6 +33,137 @@ export async function findCustomerByEmailAny(email: string): Promise<{ id: numbe
     return rows[0] ?? null;
 }
 
+// ── Admin: customer directory (SuperAdmin) ──
+
+function buildCustomerWhere(p: { status?: string; type?: string; search?: string }) {
+    const conds = [];
+    if (p.status === 'active') conds.push(sql`cu.is_active IS TRUE`);
+    else if (p.status === 'inactive') conds.push(sql`cu.is_active IS NOT TRUE`);
+    if (p.type === 'web') conds.push(sql`cu.password_hash IS NOT NULL`);
+    else if (p.type === 'app') conds.push(sql`cu.password_hash IS NULL`);
+    if (p.search) {
+        const like = `%${p.search}%`;
+        conds.push(sql`(cu.email ILIKE ${like} OR cu.full_name ILIKE ${like} OR cu.phone ILIKE ${like} OR cu.company ILIKE ${like})`);
+    }
+    return conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+}
+
+export async function listCustomersAdmin(p: { status?: string; type?: string; search?: string; limit: number; offset: number }): Promise<Record<string, unknown>[]> {
+    const where = buildCustomerWhere(p);
+    const { rows } = await db.execute(sql`
+        SELECT cu.id, cu.email, cu.full_name, cu.company, cu.phone, cu.country_code,
+               cu.is_active, cu.created_at,
+               (cu.password_hash IS NOT NULL) AS has_password,
+               COUNT(DISTINCT co.id)::int AS order_count,
+               COUNT(DISTINCT lk.id)::int AS license_count
+        FROM customer_users cu
+        LEFT JOIN customer_orders co ON co.customer_user_id = cu.id
+        LEFT JOIN license_keys lk ON lk.customer_user_id = cu.id
+        ${where}
+        GROUP BY cu.id
+        ORDER BY cu.created_at DESC
+        LIMIT ${p.limit} OFFSET ${p.offset}`);
+    return rows as Record<string, unknown>[];
+}
+
+export async function countCustomersAdmin(p: { status?: string; type?: string; search?: string }): Promise<number> {
+    const where = buildCustomerWhere(p);
+    const { rows } = await db.execute(sql`SELECT COUNT(*)::int AS n FROM customer_users cu ${where}`);
+    return (rows[0]?.n as number) ?? 0;
+}
+
+export async function getCustomerDetailAdmin(id: number): Promise<Record<string, unknown> | null> {
+    const { rows } = await db.execute(sql`
+        SELECT cu.id, cu.email, cu.full_name, cu.company, cu.phone,
+               cu.first_name, cu.last_name, cu.date_of_birth, cu.country_code,
+               cu.is_active, cu.created_at,
+               (cu.password_hash IS NOT NULL) AS has_password,
+               (SELECT COUNT(*)::int FROM customer_orders co WHERE co.customer_user_id = cu.id) AS order_count,
+               (SELECT COUNT(*)::int FROM license_keys lk WHERE lk.customer_user_id = cu.id) AS license_count
+        FROM customer_users cu
+        WHERE cu.id = ${id}
+        LIMIT 1`);
+    return (rows[0] as Record<string, unknown>) ?? null;
+}
+
+export async function listCustomerOrdersAdmin(id: number): Promise<Record<string, unknown>[]> {
+    const { rows } = await db.execute(sql`
+        SELECT co.id, co.plan, co.amount_cents, co.currency, co.status,
+               co.created_at, p.name AS plan_name, lk.key AS license_key
+        FROM customer_orders co
+        LEFT JOIN plans p ON p.id = co.plan_id
+        LEFT JOIN license_keys lk ON lk.id = co.generated_license_key_id
+        WHERE co.customer_user_id = ${id}
+        ORDER BY co.created_at DESC`);
+    return rows as Record<string, unknown>[];
+}
+
+export async function listCustomerTicketsAdmin(id: number): Promise<Record<string, unknown>[]> {
+    const { rows } = await db.execute(sql`
+        SELECT id, ticket_id, subject, category, status, priority, created_at
+        FROM support_tickets
+        WHERE customer_user_id = ${id}
+        ORDER BY created_at DESC`);
+    return rows as Record<string, unknown>[];
+}
+
+export async function setCustomerActive(id: number, isActive: boolean): Promise<boolean> {
+    const rows = await db.update(customerUsers).set({ isActive })
+        .where(eq(customerUsers.id, id)).returning({ id: customerUsers.id });
+    return rows.length > 0;
+}
+
+/** Apply a partial admin edit. Only the keys present in `patch` are written. */
+export async function updateCustomerAdmin(id: number, patch: {
+    fullName?: string | null;
+    company?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    isActive?: boolean;
+}): Promise<boolean> {
+    const set: Record<string, unknown> = {};
+    if ('fullName' in patch) set.fullName = patch.fullName ?? null;
+    if ('company' in patch) set.company = patch.company ?? null;
+    if ('phone' in patch) set.phone = patch.phone ?? null;
+    if ('email' in patch) set.email = patch.email ?? null;
+    if ('isActive' in patch) set.isActive = patch.isActive;
+    if (Object.keys(set).length === 0) return true;
+    const rows = await db.update(customerUsers).set(set)
+        .where(eq(customerUsers.id, id)).returning({ id: customerUsers.id });
+    return rows.length > 0;
+}
+
+/** True if an email already belongs to a *different* customer (for edit uniqueness). */
+export async function emailTakenByOther(email: string, excludeId: number): Promise<boolean> {
+    const rows = await db.select({ id: customerUsers.id }).from(customerUsers)
+        .where(and(eq(customerUsers.email, email), sql`${customerUsers.id} <> ${excludeId}`)).limit(1);
+    return rows.length > 0;
+}
+
+/**
+ * Hard-delete a customer and all of their dependent records in one transaction.
+ * customer_users has no DB-level FKs, so every child table is cleaned up explicitly.
+ * visitor_sessions are kept for analytics — only their customer link is nulled.
+ */
+export async function deleteCustomerCascade(id: number): Promise<boolean> {
+    return db.transaction(async (tx) => {
+        const exists = await tx.select({ id: customerUsers.id }).from(customerUsers)
+            .where(eq(customerUsers.id, id)).limit(1);
+        if (exists.length === 0) return false;
+
+        await tx.execute(sql`DELETE FROM support_ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE customer_user_id = ${id})`);
+        await tx.execute(sql`DELETE FROM support_tickets WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM coupon_redemptions WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM mobile_reports WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM mobile_devices WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM customer_orders WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM license_keys WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`UPDATE visitor_sessions SET customer_user_id = NULL WHERE customer_user_id = ${id}`);
+        await tx.execute(sql`DELETE FROM customer_users WHERE id = ${id}`);
+        return true;
+    });
+}
+
 export async function customerEmailExists(email: string): Promise<boolean> {
     const rows = await db.select({ id: customerUsers.id }).from(customerUsers).where(eq(customerUsers.email, email)).limit(1);
     return rows.length > 0;

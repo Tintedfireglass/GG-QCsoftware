@@ -690,6 +690,106 @@ export async function refundOrder(id: number) {
     return json;
 }
 
+// ── Admin: customers (SuperAdmin) ──
+
+export interface CustomerDTO {
+    id: number
+    email: string | null
+    full_name: string | null
+    company: string | null
+    phone: string | null
+    country_code: string | null
+    is_active: boolean | null
+    has_password: boolean
+    order_count: number
+    license_count: number
+    created_at: string
+}
+
+export interface CustomersPage {
+    customers: CustomerDTO[]
+    pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+export async function getAdminCustomers(params: { status?: string; type?: string; search?: string; page?: number; limit?: number } = {}): Promise<CustomersPage> {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.type) qs.set("type", params.type);
+    if (params.search) qs.set("search", params.search);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    const res = await fetchWithAuth(`/api/admin/customers?${qs.toString()}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load customers");
+    return json;
+}
+
+export interface CustomerOrderRow {
+    id: number
+    plan: string | null
+    plan_name: string | null
+    amount_cents: number
+    currency: string
+    status: string
+    license_key: string | null
+    created_at: string
+}
+
+export interface CustomerTicketRow {
+    id: number
+    ticket_id: string
+    subject: string
+    category: string | null
+    status: string
+    priority: string
+    created_at: string
+}
+
+export interface CustomerDetail extends CustomerDTO {
+    first_name: string | null
+    last_name: string | null
+    date_of_birth: string | null
+}
+
+export interface CustomerDetailResponse {
+    customer: CustomerDetail
+    orders: CustomerOrderRow[]
+    licenses: Record<string, unknown>[]
+    tickets: CustomerTicketRow[]
+}
+
+export async function getAdminCustomer(id: number): Promise<CustomerDetailResponse> {
+    const res = await fetchWithAuth(`/api/admin/customers/${id}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load customer");
+    return json;
+}
+
+export async function updateAdminCustomer(id: number, data: {
+    full_name?: string | null
+    company?: string | null
+    phone?: string | null
+    email?: string | null
+    is_active?: boolean
+}): Promise<CustomerDetailResponse> {
+    const res = await fetchWithAuth(`/api/admin/customers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to update customer");
+    clearClientCache();
+    return json;
+}
+
+export async function deleteAdminCustomer(id: number) {
+    const res = await fetchWithAuth(`/api/admin/customers/${id}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to delete customer");
+    clearClientCache();
+    return json;
+}
+
 export async function toggleLicenseKeyActive(data: { id: number; is_active: boolean }) {
     const res = await fetchWithAuth("/api/licenses", {
         method: "PATCH",
