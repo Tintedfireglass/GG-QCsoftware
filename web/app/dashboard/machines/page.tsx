@@ -167,7 +167,12 @@ export default function MachinesPage() {
 
         return machines.filter((m) => {
             if (!isGradeSelected(getGradeKey(m?.latest_grade))) return false
-            if (clientId !== null && Number(m?.owner_user_id) !== clientId) return false
+            if (clientId !== null) {
+                // A machine belongs to a client if that client tested it, or owns it (fleet).
+                const testedBy = Array.isArray(m?.technician_ids) ? m.technician_ids.map(Number) : []
+                const owned = Number(m?.owner_user_id) === clientId
+                if (!owned && !testedBy.includes(clientId)) return false
+            }
             if (!term) return true
 
             const haystack = [
