@@ -7,9 +7,9 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./style.css";
 
-const defaultTitle = "Pramaan – Device Health Testing & Laptop Diagnostic Software";
+const defaultTitle = "Pramaan – Electronics Lifecycle Intelligence Platform";
 const defaultDescription =
-  "Pramaan is a hardware diagnostic and device health testing software that evaluates laptops and electronics through automated diagnostics, stress tests and QC certification.";
+  "Standardized testing, certification and device intelligence for repair, refurbishment, insurance and asset management.";
 const defaultKeywords =
   "laptop diagnostic software, device health testing software, hardware testing software, laptop QC testing tool, device lifecycle analytics, laptop performance testing, hardware diagnostics tool, refurbished device testing, IT asset testing software";
 const siteUrl = "https://pramaan.gadgetguruz.com";
