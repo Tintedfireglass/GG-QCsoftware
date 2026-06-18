@@ -201,7 +201,7 @@ export function Sidebar() {
                 <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={160} height={36} className="w-auto h-8 object-contain" />
             </div>
 
-            <div className="flex-1 py-4">
+            <div className="flex-1 min-h-0 overflow-y-auto py-4">
                 <nav className="space-y-2 px-4">
                     {visibleLinks.map((link) => {
                         const Icon = link.icon
