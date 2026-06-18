@@ -138,6 +138,7 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
          SELECT
            m.id, m.machine_id, m.serial_number, m.mac_address, m.manufacturer,
            m.model, m.computer_name, m.custom_name, m.last_seen, m.location, m.created_at,
+           m.owner_user_id,
            COALESCE(agg.test_count, 0) as test_count,
            agg.last_test_date,
            COALESCE(agg.passed_count, 0) as passed_count,
