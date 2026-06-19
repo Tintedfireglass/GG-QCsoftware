@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using LaptopQC.Core.Abstractions;
 using LaptopQC.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -65,10 +67,10 @@ public partial class LoginWindow : Window
 
         try
         {
-            // Gather basic machine fingerprint (best-effort)
-            var machineSerial = Environment.MachineName;
-            var computerName  = Environment.MachineName;
-            var macAddress    = GetMacAddress() ?? "UNKNOWN";
+            // Gather machine fingerprint — MUST match what QCWorkflowService uses
+            // so the server recognises the same machine at submission time.
+            var (machineSerial, macAddress) = GetHardwareFingerprint();
+            var computerName = Environment.MachineName;
 
             var result = await _authService.LoginWithLicenseAsync(
                 licenseKey,
@@ -164,9 +166,8 @@ public partial class LoginWindow : Window
         try
         {
             var trialService   = new TrialService();
-            var machineSerial  = Environment.MachineName;
+            var (machineSerial, macAddress) = GetHardwareFingerprint();
             var computerName   = Environment.MachineName;
-            var macAddress     = GetMacAddress() ?? "UNKNOWN";
 
             var result = await trialService.StartOrRefreshTrialAsync(
                 email,
@@ -211,9 +212,42 @@ public partial class LoginWindow : Window
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns the MAC address of the first active non-loopback adapter.
-    /// Uses System.Net.NetworkInformation which works on macOS, Linux, and Windows.
+    /// Returns the hardware serial and MAC address using the same ISystemDiagnostic
+    /// that QCWorkflowService uses, so activation and report submission identify
+    /// the same machine to the server.
+    /// Falls back to MachineName / network MAC if the diagnostic fails.
     /// </summary>
+    private static (string serial, string macAddress) GetHardwareFingerprint()
+    {
+        string serial = string.Empty;
+        string mac    = string.Empty;
+
+        try
+        {
+            var diag = App.Current?.Services?.GetService<ISystemDiagnostic>();
+            if (diag != null)
+            {
+                var info = diag.GetInfo();
+                serial = info.SerialNumber ?? string.Empty;
+                mac    = info.MacAddress   ?? string.Empty;
+            }
+        }
+        catch { /* best-effort */ }
+
+        // Fallback: use network MAC via NetworkInterface
+        if (string.IsNullOrWhiteSpace(mac))
+            mac = GetMacAddress() ?? "UNKNOWN";
+
+        // Fallback: use hostname if no usable hardware serial
+        if (string.IsNullOrWhiteSpace(serial) ||
+            serial.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase))
+        {
+            serial = MachineIdentityService.BuildFallbackSerial(mac, Environment.MachineName);
+        }
+
+        return (serial, mac);
+    }
+
     private static string? GetMacAddress()
     {
         try
