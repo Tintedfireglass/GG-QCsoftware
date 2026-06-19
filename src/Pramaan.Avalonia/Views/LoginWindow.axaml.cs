@@ -3,6 +3,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using LaptopQC.Core.Services;
 using System;
+using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
 namespace Pramaan.Avalonia.Views;
@@ -66,11 +68,12 @@ public partial class LoginWindow : Window
             // Gather basic machine fingerprint (best-effort)
             var machineSerial = Environment.MachineName;
             var computerName  = Environment.MachineName;
+            var macAddress    = GetMacAddress() ?? "UNKNOWN";
 
             var result = await _authService.LoginWithLicenseAsync(
                 licenseKey,
                 machineSerial,
-                macAddress:    null,
+                macAddress:    macAddress,
                 computerName:  computerName);
 
             if (result.Success)
@@ -163,11 +166,12 @@ public partial class LoginWindow : Window
             var trialService   = new TrialService();
             var machineSerial  = Environment.MachineName;
             var computerName   = Environment.MachineName;
+            var macAddress     = GetMacAddress() ?? "UNKNOWN";
 
             var result = await trialService.StartOrRefreshTrialAsync(
                 email,
                 machineSerial,
-                macAddress:   null,
+                macAddress:   macAddress,
                 computerName: computerName);
 
             if (result.Success && result.Token != null)
@@ -205,6 +209,26 @@ public partial class LoginWindow : Window
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the MAC address of the first active non-loopback adapter.
+    /// Uses System.Net.NetworkInformation which works on macOS, Linux, and Windows.
+    /// </summary>
+    private static string? GetMacAddress()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .Select(n => n.GetPhysicalAddress()?.ToString())
+                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private void ShowError(string message)
     {
