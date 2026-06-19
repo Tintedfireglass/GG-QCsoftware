@@ -3,17 +3,17 @@
         x:Class="Pramaan.Avalonia.Views.UpdateDownloadWindow"
         Title="Downloading Update"
         Width="420"
-        Height="180"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        SystemDecorations="BorderOnly">
+        SystemDecorations="None">
 
     <Window.Styles>
         <Style Selector="TextBlock.Title">
             <Setter Property="Foreground" Value="#1f2937"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
         </Style>
         <Style Selector="TextBlock.Progress">
             <Setter Property="Foreground" Value="#6b7280"/>

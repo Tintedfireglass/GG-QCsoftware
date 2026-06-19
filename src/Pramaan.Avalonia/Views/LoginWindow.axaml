@@ -104,14 +104,14 @@
                                FontWeight="Bold"
                                HorizontalAlignment="Center"
                                Foreground="#1F2937"
-                               FontFamily="Segoe UI">
+                               FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif">
                         <Run Text="Activate "/>
                         <Run Text="PRAMAAN" Foreground="#8B3D88"/>
                     </TextBlock>
                     <TextBlock Text="Enter your license key or start a free 7-day trial"
                                FontSize="12"
                                Foreground="#6B7280"
-                               FontFamily="Segoe UI"
+                               FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                                HorizontalAlignment="Center"
                                TextWrapping="Wrap"
                                TextAlignment="Center"
@@ -132,7 +132,7 @@
                         <TextBox Name="LicenseBox"
                                  Padding="12,10"
                                  FontSize="14"
-                                 FontFamily="Consolas, Segoe UI"
+                                 FontFamily="Consolas, SF Mono, Menlo, Courier New, monospace"
                                  TextAlignment="Center"
                                  MaxLength="19"
                                  Watermark="XXXX-XXXX-XXXX-XXXX"
@@ -186,7 +186,7 @@
                         <TextBox Name="EmailBox"
                                  Padding="12,10"
                                  FontSize="14"
-                                 FontFamily="Segoe UI"
+                                 FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                                  Watermark="you@example.com"
                                  Background="#f9fafb"
                                  BorderBrush="#D1D5DB"

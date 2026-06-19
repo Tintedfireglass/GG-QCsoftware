@@ -5,7 +5,7 @@
         xmlns:conv="using:Pramaan.Avalonia.Converters"
         x:Class="Pramaan.Avalonia.Views.AudioVideoTestWindow"
         Title="Audio &amp; Video Test" 
-        Height="580" Width="720"
+        Width="720" MinHeight="500" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         CanResize="False">
@@ -24,7 +24,7 @@
         <Style Selector="Button.defaultBtn">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="BorderBrush" Value="#d1d5db"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -77,7 +77,7 @@
         <Style Selector="TextBlock.mainText">
             <Setter Property="Foreground" Value="#374151"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
         </Style>
     </Window.Styles>
 

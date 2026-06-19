@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Pramaan.Avalonia.ViewModels"
         xmlns:conv="using:Pramaan.Avalonia.Converters"
-        Title="QC Wizard" Height="480" Width="620"
+        Title="QC Wizard" Width="640" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         CanResize="False">
@@ -23,7 +23,7 @@
         <Style Selector="Button.PrimaryButton">
             <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="20,12"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -45,7 +45,7 @@
         <Style Selector="Button.SecondaryButton">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="Padding" Value="20,12"/>
             <Setter Property="BorderBrush" Value="#d1d5db"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -64,7 +64,7 @@
         </Style>
     </Window.Styles>
 
-    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="24"
+    <Border Background="White" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="12" Margin="16" Padding="24" MaxHeight="700"
             BoxShadow="0 4 6 0 #1A000000">
         <Grid>
             <!-- Step 1: Preparation -->

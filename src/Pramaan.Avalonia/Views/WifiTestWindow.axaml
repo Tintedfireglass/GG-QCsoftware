@@ -13,24 +13,24 @@
             <Setter Property="Foreground" Value="#1f2937"/>
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
         <Style Selector="TextBlock.CardSubtitle">
             <Setter Property="Foreground" Value="#6b7280"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
         <Style Selector="TextBlock.AdapterLabel">
             <Setter Property="Foreground" Value="#1f2937"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
         </Style>
         <Style Selector="TextBlock.AdapterStatus">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="Foreground" Value="#6b7280"/>
         </Style>
         <Style Selector="Button.PrimaryButton">
@@ -38,7 +38,7 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="Padding" Value="12,12"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -83,7 +83,7 @@
 
             <!-- Loading indicator -->
             <StackPanel Name="LoadingPanel" HorizontalAlignment="Center" Margin="0,0,0,16">
-                <ProgressBar IsIndeterminate="True" Width="200" Height="4"
+                <ProgressBar IsIndeterminate="True" HorizontalAlignment="Stretch" Height="4"
                              Background="#e5e7eb" Foreground="#8B3D88"/>
                 <TextBlock Name="LoadingText" Text="Scanning network adapters..."
                            HorizontalAlignment="Center" Foreground="#6b7280"

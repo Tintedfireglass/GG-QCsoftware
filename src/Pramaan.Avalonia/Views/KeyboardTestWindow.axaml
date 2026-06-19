@@ -4,7 +4,7 @@
         xmlns:conv="using:Pramaan.Avalonia.Converters"
         x:Class="Pramaan.Avalonia.Views.KeyboardTestWindow"
         Title="Keyboard Test" 
-        Height="620" Width="1100"
+        Height="660" Width="980" MinWidth="800"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         CanResize="False">
@@ -39,7 +39,7 @@
         <Style Selector="Button.cancelBtn">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#6b7280"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="BorderBrush" Value="#d1d5db"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -61,7 +61,7 @@
             <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -99,7 +99,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
                     <TextBlock Text="Keyboard Test" 
                                FontSize="20" FontWeight="SemiBold" 
-                               Foreground="#8B3D88" FontFamily="Segoe UI"
+                               Foreground="#8B3D88" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
@@ -109,7 +109,7 @@
                                    VerticalAlignment="Center" 
                                    Foreground="#4b5563" 
                                    FontWeight="SemiBold"
-                                   FontFamily="Segoe UI" 
+                                   FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" 
                                    Margin="0,0,12,0"/>
                         <ToggleSwitch IsChecked="{Binding ShowNumpad}"
                                       Focusable="False"
@@ -129,7 +129,7 @@
                              Foreground="#8B3D88"/>
                 <TextBlock Text="{Binding ProgressText}" 
                            Foreground="#6b7280" 
-                           FontFamily="Segoe UI"
+                           FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                            HorizontalAlignment="Center"
                            FontSize="13"
                            Margin="0,4,0,0"/>
@@ -137,12 +137,12 @@
             
             <!-- Keyboard Layout - with clipping -->
             <Border Grid.Row="2" Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="8" 
-                    Padding="10" ClipToBounds="True">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    Padding="10">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Keys}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas Height="280" Width="1020"/>
+                                <Canvas Height="280" Width="900"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>
@@ -177,7 +177,7 @@
                                                 FontWeight="SemiBold"
                                                 Classes="key_label"
                                                 Classes.tested_text="{Binding IsTested}"
-                                                FontFamily="Segoe UI">
+                                                FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif">
                                     </TextBlock>
                                 </Border>
                             </DataTemplate>
@@ -190,7 +190,7 @@
             <TextBlock Grid.Row="3" 
                        Text="{Binding Instructions}" 
                        Foreground="#6b7280" 
-                       FontFamily="Segoe UI"
+                       FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                        FontSize="13"
                        HorizontalAlignment="Center"
                        Margin="0,10,0,0"/>

@@ -3,7 +3,7 @@
         xmlns:vm="using:Pramaan.Avalonia.ViewModels"
         x:Class="Pramaan.Avalonia.Views.TrackpadTestWindow"
         Title="🖱️ Trackpad Test" 
-        Height="520" Width="620"
+        Height="580" Width="640"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         CanResize="False"
@@ -33,7 +33,7 @@
         <Style Selector="TextBlock.testItemLabel">
             <Setter Property="Foreground" Value="#6b7280"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
         <Style Selector="TextBlock.testedLabel">
@@ -55,7 +55,7 @@
         <Style Selector="Button.cancelBtn">
             <Setter Property="Background" Value="#f3f4f6"/>
             <Setter Property="Foreground" Value="#6b7280"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="BorderBrush" Value="#d1d5db"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -77,7 +77,7 @@
             <Setter Property="Background" Value="#8B3D88"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -109,7 +109,7 @@
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
                 <TextBlock Text="Trackpad Test" 
                            FontSize="22" FontWeight="SemiBold" 
-                           Foreground="#8B3D88" FontFamily="Segoe UI"
+                           Foreground="#8B3D88" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                            VerticalAlignment="Center"/>
             </StackPanel>
             
@@ -121,7 +121,7 @@
                              Background="#e5e7eb"
                              Foreground="#8B3D88"/>
                 <TextBlock Text="{Binding ProgressText}" 
-                           Foreground="#6b7280" FontFamily="Segoe UI"
+                           Foreground="#6b7280" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                            HorizontalAlignment="Center"
                            FontSize="14"
                            Margin="0,6,0,0"/>
@@ -174,7 +174,7 @@
                     <Border Grid.Row="1" Background="White" CornerRadius="8" 
                             BorderBrush="#d1d5db" BorderThickness="2">
                         <TextBlock Text="Move cursor and click here to test trackpad" 
-                                   Foreground="#9ca3af" FontFamily="Segoe UI"
+                                   Foreground="#9ca3af" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                                    FontSize="15"
                                    HorizontalAlignment="Center" 
                                    VerticalAlignment="Center"/>
@@ -185,13 +185,13 @@
             <!-- Instructions -->
             <TextBlock Grid.Row="3" 
                        Text="{Binding Instructions}" 
-                       Foreground="#6b7280" FontFamily="Segoe UI"
+                       Foreground="#6b7280" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
                        FontSize="14"
                        HorizontalAlignment="Center"
                        Margin="0,16,0,0"/>
             
             <!-- Buttons -->
-            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
                 <Button Content="Cancel" 
                         Command="{Binding CancelTestCommand}"
                         Width="120" Height="40"
