@@ -481,6 +481,10 @@ public partial class QCWizardViewModel : ObservableObject
             }
         }
 
+        // Stamp the server-allocated Machine ID onto the report (set during activation)
+        if (App.AuthService.MachineId.HasValue && App.AuthService.MachineId.Value > 0)
+            report.DeviceId = App.AuthService.MachineId.Value;
+
         // Now logged in - submit to API
         var technicianId = App.TechnicianId;
         SubmissionStatus = $"Submitting to Central Server (by {App.UserDisplayName})...";
@@ -493,11 +497,34 @@ public partial class QCWizardViewModel : ObservableObject
             {
                 SubmissionStatus = $"Submitted (by {App.UserDisplayName})";
             }
+            else if (submitResult.IsAuthError)
+            {
+                // Token is stale / expired — clear it and prompt re-login once, then retry.
+                SubmissionStatus = "Session expired. Please log in again...";
+                App.AuthService.Logout();
+
+                var reloginWindow = new LoginWindow(App.AuthService);
+                await reloginWindow.ShowDialog(GetActiveWindow()!);
+
+                if (App.IsLoggedIn)
+                {
+                    // Stamp the new MachineId in case it changed
+                    if (App.AuthService.MachineId.HasValue && App.AuthService.MachineId.Value > 0)
+                        report.DeviceId = App.AuthService.MachineId.Value;
+
+                    var retryResult = await _submissionService.SubmitReportAsync(report, App.TechnicianId, App.AuthService.Token);
+                    SubmissionStatus = retryResult.Success
+                        ? $"Submitted (by {App.UserDisplayName})"
+                        : $"Failed to Submit: {retryResult.ErrorMessage}";
+                }
+                else
+                {
+                    SubmissionStatus = "Skipped cloud submission (saved locally only)";
+                }
+            }
             else
             {
-                SubmissionStatus = submitResult.IsAuthError
-                    ? "Activation required to submit"
-                    : "Failed to Submit (Saved Locally)";
+                SubmissionStatus = $"Failed to Submit (Saved Locally): {submitResult.ErrorMessage}";
             }
         }
         catch (Exception ex)

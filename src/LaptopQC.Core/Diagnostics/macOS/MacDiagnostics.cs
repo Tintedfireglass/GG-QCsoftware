@@ -36,8 +36,22 @@ public class MacSystemDiagnostic : ISystemDiagnostic
 
                 info.ComputerName = Environment.MachineName;
                 info.Manufacturer = "Apple";
-                info.Model = TryGetString(hw, "machine_model") 
-                          ?? TryGetString(hw, "machine_name") ?? "Unknown";
+
+                // Prefer the marketing name ("MacBook Air") over the internal model ID ("Mac15,12")
+                var marketingName = TryGetString(hw, "machine_name");   // e.g. "MacBook Air"
+                var internalModel = TryGetString(hw, "machine_model");  // e.g. "Mac15,12"
+                var chipName      = TryGetString(hw, "chip_type");       // e.g. "Apple M3"
+
+                if (!string.IsNullOrWhiteSpace(marketingName))
+                {
+                    info.Model = !string.IsNullOrWhiteSpace(chipName)
+                        ? $"{marketingName} ({chipName})"   // "MacBook Air (Apple M3)"
+                        : marketingName;                    // "MacBook Air"
+                }
+                else
+                {
+                    info.Model = internalModel ?? "Unknown";
+                }
                 info.SerialNumber = TryGetString(hw, "serial_number") ?? "";
                 info.BiosVersion = TryGetString(hw, "boot_rom_version") ?? "";
                 info.OsVersion = $"macOS {Environment.OSVersion.Version}";
@@ -403,21 +417,41 @@ public class MacBatteryDiagnostic : IBatteryDiagnostic
             var cycles = ParseIoregInt(ioreg, "CycleCount");
             info.CycleCount = cycles.HasValue && cycles.Value > 0 ? cycles.Value : null;
 
-            var designCap = ParseIoregInt(ioreg, "DesignCapacity") ?? 0;
-            var maxCap = ParseIoregInt(ioreg, "MaxCapacity") ?? 0;
-            var currentCap = ParseIoregInt(ioreg, "CurrentCapacity") ?? 0;
+            var designCap    = ParseIoregInt(ioreg, "DesignCapacity") ?? 0;
 
-            info.DesignedCapacityMWh = (uint)designCap;
-            info.FullChargedCapacityMWh = (uint)maxCap;
+            // On macOS Ventura+, MaxCapacity returns 100 (a %-sentinel, not mWh).
+            // AppleRawMaxCapacity is ALWAYS in mWh — prefer it for capacity math.
+            var rawMaxCap    = ParseIoregInt(ioreg, "AppleRawMaxCapacity");
+            var rawCurrentCap = ParseIoregInt(ioreg, "AppleRawCurrentCapacity");
+            var maxCap       = ParseIoregInt(ioreg, "MaxCapacity") ?? 0;
+            var currentCap   = ParseIoregInt(ioreg, "CurrentCapacity") ?? 0;
 
-            if (maxCap > 0 && currentCap > 0)
-                info.EstimatedChargeRemaining = (int)((double)currentCap / maxCap * 100);
+            // Use raw mWh values when available; fall back to legacy keys.
+            int effectiveMaxCap     = rawMaxCap     ?? maxCap;
+            int effectiveCurrentCap = rawCurrentCap ?? currentCap;
 
-            // Calculate wear level
-            if (designCap > 0 && maxCap > 0)
+            info.DesignedCapacityMWh    = (uint)(rawMaxCap ?? maxCap);
+            info.FullChargedCapacityMWh = (uint)(rawMaxCap ?? maxCap);
+
+            // Charge remaining %
+            if (effectiveMaxCap > 0 && effectiveCurrentCap > 0)
+                info.EstimatedChargeRemaining = Math.Clamp(
+                    (int)((double)effectiveCurrentCap / effectiveMaxCap * 100), 0, 100);
+
+            // Wear / Health — use AppleRawMaxCapacity vs DesignCapacity (both mWh).
+            // Only compute if we have a raw value OR if maxCap looks like it's in the
+            // same unit as designCap (i.e. it isn't the 100-sentinel).
+            bool rawAvailable = rawMaxCap.HasValue && rawMaxCap.Value > 0;
+            bool legacySameUnit = !rawAvailable && maxCap > 100 && designCap > 0;
+            int wearBase = rawAvailable  ? rawMaxCap!.Value
+                         : legacySameUnit ? maxCap
+                         : 0;
+
+            if (designCap > 0 && wearBase > 0)
             {
-                double wearFraction = 1.0 - ((double)maxCap / designCap);
-                info.WearLevelPercent = Math.Max(0, (int)(wearFraction * 100));
+                double healthFraction = Math.Min(1.0, (double)wearBase / designCap);
+                info.HealthPercent    = Math.Max(0, (int)(healthFraction * 100));
+                info.WearLevelPercent = Math.Max(0, 100 - info.HealthPercent.Value);
             }
 
             // Charging status

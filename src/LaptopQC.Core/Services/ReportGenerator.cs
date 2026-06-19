@@ -11,8 +11,10 @@ public class ReportGenerator
         var sb = new StringBuilder();
         
         sb.AppendLine("<!DOCTYPE html>");
-        sb.AppendLine("<html>");
+        sb.AppendLine("<html lang='en'>");
         sb.AppendLine("<head>");
+        sb.AppendLine("<meta charset='utf-8'>");
+        sb.AppendLine("<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>");
         sb.AppendLine($"<title>QC Certificate - {report.RefurbishId}</title>");
         sb.AppendLine("<style>");
         sb.AppendLine(@"
@@ -280,7 +282,7 @@ public class ReportGenerator
         sb.AppendLine("<div>");
         sb.AppendLine("<div class='overall-label'>PRAMAAN Health Score</div>");
         sb.AppendLine($"<div class='overall-grade grade-{pramaanGrade}'>{pramaanGrade}</div>");
-        sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} — {pramaanScore}/100</div>");
+        sb.AppendLine($"<div class='overall-sublabel'>{gradeLabel} &mdash; {pramaanScore}/100</div>");
         sb.AppendLine("</div>");
         sb.AppendLine("<div style='display:flex; align-items:center; gap:24px;'>");
         sb.AppendLine("<div class='machine-id'>");
@@ -495,7 +497,7 @@ public class ReportGenerator
         }
         
         var path = Path.Combine(folder, filename);
-        File.WriteAllText(path, html);
+        File.WriteAllText(path, html, System.Text.Encoding.UTF8);
         
         return path;
     }
