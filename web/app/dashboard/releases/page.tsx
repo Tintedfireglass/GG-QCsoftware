@@ -25,6 +25,7 @@ import {
     MonitorDown,
     Laptop,
     Smartphone,
+    Terminal,
 } from "lucide-react"
 
 function formatBytes(n: number | null): string {
@@ -48,6 +49,7 @@ function formatDate(value: string | null) {
 const PLATFORM_META: Record<ReleasePlatform, { label: string; icon: React.ComponentType<{ className?: string }>; accept: string; note?: string }> = {
     windows: { label: "Windows", icon: MonitorDown, accept: ".exe,.msi" },
     mac: { label: "macOS", icon: Laptop, accept: ".dmg,.pkg,.zip" },
+    linux: { label: "Linux", icon: Terminal, accept: ".appimage,.deb,.rpm,.tar.gz" },
     android: {
         label: "Android",
         icon: Smartphone,
@@ -211,6 +213,7 @@ export default function ReleasesPage() {
                         >
                             <option value="windows">Windows (.exe / .msi)</option>
                             <option value="mac">macOS (.dmg / .pkg / .zip)</option>
+                            <option value="linux">Linux (.AppImage / .deb / .rpm / .tar.gz)</option>
                             <option value="android">Android (.apk / .aab or store link)</option>
                             <option value="ios">iPhone / iOS (App Store link)</option>
                         </select>

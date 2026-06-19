@@ -876,7 +876,7 @@ export async function getTrialMachineAutoQCRuns(
 }
 
 // ── App Releases (desktop auto-update) ──────────────────────────────────────────
-export type ReleasePlatform = "windows" | "mac" | "android" | "ios"
+export type ReleasePlatform = "windows" | "mac" | "linux" | "android" | "ios"
 export type ReleaseChannel = "stable" | "beta"
 
 export interface AppRelease {
