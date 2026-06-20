@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Monitor, ExternalLink, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Monitor, ExternalLink, Search } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import { formatDbDate } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
@@ -491,14 +492,11 @@ export default function MachinesPage() {
             {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-2">
                     <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                            <ChevronLeft className="h-4 w-4 mr-1" />Previous
-                        </Button>
-                        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-                            Next<ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                    </div>
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={(p) => setPage(Math.min(totalPages, Math.max(1, p)))}
+                    />
                 </div>
             )}
         </div>

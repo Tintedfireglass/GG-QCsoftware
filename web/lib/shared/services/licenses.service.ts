@@ -68,8 +68,22 @@ function generateRandomKey(): string {
     return result;
 }
 
-export async function listLicenses(user: AuthenticatedUser) {
-    return { keys: await repo.listLicenses(user) };
+export async function listLicenses(
+    user: AuthenticatedUser,
+    q: { search?: string; status?: string; sort?: string; page?: number; limit?: number } = {}
+) {
+    const limit = Math.min(Math.max(q.limit ?? 20, 1), 100);
+    const page = Math.max(q.page ?? 1, 1);
+    const offset = (page - 1) * limit;
+    const search = q.search?.trim() || undefined;
+    const status = q.status && q.status !== 'all' ? q.status : undefined;
+    const sort = q.sort || undefined;
+
+    const [keys, total] = await Promise.all([
+        repo.listLicenses(user, { search, status, sort, limit, offset }),
+        repo.countLicenses(user, { search, status }),
+    ]);
+    return { keys, pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } };
 }
 
 export async function generateLicense(user: AuthenticatedUser, input: GenerateLicenseInput) {

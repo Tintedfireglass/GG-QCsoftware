@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, Smartphone, Eye, Printer } from "lucide-react"
+import { Search, Smartphone, Eye, Printer } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -207,15 +208,13 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                     <p className="text-sm text-slate-500">
                         {total != null ? `${total} report${total === 1 ? "" : "s"}` : "Page " + page}
                     </p>
-                    <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page <= 1 || loading} className="border-slate-200 text-slate-700">
-                            <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-                        </Button>
-                        <div className="text-sm font-medium text-slate-700">Page {page}{totalPages != null ? ` of ${totalPages}` : ""}</div>
-                        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={loading || (totalPages != null && page >= totalPages) || (totalPages == null && reports.length < limit)} className="border-slate-200 text-slate-700">
-                            Next <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                    </div>
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        disabled={loading}
+                        hasNext={reports.length >= limit}
+                    />
                 </div>
             )}
         </div>

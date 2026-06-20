@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createLicenseKey, getLicenses, toggleLicenseKeyActive, updateLicenseExpiry } from "@/lib/api"
 import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar, Power, PowerOff } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 
 interface LicenseKey {
     id: number
@@ -35,6 +36,7 @@ const PLATFORMS: { id: string; label: string }[] = [
 const PLATFORM_LABELS: Record<string, string> = {
     windows: "Windows", android: "Android", ios: "iOS", mac: "Mac",
 }
+const PAGE_SIZE = 20
 
 export default function LicensesPage() {
     const { user } = useAuth()
@@ -45,6 +47,8 @@ export default function LicensesPage() {
     const [search, setSearch] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "exhausted" | "expired" | "revoked">("all")
     const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | "activation_desc" | "activation_asc" | "status">("created_desc")
+    const [page, setPage] = useState(1)
+    const [total, setTotal] = useState(0)
 
     // Modal States
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
@@ -77,6 +81,7 @@ export default function LicensesPage() {
     const [isExtending, setIsExtending] = useState(false)
     const [extendError, setExtendError] = useState("")
 
+    // Redirect unauthorized users.
     useEffect(() => {
         if (!user) {
             router.push("/login")
@@ -84,22 +89,26 @@ export default function LicensesPage() {
         }
         if (user.role !== "Refurbisher" && user.role !== "Enterprise" && user.role !== "OEM" && user.role !== "Insurer" && user.role !== "Reseller" && user.role !== "Client" && user.role !== "SuperAdmin" && user.role !== "Employee") {
             router.push("/dashboard")
-            return
         }
-        fetchKeys()
     }, [user, router])
 
-    const fetchKeys = async () => {
+    const fetchKeys = useCallback(async () => {
         try {
             setLoading(true)
-            const data = await getLicenses()
+            const data = await getLicenses({ search, status: statusFilter, sort: sortBy, page, limit: PAGE_SIZE })
             setKeys(data.keys)
+            setTotal(data.pagination.total)
         } catch (err) {
             console.error("Error connecting to the server.", err)
         } finally {
             setLoading(false)
         }
-    }
+    }, [search, statusFilter, sortBy, page])
+
+    // Reload from the server whenever the filters/sort/page change (once authorized).
+    useEffect(() => {
+        if (user) fetchKeys()
+    }, [user, fetchKeys])
 
     // Toggle a platform on/off. For single_use, only one platform may be selected at a time.
     const togglePlatform = (id: string) => {
@@ -280,48 +289,11 @@ export default function LicensesPage() {
         return "active" as const
     }
 
-    const statusRank = (s: ReturnType<typeof getKeyStatus>) => {
-        if (s === "active") return 1
-        if (s === "exhausted") return 2
-        if (s === "expired") return 3
-        return 4
-    }
-
-    const filteredKeys = useMemo(() => {
-        const nowMs = Date.now()
-        const q = search.trim().toLowerCase()
-
-        const base = keys.filter((k) => {
-            if (q) {
-                const hay = `${k.key} ${(k.customer_name || k.demo_customer_name || "")}`.toLowerCase()
-                if (!hay.includes(q)) return false
-            }
-
-            if (statusFilter !== "all") {
-                const s = getKeyStatus(k, nowMs)
-                if (s !== statusFilter) return false
-            }
-
-            return true
-        })
-
-        return [...base].sort((a, b) => {
-            if (sortBy === "created_desc") return parseDateMs(b.created_at) - parseDateMs(a.created_at)
-            if (sortBy === "created_asc") return parseDateMs(a.created_at) - parseDateMs(b.created_at)
-            if (sortBy === "activation_desc") return getEffectiveUses(b) - getEffectiveUses(a)
-            if (sortBy === "activation_asc") return getEffectiveUses(a) - getEffectiveUses(b)
-
-            const ra = statusRank(getKeyStatus(a, nowMs))
-            const rb = statusRank(getKeyStatus(b, nowMs))
-            if (ra !== rb) return ra - rb
-            return parseDateMs(b.created_at) - parseDateMs(a.created_at)
-        })
-    }, [keys, search, statusFilter, sortBy])
-
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading licenses...</div>
+    // Search/filter/sort/pagination are all server-side (see licenses repo).
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
     return (
-        <div className="space-y-6 max-w-[1200px]">
+        <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">License management</h1>
                 <p className="text-slate-500 text-sm mt-1">View all the registered machines and their details</p>
@@ -377,14 +349,14 @@ export default function LicensesPage() {
                             <Input
                                 placeholder="Search"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                                 className="pl-9 w-full sm:w-[250px] bg-white border-slate-200 focus-visible:ring-[var(--brand-purple)]"
                             />
                         </div>
 
                         <select
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                            onChange={(e) => { setStatusFilter(e.target.value as any); setPage(1) }}
                             className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)]"
                             title="Filter by status"
                         >
@@ -397,7 +369,7 @@ export default function LicensesPage() {
 
                         <select
                             value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as any)}
+                            onChange={(e) => { setSortBy(e.target.value as any); setPage(1) }}
                             className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)]"
                             title="Sort"
                         >
@@ -414,10 +386,10 @@ export default function LicensesPage() {
                 <div className="md:hidden flex flex-col gap-4 p-4 bg-slate-50 rounded-b-xl">
                     {loading ? (
                         <div className="py-8 text-center text-slate-500">Loading licenses...</div>
-                    ) : filteredKeys.length === 0 ? (
+                    ) : keys.length === 0 ? (
                         <div className="py-8 text-center text-slate-500">No licenses found</div>
                     ) : (
-                        filteredKeys.map((k) => {
+                        keys.map((k) => {
                             const effectiveUses = getEffectiveUses(k)
                             const usagePercent = Math.min(100, Math.round(((effectiveUses || 0) / k.max_uses) * 100));
                             const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
@@ -525,26 +497,30 @@ export default function LicensesPage() {
                 {/* Desktop Table View */}
                 <div className="hidden md:block relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left">
-                        <thead className="[&_tr]:border-b border-slate-200 bg-white">
+                        <thead className="[&_tr]:border-b border-slate-200">
                             <tr className="border-b transition-colors hover:bg-slate-50/50">
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 whitespace-nowrap">License Key</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[110px] whitespace-nowrap">Type</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Created</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[170px] whitespace-nowrap">Expires</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[130px] whitespace-nowrap">Activations</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Status</th>
-                                <th className="h-12 px-4 align-middle font-medium text-slate-900 text-center w-[120px] whitespace-nowrap">Actions</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">License Key</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Type</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Created</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Expires</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Activations</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Status</th>
+                                <th className="h-12 px-4 align-middle font-medium text-slate-500 text-center whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
-                            {filteredKeys.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} className="p-8 text-center text-slate-500">Loading...</td>
+                                </tr>
+                            ) : keys.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-slate-500">
                                         No license keys found. Generate one above.
                                     </td>
                                 </tr>
                             ) : (
-                                filteredKeys.map((k) => {
+                                keys.map((k) => {
                                     const effectiveUses = getEffectiveUses(k)
                                     const customerLabel = (k.customer_name || k.demo_customer_name || "").trim()
                                     const computedStatus = getKeyStatus(k, Date.now())
@@ -639,6 +615,13 @@ export default function LicensesPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t border-slate-100">
+                        <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={loading} />
+                    </div>
+                )}
             </div>
 
             {/* GENERATE MODAL */}

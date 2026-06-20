@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import { getAdminCustomers, updateAdminCustomer, CustomerDTO } from "@/lib/api"
 import { Search, Loader2, Users, Globe, Smartphone, Power, PowerOff, Eye } from "lucide-react"
@@ -64,7 +65,7 @@ export default function CustomersPage() {
     const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : "—")
 
     return (
-        <div className="space-y-6 max-w-[1200px]">
+        <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Customers</h1>
                 <p className="text-slate-500 text-sm mt-1">Store &amp; app customer accounts, their orders and licenses.</p>
@@ -172,10 +173,7 @@ export default function CustomersPage() {
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between p-4 border-t border-slate-100">
                         <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-                        </div>
+                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={loading} />
                     </div>
                 )}
             </div>

@@ -6,7 +6,8 @@ import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, Printer, Download } from "lucide-react"
+import { Search, ChevronRight, Printer, Download } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion } from "@/lib/utils"
 
@@ -38,13 +39,22 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     // Show user/technician column for all roles
     const showTechnicianColumn = true
 
-    async function loadData(pageToLoad = page, searchTerm = appliedSearch, userId = selectedUserId, issuesOnly = showIssuesOnly) {
+    async function loadData(
+        pageToLoad = page,
+        searchTerm = appliedSearch,
+        userId = selectedUserId,
+        issuesOnly = showIssuesOnly,
+        grades = selectedGrades,
+        sort = resultSort,
+    ) {
         setLoading(true)
         try {
             const filters: Record<string, string> = {}
             if (searchTerm) filters.search = searchTerm
             if (userId) filters.userId = userId
             if (issuesOnly) filters.hasIssues = "true"
+            if (grades.length) filters.grades = grades.join(",")
+            if (sort) filters.sort = sort
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -84,9 +94,10 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
 
     useEffect(() => {
         if (isInitialized) {
-            loadData(page, appliedSearch, selectedUserId, showIssuesOnly)
+            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort)
         }
-    }, [page, appliedSearch, selectedUserId, showIssuesOnly, isInitialized]) // Reload when state changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, isInitialized]) // Reload when state changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -238,63 +249,15 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const totalPages = Math.ceil(total / limit)
 
     const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
-    const gradeOrder: Record<string, number> = {
-        "A+": 0,
-        "A": 1,
-        "B": 2,
-        "C": 3,
-        "Unknown": 4
-    }
 
-    const getGradeKey = (grade?: string) => {
-        if (!grade) return "Unknown"
-        const g = grade.trim().toUpperCase()
-        if (g.startsWith("A+")) return "A+"
-        if (g.startsWith("A")) return "A"
-        if (g.startsWith("B")) return "B"
-        if (g.startsWith("C")) return "C"
-        return "Unknown"
-    }
-
-    const isGradeSelected = (gradeKey: string) =>
-        selectedGrades.length === 0 || selectedGrades.includes(gradeKey)
-
+    // Grade filtering and sorting are applied server-side (see the qc-results
+    // repo); the page reloads whenever the selection changes.
     const toggleGrade = (grade: string) => {
+        setPage(1)
         setSelectedGrades((prev) =>
             prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
         )
     }
-
-    const filteredResults = useMemo(() => {
-        return results.filter((r) => isGradeSelected(getGradeKey(r?.pramaan_grade)))
-    }, [results, selectedGrades])
-
-    const sortedResults = useMemo(() => {
-        const list = [...filteredResults]
-        if (resultSort === "grade_desc") {
-            return list.sort((a: any, b: any) => {
-                const aRank = gradeOrder[getGradeKey(a?.pramaan_grade)] ?? gradeOrder.Unknown
-                const bRank = gradeOrder[getGradeKey(b?.pramaan_grade)] ?? gradeOrder.Unknown
-                if (aRank !== bRank) return aRank - bRank
-                return (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0)
-            })
-        }
-        if (resultSort === "grade_asc") {
-            return list.sort((a: any, b: any) => {
-                const aRank = gradeOrder[getGradeKey(a?.pramaan_grade)] ?? gradeOrder.Unknown
-                const bRank = gradeOrder[getGradeKey(b?.pramaan_grade)] ?? gradeOrder.Unknown
-                if (aRank !== bRank) return bRank - aRank
-                return (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0)
-            })
-        }
-        if (resultSort === "date_asc") {
-            return list.sort((a: any, b: any) => (a?.timestamp ? new Date(a.timestamp).getTime() : 0) - (b?.timestamp ? new Date(b.timestamp).getTime() : 0))
-        }
-        if (resultSort === "id_asc") {
-            return list.sort((a: any, b: any) => String(a?.id ?? "").localeCompare(String(b?.id ?? "")))
-        }
-        return list.sort((a: any, b: any) => (b?.timestamp ? new Date(b.timestamp).getTime() : 0) - (a?.timestamp ? new Date(a.timestamp).getTime() : 0))
-    }, [filteredResults, resultSort])
 
     return (
         <div className="space-y-6">
@@ -310,7 +273,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                             {isSuperAdmin() && "All quality check results across the system"}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
-                            Showing {sortedResults.length} of {results.length} results
+                            Showing {results.length} of {total} results
                         </p>
                     </div>
                 )}
@@ -369,7 +332,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                                         <button
                                             type="button"
                                             className="text-xs text-slate-600 hover:text-slate-900"
-                                            onClick={() => setSelectedGrades([])}
+                                            onClick={() => { setPage(1); setSelectedGrades([]) }}
                                         >
                                             Clear filters
                                         </button>
@@ -443,7 +406,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                         )}
                         <select
                             value={resultSort}
-                            onChange={(e) => setResultSort(e.target.value as typeof resultSort)}
+                            onChange={(e) => { setPage(1); setResultSort(e.target.value as typeof resultSort) }}
                             className="h-10 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
                             aria-label="Sort results"
                         >
@@ -507,10 +470,10 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                 <div className="md:hidden flex flex-col gap-4">
                     {loading ? (
                         <div className="p-8 text-center text-slate-500">Loading...</div>
-                    ) : sortedResults.length === 0 ? (
+                    ) : results.length === 0 ? (
                         <div className="p-8 text-center text-slate-500">No results found</div>
                     ) : (
-                        sortedResults.map((test) => {
+                        results.map((test) => {
                             const dateObj = new Date(test.timestamp);
                             const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                             const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -632,10 +595,10 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
                                 <tr><td colSpan={showTechnicianColumn ? (showIssuesOnly ? 11 : 10) : (showIssuesOnly ? 10 : 9)} className="p-8 text-center text-slate-500">Loading...</td></tr>
-                            ) : sortedResults.length === 0 ? (
+                            ) : results.length === 0 ? (
                                 <tr><td colSpan={showTechnicianColumn ? (showIssuesOnly ? 11 : 10) : (showIssuesOnly ? 10 : 9)} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
                             ) : (
-                                sortedResults.map((test) => {
+                                results.map((test) => {
                                     const dateObj = new Date(test.timestamp);
                                     const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -768,31 +731,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                     <p className="text-sm text-slate-500">
                         Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} results
                     </p>
-                    <div className="flex items-center space-x-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(page - 1)}
-                            disabled={page <= 1 || loading}
-                            className="border-slate-200 text-slate-700"
-                        >
-                            <ChevronLeft className="h-4 w-4 mr-2" />
-                            Previous
-                        </Button>
-                        <div className="text-sm font-medium text-slate-700">
-                            Page {page} of {totalPages}
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(page + 1)}
-                            disabled={page >= totalPages || loading}
-                            className="border-slate-200 text-slate-700"
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                    </div>
+                    <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={loading} />
                 </div>
             )}
         </div>

@@ -2,7 +2,7 @@ import { and, desc, eq, gt, sql, type SQL } from 'drizzle-orm';
 import { db, schema, type Tx } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { ownerVisibilitySql } from '@/lib/shared/domain/visibility';
-import { ListQuery } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { GradeKey, ListQuery, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
 
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
 
@@ -18,6 +18,62 @@ function hasIssuesExists(rowIdRef: string): string {
     return `(
         SELECT pramaan_score FROM qc_results WHERE id = ${rowIdRef}
     ) < 70`;
+}
+
+/**
+ * Bucket-rank for a grade column, mirroring the UI's getGradeKey():
+ * A+ < A < B < C < Unknown. `gradeCol` is a trusted column reference.
+ */
+function gradeRankSql(gradeCol: string): string {
+    const g = `UPPER(TRIM(COALESCE(${gradeCol}, '')))`;
+    return `CASE
+        WHEN ${g} LIKE 'A+%' THEN 0
+        WHEN ${g} LIKE 'A%'  THEN 1
+        WHEN ${g} LIKE 'B%'  THEN 2
+        WHEN ${g} LIKE 'C%'  THEN 3
+        ELSE 4
+    END`;
+}
+
+/** WHERE predicate matching a set of grade buckets against a grade column. */
+function gradesFilterSql(gradeCol: string, grades: GradeKey[]): string {
+    const g = `UPPER(TRIM(COALESCE(${gradeCol}, '')))`;
+    const parts = grades.map((key) => {
+        switch (key) {
+            case 'A+':
+                return `${g} LIKE 'A+%'`;
+            case 'A':
+                return `(${g} LIKE 'A%' AND ${g} NOT LIKE 'A+%')`;
+            case 'B':
+                return `${g} LIKE 'B%'`;
+            case 'C':
+                return `${g} LIKE 'C%'`;
+            case 'Unknown':
+                return `(${gradeCol} IS NULL OR (${g} NOT LIKE 'A%' AND ${g} NOT LIKE 'B%' AND ${g} NOT LIKE 'C%'))`;
+        }
+    });
+    return `(${parts.join(' OR ')})`;
+}
+
+/**
+ * ORDER BY clause for the list query. Column names are passed per-scope because
+ * the inner CTE uses qc_results aliases (qr.*) while the outer SELECT reads the
+ * page_rows projection. `sort` is a validated enum; all inputs are trusted.
+ */
+function orderBySql(sort: SortKey, cols: { ts: string; id: string; grade: string }): string {
+    switch (sort) {
+        case 'grade_desc':
+            return `${gradeRankSql(cols.grade)} ASC, ${cols.ts} DESC, ${cols.id} DESC`;
+        case 'grade_asc':
+            return `${gradeRankSql(cols.grade)} DESC, ${cols.ts} DESC, ${cols.id} DESC`;
+        case 'date_asc':
+            return `${cols.ts} ASC, ${cols.id} ASC`;
+        case 'id_asc':
+            return `${cols.id} ASC`;
+        case 'date_desc':
+        default:
+            return `${cols.ts} DESC, ${cols.id} DESC`;
+    }
 }
 
 /** License/activation row fields consulted during submission. */
@@ -59,9 +115,13 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
         )`);
     }
     if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
+    if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.pramaan_grade', q.grades)));
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;
+
+    const innerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'qr.timestamp', id: 'qr.id', grade: 'qr.pramaan_grade' }));
+    const outerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'timestamp', id: 'id', grade: 'pramaan_grade' }));
 
     // Avoid selecting large JSON columns; compute has_issues only for the page.
     const listSql = sql`
@@ -79,7 +139,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
         LEFT JOIN machines m ON qr.machine_id = m.id
         LEFT JOIN users u ON qr.technician_id = u.id
         WHERE ${whereSql}
-        ORDER BY qr.timestamp DESC, qr.id DESC
+        ORDER BY ${innerOrderBy}
         LIMIT ${q.limit} OFFSET ${q.offset}
       )
       SELECT page_rows.*,
@@ -91,7 +151,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
           ORDER BY tr.test_type ASC LIMIT 1
         ) AS latest_issue
       FROM page_rows
-      ORDER BY timestamp DESC, id DESC
+      ORDER BY ${outerOrderBy}
     `;
 
     if (!q.includeTotal) {

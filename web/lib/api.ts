@@ -355,8 +355,26 @@ export async function deleteUser(id: number) {
     return out;
 }
 
-export async function getLicenses(): Promise<{ keys: any[] }> {
-    return cachedGetJson("/api/licenses", TTL.short);
+export interface LicensesPage {
+    keys: any[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export async function getLicenses(
+    params: { search?: string; status?: string; sort?: string; page?: number; limit?: number } = {}
+): Promise<LicensesPage> {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set("search", params.search);
+    if (params.status && params.status !== "all") qs.set("status", params.status);
+    if (params.sort) qs.set("sort", params.sort);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    const q = qs.toString();
+    // Admin list: not cached (like customers/orders) so toggles/new keys show immediately.
+    const res = await fetchWithAuth(`/api/licenses${q ? `?${q}` : ""}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load licenses");
+    return json;
 }
 
 export async function createLicenseKey(data: {
@@ -859,8 +877,24 @@ export interface AutoQCRun {
     model: string | null
 }
 
-export async function getAdminFreeTrials(): Promise<{ trials: AdminFreeTrialRow[] }> {
-    return cachedGetJson("/api/admin/free-trials", TTL.short)
+export interface FreeTrialsPage {
+    trials: AdminFreeTrialRow[]
+    pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+export async function getAdminFreeTrials(
+    params: { search?: string; page?: number; limit?: number } = {}
+): Promise<FreeTrialsPage> {
+    const qs = new URLSearchParams()
+    if (params.search) qs.set("search", params.search)
+    if (params.page) qs.set("page", String(params.page))
+    if (params.limit) qs.set("limit", String(params.limit))
+    const q = qs.toString()
+    // Admin list: not cached (like customers/orders) so refresh/search show fresh data.
+    const res = await fetchWithAuth(`/api/admin/free-trials${q ? `?${q}` : ""}`)
+    const json = await res.json()
+    if (!res.ok) throw new Error(json?.error || json?.message || "Failed to load free trials")
+    return json
 }
 
 export async function getTrialMachineAutoQCRuns(

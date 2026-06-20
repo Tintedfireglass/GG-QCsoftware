@@ -6,9 +6,18 @@ import { listLicenses, generateLicense, toggleLicense } from '@/lib/shared/servi
 const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
 const TOGGLE_ROLES = ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
 
-// GET /api/licenses - list license keys created by / visible to the caller
-export const GET = withAuth([...MANAGE_ROLES], async (_request, { user }) => {
-    return json(await listLicenses(user));
+// GET /api/licenses?search=&status=&sort=&page=&limit= - list keys visible to the caller
+export const GET = withAuth([...MANAGE_ROLES], async (request, { user }) => {
+    const sp = request.nextUrl.searchParams;
+    const page = parseInt(sp.get('page') || '1', 10);
+    const limit = parseInt(sp.get('limit') || '20', 10);
+    return json(await listLicenses(user, {
+        search: sp.get('search') || undefined,
+        status: sp.get('status') || undefined,
+        sort: sp.get('sort') || undefined,
+        page: Number.isNaN(page) ? 1 : page,
+        limit: Number.isNaN(limit) ? 20 : limit,
+    }));
 });
 
 // POST /api/licenses - generate a new license key

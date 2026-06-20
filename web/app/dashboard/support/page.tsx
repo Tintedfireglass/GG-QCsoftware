@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import {
     getAdminSupportTickets, updateSupportTicket, deleteSupportTicket,
@@ -165,7 +166,7 @@ export default function SupportPage() {
     const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
 
     return (
-        <div className="space-y-6 max-w-[1200px]">
+        <div className="space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
@@ -254,10 +255,7 @@ export default function SupportPage() {
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between p-4 border-t border-slate-100">
                         <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-                        </div>
+                        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={loading} />
                     </div>
                 )}
             </div>
