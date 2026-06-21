@@ -26,9 +26,9 @@ The **Pramaan Score** is a weighted composite of 6 hardware categories. Each cat
 |---|---|---|
 | **Storage** | 25% | SMART health, temperature, self-test result |
 | **Thermal** | 20% | CPU peak temp during stress, GPU temp, throttling |
-| **Battery** | 20% | Health percentage, cycle count, wear level |
+| **Battery** | 25% | Health percentage, cycle count, wear level |
 | **CPU & RAM** | 15% | CPU info health, RAM stress pass/fail |
-| **Physical Ports** | 10% | USB, Audio jack, display output test results |
+| **Physical Ports** | 5% | USB, Audio jack, display output test results |
 | **Repair Modifier** | 10% | Manual technician-recorded repair history |
 
 > **Note:** Weights are configurable by Gadget Guruz without a software update — they're loaded from the cloud API at runtime. Each result stores the `algorithm_version` so historical comparisons remain valid.

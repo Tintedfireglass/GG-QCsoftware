@@ -21,7 +21,7 @@ The Pramaan engine computes a **weighted composite score** across 6 categories. 
 
 ```csharp
 public class PramaanScoringConfig {
-    public string Version { get; set; }                    // e.g. "1.0.2"
+    public string Version { get; set; }                    // e.g. "1.0.3"
     public Dictionary<string, double> Weights { get; set; } // JSON: "weights"
     public List<GradeBand> GradeBands { get; set; }
     public Dictionary<string, int> RiskThresholds { get; set; }
@@ -38,9 +38,9 @@ Config is fetched from `GET /api/pramaan/config`. On network failure, hardcoded 
 |---|---|---|
 | `storage` | StorageDetails.Devices[].HealthPercent, SMART temp, self-test | 25% |
 | `thermal` | CPU stress test verdict, GPU max temp | 20% |
-| `battery` | BatteryDetails.HealthPercent, CycleCount | 20% |
+| `battery` | BatteryDetails.HealthPercent, CycleCount | 25% |
 | `cpu_ram` | CpuTest.Passed, RamTest.Passed, stress results | 15% |
-| `physical_ports` | UsbTest, AudioJackTest, TrackpadTest, KeyboardTest | 10% |
+| `physical_ports` | UsbTest, AudioJackTest, TrackpadTest, KeyboardTest | 5% |
 | `repair_modifier` | Technician-entered repair info | 10% |
 
 ### Storage Category Detail (PramaanScoringEngine)
@@ -127,8 +127,8 @@ No battery (desktop) → returns 100 (no penalty).
 
 ```
 PramaanScore = Σ (categoryScore[i] × weight[i])
-             = storage×0.25 + thermal×0.20 + battery×0.20
-               + cpu_ram×0.15 + physical_ports×0.10 + repair_modifier×0.10
+= storage×0.25 + thermal×0.20 + battery×0.25
+              + cpu_ram×0.15 + physical_ports×0.05 + repair_modifier×0.10
 ```
 
 Score is clamped to [0, 100] and rounded to nearest integer.
@@ -175,10 +175,10 @@ The final grade is assigned by comparing the score against ordered `GradeBand` t
 Every scored result stores:
 
 ```json
-"pramaanAlgorithmVersion": "Scoring Engine v1.0.2"
+"pramaanAlgorithmVersion": "Scoring Engine v1.0.3"
 ```
 
-This string is built at runtime as `"Scoring Engine v" + config.Version`. The `config.Version` field comes from `PramaanScoringConfig.Version` (default `"1.0.2"`), which the API can override. It enables:
+This string is built at runtime as `"Scoring Engine v" + config.Version`. The `config.Version` field comes from `PramaanScoringConfig.Version` (default `"1.0.3"`), which the API can override. It enables:
 
 - Historical comparisons that account for config changes
 - Audits that trace which exact configuration produced a given score

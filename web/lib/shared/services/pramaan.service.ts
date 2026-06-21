@@ -2,8 +2,8 @@ import * as repo from '@/lib/shared/repositories/pramaan.repo';
 
 /** Defaults used when no active scoring config row exists. */
 const FALLBACK_CONFIG = {
-    version: '1.0.0-fallback',
-    weights: { storage: 0.25, thermal: 0.20, battery: 0.20, cpu_ram: 0.15, physical_ports: 0.10, repair_modifier: 0.10 },
+    version: '1.0.3-fallback',
+    weights: { storage: 0.25, thermal: 0.20, battery: 0.25, cpu_ram: 0.15, physical_ports: 0.05, repair_modifier: 0.10 },
     gradeBands: [
         { grade: 'A+', minScore: 90 },
         { grade: 'A', minScore: 80 },

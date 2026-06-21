@@ -430,7 +430,7 @@ export default function ResultDetailPage() {
                             <div>
                                 <h2 className="text-2xl font-bold mb-1">PRAMAAN Health Score</h2>
                                 <p className="text-sm text-slate-500">
-                                    {data.pramaan_algorithm_version || 'Scoring Engine v1.0.0'}
+                                    {data.pramaan_algorithm_version || 'Scoring Engine v1.0.3'}
                                 </p>
                             </div>
                             <div className="text-right">

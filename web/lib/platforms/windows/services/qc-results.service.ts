@@ -123,7 +123,7 @@ function applyInconclusiveFix(body: SubmitInput): void {
             const catScores = body.pramaanCategoryScores as Record<string, number>;
             catScores.storage = storageScore;
 
-            const weights: Record<string, number> = { storage: 0.25, thermal: 0.20, battery: 0.20, cpu_ram: 0.15, physical_ports: 0.10, repair_modifier: 0.10 };
+            const weights: Record<string, number> = { storage: 0.25, thermal: 0.20, battery: 0.25, cpu_ram: 0.15, physical_ports: 0.05, repair_modifier: 0.10 };
             
             let totalWeightedScore = 0;
             let totalWeight = 0;

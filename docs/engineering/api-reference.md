@@ -175,7 +175,7 @@ Key fields:
   "pramaanGrade": "A",
   "pramaanHash": "sha256hexstring",
   "pramaanCategoryScores": { "storage": 78, "thermal": 88, ... },
-  "pramaanAlgorithmVersion": "Scoring Engine v1.0.2"
+  "pramaanAlgorithmVersion": "Scoring Engine v1.0.3"
 }
 ```
 
@@ -307,13 +307,13 @@ Returns the active scoring configuration. Called by CLI/desktop app at the start
 **Response:**
 ```json
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "weights": {
     "storage": 0.25,
     "thermal": 0.20,
-    "battery": 0.20,
+    "battery": 0.25,
     "cpu_ram": 0.15,
-    "physical_ports": 0.10,
+    "physical_ports": 0.05,
     "repair_modifier": 0.10
   },
   "gradeBands": [
