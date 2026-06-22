@@ -68,6 +68,8 @@ public partial class LoginWindow : Window
 
             if (result.Success)
             {
+                AutoBasicQcTaskService.RecordLicenseActivation(license);
+
                 // If the user had a trial, clear it when they activate a proper license
                 App.TrialService.ClearTrial();
 
@@ -153,6 +155,9 @@ public partial class LoginWindow : Window
             {
                 _authService.StartTrialSession(
                     email, result.Token, result.MachineId, result.TrialEndsAt);
+
+                if (result.IsNew)
+                    AutoBasicQcTaskService.RecordTrialActivation(email);
 
                 // On first-ever trial activation, run an immediate auto QC in the background
                 // so the server receives an initial health report right away.

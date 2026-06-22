@@ -121,6 +121,8 @@ public partial class App : Application
     /// When true, the app is locked until an online compliance check succeeds.
     /// </summary>
     public static bool IsComplianceLocked { get; private set; }
+    private static readonly System.Threading.Mutex AutoQcMutex =
+        new(false, @"Local\Pramaan_AutoBasicQc_Run");
 
     public static void SetComplianceLocked(bool locked)
     {
@@ -208,13 +210,14 @@ public partial class App : Application
         mainWindow.Show();
         
         // Register all background scheduled tasks (safe to call every startup — each checks first)
-        Task.Run(() => ReminderTaskService.EnsureRegistered());
-        Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
-        Task.Run(() => HeartbeatTaskService.EnsureRegistered());
-        Task.Run(() => AutostartTaskService.EnsureRegistered());
+        _ = Task.Run(() => ReminderTaskService.EnsureRegistered());
+        _ = Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
+        _ = Task.Run(() => HeartbeatTaskService.EnsureRegistered());
+        _ = Task.Run(() => AutostartTaskService.EnsureRegistered());
 
         // Run auto QC immediately if the app was just updated to a new version
-        Task.Run(() => RunAutoQcIfUpdatedAsync());
+        _ = Task.Run(() => RunAutoQcIfUpdatedAsync());
+        _ = Task.Run(() => RunAutoQcIfDueAsync());
     }
 
     /// <summary>
@@ -256,8 +259,30 @@ public partial class App : Application
     private async Task RunAutoBasicQcAsync()
     {
         var logFile = Path.Combine(Path.GetTempPath(), $"{BrandInfo.BrandXamlKey}_auto_basic_qc.log");
+        var lockTaken = false;
         try
         {
+            try
+            {
+                lockTaken = AutoQcMutex.WaitOne(0);
+            }
+            catch (System.Threading.AbandonedMutexException)
+            {
+                lockTaken = true;
+            }
+
+            if (!lockTaken)
+            {
+                File.AppendAllText(logFile, $"[{DateTime.Now:u}] Auto QC already running. Skipping.\n");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(AuthService.LicenseKey) && !AuthService.IsTrialSession)
+            {
+                File.AppendAllText(logFile, $"[{DateTime.Now:u}] Auto QC skipped because no license or trial session is active.\n");
+                return;
+            }
+
             var serial = DeviceIdentityService.GetMachineSerialNumber();
             var mac = DeviceIdentityService.GetMacAddress();
             var computerName = DeviceIdentityService.GetComputerName();
@@ -308,6 +333,7 @@ public partial class App : Application
 
             if (submitResult.Success)
             {
+                AutoBasicQcTaskService.MarkAutoQcRunCompleted();
                 // Update the timestamp so the 7-day timer resets correctly
                 try
                 {
@@ -328,6 +354,11 @@ public partial class App : Application
         {
             File.AppendAllText(logFile, $"[{DateTime.Now:u}] Exception: {ex.Message}\n{ex.StackTrace}\n");
             System.Diagnostics.Debug.WriteLine($"Auto basic QC failed: {ex.Message}");
+        }
+        finally
+        {
+            if (lockTaken)
+                AutoQcMutex.ReleaseMutex();
         }
     }
 
@@ -365,16 +396,16 @@ public partial class App : Application
     /// Triggered by the --background flag from the PramaanAutostart scheduled task (ONLOGON).
     /// - Shows a system tray icon (right-click: Open / Exit).
     /// - Runs a heartbeat immediately and then every 4 hours.
-    /// - Runs auto QC if the last full QC was 7+ days ago.
+    /// - Runs auto QC if the activation-based weekly interval has elapsed.
     /// - Re-registers all scheduled tasks so updates are applied automatically.
     /// </summary>
     private void RunBackgroundMode()
     {
         // Re-register all background tasks so any update to exe path/settings is applied.
-        Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
-        Task.Run(() => HeartbeatTaskService.EnsureRegistered());
-        Task.Run(() => ReminderTaskService.EnsureRegistered());
-        // Note: AutostartTaskService re-registers itself from normal startup mode.
+        _ = Task.Run(() => AutostartTaskService.EnsureRegistered());
+        _ = Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
+        _ = Task.Run(() => HeartbeatTaskService.EnsureRegistered());
+        _ = Task.Run(() => ReminderTaskService.EnsureRegistered());
 
         // Set up tray icon
         var tray = new TrayIconService(this);
@@ -394,33 +425,16 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Checks the last_qc_test.txt timestamp. If no QC has been run in 7+ days
-    /// (or ever), runs the automated basic QC and submits results to the server.
+    /// Checks whether the activation-based weekly AutoQC interval has elapsed.
     /// </summary>
     private async Task RunAutoQcIfDueAsync()
     {
         const int AutoQcIntervalDays = 7;
-
-        var timestampFile = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            BrandInfo.AppDataFolderName, "last_qc_test.txt");
-
-        bool isDue = true;
         try
         {
-            if (File.Exists(timestampFile))
-            {
-                var text = File.ReadAllText(timestampFile).Trim();
-                if (DateTime.TryParse(text, null,
-                    System.Globalization.DateTimeStyles.RoundtripKind, out var lastTest))
-                {
-                    isDue = (DateTime.UtcNow - lastTest).TotalDays >= AutoQcIntervalDays;
-                }
-            }
+            if (AutoBasicQcTaskService.IsAutoQcDue(TimeSpan.FromDays(AutoQcIntervalDays)))
+                await RunAutoBasicQcAsync();
         }
-        catch { /* Treat unreadable timestamp as overdue */ }
-
-        if (isDue)
-            await RunAutoBasicQcAsync();
+        catch { /* Treat unreadable activation state as not due */ }
     }
 }

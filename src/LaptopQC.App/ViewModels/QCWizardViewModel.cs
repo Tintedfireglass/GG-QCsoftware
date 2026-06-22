@@ -420,6 +420,7 @@ public partial class QCWizardViewModel : ObservableObject
         
         // Compute all scores and grades
         _workflowService.FinalizeGrades();
+        _ = Task.Run(() => AutoBasicQcTaskService.EnsureRegistered());
         
         ReportPath = _reportGenerator.SaveReport(report);
         

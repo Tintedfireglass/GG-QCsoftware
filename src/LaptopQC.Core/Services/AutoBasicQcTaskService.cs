@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
 using System.Text;
 
 namespace LaptopQC.Core.Services;
@@ -6,7 +8,7 @@ namespace LaptopQC.Core.Services;
 /// <summary>
 /// Registers/manages the Windows Scheduled Task for weekly automated basic QC.
 /// The task runs the main app with --auto-basic-qc.
-/// - Scheduled WEEKLY, anchored to the day/time of the first completed full QC.
+/// - Scheduled WEEKLY, anchored to the time the license or trial was activated.
 /// - Uses XML-based registration so StartWhenAvailable=true is supported
 ///   (catches up if the machine was off or offline at the trigger time).
 /// - Runs at highest available privilege level (required because app.manifest demands admin).
@@ -15,10 +17,18 @@ public static class AutoBasicQcTaskService
 {
     private const string TaskName = "PramaanAutoBasicQC";
 
-    // File written by QCWorkflowService.FinalizeGrades() after every full QC.
-    private static readonly string TimestampFile = Path.Combine(
+    private static readonly string ActivationStateFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Pramaan", "last_qc_test.txt");
+        "Pramaan", "auto_basic_qc_activation.json");
+    private static readonly string LastAutoQcRunFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Pramaan", "last_auto_basic_qc_run.txt");
+
+    public static void RecordLicenseActivation(string licenseKey) =>
+        RecordActivation("license", licenseKey);
+
+    public static void RecordTrialActivation(string email) =>
+        RecordActivation("trial", email);
 
     public static void EnsureRegistered()
     {
@@ -28,17 +38,50 @@ public static class AutoBasicQcTaskService
             if (exePath == null)
                 return;
 
-            // Only register the task if it doesn't already exist.
-            // Re-creating it every startup (with /F) wipes its execution history and
-            // breaks the StartWhenAvailable catch-up mechanism in Windows Task Scheduler.
-            if (TaskExists())
+            if (!TryGetActivationState(out var activationState))
                 return;
 
-            RegisterTask(exePath);
+            var taskExists = TaskExists();
+            var desiredAnchor = activationState.ActivatedAtUtc;
+
+            if (taskExists && TryReadStoredAnchor(out var storedAnchor) && storedAnchor == desiredAnchor)
+                return;
+
+            RegisterTask(exePath, desiredAnchor);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Auto basic QC task registration failed: {ex.Message}");
+        }
+    }
+
+    private static void RecordActivation(string source, string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+            return;
+
+        try
+        {
+            if (TryGetActivationState(out var existing) &&
+                existing.Source.Equals(source, StringComparison.OrdinalIgnoreCase) &&
+                existing.Identifier.Equals(identifier, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var state = new ActivationState
+            {
+                Source = source,
+                Identifier = identifier,
+                ActivatedAtUtc = DateTimeOffset.UtcNow
+            };
+
+            WriteActivationState(state);
+            EnsureRegistered();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Auto basic QC activation recording failed: {ex.Message}");
         }
     }
 
@@ -77,39 +120,40 @@ public static class AutoBasicQcTaskService
     }
 
     /// <summary>
-    /// Returns the anchor time for the weekly schedule.
-    /// If a completed QC exists, use the recorded timestamp (day-of-week + time).
-    /// Otherwise fall back to 7 days from now at 09:00.
+    /// Returns the activation time for the weekly schedule.
+    /// If no activation has been recorded yet, the weekly AutoQC remains unregistered.
     /// </summary>
-    private static DateTime GetAnchorTime()
+    private static bool TryGetActivationState(out ActivationState state)
     {
+        state = default!;
+
         try
         {
-            if (File.Exists(TimestampFile))
-            {
-                var text = File.ReadAllText(TimestampFile).Trim();
-                if (DateTime.TryParse(text, null,
-                    System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
-                {
-                    // Convert to local time to get the correct day-of-week and hour
-                    return parsed.ToLocalTime();
-                }
-            }
-        }
-        catch { /* fall through */ }
+            if (!File.Exists(ActivationStateFile))
+                return false;
 
-        // No QC yet — schedule for 7 days from now at 09:00 local
-        return DateTime.Now.Date.AddDays(7).AddHours(9);
+            var json = File.ReadAllText(ActivationStateFile);
+            var loaded = JsonSerializer.Deserialize<ActivationState>(json);
+            if (loaded == null || string.IsNullOrWhiteSpace(loaded.Source) || string.IsNullOrWhiteSpace(loaded.Identifier))
+                return false;
+
+            state = loaded;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
-    private static void RegisterTask(string appExePath)
+    private static void RegisterTask(string appExePath, DateTimeOffset anchor)
     {
-        var anchor = GetAnchorTime();
-        var dayOfWeek = anchor.DayOfWeek.ToString(); // e.g. "Monday"
-        var startTime = anchor.ToString("HH:mm:ss");
+        var localAnchor = anchor.LocalDateTime;
+        var dayOfWeek = localAnchor.DayOfWeek.ToString(); // e.g. "Monday"
+        var startTime = localAnchor.ToString("HH:mm:ss");
 
         // Build the ISO 8601 start boundary (required for XML triggers)
-        var startBoundary = anchor.ToString("yyyy-MM-ddTHH:mm:ss");
+        var startBoundary = localAnchor.ToString("yyyy-MM-ddTHH:mm:ss");
 
         var xmlContent = BuildTaskXml(appExePath, dayOfWeek, startTime, startBoundary);
 
@@ -133,7 +177,9 @@ public static class AutoBasicQcTaskService
             process?.WaitForExit(15000);
 
             if (process?.ExitCode == 0)
+            {
                 Debug.WriteLine($"Auto basic QC task registered (weekly on {dayOfWeek} at {startTime}): {appExePath}");
+            }
             else
             {
                 var err = process?.StandardError.ReadToEnd();
@@ -143,6 +189,93 @@ public static class AutoBasicQcTaskService
         finally
         {
             try { File.Delete(tempXml); } catch { }
+        }
+    }
+
+    private static bool TryReadStoredAnchor(out DateTimeOffset anchor)
+    {
+        anchor = default;
+
+        try
+        {
+            if (!File.Exists(ActivationStateFile))
+                return false;
+
+            var state = JsonSerializer.Deserialize<ActivationState>(File.ReadAllText(ActivationStateFile));
+            if (state == null)
+                return false;
+
+            anchor = state.ActivatedAtUtc;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void WriteActivationState(ActivationState state)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ActivationStateFile)!);
+            File.WriteAllText(
+                ActivationStateFile,
+                JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch
+        {
+            // Best-effort only; the task itself was already registered successfully.
+        }
+    }
+
+    public static DateTimeOffset? GetActivationAnchor()
+    {
+        return TryGetActivationState(out var state) ? state.ActivatedAtUtc : null;
+    }
+
+    public static bool IsAutoQcDue(TimeSpan interval)
+    {
+        if (!TryGetActivationState(out var state))
+            return false;
+
+        if (TryReadLastAutoQcRun(out var lastRun))
+            return DateTimeOffset.UtcNow - lastRun >= interval;
+
+        return DateTimeOffset.UtcNow - state.ActivatedAtUtc >= interval;
+    }
+
+    public static void MarkAutoQcRunCompleted()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LastAutoQcRunFile)!);
+            File.WriteAllText(LastAutoQcRunFile, DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+            // Best-effort only.
+        }
+    }
+
+    private static bool TryReadLastAutoQcRun(out DateTimeOffset lastRun)
+    {
+        lastRun = default;
+
+        try
+        {
+            if (!File.Exists(LastAutoQcRunFile))
+                return false;
+
+            return DateTimeOffset.TryParse(
+                File.ReadAllText(LastAutoQcRunFile).Trim(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out lastRun);
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -202,6 +335,13 @@ public static class AutoBasicQcTaskService
       <Arguments>{taskArgs}</Arguments>
     </Exec>
   </Actions>
-</Task>";
+	</Task>";
+    }
+
+    private sealed class ActivationState
+    {
+        public string Source { get; set; } = "";
+        public string Identifier { get; set; } = "";
+        public DateTimeOffset ActivatedAtUtc { get; set; }
     }
 }
