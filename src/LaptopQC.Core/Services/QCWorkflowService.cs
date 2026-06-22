@@ -305,7 +305,13 @@ public class QCWorkflowService
                         var testResult = await _smartTestService.RunShortTestAsync(
                             device.DevicePath,
                             deviceType: device.DeviceType);
-                        if (!testResult.Success)
+                        if (testResult.Skipped)
+                        {
+                            var skipLine = $"Self-Test Skipped: {smartLabel} ({testResult.Message})";
+                            Report.StorageTest.Details.Add(skipLine);
+                            selfTestLines.Add(skipLine);
+                        }
+                        else if (!testResult.Success)
                         {
                             if (IsInconclusiveSmartTestMessage(testResult.Message))
                             {

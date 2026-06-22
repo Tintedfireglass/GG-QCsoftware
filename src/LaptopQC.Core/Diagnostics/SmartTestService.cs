@@ -35,8 +35,7 @@ public class SmartTestService : ISmartTestService
         
         foreach (var drive in drives)
         {
-            if (drive.Type.Contains("usb", StringComparison.OrdinalIgnoreCase) || 
-                drive.Protocol.Contains("usb", StringComparison.OrdinalIgnoreCase))
+            if (IsLikelyRemovableDrive(drive.DevicePath, drive.Type, drive.Protocol))
             {
                 continue;
             }
@@ -47,17 +46,23 @@ public class SmartTestService : ISmartTestService
             var smartData = _smartctl.GetSmartData(drive.DevicePath, drive.Type);
             if (smartData != null)
             {
+                if (IsLikelyRemovableDrive(drive.DevicePath, drive.Type, drive.Protocol, smartData))
+                    continue;
+
                 var key = BuildModelSerialKey(smartData.Model, smartData.SerialNumber);
                 if (usbRemovable.ModelSerials.Contains(key))
                     continue;
 
-                var smartSerial = smartData.SerialNumber.Trim();
-                if (!string.IsNullOrWhiteSpace(smartSerial) && usbRemovable.Serials.Contains(smartSerial))
-                    continue;
+            var smartSerial = smartData.SerialNumber.Trim();
+            if (!string.IsNullOrWhiteSpace(smartSerial) && usbRemovable.Serials.Contains(smartSerial))
+                continue;
 
-                var smartModel = smartData.Model.Trim();
-                if (!string.IsNullOrWhiteSpace(smartModel) && usbRemovable.Models.Any(m => m.Contains(smartModel, StringComparison.OrdinalIgnoreCase) || smartModel.Contains(m, StringComparison.OrdinalIgnoreCase)))
-                    continue;
+            var smartModel = smartData.Model.Trim();
+            if (!string.IsNullOrWhiteSpace(smartModel) && usbRemovable.Models.Any(m => m.Contains(smartModel, StringComparison.OrdinalIgnoreCase) || smartModel.Contains(m, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            if (IsLikelyRemovableModel(smartModel))
+                continue;
             }
 
             var model = smartData?.Model;
@@ -124,12 +129,32 @@ public class SmartTestService : ISmartTestService
         var usbRemovable = GetUsbRemovableInfo();
         if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(devicePath)))
         {
-            result.Success = false;
+            result.Success = true;
+            result.Skipped = true;
             result.Message = "Skipped: USB removable drive";
             result.EndTime = DateTime.Now;
             return result;
         }
-        
+
+        if (IsLikelyRemovableDrive(devicePath, deviceType, null))
+        {
+            result.Success = true;
+            result.Skipped = true;
+            result.Message = "Skipped: USB removable drive";
+            result.EndTime = DateTime.Now;
+            return result;
+        }
+
+        var smartData = _smartctl.GetSmartData(devicePath, deviceType);
+        if (IsLikelyRemovableDrive(devicePath, deviceType, deviceType, smartData))
+        {
+            result.Success = true;
+            result.Skipped = true;
+            result.Message = "Skipped: USB removable drive";
+            result.EndTime = DateTime.Now;
+            return result;
+        }
+
         // Start the test
         var startResult = _smartctl.StartShortTest(devicePath, deviceType);
         if (!startResult.Success)
@@ -288,6 +313,46 @@ public class SmartTestService : ISmartTestService
         var m = (model ?? "").Trim().ToUpperInvariant();
         var s = (serial ?? "").Trim().ToUpperInvariant();
         return $"{m}|{s}";
+    }
+
+    private static bool IsLikelyRemovableDrive(string devicePath, string? type, string? protocol, SmartData? smartData = null)
+    {
+        if (ContainsRemovableMarker(devicePath) || ContainsRemovableMarker(type) || ContainsRemovableMarker(protocol))
+            return true;
+
+        if (smartData != null)
+        {
+            if (ContainsRemovableMarker(smartData.Model) || ContainsRemovableMarker(smartData.SerialNumber))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsLikelyRemovableModel(string? model)
+    {
+        return ContainsRemovableMarker(model);
+    }
+
+    private static bool ContainsRemovableMarker(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        string[] removableMarkers =
+        {
+            "usb",
+            "flash drive",
+            "thumb drive",
+            "pendrive",
+            "pen drive",
+            "removable",
+            "sd card",
+            "memory stick",
+            "mass storage"
+        };
+
+        return removableMarkers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed class UsbRemovableInfo

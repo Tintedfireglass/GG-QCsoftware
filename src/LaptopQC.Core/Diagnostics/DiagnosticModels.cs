@@ -150,6 +150,7 @@ public class SmartTestResultInfo
     public string TestType { get; set; } = "";
     public bool Success { get; set; }
     public bool Passed { get; set; }
+    public bool Skipped { get; set; }
     public string Message { get; set; } = "";
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
