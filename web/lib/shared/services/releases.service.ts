@@ -184,6 +184,19 @@ export async function getUpdateManifest(
     };
 }
 
+/**
+ * Resolve the latest published, hosted installer for a platform/channel and open
+ * it for download. Lets storefronts/clients link to a STABLE URL instead of
+ * baking a volatile release id (which dies when a release is re-uploaded).
+ */
+export async function openLatestForDownload(platform: Platform, channel: Channel) {
+    const latest = await latestPublished(platform, channel);
+    if (!latest || !latest.file_name) {
+        throw new NotFoundError('No release published for this platform');
+    }
+    return openForDownload(Number(latest.id));
+}
+
 /** Resolve a release for download (must be published). Returns row + open stream. */
 export async function openForDownload(id: number) {
     const row = await repo.findReleaseById(id);
