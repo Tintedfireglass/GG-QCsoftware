@@ -116,6 +116,9 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     }
     if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
     if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.pramaan_grade', q.grades)));
+    // Inclusive date range: endDate covers the whole day (< next midnight).
+    if (q.startDate) conds.push(sql`qr.timestamp >= ${q.startDate}`);
+    if (q.endDate) conds.push(sql`qr.timestamp < (${q.endDate}::date + INTERVAL '1 day')`);
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;

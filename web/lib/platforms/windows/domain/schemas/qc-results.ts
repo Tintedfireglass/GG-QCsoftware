@@ -24,6 +24,9 @@ export const listQuerySchema = z.object({
     overallPass: boolFlag,
     search: z.string().trim().optional(),
     hasIssues: boolFlag,
+    // Inclusive date range over qr.timestamp ("YYYY-MM-DD"); either bound optional.
+    startDate: z.string().trim().optional(),
+    endDate: z.string().trim().optional(),
     // Comma-separated grade buckets; unknown tokens are dropped (never rejects).
     grades: z
         .string()

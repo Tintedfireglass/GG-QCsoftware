@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Search, ChevronRight, Printer, Download } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
+import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion } from "@/lib/utils"
 
@@ -33,6 +34,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const [exportingSampleXlsx, setExportingSampleXlsx] = useState(false)
     const [exportingSampleZip, setExportingSampleZip] = useState(false)
     const [showIssuesOnly, setShowIssuesOnly] = useState(false)
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const [isInitialized, setIsInitialized] = useState(false)
     const limit = 20
 
@@ -46,6 +49,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
         issuesOnly = showIssuesOnly,
         grades = selectedGrades,
         sort = resultSort,
+        start = startDate,
+        end = endDate,
     ) {
         setLoading(true)
         try {
@@ -55,6 +60,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             if (issuesOnly) filters.hasIssues = "true"
             if (grades.length) filters.grades = grades.join(",")
             if (sort) filters.sort = sort
+            if (start) filters.startDate = start
+            if (end) filters.endDate = end
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -94,10 +101,10 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
 
     useEffect(() => {
         if (isInitialized) {
-            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort)
+            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, isInitialized]) // Reload when state changes
+    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, isInitialized]) // Reload when state changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -291,6 +298,15 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                         </Button>
                     </form>
                     <div className="flex items-center gap-2 flex-wrap">
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={({ startDate: s, endDate: e }) => {
+                                setPage(1)
+                                setStartDate(s)
+                                setEndDate(e)
+                            }}
+                        />
                         <Button
                             size="sm"
                             variant={showIssuesOnly ? "default" : "outline"}

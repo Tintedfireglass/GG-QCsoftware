@@ -47,6 +47,8 @@ export interface AdminListFilters {
     type?: string;
     deviceId?: string;
     search?: string;
+    startDate?: string;
+    endDate?: string;
     includeTotal: boolean;
 }
 
@@ -65,6 +67,9 @@ export async function listAdminReports(
             OR cu.phone ILIKE ${like} OR cu.email ILIKE ${like}
             OR cu.first_name ILIKE ${like} OR cu.last_name ILIKE ${like} OR cu.full_name ILIKE ${like})`);
     }
+    // Inclusive date range: endDate covers the whole day (< next midnight).
+    if (f.startDate) conds.push(sql`mr.tested_at >= ${f.startDate}`);
+    if (f.endDate) conds.push(sql`mr.tested_at < (${f.endDate}::date + INTERVAL '1 day')`);
     const where = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
 
     const { rows } = await db.execute(sql`

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Monitor, ExternalLink, Search } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
+import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { formatDbDate } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
@@ -27,6 +28,9 @@ export default function MachinesPage() {
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
+    // Date range filters the list by each machine's last-seen day (inclusive).
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [nowMs, setNowMs] = useState(() => Date.now())
     // Client (owner) filter — only offered to user managers (SuperAdmin etc.).
@@ -165,9 +169,17 @@ export default function MachinesPage() {
     const filteredMachines = useMemo(() => {
         const term = appliedSearch.trim().toLowerCase()
         const clientId = selectedClientId ? parseInt(selectedClientId, 10) : null
+        const startMs = startDate ? Date.parse(`${startDate}T00:00:00`) : null
+        const endMs = endDate ? Date.parse(`${endDate}T23:59:59.999`) : null
 
         return machines.filter((m) => {
             if (!isGradeSelected(getGradeKey(m?.latest_grade))) return false
+            if (startMs !== null || endMs !== null) {
+                const seenMs = m?.last_seen ? Date.parse(m.last_seen) : NaN
+                if (Number.isNaN(seenMs)) return false
+                if (startMs !== null && seenMs < startMs) return false
+                if (endMs !== null && seenMs > endMs) return false
+            }
             if (clientId !== null) {
                 // A machine belongs to a client if that client tested it, or owns it (fleet).
                 const testedBy = Array.isArray(m?.technician_ids) ? m.technician_ids.map(Number) : []
@@ -190,7 +202,7 @@ export default function MachinesPage() {
 
             return haystack.includes(term)
         })
-    }, [machines, selectedGrades, appliedSearch, selectedClientId])
+    }, [machines, selectedGrades, appliedSearch, selectedClientId, startDate, endDate])
 
     const sortedMachines = useMemo(() => {
         const list = [...filteredMachines]
@@ -232,7 +244,7 @@ export default function MachinesPage() {
     // Reset to the first page whenever the result set changes.
     useEffect(() => {
         setPage(1)
-    }, [appliedSearch, selectedGrades, selectedClientId, machineSort])
+    }, [appliedSearch, selectedGrades, selectedClientId, machineSort, startDate, endDate])
 
     // Clamp the page if the list shrinks below the current page.
     useEffect(() => {
@@ -272,6 +284,14 @@ export default function MachinesPage() {
                         </Button>
                     </form>
                     <div className="flex flex-wrap items-center gap-2">
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={({ startDate: s, endDate: e }) => {
+                                setStartDate(s)
+                                setEndDate(e)
+                            }}
+                        />
                         {canManageUsers() && (
                             <div className="relative" ref={clientFilterRef}>
                                 <button

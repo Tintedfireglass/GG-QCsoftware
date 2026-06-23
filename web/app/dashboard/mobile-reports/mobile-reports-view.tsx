@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Search, Smartphone, Eye, Printer } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
+import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -47,6 +48,8 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
     const [searchInput, setSearchInput] = useState("")
     const [appliedSearch, setAppliedSearch] = useState("")
     const [type, setType] = useState("")
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const limit = 20
 
     useEffect(() => {
@@ -57,6 +60,8 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                 const filters: Record<string, string> = {}
                 if (appliedSearch) filters.search = appliedSearch
                 if (type) filters.type = type
+                if (startDate) filters.startDate = startDate
+                if (endDate) filters.endDate = endDate
                 const data = await getMobileReports(page, limit, filters)
                 if (cancelled) return
                 setReports(data.reports)
@@ -69,7 +74,7 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
         }
         load()
         return () => { cancelled = true }
-    }, [page, appliedSearch, type])
+    }, [page, appliedSearch, type, startDate, endDate])
 
     const totalPages = total != null ? Math.ceil(total / limit) : null
 
@@ -106,6 +111,15 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                             <Search className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Search</span>
                         </Button>
                     </form>
+                    <DateRangeFilter
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={({ startDate: s, endDate: e }) => {
+                            setPage(1)
+                            setStartDate(s)
+                            setEndDate(e)
+                        }}
+                    />
                     <select
                         value={type}
                         onChange={(e) => { setPage(1); setType(e.target.value) }}
