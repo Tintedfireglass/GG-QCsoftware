@@ -631,3 +631,48 @@ export async function hideQcResult(user: AuthenticatedUser, id: number): Promise
         WHERE id = ${id}${visClause}
     `);
 }
+
+export async function assetHealthSummary(user: AuthenticatedUser): Promise<{
+    totalAssets: number;
+    healthyAssets: number;
+    atRiskAssets: number;
+    rejectAssets: number;
+    storageIssues: number;
+    thermalIssues: number;
+    tamperFlags: number;
+}> {
+    const whereSql = countVisibilitySql(user) ?? sql`1=1`;
+    const { rows } = await db.execute(sql`
+        WITH latest_per_machine AS (
+            SELECT DISTINCT ON (qr.machine_id)
+                qr.id,
+                COALESCE(qr.pramaan_grade, qr.overall_grade) as resolved_grade,
+                qr.storage_details_json,
+                qr.battery_details_json,
+                qr.pramaan_risk_flags
+            FROM qc_results qr
+            WHERE ${whereSql} AND qr.is_hidden = false
+            ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
+        )
+        SELECT
+            COUNT(*) AS total_assets,
+            COUNT(*) FILTER (WHERE resolved_grade IN ('A+', 'A', 'B')) AS healthy_assets,
+            COUNT(*) FILTER (WHERE resolved_grade IN ('C', 'D', 'E')) AS at_risk_assets,
+            COUNT(*) FILTER (WHERE resolved_grade IN ('F', 'Reject')) AS reject_assets,
+            COUNT(*) FILTER (WHERE (pramaan_risk_flags->>'storage')::boolean IS TRUE OR (pramaan_risk_flags->>'criticalStorage')::boolean IS TRUE OR (pramaan_risk_flags->>'lowStorage')::boolean IS TRUE) AS storage_issues,
+            COUNT(*) FILTER (WHERE (pramaan_risk_flags->>'thermal')::boolean IS TRUE) AS thermal_issues,
+            COUNT(*) FILTER (WHERE (storage_details_json->>'isTampered')::boolean IS TRUE OR (battery_details_json->>'isTampered')::boolean IS TRUE) AS tamper_flags
+        FROM latest_per_machine
+    `);
+
+    const row = rows[0] as any || {};
+    return {
+        totalAssets: parseInt(row.total_assets ?? '0', 10),
+        healthyAssets: parseInt(row.healthy_assets ?? '0', 10),
+        atRiskAssets: parseInt(row.at_risk_assets ?? '0', 10),
+        rejectAssets: parseInt(row.reject_assets ?? '0', 10),
+        storageIssues: parseInt(row.storage_issues ?? '0', 10),
+        thermalIssues: parseInt(row.thermal_issues ?? '0', 10),
+        tamperFlags: parseInt(row.tamper_flags ?? '0', 10),
+    };
+}

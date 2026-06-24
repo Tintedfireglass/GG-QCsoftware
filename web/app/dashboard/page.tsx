@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCount, getUserStats, getIssuesSummary } from "@/lib/api"
+import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCount, getUserStats, getIssuesSummary, getAssetHealthSummary } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,10 @@ import {
     TrendingUp,
     Download,
     AlertTriangle,
-    AlertOctagon
+    AlertOctagon,
+    HardDrive,
+    Thermometer,
+    ShieldAlert
 } from "lucide-react"
 
 export default function DashboardPage() {
@@ -37,6 +40,7 @@ export default function DashboardPage() {
     })
     const [alerts, setAlerts] = useState<any[]>([])
     const [issueStats, setIssueStats] = useState<{ devicesWithIssues: number; totalDevices: number }>({ devicesWithIssues: 0, totalDevices: 0 })
+    const [assetHealth, setAssetHealth] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [secondaryLoading, setSecondaryLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -86,10 +90,11 @@ export default function DashboardPage() {
     async function loadSecondary() {
         setSecondaryLoading(true)
         try {
-            const [machinesCount, alertsData, issueData] = await Promise.all([
+            const [machinesCount, alertsData, issueData, assetData] = await Promise.all([
                 getMachinesCount().catch(() => ({ total: 0 })),
                 getMachineHistoryAlerts().catch(() => ({ alerts: [] })),
-                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 }))
+                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 })),
+                (isSuperAdmin() || isClient() || isEnterprise() || isOEM() || isReseller()) ? getAssetHealthSummary().catch(() => null) : Promise.resolve(null)
             ])
 
             setStats((prev) => ({
@@ -98,6 +103,7 @@ export default function DashboardPage() {
             }))
             setAlerts(alertsData.alerts || [])
             setIssueStats(issueData)
+            if (assetData) setAssetHealth(assetData)
 
             if (isSuperAdmin() || isAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()) {
                 try {
@@ -139,6 +145,134 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Stats */}
+            {(isSuperAdmin() || isClient()) && assetHealth ? (
+                <>
+                    <h2 className="text-xl font-semibold mt-4 mb-4 text-slate-800">Fleet Overview</h2>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                        <Card className="shadow-none border-slate-200">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">Total Assets</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-[var(--brand-purple)]/10 flex items-center justify-center">
+                                    <Monitor className="h-4 w-4 text-[var(--brand-purple)]" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-900">{secondaryLoading ? "—" : assetHealth.totalAssets}</div>
+                                <p className="text-xs text-slate-500 mt-1">Unique physical machines</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-slate-200">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">Total QC Tests</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <Activity className="h-4 w-4 text-blue-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-900">{loading ? "—" : stats.totalTests}</div>
+                                <p className="text-xs text-slate-500 mt-1">All time records</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-slate-200">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-600">AVG Score</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-900">{loading ? "—" : `${stats.passRate}/100`}</div>
+                                <p className="text-xs text-slate-500 mt-1">From recent tests</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-emerald-200 bg-emerald-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-emerald-800">Healthy Assets</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-emerald-700">{secondaryLoading ? "—" : assetHealth.healthyAssets}</div>
+                                <p className="text-xs text-emerald-600/80 mt-1">Passing grades</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <h2 className="text-xl font-semibold mb-4 text-slate-800">Risk & Diagnostics</h2>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+                        <Card className="shadow-none border-amber-200 bg-amber-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-amber-800">At Risk</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-amber-700">{secondaryLoading ? "—" : assetHealth.atRiskAssets}</div>
+                                <p className="text-xs text-amber-600/80 mt-1">Warning grades</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-red-200 bg-red-50/40">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-red-800">Reject Assets</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-red-700">{secondaryLoading ? "—" : assetHealth.rejectAssets}</div>
+                                <p className="text-xs text-red-600/80 mt-1">Failing grades</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-orange-200 bg-orange-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-orange-800">Storage Issues</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                    <HardDrive className="h-4 w-4 text-orange-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-orange-700">{secondaryLoading ? "—" : assetHealth.storageIssues}</div>
+                                <p className="text-xs text-orange-600/80 mt-1">Failing drives/SMART</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-rose-200 bg-rose-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-rose-800">Thermal Issues</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                                    <Thermometer className="h-4 w-4 text-rose-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-rose-700">{secondaryLoading ? "—" : assetHealth.thermalIssues}</div>
+                                <p className="text-xs text-rose-600/80 mt-1">Overheating / throttling</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-none border-slate-300 bg-slate-50">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-800">Tamper Flags</CardTitle>
+                                <div className="h-8 w-8 rounded-lg bg-slate-200 flex items-center justify-center">
+                                    <ShieldAlert className="h-4 w-4 text-slate-600" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-800">{secondaryLoading ? "—" : assetHealth.tamperFlags}</div>
+                                <p className="text-xs text-slate-500 mt-1">Security / part swaps</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </>
+            ) : (
+                <>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="shadow-none border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -268,6 +402,10 @@ export default function DashboardPage() {
                     </>
                 )}
             </div>
+
+            
+                </>
+            )}
 
             {/* Quick Actions for Admins */}
             {(isSuperAdmin() || isAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()) && (

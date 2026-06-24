@@ -59,6 +59,10 @@ export function issuesSummary(user: AuthenticatedUser) {
     return repo.issuesSummary(user);
 }
 
+export function assetHealthSummary(user: AuthenticatedUser) {
+    return repo.assetHealthSummary(user);
+}
+
 export async function getResultDetail(user: AuthenticatedUser, id: string) {
     const resultId = parseInt(id, 10);
     if (!Number.isInteger(resultId) || resultId <= 0) throw new NotFoundError('QC result not found');

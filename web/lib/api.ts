@@ -222,6 +222,18 @@ export async function getIssuesSummary(): Promise<{ devicesWithIssues: number; t
     return cachedGetJson("/api/qc-results/issues-summary", TTL.medium);
 }
 
+export async function getAssetHealthSummary(): Promise<{
+    totalAssets: number;
+    healthyAssets: number;
+    atRiskAssets: number;
+    rejectAssets: number;
+    storageIssues: number;
+    thermalIssues: number;
+    tamperFlags: number;
+}> {
+    return cachedGetJson("/api/qc-results/asset-health", TTL.medium);
+}
+
 export async function getMachine(id: string) {
     return cachedGetJson(`/api/machines/${id}`, TTL.long);
 }
