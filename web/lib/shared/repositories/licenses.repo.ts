@@ -1,26 +1,103 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 import { db, schema, type Tx } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 
 const { licenseKeys, users } = schema;
 
-/** List license keys with activation counts and customer info, role-scoped. */
-export async function listLicenses(user: AuthenticatedUser): Promise<Record<string, unknown>[]> {
+export const LICENSE_STATUSES = ['active', 'exhausted', 'expired', 'revoked'] as const;
+export type LicenseStatus = (typeof LICENSE_STATUSES)[number];
+
+export interface LicenseFilters {
+    search?: string;
+    status?: string;
+    sort?: string;
+}
+
+/**
+ * CTE that, per key, joins activation counts + customer info and derives:
+ *  - effective_uses = max(current_uses, activation count)
+ *  - computed_status (active/exhausted/expired/revoked) — mirrors the UI's getKeyStatus().
+ * Role-scoped: SuperAdmin sees all keys; others only their own.
+ */
+function classifiedCte(user: AuthenticatedUser): SQL {
     const scope = user.role === 'SuperAdmin' ? sql`` : sql`WHERE lk.created_by = ${user.id}`;
+    return sql`
+        base AS (
+            SELECT
+                lk.*,
+                COUNT(lka.id) AS activations_count,
+                cu.full_name AS customer_full_name,
+                cu.email AS customer_email,
+                COALESCE(NULLIF(lk.demo_customer_name, ''), cu.full_name, cu.email) AS customer_name,
+                GREATEST(COALESCE(lk.current_uses, 0), COUNT(lka.id)) AS effective_uses
+            FROM license_keys lk
+            LEFT JOIN license_key_activations lka ON lk.id = lka.license_key_id
+            LEFT JOIN customer_users cu ON lk.customer_user_id = cu.id
+            ${scope}
+            GROUP BY lk.id, cu.full_name, cu.email
+        ),
+        classified AS (
+            SELECT base.*,
+                CASE
+                    WHEN is_active IS NOT TRUE THEN 'revoked'
+                    WHEN expires_at IS NOT NULL AND expires_at <= NOW() THEN 'expired'
+                    WHEN effective_uses >= max_uses THEN 'exhausted'
+                    ELSE 'active'
+                END AS computed_status
+            FROM base
+        )`;
+}
+
+/** WHERE over the classified CTE: free-text search + computed status filter. */
+function buildLicenseWhere(f: LicenseFilters): SQL {
+    const conds: SQL[] = [];
+    if (f.search) {
+        const like = `%${f.search}%`;
+        conds.push(sql`(key ILIKE ${like} OR COALESCE(customer_name, '') ILIKE ${like})`);
+    }
+    if (f.status && (LICENSE_STATUSES as readonly string[]).includes(f.status)) {
+        conds.push(sql`computed_status = ${f.status}`);
+    }
+    return conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+}
+
+/** ORDER BY over the classified CTE; sort key is validated upstream. */
+function buildLicenseOrder(sort?: string): SQL {
+    switch (sort) {
+        case 'created_asc':
+            return sql`ORDER BY created_at ASC`;
+        case 'activation_desc':
+            return sql`ORDER BY effective_uses DESC, created_at DESC`;
+        case 'activation_asc':
+            return sql`ORDER BY effective_uses ASC, created_at DESC`;
+        case 'status':
+            return sql`ORDER BY CASE computed_status WHEN 'active' THEN 1 WHEN 'exhausted' THEN 2 WHEN 'expired' THEN 3 ELSE 4 END, created_at DESC`;
+        case 'created_desc':
+        default:
+            return sql`ORDER BY created_at DESC`;
+    }
+}
+
+/** Paginated, role-scoped, filtered + sorted license keys. */
+export async function listLicenses(
+    user: AuthenticatedUser,
+    f: LicenseFilters & { limit: number; offset: number }
+): Promise<Record<string, unknown>[]> {
     const { rows } = await db.execute(sql`
-        SELECT
-            lk.*,
-            COUNT(lka.id) as activations_count,
-            cu.full_name as customer_full_name,
-            cu.email as customer_email,
-            COALESCE(NULLIF(lk.demo_customer_name, ''), cu.full_name, cu.email) as customer_name
-        FROM license_keys lk
-        LEFT JOIN license_key_activations lka ON lk.id = lka.license_key_id
-        LEFT JOIN customer_users cu ON lk.customer_user_id = cu.id
-        ${scope}
-        GROUP BY lk.id, cu.full_name, cu.email
-        ORDER BY lk.created_at DESC`);
+        WITH ${classifiedCte(user)}
+        SELECT * FROM classified
+        ${buildLicenseWhere(f)}
+        ${buildLicenseOrder(f.sort)}
+        LIMIT ${f.limit} OFFSET ${f.offset}`);
     return rows as Record<string, unknown>[];
+}
+
+/** Total keys matching the filters (for pagination). */
+export async function countLicenses(user: AuthenticatedUser, f: LicenseFilters): Promise<number> {
+    const { rows } = await db.execute(sql`
+        WITH ${classifiedCte(user)}
+        SELECT COUNT(*)::int AS n FROM classified ${buildLicenseWhere(f)}`);
+    return (rows[0]?.n as number) ?? 0;
 }
 
 export async function getUserCredits(tx: Tx, userId: number): Promise<number> {

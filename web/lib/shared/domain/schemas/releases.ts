@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const PLATFORMS = ['windows', 'mac', 'android', 'ios'] as const;
+export const PLATFORMS = ['windows', 'mac', 'linux', 'android', 'ios'] as const;
 export const CHANNELS = ['stable', 'beta'] as const;
 
 export type Platform = (typeof PLATFORMS)[number];
@@ -10,6 +10,8 @@ export type Channel = (typeof CHANNELS)[number];
 export const PLATFORM_EXTENSIONS: Record<Platform, string[]> = {
     windows: ['.exe', '.msi'],
     mac: ['.dmg', '.pkg', '.zip'],
+    // path.extname() returns only the last segment, so .tar.gz matches via '.gz'.
+    linux: ['.appimage', '.deb', '.rpm', '.gz'],
     android: ['.apk', '.aab'],
     ios: ['.ipa'],
 };

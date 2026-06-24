@@ -2,18 +2,24 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getMachine, getMachines } from "@/lib/api"
+import { getMachine, getMachines, getUsers } from "@/lib/api"
+import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Monitor, ExternalLink, Search } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
+import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { formatDbDate } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
 
+const PAGE_SIZE = 12
+
 export default function MachinesPage() {
     const router = useRouter()
+    const { canManageUsers } = useAuth()
     const [machines, setMachines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [navigating, setNavigating] = useState<number | null>(null)
@@ -22,8 +28,18 @@ export default function MachinesPage() {
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [machineSort, setMachineSort] = useState<"grade_desc" | "grade_asc" | "last_seen_desc" | "last_seen_asc" | "id_asc">("grade_desc")
+    // Date range filters the list by each machine's last-seen day (inclusive).
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [nowMs, setNowMs] = useState(() => Date.now())
+    // Client (owner) filter — only offered to user managers (SuperAdmin etc.).
+    const [users, setUsers] = useState<Array<{ id: number; username: string; display_name?: string; is_active?: boolean }>>([])
+    const [selectedClientId, setSelectedClientId] = useState("")
+    const [isClientFilterOpen, setIsClientFilterOpen] = useState(false)
+    const [clientFilterSearch, setClientFilterSearch] = useState("")
+    const clientFilterRef = useRef<HTMLDivElement | null>(null)
+    const [page, setPage] = useState(1)
 
     useEffect(() => {
         let mounted = true
@@ -53,17 +69,35 @@ export default function MachinesPage() {
     }, [])
 
     useEffect(() => {
+        let cancelled = false
+        async function loadUsers() {
+            if (!canManageUsers()) return
+            try {
+                const data = await getUsers(1, 500, {})
+                if (!cancelled) setUsers(data.users || [])
+            } catch (e) {
+                console.error("Failed to load clients for filter:", e)
+            }
+        }
+        loadUsers()
+        return () => { cancelled = true }
+    }, [canManageUsers])
+
+    useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
-            if (!isGradeFilterOpen) return
             const target = e.target as Node | null
-            if (gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
+            if (isGradeFilterOpen && gradeFilterRef.current && target && !gradeFilterRef.current.contains(target)) {
                 setIsGradeFilterOpen(false)
+            }
+            if (isClientFilterOpen && clientFilterRef.current && target && !clientFilterRef.current.contains(target)) {
+                setIsClientFilterOpen(false)
             }
         }
 
         function onDocumentKeyDown(e: KeyboardEvent) {
             if (e.key === "Escape") {
                 setIsGradeFilterOpen(false)
+                setIsClientFilterOpen(false)
             }
         }
 
@@ -73,7 +107,7 @@ export default function MachinesPage() {
             document.removeEventListener("mousedown", onDocumentMouseDown)
             document.removeEventListener("keydown", onDocumentKeyDown)
         }
-    }, [isGradeFilterOpen])
+    }, [isGradeFilterOpen, isClientFilterOpen])
 
     const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
     const gradeOrder: Record<string, number> = {
@@ -110,11 +144,48 @@ export default function MachinesPage() {
         setAppliedSearch(searchInput.trim())
     }
 
+    const getClientLabel = (u: { id: number; username: string; display_name?: string }) =>
+        u.display_name || u.username || `Client #${u.id}`
+
+    const sortedClients = useMemo(() => {
+        // Only offer active clients as filter options.
+        const list = users.filter((u) => u.is_active !== false)
+        return list.sort((a, b) => getClientLabel(a).localeCompare(getClientLabel(b), undefined, { sensitivity: "base" }))
+    }, [users])
+
+    const filteredClients = useMemo(() => {
+        const term = clientFilterSearch.trim().toLowerCase()
+        if (!term) return sortedClients
+        return sortedClients.filter((u) => getClientLabel(u).toLowerCase().includes(term))
+    }, [sortedClients, clientFilterSearch])
+
+    const selectedClientLabel = useMemo(() => {
+        if (!selectedClientId) return "Client: All"
+        const id = parseInt(selectedClientId, 10)
+        const found = users.find((u) => u.id === id)
+        return found ? `Client: ${getClientLabel(found)}` : "Client: Selected"
+    }, [selectedClientId, users])
+
     const filteredMachines = useMemo(() => {
         const term = appliedSearch.trim().toLowerCase()
+        const clientId = selectedClientId ? parseInt(selectedClientId, 10) : null
+        const startMs = startDate ? Date.parse(`${startDate}T00:00:00`) : null
+        const endMs = endDate ? Date.parse(`${endDate}T23:59:59.999`) : null
 
         return machines.filter((m) => {
             if (!isGradeSelected(getGradeKey(m?.latest_grade))) return false
+            if (startMs !== null || endMs !== null) {
+                const seenMs = m?.last_seen ? Date.parse(m.last_seen) : NaN
+                if (Number.isNaN(seenMs)) return false
+                if (startMs !== null && seenMs < startMs) return false
+                if (endMs !== null && seenMs > endMs) return false
+            }
+            if (clientId !== null) {
+                // A machine belongs to a client if that client tested it, or owns it (fleet).
+                const testedBy = Array.isArray(m?.technician_ids) ? m.technician_ids.map(Number) : []
+                const owned = Number(m?.owner_user_id) === clientId
+                if (!owned && !testedBy.includes(clientId)) return false
+            }
             if (!term) return true
 
             const haystack = [
@@ -131,7 +202,7 @@ export default function MachinesPage() {
 
             return haystack.includes(term)
         })
-    }, [machines, selectedGrades, appliedSearch])
+    }, [machines, selectedGrades, appliedSearch, selectedClientId, startDate, endDate])
 
     const sortedMachines = useMemo(() => {
         const list = [...filteredMachines]
@@ -168,6 +239,23 @@ export default function MachinesPage() {
         return list.sort((a: any, b: any) => String(a?.id ?? "").localeCompare(String(b?.id ?? "")))
     }, [filteredMachines, machineSort])
 
+    const totalPages = Math.max(1, Math.ceil(sortedMachines.length / PAGE_SIZE))
+
+    // Reset to the first page whenever the result set changes.
+    useEffect(() => {
+        setPage(1)
+    }, [appliedSearch, selectedGrades, selectedClientId, machineSort, startDate, endDate])
+
+    // Clamp the page if the list shrinks below the current page.
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages)
+    }, [page, totalPages])
+
+    const pagedMachines = useMemo(() => {
+        const start = (page - 1) * PAGE_SIZE
+        return sortedMachines.slice(start, start + PAGE_SIZE)
+    }, [sortedMachines, page])
+
     if (loading) return <div className="p-8 text-center text-slate-500">Loading machines...</div>
 
     return (
@@ -176,7 +264,10 @@ export default function MachinesPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Registered Machines</h1>
                     <p className="text-xs text-slate-500 mt-1">
-                        Showing {sortedMachines.length} of {machines.length} machines
+                        {sortedMachines.length === 0
+                            ? `0 of ${machines.length} machines`
+                            : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sortedMachines.length)} of ${sortedMachines.length} machines`}
+                        {sortedMachines.length !== machines.length ? ` (filtered from ${machines.length})` : ""}
                     </p>
                 </div>
                 <div className="flex w-full md:w-auto gap-2 flex-col sm:flex-row">
@@ -193,6 +284,75 @@ export default function MachinesPage() {
                         </Button>
                     </form>
                     <div className="flex flex-wrap items-center gap-2">
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={({ startDate: s, endDate: e }) => {
+                                setStartDate(s)
+                                setEndDate(e)
+                            }}
+                        />
+                        {canManageUsers() && (
+                            <div className="relative" ref={clientFilterRef}>
+                                <button
+                                    type="button"
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 flex items-center justify-between gap-3 min-w-[190px]"
+                                    aria-label="Filter by client"
+                                    onClick={() => {
+                                        setIsClientFilterOpen((v) => !v)
+                                        setClientFilterSearch("")
+                                    }}
+                                >
+                                    <span className="truncate">{selectedClientLabel}</span>
+                                    <span className="text-slate-400">▾</span>
+                                </button>
+
+                                {isClientFilterOpen && (
+                                    <div className="absolute z-50 mt-1 w-[320px] max-w-[calc(100vw-2rem)] rounded-md border border-slate-200 bg-white shadow-lg p-2">
+                                        <Input
+                                            value={clientFilterSearch}
+                                            onChange={(e) => setClientFilterSearch(e.target.value)}
+                                            placeholder="Search client..."
+                                            className="h-9 border-slate-200 focus-visible:ring-[var(--brand-purple)]"
+                                        />
+                                        <div className="mt-2 max-h-64 overflow-auto">
+                                            <button
+                                                type="button"
+                                                className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${selectedClientId === "" ? "bg-slate-50 font-semibold" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedClientId("")
+                                                    setIsClientFilterOpen(false)
+                                                }}
+                                            >
+                                                Client: All
+                                            </button>
+
+                                            {filteredClients.length === 0 ? (
+                                                <div className="px-2 py-2 text-sm text-slate-400">No matches</div>
+                                            ) : (
+                                                filteredClients.map((u) => {
+                                                    const value = String(u.id)
+                                                    const isSelected = selectedClientId === value
+                                                    return (
+                                                        <button
+                                                            key={u.id}
+                                                            type="button"
+                                                            className={`w-full text-left px-2 py-2 rounded text-sm hover:bg-slate-50 ${isSelected ? "bg-slate-50 font-semibold" : ""}`}
+                                                            onClick={() => {
+                                                                setSelectedClientId(value)
+                                                                setIsClientFilterOpen(false)
+                                                            }}
+                                                        >
+                                                            {getClientLabel(u)}
+                                                        </button>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <div className="relative" ref={gradeFilterRef}>
                             <Button
                                 size="sm"
@@ -248,7 +408,7 @@ export default function MachinesPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {sortedMachines.map((machine) => (
+                {pagedMachines.map((machine) => (
                     <Card key={machine.id} className="shadow-sm border border-slate-200 rounded-xl">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-slate-100">
                             <div className="flex items-start sm:items-center justify-between w-full">
@@ -348,6 +508,17 @@ export default function MachinesPage() {
                     </p>
                 )}
             </div>
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={(p) => setPage(Math.min(totalPages, Math.max(1, p)))}
+                    />
+                </div>
+            )}
         </div>
     )
 }

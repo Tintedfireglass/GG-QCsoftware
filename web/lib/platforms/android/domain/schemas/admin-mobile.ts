@@ -12,6 +12,9 @@ export const adminMobileListQuerySchema = z.object({
     deviceId: z.string().trim().min(1).optional(),
     /** Free-text over report id, device id, customer name/phone/email. */
     search: z.string().trim().min(1).optional(),
+    /** Inclusive date range over mr.tested_at ("YYYY-MM-DD"); either bound optional. */
+    startDate: z.string().trim().min(1).optional(),
+    endDate: z.string().trim().min(1).optional(),
     includeTotal: z.enum(['0', '1']).default('1'),
 });
 

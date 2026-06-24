@@ -5,6 +5,14 @@ import { z } from 'zod';
  *  Never rejects. */
 const boolFlag = z.string().optional().transform((v) => (v === undefined ? undefined : v === 'true'));
 
+/** Grade buckets the UI can filter by (mirrors the client's getGradeKey()). */
+export const GRADE_KEYS = ['A+', 'A', 'B', 'C', 'Unknown'] as const;
+export type GradeKey = (typeof GRADE_KEYS)[number];
+
+/** Supported server-side sort orders for the results list. */
+export const SORT_KEYS = ['grade_desc', 'grade_asc', 'date_desc', 'date_asc', 'id_asc'] as const;
+export type SortKey = (typeof SORT_KEYS)[number];
+
 /** GET /api/qc-results query parameters. Numeric params CLAMP (never reject) to
  *  mirror the original Math.min/Math.max behavior. */
 export const listQuerySchema = z.object({
@@ -16,6 +24,23 @@ export const listQuerySchema = z.object({
     overallPass: boolFlag,
     search: z.string().trim().optional(),
     hasIssues: boolFlag,
+    // Inclusive date range over qr.timestamp ("YYYY-MM-DD"); either bound optional.
+    startDate: z.string().trim().optional(),
+    endDate: z.string().trim().optional(),
+    // Comma-separated grade buckets; unknown tokens are dropped (never rejects).
+    grades: z
+        .string()
+        .optional()
+        .transform((v) =>
+            v
+                ? v
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter((s): s is GradeKey => (GRADE_KEYS as readonly string[]).includes(s))
+                : undefined
+        ),
+    // Sort order; anything unrecognized falls back to newest-first.
+    sort: z.enum(SORT_KEYS).catch('date_desc'),
     // includeTotal defaults true; only '0'/'false' disable it.
     includeTotal: z
         .string()

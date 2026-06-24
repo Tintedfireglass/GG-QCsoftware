@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Search, ChevronLeft, ChevronRight, Smartphone, Eye, Printer } from "lucide-react"
+import { Search, Smartphone, Eye, Printer } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
+import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -46,6 +48,8 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
     const [searchInput, setSearchInput] = useState("")
     const [appliedSearch, setAppliedSearch] = useState("")
     const [type, setType] = useState("")
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
     const limit = 20
 
     useEffect(() => {
@@ -56,6 +60,8 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                 const filters: Record<string, string> = {}
                 if (appliedSearch) filters.search = appliedSearch
                 if (type) filters.type = type
+                if (startDate) filters.startDate = startDate
+                if (endDate) filters.endDate = endDate
                 const data = await getMobileReports(page, limit, filters)
                 if (cancelled) return
                 setReports(data.reports)
@@ -68,7 +74,7 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
         }
         load()
         return () => { cancelled = true }
-    }, [page, appliedSearch, type])
+    }, [page, appliedSearch, type, startDate, endDate])
 
     const totalPages = total != null ? Math.ceil(total / limit) : null
 
@@ -105,6 +111,15 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                             <Search className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Search</span>
                         </Button>
                     </form>
+                    <DateRangeFilter
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={({ startDate: s, endDate: e }) => {
+                            setPage(1)
+                            setStartDate(s)
+                            setEndDate(e)
+                        }}
+                    />
                     <select
                         value={type}
                         onChange={(e) => { setPage(1); setType(e.target.value) }}
@@ -207,15 +222,13 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                     <p className="text-sm text-slate-500">
                         {total != null ? `${total} report${total === 1 ? "" : "s"}` : "Page " + page}
                     </p>
-                    <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page <= 1 || loading} className="border-slate-200 text-slate-700">
-                            <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-                        </Button>
-                        <div className="text-sm font-medium text-slate-700">Page {page}{totalPages != null ? ` of ${totalPages}` : ""}</div>
-                        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={loading || (totalPages != null && page >= totalPages) || (totalPages == null && reports.length < limit)} className="border-slate-200 text-slate-700">
-                            Next <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                    </div>
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        disabled={loading}
+                        hasNext={reports.length >= limit}
+                    />
                 </div>
             )}
         </div>

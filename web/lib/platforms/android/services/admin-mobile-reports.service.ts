@@ -47,6 +47,8 @@ export async function listAdminReports(user: AuthenticatedUser, query: AdminMobi
         type: query.type,
         deviceId: query.deviceId,
         search: query.search,
+        startDate: query.startDate,
+        endDate: query.endDate,
         includeTotal: query.includeTotal === '1',
     });
     return {

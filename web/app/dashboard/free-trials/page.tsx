@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import {
@@ -12,9 +12,12 @@ import {
 } from "@/lib/api"
 import { Input } from "@/components/ui/input"
 import { RefreshCw, Search, FlaskConical, X, ChevronDown, ChevronRight } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 
 type TrialStatus = "Active" | "Expired" | "Revoked"
+
+const PAGE_SIZE = 20
 
 function getTrialStatus(t: AdminFreeTrialRow, now: number): TrialStatus {
     if (!t.is_active) return "Revoked"
@@ -305,26 +308,35 @@ export default function FreeTrialsPage() {
     const [error, setError] = useState("")
     const [refreshing, setRefreshing] = useState(false)
     const [selectedTrial, setSelectedTrial] = useState<AdminFreeTrialRow | null>(null)
+    const [page, setPage] = useState(1)
+    const [total, setTotal] = useState(0)
 
+    // Redirect unauthorized users.
     useEffect(() => {
         if (!user) { router.push("/login"); return }
-        if (!isSuperAdmin()) { router.push("/dashboard"); return }
-        void load()
+        if (!isSuperAdmin()) { router.push("/dashboard") }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, router])
 
-    const load = async () => {
+    const load = useCallback(async () => {
         try {
             setError("")
             setLoading(true)
-            const data = await getAdminFreeTrials()
+            const data = await getAdminFreeTrials({ search, page, limit: PAGE_SIZE })
             setRows(Array.isArray(data?.trials) ? data.trials : [])
+            setTotal(data?.pagination?.total ?? 0)
         } catch (e) {
             setError(e instanceof Error ? e.message : "Server error")
         } finally {
             setLoading(false)
         }
-    }
+    }, [search, page])
+
+    // Reload from the server whenever search/page changes (once authorized).
+    useEffect(() => {
+        if (user && isSuperAdmin()) void load()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, load])
 
     const onRefresh = async () => {
         try { setRefreshing(true); await load() }
@@ -333,18 +345,10 @@ export default function FreeTrialsPage() {
 
     const handleCloseDrawer = useCallback(() => setSelectedTrial(null), [])
 
-    const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase()
-        if (!q) return rows
-        return rows.filter((r) =>
-            [r.email, r.machine_serial, r.mac_address || "", r.computer_name || "", r.machine_identifier || ""]
-                .join(" ").toLowerCase().includes(q)
-        )
-    }, [rows, search])
+    // Search/pagination are server-side (see free-trials repo).
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
     const now = Date.now()
-
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading free trials...</div>
 
     return (
         <>
@@ -360,7 +364,7 @@ export default function FreeTrialsPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <Input
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                                 placeholder="Search email, serial, machine..."
                                 className="pl-9 w-[280px] h-11 rounded-xl border border-slate-200 focus-visible:ring-2 focus-visible:ring-[var(--brand-purple)]"
                             />
@@ -398,14 +402,18 @@ export default function FreeTrialsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filtered.length === 0 ? (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={7} className="py-10 text-center text-slate-500">Loading...</td>
+                                    </tr>
+                                ) : rows.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="py-10 text-center text-slate-500">
                                             No free trials found
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map((t) => {
+                                    rows.map((t) => {
                                         const status = getTrialStatus(t, now)
                                         const machineLabel =
                                             t.machine_identifier ||
@@ -468,6 +476,13 @@ export default function FreeTrialsPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between p-4 border-t border-slate-100">
+                            <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={loading} />
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -164,6 +164,13 @@ export async function incrementCurrentUses(tx: Tx, licenseKeyId: number): Promis
         .where(eq(licenseKeys.id, licenseKeyId));
 }
 
+/** Bind an unowned key to a customer (no-op if already owned). Lets status/entitlement queries find it. */
+export async function claimLicenseForCustomer(tx: Tx, licenseKeyId: number, customerUserId: number): Promise<void> {
+    await tx.update(licenseKeys)
+        .set({ customerUserId })
+        .where(and(eq(licenseKeys.id, licenseKeyId), sql`${licenseKeys.customerUserId} IS NULL`));
+}
+
 export async function findCustomer(tx: Tx, id: number): Promise<{ id: number; email: string; is_active: boolean } | null> {
     const rows = await tx.select({ id: customerUsers.id, email: customerUsers.email, is_active: customerUsers.isActive })
         .from(customerUsers).where(eq(customerUsers.id, id)).limit(1);

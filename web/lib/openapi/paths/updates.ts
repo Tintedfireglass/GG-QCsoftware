@@ -8,7 +8,7 @@ export const updateRoutes: RouteDoc[] = [
         summary: 'Latest release manifest',
         description: 'Public manifest the desktop/mobile clients poll to decide whether to self-update.',
         params: [
-            { name: 'platform', in: 'path', description: 'Client platform.', schema: { type: 'string', enum: ['windows', 'android'] } },
+            { name: 'platform', in: 'path', description: 'Client platform.', schema: { type: 'string', enum: ['windows', 'mac', 'linux', 'android', 'ios'] } },
             { name: 'current', in: 'query', description: 'Client’s current version, e.g. `1.2.0`.' },
             { name: 'channel', in: 'query', description: 'Release channel.', schema: { type: 'string', default: 'stable' } },
         ],

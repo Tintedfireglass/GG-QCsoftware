@@ -17,10 +17,9 @@ import {
     Trash2,
     UserCheck,
     UserX,
-    ChevronLeft,
-    ChevronRight,
     KeyRound
 } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination"
 
 interface UserData {
     id: number
@@ -326,20 +325,20 @@ export default function UsersPage() {
                             {/* Desktop Table View */}
                             <div className="hidden md:block relative w-full overflow-auto">
                                 <table className="w-full caption-bottom text-sm text-left">
-                                    <thead className="[&_tr]:border-b">
-                                        <tr className="border-b transition-colors">
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">User</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Role</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Created By</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">Team Size</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground whitespace-nowrap">License Credits</th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right whitespace-nowrap">Actions</th>
+                                    <thead className="[&_tr]:border-b border-slate-200">
+                                        <tr className="border-b transition-colors hover:bg-slate-50/50">
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500">User</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Role</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Created By</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Status</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">Team Size</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 whitespace-nowrap">License Credits</th>
+                                            <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right whitespace-nowrap">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="[&_tr:last-child]:border-0">
                                         {users.map((userItem) => (
-                                            <tr key={userItem.id} className="border-b transition-colors hover:bg-muted/50">
+                                            <tr key={userItem.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                                 <td className="p-4 align-middle leading-tight min-w-[200px]">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white ${userItem.role === 'SuperAdmin' ? 'bg-purple-500' :
@@ -448,29 +447,12 @@ export default function UsersPage() {
                                         {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                                         {pagination.total} users
                                     </p>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={pagination.page === 1}
-                                            onClick={() => loadUsers(pagination.page - 1)}
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                            Previous
-                                        </Button>
-                                        <span className="text-sm text-slate-600">
-                                            Page {pagination.page} of {pagination.totalPages}
-                                        </span>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={pagination.page === pagination.totalPages}
-                                            onClick={() => loadUsers(pagination.page + 1)}
-                                        >
-                                            Next
-                                            <ChevronRight className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    <Pagination
+                                        page={pagination.page}
+                                        totalPages={pagination.totalPages}
+                                        onPageChange={loadUsers}
+                                        disabled={loading}
+                                    />
                                 </div>
                             )}
                         </>

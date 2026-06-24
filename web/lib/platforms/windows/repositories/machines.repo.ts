@@ -122,7 +122,8 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
                COUNT(*)::int as test_count,
                MAX(qr.timestamp) as last_test_date,
                SUM(CASE WHEN qr.overall_pass = true THEN 1 ELSE 0 END)::int as passed_count,
-               SUM(CASE WHEN qr.overall_pass = false THEN 1 ELSE 0 END)::int as failed_count
+               SUM(CASE WHEN qr.overall_pass = false THEN 1 ELSE 0 END)::int as failed_count,
+               array_agg(DISTINCT qr.technician_id) FILTER (WHERE qr.technician_id IS NOT NULL) as technician_ids
              FROM qc_results qr
              ${aggWhere}
              GROUP BY qr.machine_id
@@ -138,6 +139,8 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
          SELECT
            m.id, m.machine_id, m.serial_number, m.mac_address, m.manufacturer,
            m.model, m.computer_name, m.custom_name, m.last_seen, m.location, m.created_at,
+           m.owner_user_id,
+           agg.technician_ids,
            COALESCE(agg.test_count, 0) as test_count,
            agg.last_test_date,
            COALESCE(agg.passed_count, 0) as passed_count,

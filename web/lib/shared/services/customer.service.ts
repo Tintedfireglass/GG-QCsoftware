@@ -14,6 +14,72 @@ import { renderTemplate } from '@/lib/shared/services/email-settings.service';
 import { randomInt } from 'crypto';
 import { logger } from '@/lib/logger';
 
+const CUSTOMER_STATUSES = ['active', 'inactive'];
+const CUSTOMER_TYPES = ['web', 'app'];
+
+/** Admin (SuperAdmin) customer directory with filters + pagination. */
+export async function listCustomers(q: { status?: string; type?: string; search?: string; page?: number; limit?: number }) {
+    const limit = Math.min(Math.max(q.limit ?? 20, 1), 100);
+    const page = Math.max(q.page ?? 1, 1);
+    const offset = (page - 1) * limit;
+    const status = q.status && CUSTOMER_STATUSES.includes(q.status) ? q.status : undefined;
+    const type = q.type && CUSTOMER_TYPES.includes(q.type) ? q.type : undefined;
+    const search = q.search?.trim() || undefined;
+
+    const [customers, total] = await Promise.all([
+        repo.listCustomersAdmin({ status, type, search, limit, offset }),
+        repo.countCustomersAdmin({ status, type, search }),
+    ]);
+    return { customers, pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } };
+}
+
+/** Full customer detail for the admin detail page: profile + orders, licenses, tickets. */
+export async function getCustomerDetail(id: number) {
+    const customer = await repo.getCustomerDetailAdmin(id);
+    if (!customer) throw new NotFoundError('Customer not found');
+    const [orders, licenses, tickets] = await Promise.all([
+        repo.listCustomerOrdersAdmin(id),
+        repo.listCustomerLicenses(id),
+        repo.listCustomerTicketsAdmin(id),
+    ]);
+    return { customer, orders, licenses, tickets };
+}
+
+/** Apply an admin profile edit and/or activate-deactivate toggle. */
+export async function updateCustomer(id: number, input: {
+    full_name?: string | null;
+    company?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    is_active?: boolean;
+}) {
+    const existing = await repo.getCustomerDetailAdmin(id);
+    if (!existing) throw new NotFoundError('Customer not found');
+
+    if ('email' in input) {
+        const email = input.email?.trim() || null;
+        if (email && await repo.emailTakenByOther(email, id)) {
+            throw new ConflictError('That email is already used by another customer');
+        }
+    }
+
+    await repo.updateCustomerAdmin(id, {
+        ...('full_name' in input ? { fullName: input.full_name ?? null } : {}),
+        ...('company' in input ? { company: input.company ?? null } : {}),
+        ...('phone' in input ? { phone: input.phone ?? null } : {}),
+        ...('email' in input ? { email: input.email?.trim() || null } : {}),
+        ...('is_active' in input ? { isActive: input.is_active } : {}),
+    });
+    return getCustomerDetail(id);
+}
+
+/** Permanently delete a customer and all dependent records. */
+export async function deleteCustomer(id: number) {
+    const deleted = await repo.deleteCustomerCascade(id);
+    if (!deleted) throw new NotFoundError('Customer not found');
+    return { success: true };
+}
+
 const PW_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
 /** Generate a short, human-friendly random password (no ambiguous chars). */
 function generatePassword(len = 6): string {

@@ -1,10 +1,9 @@
 import path from 'path';
 import * as repo from '@/lib/shared/repositories/releases.repo';
 import {
-    buildRelativePath,
-    storeReleaseFile,
     deleteReleaseFile,
     openReleaseFile,
+    type StoredFile,
 } from '@/lib/shared/storage/releases-storage';
 import { compareVersions, isOutdated } from '@/lib/shared/domain/version';
 import { PLATFORM_EXTENSIONS, type Platform, type Channel } from '@/lib/shared/domain/schemas/releases';
@@ -14,7 +13,43 @@ export async function listReleases() {
     return { releases: await repo.listReleases() };
 }
 
-export interface CreateReleaseInput {
+export interface AssertCreatableInput {
+    platform: Platform;
+    channel: Channel;
+    version: string;
+    /** True if an installer file will be uploaded. */
+    hasFile: boolean;
+    /** Installer filename (for extension validation), when hasFile is true. */
+    fileName?: string | null;
+    storeUrl?: string | null;
+}
+
+/**
+ * Validate release metadata + (optional) installer extension and ensure the
+ * version is unique. Call this BEFORE streaming the upload to object storage so
+ * a bad request is rejected without consuming (and storing) the file.
+ */
+export async function assertReleaseCreatable(input: AssertCreatableInput) {
+    // A release is either a hosted file (Windows/Mac/APK) or a store pointer
+    // (Play Store / App Store — version only). Require one of the two.
+    if (!input.hasFile && !input.storeUrl) {
+        throw new ValidationError('Provide an installer file or a store URL');
+    }
+
+    if (input.hasFile && input.fileName) {
+        const ext = path.extname(input.fileName).toLowerCase();
+        const allowed = PLATFORM_EXTENSIONS[input.platform];
+        if (!allowed.includes(ext)) {
+            throw new ValidationError(`${input.platform} installer must be one of: ${allowed.join(', ')}`);
+        }
+    }
+
+    if (await repo.findByVersion(input.platform, input.channel, input.version)) {
+        throw new ConflictError(`${input.platform}/${input.channel} version ${input.version} already exists`);
+    }
+}
+
+export interface RecordReleaseInput {
     platform: Platform;
     channel: Channel;
     version: string;
@@ -22,37 +57,23 @@ export interface CreateReleaseInput {
     mandatory: boolean;
     publish: boolean;
     storeUrl?: string;
-    /** Optional: a hosted installer. Omit for version-only / store-pointer releases. */
-    file?: File | null;
     createdBy: number;
+    /**
+     * Already-stored installer (from storeReleaseFile) plus its original name and
+     * content type. Omit/null for a version-only store-pointer release.
+     */
+    stored?: { file: StoredFile; fileName: string; contentType: string | null } | null;
 }
 
-export async function createRelease(input: CreateReleaseInput) {
-    const { platform, channel, version } = input;
-    const file = input.file && input.file.size > 0 ? input.file : null;
-
-    // A release is either a hosted file (Windows/Mac/APK) or a store pointer
-    // (Play Store / App Store — version only). Require one of the two.
-    if (!file && !input.storeUrl) {
-        throw new ValidationError('Provide an installer file or a store URL');
-    }
-
-    if (file) {
-        const ext = path.extname(file.name).toLowerCase();
-        const allowed = PLATFORM_EXTENSIONS[platform];
-        if (!allowed.includes(ext)) {
-            throw new ValidationError(`${platform} installer must be one of: ${allowed.join(', ')}`);
-        }
-    }
-
-    if (await repo.findByVersion(platform, channel, version)) {
-        throw new ConflictError(`${platform}/${channel} version ${version} already exists`);
-    }
-
+/**
+ * Persist a release row. When `stored` is provided the installer is already in
+ * object storage; if the DB insert fails we roll the orphaned object back.
+ */
+export async function recordRelease(input: RecordReleaseInput) {
     const base = {
-        platform,
-        channel,
-        version,
+        platform: input.platform,
+        channel: input.channel,
+        version: input.version,
         notes: input.notes?.trim() || null,
         mandatory: input.mandatory,
         storeUrl: input.storeUrl || null,
@@ -61,7 +82,7 @@ export async function createRelease(input: CreateReleaseInput) {
     };
 
     // Store-pointer release: no file to persist.
-    if (!file) {
+    if (!input.stored) {
         return repo.insertRelease({
             ...base,
             fileName: null,
@@ -72,21 +93,19 @@ export async function createRelease(input: CreateReleaseInput) {
         });
     }
 
-    const relativePath = buildRelativePath(platform, channel, version, file.name);
-    const stored = await storeReleaseFile(relativePath, file.stream());
-
+    const { file, fileName, contentType } = input.stored;
     try {
         return await repo.insertRelease({
             ...base,
-            fileName: file.name,
-            filePath: stored.relativePath,
-            fileSize: stored.size,
-            contentType: file.type || null,
-            sha256: stored.sha256,
+            fileName,
+            filePath: file.relativePath,
+            fileSize: file.size,
+            contentType,
+            sha256: file.sha256,
         });
     } catch (err) {
-        // Roll back the orphaned file if the DB insert fails.
-        await deleteReleaseFile(relativePath).catch(() => {});
+        // Roll back the orphaned object if the DB insert fails.
+        await deleteReleaseFile(file.relativePath).catch(() => {});
         throw err;
     }
 }
@@ -163,6 +182,19 @@ export async function getUpdateManifest(
         fileName: hasFile ? latest.file_name : null,
         publishedAt: latest.published_at,
     };
+}
+
+/**
+ * Resolve the latest published, hosted installer for a platform/channel and open
+ * it for download. Lets storefronts/clients link to a STABLE URL instead of
+ * baking a volatile release id (which dies when a release is re-uploaded).
+ */
+export async function openLatestForDownload(platform: Platform, channel: Channel) {
+    const latest = await latestPublished(platform, channel);
+    if (!latest || !latest.file_name) {
+        throw new NotFoundError('No release published for this platform');
+    }
+    return openForDownload(Number(latest.id));
 }
 
 /** Resolve a release for download (must be published). Returns row + open stream. */
