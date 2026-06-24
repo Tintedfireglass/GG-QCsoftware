@@ -21,7 +21,10 @@ import {
     TrendingUp,
     Download,
     AlertTriangle,
-    AlertOctagon
+    AlertOctagon,
+    HardDrive,
+    Thermometer,
+    ShieldAlert
 } from "lucide-react"
 
 export default function DashboardPage() {
