@@ -90,7 +90,8 @@ export default function DashboardPage() {
             const [machinesCount, alertsData, issueData, assetData] = await Promise.all([
                 getMachinesCount().catch(() => ({ total: 0 })),
                 getMachineHistoryAlerts().catch(() => ({ alerts: [] })),
-                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 }))
+                getIssuesSummary().catch(() => ({ devicesWithIssues: 0, totalDevices: 0 })),
+                (isSuperAdmin() || isClient() || isEnterprise() || isOEM() || isReseller()) ? getAssetHealthSummary().catch(() => null) : Promise.resolve(null)
             ])
 
             setStats((prev) => ({
