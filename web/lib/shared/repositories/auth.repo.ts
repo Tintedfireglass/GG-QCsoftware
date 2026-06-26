@@ -38,6 +38,10 @@ export async function insertUser(v: {
     displayName: string;
     role: string;
     createdBy: number;
+    allowWindowsKeys?: boolean;
+    allowAndroidKeys?: boolean;
+    allowIosKeys?: boolean;
+    allowMacKeys?: boolean;
 }): Promise<Record<string, unknown>> {
     const rows = await db.insert(users).values({
         username: v.username,
@@ -47,6 +51,10 @@ export async function insertUser(v: {
         displayName: v.displayName,
         role: v.role,
         createdBy: v.createdBy,
+        allowWindowsKeys: v.allowWindowsKeys ?? false,
+        allowAndroidKeys: v.allowAndroidKeys ?? false,
+        allowIosKeys: v.allowIosKeys ?? false,
+        allowMacKeys: v.allowMacKeys ?? false,
     }).returning({
         id: users.id,
         username: users.username,

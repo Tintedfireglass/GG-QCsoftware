@@ -26,6 +26,10 @@ export async function login(body: LoginInput) {
 
 export async function register(authUser: AuthenticatedUser, body: RegisterInput) {
     const { username, password, email, company_name, display_name, role } = body;
+    const b = body as RegisterInput & {
+        allow_windows_keys?: boolean; allow_android_keys?: boolean;
+        allow_ios_keys?: boolean; allow_mac_keys?: boolean;
+    };
 
     if (!username || !password || !email) {
         throw new ValidationError('Username, password, and email are required');
@@ -46,6 +50,9 @@ export async function register(authUser: AuthenticatedUser, body: RegisterInput)
         throw new ConflictError('Username already exists');
     }
 
+    // Per-platform license permissions: only SuperAdmin can assign, only to Employees.
+    const isEmployeePlatformGrant = authUser.role === 'SuperAdmin' && role === 'Employee';
+
     const passwordHash = await hashPassword(password);
     const user = await repo.insertUser({
         username,
@@ -55,6 +62,10 @@ export async function register(authUser: AuthenticatedUser, body: RegisterInput)
         displayName: display_name || username,
         role,
         createdBy: authUser.id,
+        allowWindowsKeys: isEmployeePlatformGrant ? !!b.allow_windows_keys : false,
+        allowAndroidKeys: isEmployeePlatformGrant ? !!b.allow_android_keys : false,
+        allowIosKeys: isEmployeePlatformGrant ? !!b.allow_ios_keys : false,
+        allowMacKeys: isEmployeePlatformGrant ? !!b.allow_mac_keys : false,
     });
     return { message: 'User created successfully', user };
 }

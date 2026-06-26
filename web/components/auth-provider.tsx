@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isUser = () => isTechnician() || isClient()
 
     // Permission checks
-    const canManageUsers = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
+    const canManageUsers = () => isSuperAdmin() || isEmployee() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canViewAllResults = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canViewMachines = () => isSuperAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()  // Enterprise/OEM/Insurer/Reseller + SA manage fleet
     const canManageFleet = () => isEnterprise() || isOEM() || isInsurer() || isReseller()

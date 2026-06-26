@@ -19,7 +19,7 @@ import {
 
 export default function NewUserPage() {
     const router = useRouter()
-    const { isSuperAdmin, isEnterprise, isOEM, isInsurer, isRefurbisher, isReseller, canManageUsers } = useAuth()
+    const { isSuperAdmin, isEmployee, isEnterprise, isOEM, isInsurer, isRefurbisher, isReseller, canManageUsers } = useAuth()
 
     const [formData, setFormData] = useState({
         username: "",
@@ -36,19 +36,27 @@ export default function NewUserPage() {
         allow_yearly_keys: false,
         allow_perpetual_keys: false,
     })
+    const [platformPerms, setPlatformPerms] = useState({
+        allow_windows_keys: false,
+        allow_android_keys: false,
+        allow_ios_keys: false,
+        allow_mac_keys: false,
+    })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     // Get roles that current user can create
     const creatableRoles: UserRole[] = isSuperAdmin()
         ? ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client']
-        : isReseller()
-            ? ['Technician', 'Client']
-            : isEnterprise() || isOEM() || isInsurer()
-                ? ['Technician']
-                : isRefurbisher()
+        : isEmployee()
+            ? ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client']
+            : isReseller()
+                ? ['Technician', 'Client']
+                : isEnterprise() || isOEM() || isInsurer()
                     ? ['Technician']
-                    : []
+                    : isRefurbisher()
+                        ? ['Technician']
+                        : []
 
     // Custom role mapping for the UI
     const customRoleDisplay: Record<UserRole, { title: string, description: string }> = {
@@ -73,6 +81,15 @@ export default function NewUserPage() {
     ]
 
     const showDurationSection = isSuperAdmin() && formData.role !== 'SuperAdmin' && formData.role !== 'Employee'
+    // Per-platform license permissions are assignable by SuperAdmin when creating an Employee.
+    const showPlatformSection = isSuperAdmin() && formData.role === 'Employee'
+
+    const PLATFORM_OPTIONS = [
+        { key: 'allow_windows_keys' as const, label: 'Windows (PC)', sub: 'Generate Windows license keys' },
+        { key: 'allow_android_keys' as const, label: 'Android', sub: 'Generate Android license keys' },
+        { key: 'allow_ios_keys' as const, label: 'iPhone (iOS)', sub: 'Generate iOS license keys' },
+        { key: 'allow_mac_keys' as const, label: 'Mac', sub: 'Generate Mac license keys' },
+    ]
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -109,7 +126,9 @@ export default function NewUserPage() {
                 display_name: formData.display_name || undefined,
                 role: formData.role,
                 // Duration permission flags — only sent when role is eligible
-                ...(showDurationSection ? durationPerms : {})
+                ...(showDurationSection ? durationPerms : {}),
+                // Per-platform license permissions — only sent when creating an Employee
+                ...(showPlatformSection ? platformPerms : {})
             })
 
             router.push("/dashboard/users")
@@ -316,6 +335,51 @@ export default function NewUserPage() {
                                                 className="sr-only"
                                                 checked={durationPerms[key]}
                                                 onChange={(e) => setDurationPerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                            />
+                                            <div>
+                                                <div className="font-semibold text-slate-900 text-sm">{label}</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">{sub}</div>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {showPlatformSection && (
+                            <div className="pt-6 border-t border-slate-100">
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-slate-700">
+                                        License Platform Permissions
+                                    </label>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Choose which platforms this employee can generate license keys for. If all are unchecked, they can only generate demo keys.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {PLATFORM_OPTIONS.map(({ key, label, sub }) => (
+                                        <label
+                                            key={key}
+                                            className={`relative flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                                                platformPerms[key]
+                                                    ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]/5'
+                                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                            }`}
+                                        >
+                                            <div className="mt-0.5">
+                                                <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                    platformPerms[key]
+                                                        ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]'
+                                                        : 'border-slate-300 bg-white'
+                                                }`}>
+                                                    {platformPerms[key] && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only"
+                                                checked={platformPerms[key]}
+                                                onChange={(e) => setPlatformPerms(prev => ({ ...prev, [key]: e.target.checked }))}
                                             />
                                             <div>
                                                 <div className="font-semibold text-slate-900 text-sm">{label}</div>

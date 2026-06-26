@@ -44,6 +44,12 @@ export default function EditUserPage() {
         allow_yearly_keys: false,
         allow_perpetual_keys: false,
     })
+    const [platformPerms, setPlatformPerms] = useState({
+        allow_windows_keys: false,
+        allow_android_keys: false,
+        allow_ios_keys: false,
+        allow_mac_keys: false,
+    })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -73,6 +79,12 @@ export default function EditUserPage() {
                 allow_6month_keys: data.user.allow_6month_keys ?? false,
                 allow_yearly_keys: data.user.allow_yearly_keys ?? false,
                 allow_perpetual_keys: data.user.allow_perpetual_keys ?? false,
+            })
+            setPlatformPerms({
+                allow_windows_keys: data.user.allow_windows_keys ?? false,
+                allow_android_keys: data.user.allow_android_keys ?? false,
+                allow_ios_keys: data.user.allow_ios_keys ?? false,
+                allow_mac_keys: data.user.allow_mac_keys ?? false,
             })
         } catch (err) {
             console.error("Failed to load user:", err)
@@ -170,6 +182,27 @@ export default function EditUserPage() {
         } catch (err) {
             console.error("Failed to update permissions:", err)
             setError(err instanceof Error ? err.message : "Failed to update permissions")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleSavePlatformPermissions() {
+        setError(null)
+        setSuccess(null)
+        setSaving(true)
+        try {
+            await updateUser(userId, {
+                allow_windows_keys: platformPerms.allow_windows_keys,
+                allow_android_keys: platformPerms.allow_android_keys,
+                allow_ios_keys: platformPerms.allow_ios_keys,
+                allow_mac_keys: platformPerms.allow_mac_keys,
+            })
+            setSuccess("Platform permissions updated successfully")
+            loadUser()
+        } catch (err) {
+            console.error("Failed to update platform permissions:", err)
+            setError(err instanceof Error ? err.message : "Failed to update platform permissions")
         } finally {
             setSaving(false)
         }
@@ -530,6 +563,63 @@ export default function EditUserPage() {
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >
                                     {saving ? 'Saving...' : 'Save Permissions'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* License Platform Permissions — SuperAdmin only, Employees only */}
+                    {isSuperAdmin() && userData.role === 'Employee' && (
+                        <div className="mt-6 pt-6 border-t">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-1">License Platform Permissions</h3>
+                            <p className="text-xs text-slate-500 mb-4">
+                                Choose which platforms this employee can generate license keys for. If all are unchecked, they can only generate demo keys.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    { key: 'allow_windows_keys' as const, label: 'Windows (PC)', sub: 'Windows license keys' },
+                                    { key: 'allow_android_keys' as const, label: 'Android', sub: 'Android license keys' },
+                                    { key: 'allow_ios_keys' as const, label: 'iPhone (iOS)', sub: 'iOS license keys' },
+                                    { key: 'allow_mac_keys' as const, label: 'Mac', sub: 'Mac license keys' },
+                                ]).map(({ key, label, sub }) => (
+                                    <label
+                                        key={key}
+                                        className={`relative flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
+                                            platformPerms[key]
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                            platformPerms[key] ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
+                                        }`}>
+                                            {platformPerms[key] && (
+                                                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={platformPerms[key]}
+                                            onChange={(e) => setPlatformPerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                        />
+                                        <div>
+                                            <div className="font-medium text-slate-900 text-sm">{label}</div>
+                                            <div className="text-xs text-slate-500">{sub}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleSavePlatformPermissions}
+                                    disabled={saving}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {saving ? 'Saving...' : 'Save Platform Permissions'}
                                 </Button>
                             </div>
                         </div>

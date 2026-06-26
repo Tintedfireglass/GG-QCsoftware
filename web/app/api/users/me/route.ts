@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
                 id, username, email, display_name, role,
                 is_active, license_credits, created_at,
                 allow_monthly_keys, allow_quarterly_keys,
-                allow_6month_keys, allow_yearly_keys, allow_perpetual_keys
+                allow_6month_keys, allow_yearly_keys, allow_perpetual_keys,
+                allow_windows_keys, allow_android_keys, allow_ios_keys, allow_mac_keys
              FROM users WHERE id = ${authUser.id}
         `);
 

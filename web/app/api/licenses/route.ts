@@ -4,7 +4,7 @@ import { generateLicenseSchema, toggleLicenseSchema } from '@/lib/shared/domain/
 import { listLicenses, generateLicense, toggleLicense } from '@/lib/shared/services/licenses.service';
 
 const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
-const TOGGLE_ROLES = ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
+const TOGGLE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
 
 // GET /api/licenses?search=&status=&sort=&page=&limit= - list keys visible to the caller
 export const GET = withAuth([...MANAGE_ROLES], async (request, { user }) => {

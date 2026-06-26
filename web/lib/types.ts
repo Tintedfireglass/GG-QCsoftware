@@ -117,6 +117,10 @@ export interface User {
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
     allow_perpetual_keys?: boolean;
+    allow_windows_keys?: boolean;
+    allow_android_keys?: boolean;
+    allow_ios_keys?: boolean;
+    allow_mac_keys?: boolean;
     created_at: Date;
 }
 
@@ -135,6 +139,10 @@ export interface CreateUserRequest {
     display_name?: string;
     role: UserRole;
     license_credits?: number;
+    allow_windows_keys?: boolean;
+    allow_android_keys?: boolean;
+    allow_ios_keys?: boolean;
+    allow_mac_keys?: boolean;
 }
 
 // User update request
@@ -151,6 +159,10 @@ export interface UpdateUserRequest {
     allow_6month_keys?: boolean;
     allow_yearly_keys?: boolean;
     allow_perpetual_keys?: boolean;
+    allow_windows_keys?: boolean;
+    allow_android_keys?: boolean;
+    allow_ios_keys?: boolean;
+    allow_mac_keys?: boolean;
 }
 
 // DTOs for API requests/responses

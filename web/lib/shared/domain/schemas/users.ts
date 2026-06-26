@@ -24,6 +24,10 @@ export const updateUserSchema = z.object({
     allow_6month_keys: z.boolean().optional(),
     allow_yearly_keys: z.boolean().optional(),
     allow_perpetual_keys: z.boolean().optional(),
+    allow_windows_keys: z.boolean().optional(),
+    allow_android_keys: z.boolean().optional(),
+    allow_ios_keys: z.boolean().optional(),
+    allow_mac_keys: z.boolean().optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

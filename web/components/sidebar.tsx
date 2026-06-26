@@ -72,7 +72,7 @@ export function Sidebar() {
             href: "/dashboard/users",
             label: "User Management",
             icon: Users,
-            roles: ['SuperAdmin', 'Refurbisher', 'Enterprise', 'Reseller'] // Visible to user managers
+            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller'] // Visible to user managers
         },
         {
             href: "/dashboard/licenses",

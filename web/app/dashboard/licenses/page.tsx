@@ -110,8 +110,22 @@ export default function LicensesPage() {
         if (user) fetchKeys()
     }, [user, fetchKeys])
 
+    // Employees may only generate non-demo keys for the platforms SuperAdmin granted them.
+    // (Demo keys are unrestricted; other roles have no per-platform restriction.)
+    const platformAllowed = (id: string) => {
+        if (user?.role !== "Employee" || newType === "demo") return true
+        const flags: Record<string, boolean | undefined> = {
+            windows: user?.allow_windows_keys,
+            android: user?.allow_android_keys,
+            ios: user?.allow_ios_keys,
+            mac: user?.allow_mac_keys,
+        }
+        return !!flags[id]
+    }
+
     // Toggle a platform on/off. For single_use, only one platform may be selected at a time.
     const togglePlatform = (id: string) => {
+        if (!platformAllowed(id)) return
         setPlatformSel((prev) => {
             const next = { ...prev, [id]: { ...prev[id], on: !prev[id].on } }
             // single_use and demo are single-device → only one platform may be selected.
@@ -147,6 +161,11 @@ export default function LicensesPage() {
             // Build per-platform caps from the selection. single_use & demo are single-device (cap 1).
             if (selectedPlatforms.length === 0) {
                 setGenerateError("Select at least one platform for this key.")
+                return
+            }
+            const disallowed = selectedPlatforms.filter((p) => !platformAllowed(p.id))
+            if (disallowed.length > 0) {
+                setGenerateError(`You are not permitted to generate ${disallowed.map((p) => p.label).join(", ")} license keys.`)
                 return
             }
             const singleDevice = newType === "single_use" || newType === "demo"
@@ -304,14 +323,29 @@ export default function LicensesPage() {
                     className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white px-6 h-11 rounded-lg font-medium shadow-sm transition-colors"
                     onClick={() => {
                         const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee"
-                        const defaultType = isPrivileged ? (user?.role === "Employee" ? "demo" : "single_use") : "single_use"
+                        // Platforms an Employee may generate non-demo keys for.
+                        const employeePlatforms = ["windows", "android", "ios", "mac"].filter((id) => {
+                            const flags: Record<string, boolean | undefined> = {
+                                windows: user?.allow_windows_keys, android: user?.allow_android_keys,
+                                ios: user?.allow_ios_keys, mac: user?.allow_mac_keys,
+                            }
+                            return !!flags[id]
+                        })
+                        // Employees with at least one platform default to single_use; otherwise demo only.
+                        const defaultType = user?.role === "Employee"
+                            ? (employeePlatforms.length ? "single_use" : "demo")
+                            : "single_use"
+                        // First platform to pre-select (Employees: their first allowed; others: windows).
+                        const defaultPlatform = user?.role === "Employee" && defaultType !== "demo"
+                            ? (employeePlatforms[0] ?? "windows")
+                            : "windows"
                         setNewType(defaultType)
                         setNewMaxUses("1")
                         setPlatformSel({
-                            windows: { on: true, cap: "1" },
-                            android: { on: false, cap: "1" },
-                            ios: { on: false, cap: "1" },
-                            mac: { on: false, cap: "1" },
+                            windows: { on: defaultPlatform === "windows", cap: "1" },
+                            android: { on: defaultPlatform === "android", cap: "1" },
+                            ios: { on: defaultPlatform === "ios", cap: "1" },
+                            mac: { on: defaultPlatform === "mac", cap: "1" },
                         })
                         setDemoCustomerName("")
                         setExpiresAt("")
@@ -672,8 +706,8 @@ export default function LicensesPage() {
                                     }}
                                     className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer"
                                 >
-                                    {user?.role !== "Employee" && <option value="single_use">Single Use (1 Device)</option>}
-                                    {user?.role !== "Employee" && <option value="bulk">Bulk Use (Multi Device)</option>}
+                                    <option value="single_use">Single Use (1 Device)</option>
+                                    <option value="bulk">Bulk Use (Multi Device)</option>
                                     {(user?.role === "SuperAdmin" || user?.role === "Employee") && <option value="demo">Demo Key (1 Full QC)</option>}
                                 </select>
                             </div>
@@ -767,16 +801,19 @@ export default function LicensesPage() {
                                         <div className="space-y-2">
                                             {PLATFORMS.map((p) => {
                                                 const sel = platformSel[p.id]
+                                                const allowed = platformAllowed(p.id)
                                                 return (
-                                                    <div key={p.id} className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2">
-                                                        <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                                                    <div key={p.id} className={`flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 ${!allowed ? 'opacity-50' : ''}`}>
+                                                        <label className={`flex items-center gap-2 flex-1 ${allowed ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                                                             <input
                                                                 type="checkbox"
-                                                                checked={sel.on}
+                                                                checked={sel.on && allowed}
+                                                                disabled={!allowed}
                                                                 onChange={() => togglePlatform(p.id)}
-                                                                className="h-4 w-4 rounded border-slate-300 text-[var(--brand-purple)] focus:ring-[var(--brand-purple)]"
+                                                                className="h-4 w-4 rounded border-slate-300 text-[var(--brand-purple)] focus:ring-[var(--brand-purple)] disabled:cursor-not-allowed"
                                                             />
                                                             <span className="text-sm font-medium text-slate-700">{p.label}</span>
+                                                            {!allowed && <span className="text-[10px] text-slate-400">(not permitted)</span>}
                                                         </label>
                                                         <Input
                                                             type="number"
