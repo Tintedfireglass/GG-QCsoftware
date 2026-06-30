@@ -84,6 +84,16 @@ class Program
                     InstallBackgroundServices();
                     return;
 
+                case "--test-usb":
+                    Console.CursorVisible = true;
+                    await RunUsbTestAsync();
+                    return;
+
+                case "--test-ethernet":
+                    Console.CursorVisible = true;
+                    await RunEthernetTestAsync();
+                    return;
+
                 default:
                     AnsiConsole.MarkupLine($"[red]Unknown argument:[/] {args[0]}");
                     PrintHelp();
@@ -98,6 +108,9 @@ class Program
         {
             var sysDiag = new LinuxSystemDiagnostic();
             state.SystemInfo = sysDiag.GetInfo();
+            
+            // Device ID is only allocated after activation/login, not on startup
+            // It will be populated when user activates or logs in
         }
         catch { /* non-fatal */ }
 
@@ -194,15 +207,23 @@ class Program
                 await RunStressTestsOnlyWithLive();
                 break;
 
-            case 3: // View Results Table
+            case 3: // Test USB Ports
+                await RunUsbTestAsync();
+                break;
+
+            case 4: // Test Ethernet
+                await RunEthernetTestAsync();
+                break;
+
+            case 5: // View Results Table
                 ShowResultsTable();
                 break;
 
-            case 4: // Settings (placeholder)
+            case 6: // Settings (placeholder)
                 state.StatusMessage = "Settings: Not yet implemented.";
                 break;
 
-            case 5: // Exit
+            case 7: // Exit
                 isRunning = false;
                 break;
         }
@@ -426,6 +447,8 @@ class Program
         AnsiConsole.MarkupLine("  [green]pramaan --diagnose[/]               Run hardware diagnostics (non-interactive)");
         AnsiConsole.MarkupLine("  [green]pramaan --stress[/]                 Run stress tests (non-interactive)");
         AnsiConsole.MarkupLine("  [green]pramaan --full-qc[/]                Run full QC (diagnostics + stress) non-interactively");
+        AnsiConsole.MarkupLine("  [green]pramaan --test-usb[/]               Run USB port testing");
+        AnsiConsole.MarkupLine("  [green]pramaan --test-ethernet[/]          Run Ethernet connectivity testing");
         AnsiConsole.MarkupLine("");
         AnsiConsole.MarkupLine("[bold white]BACKGROUND REPORTING (Silent):[/]");
         AnsiConsole.MarkupLine("  [green]pramaan --heartbeat[/]              Send online heartbeat (requires auth)");
@@ -749,5 +772,113 @@ WantedBy=timers.target
         {
             Console.WriteLine($"Failed to install services: {ex.Message}");
         }
+    }
+
+    static async Task RunUsbTestAsync()
+    {
+        AnsiConsole.Clear();
+        AnsiConsole.MarkupLine("[bold cyan]═══ USB Port Testing ═══[/]\n");
+
+        var usbDiag = new LinuxUsbPortDiagnostic();
+        
+        var (healthy, message) = usbDiag.QuickValidation();
+        AnsiConsole.MarkupLine($"Quick Check: {(healthy ? "[green]✓[/]" : "[red]✗[/]")} {message.EscapeMarkup()}");
+        AnsiConsole.MarkupLine("");
+
+        if (!AnsiConsole.Confirm("Run interactive USB port test?", true))
+        {
+            return;
+        }
+
+        AnsiConsole.MarkupLine("[yellow]Prepare a USB flash drive or device for testing.[/]\n");
+
+        var result = await usbDiag.RunInteractiveTestAsync(msg =>
+        {
+            AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
+        });
+
+        AnsiConsole.MarkupLine("\n[bold cyan]═══ Test Results ═══[/]\n");
+        
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Cyan);
+        table.AddColumn("Port");
+        table.AddColumn("Type");
+        table.AddColumn("Status");
+        table.AddColumn("Device Detected");
+
+        foreach (var port in result.TestedPorts)
+        {
+            table.AddRow(
+                port.PortName,
+                port.PortType,
+                port.Passed ? "[green]✓ PASS[/]" : "[red]✗ FAIL[/]",
+                port.DeviceDetected.EscapeMarkup()
+            );
+        }
+
+        AnsiConsole.Write(table);
+        AnsiConsole.MarkupLine($"\n[bold]Summary:[/] {result.Summary}");
+        AnsiConsole.MarkupLine($"Overall: {(result.AllPortsWorking ? "[green]All ports working[/]" : $"[yellow]{result.WorkingPortsCount}/{result.TestedPorts.Count} ports working[/]")}");
+    }
+
+    static async Task RunEthernetTestAsync()
+    {
+        AnsiConsole.Clear();
+        AnsiConsole.MarkupLine("[bold cyan]═══ Ethernet Testing ═══[/]\n");
+
+        var ethDiag = new LinuxEthernetDiagnostic();
+        
+        var (healthy, message) = ethDiag.QuickValidation();
+        AnsiConsole.MarkupLine($"Quick Check: {(healthy ? "[green]✓[/]" : "[red]✗[/]")} {message.EscapeMarkup()}");
+        AnsiConsole.MarkupLine("");
+
+        var testType = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Select test type:")
+                .AddChoices("Quick Scan", "Full Interactive Test", "Cancel"));
+
+        if (testType == "Cancel") return;
+
+        if (testType == "Quick Scan")
+        {
+            var result = ethDiag.RunDiagnostic();
+            DisplayEthernetResults(result);
+        }
+        else
+        {
+            var result = await ethDiag.RunFullInteractiveTestAsync(msg =>
+            {
+                AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
+            });
+            DisplayEthernetResults(result);
+        }
+    }
+
+    static void DisplayEthernetResults(LinuxEthernetDiagnostic.EthernetTestResult result)
+    {
+        AnsiConsole.MarkupLine("\n[bold cyan]═══ Test Results ═══[/]\n");
+        
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Cyan);
+        table.AddColumn("Interface");
+        table.AddColumn("MAC Address");
+        table.AddColumn("Link Speed");
+        table.AddColumn("Cable");
+        table.AddColumn("Status");
+        table.AddColumn("IP Address");
+
+        foreach (var port in result.DetectedPorts)
+        {
+            table.AddRow(
+                port.InterfaceName,
+                port.MacAddress,
+                port.LinkSpeed,
+                port.CableDetected ? "[green]Connected[/]" : "[red]Disconnected[/]",
+                port.IsConnected ? "[green]UP[/]" : "[grey]DOWN[/]",
+                port.IpAddress
+            );
+        }
+
+        AnsiConsole.Write(table);
+        AnsiConsole.MarkupLine($"\n[bold]Summary:[/] {result.Summary}");
+        AnsiConsole.MarkupLine($"Overall: {(result.HasWorkingPort ? "[green]Ethernet functional[/]" : "[red]No working Ethernet connection[/]")}");
     }
 }

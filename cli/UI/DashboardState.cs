@@ -15,14 +15,17 @@ public class DashboardState
         "1. Run Full QC (Recommended)",
         "2. Run Diagnostics",
         "3. Run Stress Tests",
-        "4. View Results Table",
-        "5. Settings",
+        "4. Test USB Ports",
+        "5. Test Ethernet",
+        "6. View Results Table",
+        "7. Settings",
         "0. Exit"
     };
 
     public int SelectedMenuIndex { get; set; } = 0;
     public SystemInfo? SystemInfo { get; set; }
-    public string ReportId { get; set; } = "PRM" + DateTime.Now.ToString("yyMMddHHmm");
+    public int DeviceId { get; set; } = 0;
+    public string? HealthId { get; set; }
     public QCReport? Report { get; set; }
 
     // Scores
@@ -84,6 +87,7 @@ public class DashboardState
     public void UpdateFromReport(QCReport r)
     {
         Report = r;
+        HealthId = r.HealthId; // Update health ID from report
         OverallScore = r.PramaanResult?.OverallHealthScore ?? r.OverallScore;
         GradeLabel = GetGradeLabel(r.PramaanResult?.GradeBand ?? r.OverallGrade);
 

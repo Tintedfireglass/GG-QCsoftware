@@ -54,7 +54,7 @@ public static class DashboardRenderer
         string ascii = @" ___ ___  _   __  __  _   _   _  _ 
 | _ \ _ \/_\ |  \/  |/_\ /_\ | \| |
 |  _/   / _ \| |\/| / _ \ _ \| .` |
-|_| |_|_\/ \_\_|  |/_/ \_\/ \_\_|\_|";
+|_| |_|_\/ \_\_|  |/_/ \_/ \_\_|\_|";
         var logo = new Text(ascii, new Style(Color.Purple));
         return new Panel(new Rows(logo, new Markup(" Trust. Verify. [purple]Certify.[/]")))
             .Border(BoxBorder.None);
@@ -71,9 +71,10 @@ public static class DashboardRenderer
         g.AddRow("[grey]Computer[/]", "[grey]:[/]", $"[white]{si?.ComputerName ?? "—"}[/]");
         g.AddRow("[grey]Model   [/]", "[grey]:[/]", $"[white]{si?.Model ?? "—"}[/]");
         g.AddRow("[grey]Serial  [/]", "[grey]:[/]", $"[white]{si?.SerialNumber ?? "—"}[/]");
+        g.AddRow("[grey]Device ID[/]", "[grey]:[/]", s.DeviceId > 0 ? $"[yellow]{s.DeviceId}[/]" : "[grey]—[/]");
         g.AddRow("[grey]OS      [/]", "[grey]:[/]", $"[white]{si?.OsVersion ?? "—"}[/]");
         g.AddRow("[grey]Uptime  [/]", "[grey]:[/]", $"[white]{GetUptime()}[/]");
-        g.AddRow("[grey]Report ID[/]", "[grey]:[/]", $"[white]{s.ReportId}[/]");
+        g.AddRow("[grey]Health ID[/]", "[grey]:[/]", $"[white]{s.HealthId ?? "—"}[/]");
 
         return new Panel(g).Header("[purple]SYSTEM INFORMATION[/]").BorderColor(Color.Purple).Expand();
     }
@@ -269,19 +270,19 @@ public static class DashboardRenderer
     static IRenderable BuildProgress(DashboardState s)
     {
         var g = new Grid().Expand();
-        g.AddColumn(new GridColumn().NoWrap());
-        g.AddColumn(new GridColumn().PadLeft(1));
-        g.AddColumn(new GridColumn().RightAligned().NoWrap());
+        g.AddColumn(new GridColumn().Width(16).NoWrap());
+        g.AddColumn(new GridColumn().Width(20).NoWrap());
+        g.AddColumn(new GridColumn().Width(5).RightAligned().NoWrap());
 
-        g.AddRow("[grey]CPU Stress[/]",      MakeBar(s.ProgressCpu),      $"[green]{s.ProgressCpu}%[/]");
-        g.AddRow("[grey]RAM Stress[/]",      MakeBar(s.ProgressRam),      $"[green]{s.ProgressRam}%[/]");
-        g.AddRow("[grey]Storage Test[/]",    MakeBar(s.ProgressStorage),  $"[green]{s.ProgressStorage}%[/]");
-        g.AddRow("[grey]GPU Stress[/]",      MakeBar(s.ProgressGpu),      $"[green]{s.ProgressGpu}%[/]");
-        g.AddRow("[grey]Component Tests[/]", MakeBar(s.ProgressComp),     $"[green]{s.ProgressComp}%[/]");
+        g.AddRow("[grey]CPU Stress[/]",      MakeBar(s.ProgressCpu),      $"[green]{s.ProgressCpu,3}%[/]");
+        g.AddRow("[grey]RAM Stress[/]",      MakeBar(s.ProgressRam),      $"[green]{s.ProgressRam,3}%[/]");
+        g.AddRow("[grey]Storage Test[/]",    MakeBar(s.ProgressStorage),  $"[green]{s.ProgressStorage,3}%[/]");
+        g.AddRow("[grey]GPU Stress[/]",      MakeBar(s.ProgressGpu),      $"[green]{s.ProgressGpu,3}%[/]");
+        g.AddRow("[grey]Component Tests[/]", MakeBar(s.ProgressComp),     $"[green]{s.ProgressComp,3}%[/]");
         g.AddEmptyRow();
         g.AddRow($"[grey]Elapsed: {s.Elapsed}[/]");
         if (!string.IsNullOrEmpty(s.StatusMessage))
-            g.AddRow($"[yellow]{s.StatusMessage.EscapeMarkup().Truncate(35)}[/]");
+            g.AddRow($"[yellow]{s.StatusMessage.EscapeMarkup().Truncate(38)}[/]");
 
         return new Panel(g).Header("[purple]TEST PROGRESS[/]").BorderColor(Color.Purple).Expand();
     }
