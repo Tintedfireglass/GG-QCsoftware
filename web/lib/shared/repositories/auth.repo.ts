@@ -162,8 +162,8 @@ export async function countActivationsByPlatform(tx: Tx, licenseKeyId: number, p
     return rows[0]?.n ?? 0;
 }
 
-export async function insertActivation(tx: Tx, licenseKeyId: number, machineSerial: string, platform: string): Promise<void> {
-    await tx.insert(licenseKeyActivations).values({ licenseKeyId, machineSerial, platform });
+export async function insertActivation(tx: Tx, licenseKeyId: number, machineSerial: string, platform: string, customerUserId?: number | null): Promise<void> {
+    await tx.insert(licenseKeyActivations).values({ licenseKeyId, machineSerial, platform, customerUserId: customerUserId ?? null });
 }
 
 export async function incrementCurrentUses(tx: Tx, licenseKeyId: number): Promise<void> {

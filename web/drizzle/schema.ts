@@ -161,6 +161,9 @@ export const licenseKeyActivations = pgTable("license_key_activations", {
 	machineSerial: varchar("machine_serial").notNull(),
 	// Platform of the activated device: windows | android | ios | mac.
 	platform: varchar().default('windows'),
+	// Customer that made this activation (Android B2C). Null for PC/creator
+	// activations. Carries per-customer entitlement for shared (bulk) keys.
+	customerUserId: integer("customer_user_id"),
 	activatedAt: timestamp("activated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
