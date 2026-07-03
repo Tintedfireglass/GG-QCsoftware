@@ -7,7 +7,7 @@ import {
     DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import type { Platform, Channel } from '@/lib/shared/domain/schemas/releases';
+import type { Platform, Channel, Arch } from '@/lib/shared/domain/schemas/releases';
 
 /**
  * Object-storage (DigitalOcean Spaces / any S3-compatible) backend for release
@@ -18,7 +18,7 @@ import type { Platform, Channel } from '@/lib/shared/domain/schemas/releases';
  * Binaries are private objects fetched only through the gated download route
  * (we stream them server-side; the bucket is never exposed publicly).
  *
- * Object key layout: <SPACES_PREFIX>/<platform>/<channel>/<version>-<safeName>
+ * Object key layout: <SPACES_PREFIX>/<platform>/<arch>/<channel>/<version>-<safeName>
  *
  * Required env: SPACES_REGION, SPACES_ENDPOINT, SPACES_BUCKET, SPACES_KEY,
  * SPACES_SECRET. Optional: SPACES_PREFIX (default "releases").
@@ -62,10 +62,11 @@ function sanitizeName(name: string): string {
 export function buildRelativePath(
     platform: Platform,
     channel: Channel,
+    arch: Arch,
     version: string,
     fileName: string
 ): string {
-    return [KEY_PREFIX, platform, channel, `${version}-${sanitizeName(fileName)}`]
+    return [KEY_PREFIX, platform, arch, channel, `${version}-${sanitizeName(fileName)}`]
         .filter(Boolean)
         .join('/');
 }

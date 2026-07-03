@@ -11,6 +11,8 @@ import {
     AppRelease,
     ReleasePlatform,
     ReleaseChannel,
+    ReleaseArch,
+    RELEASE_PLATFORM_ARCHS,
 } from "@/lib/api"
 import { Input } from "@/components/ui/input"
 import {
@@ -46,6 +48,16 @@ function formatDate(value: string | null) {
     return Number.isFinite(d.getTime()) ? d.toLocaleString() : "—"
 }
 
+/** Human label for an arch, tuned to the platform (Intel vs Apple Silicon on mac). */
+function archLabel(platform: ReleasePlatform, arch: ReleaseArch): string {
+    if (arch === "universal") return "Universal"
+    if (arch === "x64") return platform === "mac" ? "Intel (x64)" : "x64 (Intel/AMD)"
+    // arm64
+    if (platform === "mac") return "Apple Silicon (arm64)"
+    if (platform === "windows") return "ARM64"
+    return "arm64"
+}
+
 const PLATFORM_META: Record<ReleasePlatform, { label: string; icon: React.ComponentType<{ className?: string }>; accept: string; note?: string }> = {
     windows: { label: "Windows", icon: MonitorDown, accept: ".exe,.msi" },
     mac: { label: "macOS", icon: Laptop, accept: ".dmg,.pkg,.zip" },
@@ -73,6 +85,7 @@ export default function ReleasesPage() {
 
     // Upload form state
     const [platform, setPlatform] = useState<ReleasePlatform>("windows")
+    const [arch, setArch] = useState<ReleaseArch>(RELEASE_PLATFORM_ARCHS.windows[0])
     const [channel, setChannel] = useState<ReleaseChannel>("stable")
     const [version, setVersion] = useState("")
     const [notes, setNotes] = useState("")
@@ -114,6 +127,7 @@ export default function ReleasesPage() {
         try {
             const form = new FormData()
             form.append("platform", platform)
+            form.append("arch", arch)
             form.append("channel", channel)
             form.append("version", version.trim())
             form.append("notes", notes.trim())
@@ -203,12 +217,17 @@ export default function ReleasesPage() {
                 <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                     <UploadCloud className="h-5 w-5 text-[var(--brand-purple)]" /> Upload new version
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <label className="space-y-1">
                         <span className="text-xs font-medium text-slate-600">Platform</span>
                         <select
                             value={platform}
-                            onChange={(e) => setPlatform(e.target.value as ReleasePlatform)}
+                            onChange={(e) => {
+                                const next = e.target.value as ReleasePlatform
+                                setPlatform(next)
+                                // Keep arch valid for the newly-selected platform.
+                                setArch(RELEASE_PLATFORM_ARCHS[next][0])
+                            }}
                             className="w-full h-10 rounded-md border border-slate-200 px-3 text-sm"
                         >
                             <option value="windows">Windows (.exe / .msi)</option>
@@ -216,6 +235,21 @@ export default function ReleasesPage() {
                             <option value="linux">Linux (.AppImage / .deb / .rpm / .tar.gz)</option>
                             <option value="android">Android (.apk / .aab or store link)</option>
                             <option value="ios">iPhone / iOS (App Store link)</option>
+                        </select>
+                    </label>
+                    <label className="space-y-1">
+                        <span className="text-xs font-medium text-slate-600">Architecture</span>
+                        <select
+                            value={arch}
+                            onChange={(e) => setArch(e.target.value as ReleaseArch)}
+                            disabled={RELEASE_PLATFORM_ARCHS[platform].length <= 1}
+                            className="w-full h-10 rounded-md border border-slate-200 px-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                        >
+                            {RELEASE_PLATFORM_ARCHS[platform].map((a) => (
+                                <option key={a} value={a}>
+                                    {archLabel(platform, a)}
+                                </option>
+                            ))}
                         </select>
                     </label>
                     <label className="space-y-1">
@@ -312,6 +346,7 @@ export default function ReleasesPage() {
                                         <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                                             <tr>
                                                 <th className="text-left px-4 py-3">Version</th>
+                                                <th className="text-left px-4 py-3">Arch</th>
                                                 <th className="text-left px-4 py-3">Channel</th>
                                                 <th className="text-left px-4 py-3">Size</th>
                                                 <th className="text-left px-4 py-3">Downloads</th>
@@ -335,6 +370,11 @@ export default function ReleasesPage() {
                                                                 ? <a href={r.store_url} target="_blank" rel="noreferrer" className="text-[var(--brand-purple)] hover:underline">store link ↗</a>
                                                                 : "version pointer")}
                                                         </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-medium">
+                                                            {archLabel(r.platform, r.arch ?? "universal")}
+                                                        </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-slate-600">{r.channel}</td>
                                                     <td className="px-4 py-3 text-slate-600">{r.file_name ? formatBytes(r.file_size) : "—"}</td>

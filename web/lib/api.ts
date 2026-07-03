@@ -924,11 +924,22 @@ export async function getTrialMachineAutoQCRuns(
 // ── App Releases (desktop auto-update) ──────────────────────────────────────────
 export type ReleasePlatform = "windows" | "mac" | "linux" | "android" | "ios"
 export type ReleaseChannel = "stable" | "beta"
+export type ReleaseArch = "universal" | "x64" | "arm64"
+
+/** Architectures selectable per platform (first is the UI default). */
+export const RELEASE_PLATFORM_ARCHS: Record<ReleasePlatform, ReleaseArch[]> = {
+    windows: ["x64", "arm64", "universal"],
+    mac: ["universal", "x64", "arm64"],
+    linux: ["x64", "arm64", "universal"],
+    android: ["universal"],
+    ios: ["universal"],
+}
 
 export interface AppRelease {
     id: number
     platform: ReleasePlatform
     channel: ReleaseChannel
+    arch: ReleaseArch
     version: string
     notes: string | null
     mandatory: boolean

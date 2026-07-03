@@ -599,6 +599,7 @@ export const appReleases = pgTable("app_releases", {
 	id: serial().primaryKey().notNull(),
 	platform: varchar().notNull(),
 	channel: varchar().default('stable').notNull(),
+	arch: varchar().default('universal').notNull(),
 	version: varchar().notNull(),
 	notes: text(),
 	mandatory: boolean().default(false).notNull(),
@@ -614,6 +615,6 @@ export const appReleases = pgTable("app_releases", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	publishedAt: timestamp("published_at", { withTimezone: true, mode: 'string' }),
 }, (table) => [
-	uniqueIndex("idx_app_releases_platform_channel_version").using("btree", table.platform, table.channel, table.version),
+	uniqueIndex("idx_app_releases_platform_channel_arch_version").using("btree", table.platform, table.channel, table.arch, table.version),
 	index("idx_app_releases_lookup").using("btree", table.platform, table.channel, table.isPublished),
 ]);
