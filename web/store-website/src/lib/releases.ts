@@ -21,6 +21,8 @@ export interface DownloadOption {
   arch: string;
   /** Published version, when known (from the manifest). */
   version?: string;
+  /** Release channel this build came from ("stable", "beta", …). */
+  channel?: string;
   /** "file" = direct installer download, "store" = external store link. */
   kind: "file" | "store";
 }
@@ -36,6 +38,12 @@ const CANDIDATES: { platform: string; arch: string; label: string }[] = [
   { platform: "linux", arch: "x64", label: "Linux (64-bit)" },
   { platform: "linux", arch: "arm64", label: "Linux (ARM64)" },
 ];
+
+// Channels to offer downloads from, in preference order. A build published on
+// "stable" wins over the same platform/arch on "beta". We probe beta too so
+// pre-release desktop builds (e.g. the current mac/linux betas) still surface on
+// the storefront instead of silently vanishing because only Windows is stable.
+const CHANNELS = ["stable", "beta"] as const;
 
 interface Manifest {
   version?: string;
@@ -57,29 +65,35 @@ export async function getDownloadOptions(): Promise<DownloadOption[]> {
 
   const results = await Promise.all(
     CANDIDATES.map(async (c): Promise<DownloadOption | null> => {
-      try {
-        const res = await fetch(apiUrl(`updates/${c.platform}/latest?arch=${c.arch}`), {
-          next: { revalidate: 300 },
-        });
-        if (!res.ok) return null;
-        const m: Manifest = await res.json();
-        // Store-pointer builds link to the external store; hosted builds use our
-        // stable per-arch download endpoint.
-        const isStore = m.kind === "store";
-        const url = isStore
-          ? (m.url ?? config.DOWNLOAD_URL)
-          : apiUrl(`updates/${c.platform}/download/latest?arch=${c.arch}`);
-        return {
-          label: c.label,
-          url,
-          platform: c.platform,
-          arch: c.arch,
-          version: m.version,
-          kind: isStore ? ("store" as const) : ("file" as const),
-        };
-      } catch {
-        return null;
+      // Try each channel in preference order; first published build wins.
+      for (const channel of CHANNELS) {
+        try {
+          const res = await fetch(
+            apiUrl(`updates/${c.platform}/latest?arch=${c.arch}&channel=${channel}`),
+            { next: { revalidate: 300 } },
+          );
+          if (!res.ok) continue;
+          const m: Manifest = await res.json();
+          // Store-pointer builds link to the external store; hosted builds use our
+          // stable per-arch download endpoint (resolves "latest" on the same channel).
+          const isStore = m.kind === "store";
+          const url = isStore
+            ? (m.url ?? config.DOWNLOAD_URL)
+            : apiUrl(`updates/${c.platform}/download/latest?arch=${c.arch}&channel=${channel}`);
+          return {
+            label: c.label,
+            url,
+            platform: c.platform,
+            arch: c.arch,
+            version: m.version,
+            channel,
+            kind: isStore ? ("store" as const) : ("file" as const),
+          };
+        } catch {
+          // try next channel
+        }
       }
+      return null;
     }),
   );
 

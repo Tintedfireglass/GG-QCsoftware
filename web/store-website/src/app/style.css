@@ -202,7 +202,9 @@ p {
 .banner-section {
   padding: var(--spacing-xxl) 0 var(--spacing-lg) 0;
   position: relative;
-  z-index: 1;
+  /* Above .floating-dashboard-wrapper (z-index:10) so the Download dropdown,
+     which opens downward over the floating dashboard, isn't painted under it. */
+  z-index: 20;
 }
 
 .banner-title {
