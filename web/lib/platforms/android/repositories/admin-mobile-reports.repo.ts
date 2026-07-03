@@ -73,11 +73,13 @@ export async function listAdminReports(
     const where = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
 
     const { rows } = await db.execute(sql`
-        SELECT mr.report_id, mr.report_type, mr.test_type, mr.result, mr.score, mr.grade,
+        SELECT mr.id, mr.report_id, mr.report_type, mr.test_type, mr.result, mr.score, mr.grade,
                mr.passed_count, mr.failed_count, mr.tested_at, mr.created_at,
                mr.customer_user_id, mr.device_id,
                cu.first_name, cu.last_name, cu.full_name, cu.phone, cu.email,
                COALESCE(md.model, mr.device_snapshot_json->>'model') AS device_model,
+               COALESCE(mr.payload_json->>'appVersion', mr.payload_json->>'app_version',
+                        mr.device_snapshot_json->>'appVersion', mr.device_snapshot_json->>'app_version') AS app_version,
                attr.owner_id, attr.owner_username, attr.owner_display_name, attr.owner_role, attr.license_key
         FROM mobile_reports mr
         LEFT JOIN customer_users cu ON cu.id = mr.customer_user_id
@@ -111,11 +113,13 @@ export async function findAdminReport(
     const where = sql.join(conds, sql` AND `);
 
     const { rows } = await db.execute(sql`
-        SELECT mr.report_id, mr.report_type, mr.test_type, mr.result, mr.score, mr.grade,
+        SELECT mr.id, mr.report_id, mr.report_type, mr.test_type, mr.result, mr.score, mr.grade,
                mr.passed_count, mr.failed_count, mr.tested_at, mr.created_at,
                mr.customer_user_id, mr.device_id, mr.payload_json, mr.device_snapshot_json,
                cu.first_name, cu.last_name, cu.full_name, cu.phone, cu.email,
                COALESCE(md.model, mr.device_snapshot_json->>'model') AS device_model,
+               COALESCE(mr.payload_json->>'appVersion', mr.payload_json->>'app_version',
+                        mr.device_snapshot_json->>'appVersion', mr.device_snapshot_json->>'app_version') AS app_version,
                attr.owner_id, attr.owner_username, attr.owner_display_name, attr.owner_role, attr.license_key
         FROM mobile_reports mr
         LEFT JOIN customer_users cu ON cu.id = mr.customer_user_id

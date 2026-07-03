@@ -42,6 +42,18 @@ export function formatAppVersion(version?: string | null): string {
     return version.split("+")[0]
 }
 
+/**
+ * Mask a phone number for display, keeping the first 2 and last 2 digits and
+ * replacing the rest with 'x' (e.g. 7512345600 → 75xxxxxx00). Non-digits (a
+ * leading +country code, spaces) are stripped first so masking stays aligned.
+ */
+export function maskPhone(phone?: string | null): string {
+    if (!phone) return "—"
+    const digits = phone.replace(/\D/g, "")
+    if (digits.length <= 4) return digits || "—"
+    return digits.slice(0, 2) + "x".repeat(digits.length - 4) + digits.slice(-2)
+}
+
 function getWindowsClientRelease(build: number): string {
     if (build >= 26100) return '24H2';
     if (build >= 22631) return '23H2';

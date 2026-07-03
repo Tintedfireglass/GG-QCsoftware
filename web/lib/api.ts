@@ -173,6 +173,7 @@ export async function hideQCResult(id: string) {
 
 // ── Mobile (B2C Android) reports — admin/reseller view ──────────────────────────
 export interface MobileReportRow {
+    id: number;
     reportId: string;
     reportType: string;
     testType: string | null;
@@ -183,6 +184,7 @@ export interface MobileReportRow {
     failedCount: number | null;
     deviceId: string;
     deviceModel: string | null;
+    appVersion: string | null;
     testedAt: string | null;
     createdAt: string | null;
     customer: { id: number; name: string | null; phone: string | null; email: string | null };

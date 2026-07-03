@@ -9,7 +9,7 @@ import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatDbDateTime, formatAppVersion, maskPhone } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 
 const TYPE_OPTIONS = ["", "FULL_QC", "BASIC_QC", "BATTERY", "DISPLAY", "SENSORS", "STRESS_TEST", "SINGLE"]
@@ -146,9 +146,10 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                                 {resultBadge(r)}
                             </div>
                             <div className="font-bold text-slate-900 text-sm">{r.deviceModel || r.deviceId}</div>
-                            <div className="text-xs text-slate-500 mt-1">{r.customer.name || "—"} · {r.customer.phone || r.customer.email || "—"}</div>
-                            <div className="font-mono text-[11px] text-slate-400 mt-1 break-all">Test ID: {r.reportId}</div>
+                            <div className="text-xs text-slate-500 mt-1">{r.customer.name || "—"} · {r.customer.phone ? maskPhone(r.customer.phone) : r.customer.email || "—"}</div>
+                            <div className="text-[11px] text-slate-400 mt-1" title={r.reportId}>Test ID: #{r.id}</div>
                             {r.reseller && <div className="text-xs text-slate-400 mt-1">Reseller: {r.reseller.name}</div>}
+                            <div className="text-xs text-slate-400 mt-1">App version: {formatAppVersion(r.appVersion)}</div>
                             <div className="text-xs text-slate-400 mt-2">{r.testedAt ? formatDbDateTime(r.testedAt) : "—"}</div>
                         </Link>
                     ))}
@@ -159,26 +160,25 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                     <table className="w-full table-auto caption-bottom text-sm text-left min-w-[1000px]">
                         <thead className="[&_tr]:border-b border-slate-200">
                             <tr>
-                                <th className="h-10 px-2 font-medium text-slate-500 w-[160px]">Test ID</th>
+                                <th className="h-10 px-2 font-medium text-slate-500 w-[70px]">Test ID</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[150px]">Type</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[110px]">Result</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 max-w-[180px]">Device</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 max-w-[180px]">Customer</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[150px]">Reseller</th>
+                                <th className="h-10 px-2 font-medium text-slate-500 w-[90px]">Version</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 w-[140px]">Date</th>
                                 <th className="h-10 px-2 font-medium text-slate-500 text-right w-[110px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {loading ? (
-                                <tr><td colSpan={8} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr><td colSpan={9} className="p-8 text-center text-slate-500">Loading...</td></tr>
                             ) : reports.length === 0 ? (
-                                <tr><td colSpan={8} className="p-8 text-center text-slate-500">No mobile reports found</td></tr>
+                                <tr><td colSpan={9} className="p-8 text-center text-slate-500">No mobile reports found</td></tr>
                             ) : reports.map((r) => (
                                 <tr key={r.reportId} className="border-b border-slate-100 hover:bg-slate-50/50">
-                                    <td className="p-2 align-middle">
-                                        <span className="font-mono text-[11px] text-slate-600 break-all" title={r.reportId}>{r.reportId}</span>
-                                    </td>
+                                    <td className="p-2 align-middle font-medium text-slate-900 break-words" title={r.reportId}>#{r.id}</td>
                                     <td className="p-2 align-middle">
                                         <span className="font-medium text-slate-900">{TYPE_LABELS[r.reportType] || r.reportType}</span>
                                         {r.testType && <div className="text-xs text-slate-400">{r.testType}</div>}
@@ -190,11 +190,12 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                                     </td>
                                     <td className="p-2 align-middle text-slate-700 max-w-[180px]">
                                         <div className="truncate">{r.customer.name || "—"}</div>
-                                        <div className="text-xs text-slate-400 truncate">{r.customer.phone || r.customer.email || ""}</div>
+                                        <div className="text-xs text-slate-400 truncate">{r.customer.phone ? maskPhone(r.customer.phone) : r.customer.email || ""}</div>
                                     </td>
                                     <td className="p-2 align-middle text-slate-600">
                                         {r.reseller ? <span className="truncate" title={r.reseller.name || ""}>{r.reseller.name}</span> : <span className="text-slate-300">—</span>}
                                     </td>
+                                    <td className="p-2 align-middle text-slate-500 break-words">{formatAppVersion(r.appVersion)}</td>
                                     <td className="p-2 align-middle text-slate-500 text-xs">{r.testedAt ? formatDbDateTime(r.testedAt) : "—"}</td>
                                     <td className="p-2 align-middle">
                                         <div className="flex items-center justify-end gap-1.5">
