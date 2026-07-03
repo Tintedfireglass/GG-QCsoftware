@@ -799,7 +799,7 @@ WantedBy=timers.target
 
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Test Results ═══[/]\n");
         
-        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Cyan);
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Aqua);
         table.AddColumn("Port");
         table.AddColumn("Type");
         table.AddColumn("Status");
@@ -826,59 +826,48 @@ WantedBy=timers.target
         AnsiConsole.MarkupLine("[bold cyan]═══ Ethernet Testing ═══[/]\n");
 
         var ethDiag = new LinuxEthernetDiagnostic();
-        
+
         var (healthy, message) = ethDiag.QuickValidation();
         AnsiConsole.MarkupLine($"Quick Check: {(healthy ? "[green]✓[/]" : "[red]✗[/]")} {message.EscapeMarkup()}");
         AnsiConsole.MarkupLine("");
 
-        var testType = AnsiConsole.Prompt(
-            new SelectionPrompt<string>()
-                .Title("Select test type:")
-                .AddChoices("Quick Scan", "Full Interactive Test", "Cancel"));
-
-        if (testType == "Cancel") return;
-
-        if (testType == "Quick Scan")
+        if (!AnsiConsole.Confirm("Run interactive Ethernet port test?", true))
         {
-            var result = ethDiag.RunDiagnostic();
-            DisplayEthernetResults(result);
+            return;
         }
-        else
+
+        AnsiConsole.MarkupLine("[yellow]Prepare a live Ethernet cable for testing.[/]\n");
+
+        var result = await ethDiag.RunInteractiveTestAsync(msg =>
         {
-            var result = await ethDiag.RunFullInteractiveTestAsync(msg =>
-            {
-                AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
-            });
-            DisplayEthernetResults(result);
-        }
+            AnsiConsole.MarkupLine($"[grey]{msg.EscapeMarkup()}[/]");
+        }, timeoutSeconds: 30);
+
+        DisplayEthernetResults(result);
     }
 
     static void DisplayEthernetResults(LinuxEthernetDiagnostic.EthernetTestResult result)
     {
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Test Results ═══[/]\n");
-        
-        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Cyan);
-        table.AddColumn("Interface");
-        table.AddColumn("MAC Address");
-        table.AddColumn("Link Speed");
-        table.AddColumn("Cable");
+
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Aqua);
+        table.AddColumn("Port");
         table.AddColumn("Status");
+        table.AddColumn("Link Speed");
         table.AddColumn("IP Address");
 
-        foreach (var port in result.DetectedPorts)
+        foreach (var port in result.TestedPorts)
         {
             table.AddRow(
-                port.InterfaceName,
-                port.MacAddress,
-                port.LinkSpeed,
-                port.CableDetected ? "[green]Connected[/]" : "[red]Disconnected[/]",
-                port.IsConnected ? "[green]UP[/]" : "[grey]DOWN[/]",
-                port.IpAddress
+                port.PortName,
+                port.Passed ? "[green]✓ PASS[/]" : "[red]✗ FAIL[/]",
+                string.IsNullOrEmpty(port.LinkSpeed) ? "[grey]—[/]" : port.LinkSpeed,
+                string.IsNullOrEmpty(port.IpAddress) ? "[grey]No IP[/]" : port.IpAddress
             );
         }
 
         AnsiConsole.Write(table);
-        AnsiConsole.MarkupLine($"\n[bold]Summary:[/] {result.Summary}");
-        AnsiConsole.MarkupLine($"Overall: {(result.HasWorkingPort ? "[green]Ethernet functional[/]" : "[red]No working Ethernet connection[/]")}");
+        AnsiConsole.MarkupLine($"\n[bold]Summary:[/] {result.InteractiveSummary}");
+        AnsiConsole.MarkupLine($"Overall: {(result.AllPortsWorking ? "[green]All ports working[/]" : $"[yellow]{result.WorkingPortsCount}/{result.TestedPorts.Count} ports working[/]")}");
     }
 }

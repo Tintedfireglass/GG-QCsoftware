@@ -16,6 +16,25 @@ public class LinuxEthernetDiagnostic
         public int TotalPorts => DetectedPorts.Count;
         public int ConnectedPorts => DetectedPorts.Count(p => p.IsConnected);
         public string Summary => $"{ConnectedPorts}/{TotalPorts} Ethernet ports connected";
+
+        // Interactive test tracking (mirrors USB UsbPortTestResult)
+        public List<EthernetPortTest> TestedPorts { get; set; } = new();
+        public bool AllPortsWorking => TestedPorts.Count > 0 && TestedPorts.All(p => p.Passed);
+        public int WorkingPortsCount => TestedPorts.Count(p => p.Passed);
+        public string InteractiveSummary => $"{WorkingPortsCount}/{TestedPorts.Count} ports working";
+    }
+
+    /// <summary>
+    /// Per-port result from an interactive cable-plug test (mirrors USB PortTest)
+    /// </summary>
+    public class EthernetPortTest
+    {
+        public string PortName { get; set; } = "";       // e.g. "enp1s0"
+        public bool Passed { get; set; }
+        public string LinkSpeed { get; set; } = "";      // e.g. "1000Mb/s"
+        public string IpAddress { get; set; } = "";
+        public string MacAddress { get; set; } = "";
+        public DateTime TestedAt { get; set; } = DateTime.Now;
     }
 
     public class EthernetPort
@@ -312,7 +331,7 @@ public class LinuxEthernetDiagnostic
     }
 
     /// <summary>
-    /// Full interactive test of all Ethernet ports
+    /// Full interactive test of all Ethernet ports (legacy — non-interactive cable-plug style)
     /// </summary>
     public async Task<EthernetTestResult> RunFullInteractiveTestAsync(
         Action<string>? statusCallback = null)
@@ -333,7 +352,7 @@ public class LinuxEthernetDiagnostic
             if (port.IsConnected)
             {
                 statusCallback?.Invoke($"  IP: {port.IpAddress}");
-                
+
                 // Test connectivity
                 var (success, latency, message) = await TestConnectivityAsync(port.InterfaceName);
                 statusCallback?.Invoke($"  Ping: {message}");
@@ -341,5 +360,95 @@ public class LinuxEthernetDiagnostic
         }
 
         return result;
+    }
+
+    // ── Interactive cable-plug test (mirrors LinuxUsbPortDiagnostic) ─────────
+
+    /// <summary>
+    /// Interactive test that guides the technician to plug a cable into each
+    /// detected Ethernet port and waits for carrier signal (mirrors USB flow).
+    /// </summary>
+    public async Task<EthernetTestResult> RunInteractiveTestAsync(
+        Action<string>? statusCallback = null,
+        int timeoutSeconds = 30)
+    {
+        var result = new EthernetTestResult();
+
+        // Populate DetectedPorts so QuickValidation-style info is still available
+        var interfaces = DetectEthernetInterfaces();
+        foreach (var iface in interfaces)
+            result.DetectedPorts.Add(GetPortInfo(iface));
+
+        statusCallback?.Invoke($"Detected {interfaces.Count} Ethernet port(s)");
+
+        if (interfaces.Count == 0)
+        {
+            statusCallback?.Invoke("No Ethernet interfaces found. Skipping test.");
+            return result;
+        }
+
+        for (int i = 0; i < interfaces.Count; i++)
+        {
+            var iface = interfaces[i];
+            statusCallback?.Invoke($"Testing Ethernet Port {i + 1}/{interfaces.Count} ({iface})...");
+            var portTest = await TestSinglePortAsync(iface, i + 1, interfaces.Count, statusCallback, timeoutSeconds);
+            result.TestedPorts.Add(portTest);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Tests a single Ethernet port by prompting the technician to plug in a
+    /// cable and waiting for the OS carrier signal (mirrors USB TestSinglePortAsync).
+    /// </summary>
+    private async Task<EthernetPortTest> TestSinglePortAsync(
+        string interfaceName,
+        int portIndex,
+        int totalPorts,
+        Action<string>? statusCallback = null,
+        int timeoutSeconds = 30)
+    {
+        statusCallback?.Invoke($"Plug a live Ethernet cable into port {portIndex}/{totalPorts} ({interfaceName})... ({timeoutSeconds}s timeout)");
+
+        var portInfo = await WaitForCableAsync(interfaceName, timeoutSeconds);
+
+        return new EthernetPortTest
+        {
+            PortName     = interfaceName,
+            Passed       = portInfo != null,
+            LinkSpeed    = portInfo?.LinkSpeed ?? "",
+            IpAddress    = portInfo?.IpAddress ?? "",
+            MacAddress   = portInfo?.MacAddress ?? "",
+            TestedAt     = DateTime.Now
+        };
+    }
+
+    /// <summary>
+    /// Polls the OS carrier file for the given interface until a cable is detected
+    /// or the timeout is reached (mirrors USB WaitForUsbDeviceAsync).
+    /// Returns populated EthernetPort on success, null on timeout.
+    /// </summary>
+    private async Task<EthernetPort?> WaitForCableAsync(
+        string interfaceName,
+        int timeoutSeconds = 30)
+    {
+        var startTime = DateTime.Now;
+
+        while ((DateTime.Now - startTime).TotalSeconds < timeoutSeconds)
+        {
+            await Task.Delay(500);
+
+            var carrierPath = $"/sys/class/net/{interfaceName}/carrier";
+            var carrier = LinuxCommandRunner.ReadFile(carrierPath).Trim();
+
+            if (carrier == "1")
+            {
+                // Cable detected — gather full port info
+                return GetPortInfo(interfaceName);
+            }
+        }
+
+        return null; // Timeout
     }
 }
