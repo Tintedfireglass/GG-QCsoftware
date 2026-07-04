@@ -85,11 +85,11 @@ export default function DownloadButton({
       {open ? (
         <div
           role="menu"
+          className="download-menu"
           style={{
-            position: "absolute",
-            top: "calc(100% + .5rem)",
-            left: 0,
-            minWidth: "300px",
+            width: "max-content",
+            minWidth: "min(300px, calc(100vw - 2rem))",
+            maxWidth: "calc(100vw - 2rem)",
             backgroundColor: "#ffffff",
             opacity: 1,
             borderRadius: 12,
@@ -130,7 +130,7 @@ export default function DownloadButton({
                   flexShrink: 0,
                 }}
               ></i>
-              <span style={{ flex: 1, fontWeight: 500, whiteSpace: "nowrap" }}>{o.label}</span>
+              <span style={{ flex: 1, fontWeight: 500, minWidth: 0 }}>{o.label}</span>
               {o.channel && o.channel !== "stable" ? (
                 <span
                   style={{

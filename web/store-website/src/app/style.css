@@ -120,6 +120,31 @@ p {
   color: var(--color-primary);
 }
 
+.available-on {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.available-on-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.available-on i {
+  font-size: 1.5rem;
+  color: #4a4a4a;
+}
+
+/* Download dropdown menu positioning (left-anchored on desktop). */
+.download-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+}
+
 /* ===== HEADER STYLES ===== */
 .site-header {
   padding: var(--spacing-md) 0;
@@ -928,6 +953,16 @@ p {
     padding-left: 0;
     margin-top: var(--spacing-xs);
     text-align: center;
+  }
+
+  .banner-content .available-on {
+    justify-content: center;
+  }
+
+  /* Center the dropdown under the (centered) button so it stays on-screen. */
+  .download-menu {
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* Key Features Mobile */

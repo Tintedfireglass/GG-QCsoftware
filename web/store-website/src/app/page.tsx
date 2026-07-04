@@ -55,6 +55,13 @@ export default async function HomePage() {
                   <DownloadButton options={downloadOptions} ctaText={banner.downloadCtaText} />
                   <span className="download-text">{banner.downloadText}</span>
                 </div>
+                <div className="available-on">
+                  <span className="available-on-label">Available on -</span>
+                  <i className="fab fa-windows" aria-label="Windows"></i>
+                  <i className="fab fa-apple" aria-label="macOS"></i>
+                  <i className="fab fa-android" aria-label="Android"></i>
+                  <i className="fab fa-linux" aria-label="Linux"></i>
+                </div>
               </div>
             </div>
           </div>
