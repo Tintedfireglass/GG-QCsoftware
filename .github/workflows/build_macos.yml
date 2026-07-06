@@ -31,12 +31,17 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_arm64
-        path: publish/osx-arm64/PRAMAAN.app
+        # Upload the ditto-created zip — it preserves Unix execute permissions.
+        # Uploading the raw .app directory strips the +x bit from the binary,
+        # making the downloaded artifact non-executable.
+        path: publish/Pramaan_QC_Tool_macOS_arm64.zip
         retention-days: 7
+        if-no-files-found: error
         
     - name: Archive macOS App Artifact (Intel)
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_x64
-        path: publish/osx-x64/PRAMAAN.app
+        path: publish/Pramaan_QC_Tool_macOS_x64.zip
         retention-days: 7
+        if-no-files-found: error
