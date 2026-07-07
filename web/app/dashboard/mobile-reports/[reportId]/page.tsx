@@ -7,7 +7,7 @@ import { ArrowLeft, Printer } from "lucide-react"
 import { getMobileReport } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatDbDateTime, formatAppVersion, maskPhone } from "@/lib/utils"
 import { gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
 
 type Report = Awaited<ReturnType<typeof getMobileReport>>["report"]
@@ -19,7 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 // Payload keys we surface in dedicated sections — kept out of the generic dump.
 const STRUCTURED_KEYS = new Set([
-    "deviceId", "testedAt", "testResults", "sensors", "stress", "result",
+    "deviceId", "testedAt", "testResults", "testDetails", "componentGroups", "componentDetails", "sensors", "stress", "result",
     "perfGraph", "deviceSnapshot", "phases", "passedCount", "failedCount",
     "totalTests", "overallResult", "grade", "score",
 ])
@@ -60,7 +60,31 @@ function ResultBadge({ passed }: { passed: boolean }) {
     )
 }
 
-interface TestEntry { name: string; passed: boolean }
+interface TestEntry { name: string; passed: boolean; details: string[] }
+
+// Per-test detail lines, keyed identically to testResults (raw key). Mirrors the
+// Windows report's per-component details_json. Optional — older app builds omit it.
+function detailsFor(payload: Record<string, unknown>, rawKey: string): string[] {
+    const td = payload.testDetails
+    if (!td || typeof td !== "object") return []
+    const lines = (td as Record<string, unknown>)[rawKey]
+    return Array.isArray(lines) ? lines.filter((l): l is string => typeof l === "string") : []
+}
+
+interface ComponentGroup { heading: string; lines: string[] }
+
+// Device-wide hardware with no matching test (SoC, CPU, RAM, Storage), each its own
+// heading → spec lines. Optional — older app builds omit it.
+function extractComponentGroups(payload: Record<string, unknown>): ComponentGroup[] {
+    const cg = payload.componentGroups
+    if (!cg || typeof cg !== "object" || Array.isArray(cg)) return []
+    return Object.entries(cg as Record<string, unknown>)
+        .map(([heading, v]) => ({
+            heading,
+            lines: Array.isArray(v) ? v.filter((l): l is string => typeof l === "string") : [],
+        }))
+        .filter((g) => g.lines.length > 0)
+}
 
 // FULL_QC/BASIC_QC store testResults as { TEST_NAME: boolean }.
 function extractTestResults(payload: Record<string, unknown>): TestEntry[] {
@@ -68,7 +92,7 @@ function extractTestResults(payload: Record<string, unknown>): TestEntry[] {
     if (!tr || typeof tr !== "object") return []
     return Object.entries(tr as Record<string, unknown>)
         .filter(([, v]) => typeof v === "boolean")
-        .map(([name, v]) => ({ name: humanize(name), passed: v as boolean }))
+        .map(([name, v]) => ({ name: humanize(name), passed: v as boolean, details: detailsFor(payload, name) }))
 }
 
 // SENSORS reports carry a loose array; pull a name + pass/fail out of each row.
@@ -82,7 +106,7 @@ function extractSensorResults(payload: Record<string, unknown>): TestEntry[] {
         const passed = typeof rawResult === "boolean"
             ? rawResult
             : String(rawResult ?? "").toUpperCase().startsWith("PASS")
-        return { name: humanize(String(name)), passed }
+        return { name: humanize(String(name)), passed, details: [] }
     })
 }
 
@@ -212,6 +236,7 @@ export default function MobileReportDetailPage() {
     const stressScore = stress && typeof stress.score === "number" ? (stress.score as number) : null
     const stressGrade = stress && typeof stress.grade === "string" ? (stress.grade as string) : null
     const stressCategories = extractStressCategories(payload)
+    const componentGroups = extractComponentGroups(payload)
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-10">
@@ -239,8 +264,10 @@ export default function MobileReportDetailPage() {
                     <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 md:gap-0">
                         <div>
                             <h1 className="text-3xl font-bold mb-2">
-                                {TYPE_LABELS[report.reportType] || report.reportType} Report
-                                {report.testType ? `: ${humanize(report.testType)}` : ""}
+                                {(report.reportType === "FULL_QC" || report.reportType === "BASIC_QC"
+                                    ? "QC"
+                                    : TYPE_LABELS[report.reportType] || report.reportType)} Report: #{report.id}
+                                {report.testType ? ` (${humanize(report.testType)})` : ""}
                             </h1>
                             <p className="text-slate-500">
                                 Date: {report.testedAt ? formatDbDateTime(report.testedAt) : "—"}
@@ -249,7 +276,12 @@ export default function MobileReportDetailPage() {
                                 Device ID: {report.deviceId}
                             </p>
                             <p className="text-slate-500 flex items-center gap-2 mt-1">
-                                Report ID: <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700">{report.reportId}</span>
+                                Health ID: <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700">{report.reportId}</span>
+                                {report.grade && (
+                                    <Link href={`/verify/${report.reportId}`} target="_blank" className="text-[var(--brand-purple)] hover:underline text-xs font-semibold">
+                                        Verify
+                                    </Link>
+                                )}
                             </p>
                         </div>
                         <div className="text-right">
@@ -276,12 +308,12 @@ export default function MobileReportDetailPage() {
                             <h3 className="font-semibold text-lg mb-4">Device Information</h3>
                             <dl className="space-y-2 text-sm">
                                 <DetailRow label="Model" value={report.deviceModel} />
-                                <DetailRow label="Device ID" value={report.deviceId} mono />
                                 {snapshot?.manufacturer != null && <DetailRow label="Manufacturer" value={String(snapshot.manufacturer)} />}
                                 {snapshot?.processor != null && <DetailRow label="Processor" value={String(snapshot.processor)} />}
                                 {snapshot?.ram != null && <DetailRow label="RAM" value={String(snapshot.ram)} />}
                                 {snapshot?.storage != null && <DetailRow label="Storage" value={String(snapshot.storage)} />}
                                 {snapshot?.androidVersion != null && <DetailRow label="Android Version" value={String(snapshot.androidVersion)} />}
+                                {report.appVersion != null && <DetailRow label="App Version" value={formatAppVersion(report.appVersion)} />}
                                 {snapshot?.serialNumber != null && <DetailRow label="Serial Number" value={String(snapshot.serialNumber)} mono />}
                                 <DetailRow label="Tested" value={report.testedAt ? formatDbDateTime(report.testedAt) : null} />
                                 <DetailRow label="Submitted" value={report.createdAt ? formatDbDateTime(report.createdAt) : null} />
@@ -304,14 +336,11 @@ export default function MobileReportDetailPage() {
                             <h3 className="font-semibold text-lg mb-4">Customer & Reseller</h3>
                             <dl className="space-y-2 text-sm">
                                 <DetailRow label="Customer Name" value={report.customer.name} />
-                                <DetailRow label="Phone" value={report.customer.phone} />
+                                <DetailRow label="Phone" value={report.customer.phone ? maskPhone(report.customer.phone) : null} />
                                 <DetailRow label="Email" value={report.customer.email} />
-                                <DetailRow label="Customer ID" value={report.customer.id} mono />
                                 {report.reseller ? (
                                     <>
                                         <DetailRow label="Reseller" value={report.reseller.name} />
-                                        <DetailRow label="Role" value={report.reseller.role} />
-                                        <DetailRow label="License Key" value={report.reseller.licenseKey} mono />
                                     </>
                                 ) : (
                                     <DetailRow label="Reseller" value={<span className="text-slate-500 italic">No reseller license on this device</span>} />
@@ -321,6 +350,31 @@ export default function MobileReportDetailPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Components — device-wide hardware, each under its own heading */}
+            {componentGroups.length > 0 && (
+                <Card className="border-t-4 border-t-slate-400">
+                    <CardContent className="p-8">
+                        <h2 className="text-2xl font-bold mb-1">Components</h2>
+                        <p className="text-sm text-slate-500 mb-4">Hardware &amp; manufacturer information reported by the device</p>
+                        <div className="grid gap-6 sm:grid-cols-2">
+                            {componentGroups.map((group) => (
+                                <div key={group.heading}>
+                                    <h3 className="font-semibold text-base mb-2">{group.heading}</h3>
+                                    <ul className="space-y-1">
+                                        {group.lines.map((line, i) => (
+                                            <li key={i} className="text-sm text-slate-700 flex gap-2">
+                                                <span className="text-slate-400">•</span>
+                                                <span>{line}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Stress Summary (Full Health / Stress Test) */}
             {(stressScore != null || stressGrade) && (
@@ -456,6 +510,15 @@ export default function MobileReportDetailPage() {
                                             <ResultBadge passed={test.passed} />
                                         </div>
                                     </CardHeader>
+                                    {test.details.length > 0 && (
+                                        <CardContent className="pb-4 pt-0">
+                                            <ul className="list-disc pl-5 space-y-1 bg-slate-50 p-2 rounded">
+                                                {test.details.map((detail, i) => (
+                                                    <li key={i} className="text-xs text-slate-600">{detail}</li>
+                                                ))}
+                                            </ul>
+                                        </CardContent>
+                                    )}
                                 </Card>
                             ))
                         )}

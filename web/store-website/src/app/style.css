@@ -120,6 +120,82 @@ p {
   color: var(--color-primary);
 }
 
+.book-demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: var(--spacing-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.book-demo-link:hover {
+  opacity: 0.8;
+}
+
+.book-demo-link i {
+  transition: transform 0.15s ease;
+}
+
+.book-demo-link:hover i {
+  transform: translateX(3px);
+}
+
+.runs-on {
+  margin-top: var(--spacing-md);
+}
+
+.runs-on-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: var(--spacing-xs);
+}
+
+.runs-on-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.runs-on-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #333333;
+}
+
+/* Vertical separator between platforms. */
+.runs-on-list li:not(:last-child)::after {
+  content: "";
+  width: 1px;
+  height: 1.1em;
+  margin-left: 1rem;
+  background: #d0d0d0;
+}
+
+.runs-on-list li i {
+  font-size: 1.35rem;
+  color: #4a4a4a;
+}
+
+/* Download dropdown menu positioning (left-anchored on desktop). */
+.download-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+}
+
 /* ===== HEADER STYLES ===== */
 .site-header {
   padding: var(--spacing-md) 0;
@@ -202,7 +278,9 @@ p {
 .banner-section {
   padding: var(--spacing-xxl) 0 var(--spacing-lg) 0;
   position: relative;
-  z-index: 1;
+  /* Above .floating-dashboard-wrapper (z-index:10) so the Download dropdown,
+     which opens downward over the floating dashboard, isn't painted under it. */
+  z-index: 20;
 }
 
 .banner-title {
@@ -926,6 +1004,28 @@ p {
     padding-left: 0;
     margin-top: var(--spacing-xs);
     text-align: center;
+  }
+
+  .banner-content .book-demo-link {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    padding-left: 0;
+    margin-top: var(--spacing-xs);
+  }
+
+  .banner-content .runs-on {
+    text-align: center;
+  }
+
+  .banner-content .runs-on-list {
+    justify-content: center;
+  }
+
+  /* Center the dropdown under the (centered) button so it stays on-screen. */
+  .download-menu {
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* Key Features Mobile */

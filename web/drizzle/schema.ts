@@ -98,6 +98,12 @@ export const users = pgTable("users", {
 	allow6MonthKeys: boolean("allow_6month_keys").default(false),
 	allowYearlyKeys: boolean("allow_yearly_keys").default(false),
 	allowPerpetualKeys: boolean("allow_perpetual_keys").default(false),
+	// Per-platform license-generation permissions. Enforced for Employee users
+	// (SuperAdmin assigns which platforms each Employee may generate keys for).
+	allowWindowsKeys: boolean("allow_windows_keys").default(false),
+	allowAndroidKeys: boolean("allow_android_keys").default(false),
+	allowIosKeys: boolean("allow_ios_keys").default(false),
+	allowMacKeys: boolean("allow_mac_keys").default(false),
 }, (table) => [
 	uniqueIndex("idx_users_username").using("btree", table.username.asc().nullsLast().op("text_ops")),
 	check("users_role_check", sql`(role)::text = ANY ((ARRAY['SuperAdmin'::character varying, 'Employee'::character varying, 'Refurbisher'::character varying, 'Reseller'::character varying, 'Technician'::character varying, 'Enterprise'::character varying, 'OEM'::character varying, 'Insurer'::character varying, 'Client'::character varying])::text[])`),
@@ -155,6 +161,9 @@ export const licenseKeyActivations = pgTable("license_key_activations", {
 	machineSerial: varchar("machine_serial").notNull(),
 	// Platform of the activated device: windows | android | ios | mac.
 	platform: varchar().default('windows'),
+	// Customer that made this activation (Android B2C). Null for PC/creator
+	// activations. Carries per-customer entitlement for shared (bulk) keys.
+	customerUserId: integer("customer_user_id"),
 	activatedAt: timestamp("activated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -590,6 +599,7 @@ export const appReleases = pgTable("app_releases", {
 	id: serial().primaryKey().notNull(),
 	platform: varchar().notNull(),
 	channel: varchar().default('stable').notNull(),
+	arch: varchar().default('universal').notNull(),
 	version: varchar().notNull(),
 	notes: text(),
 	mandatory: boolean().default(false).notNull(),
@@ -605,6 +615,6 @@ export const appReleases = pgTable("app_releases", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	publishedAt: timestamp("published_at", { withTimezone: true, mode: 'string' }),
 }, (table) => [
-	uniqueIndex("idx_app_releases_platform_channel_version").using("btree", table.platform, table.channel, table.version),
+	uniqueIndex("idx_app_releases_platform_channel_arch_version").using("btree", table.platform, table.channel, table.arch, table.version),
 	index("idx_app_releases_lookup").using("btree", table.platform, table.channel, table.isPublished),
 ]);

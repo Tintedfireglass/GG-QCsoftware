@@ -6,8 +6,12 @@ import { z } from 'zod';
 const boolFlag = z.string().optional().transform((v) => (v === undefined ? undefined : v === 'true'));
 
 /** Grade buckets the UI can filter by (mirrors the client's getGradeKey()). */
-export const GRADE_KEYS = ['A+', 'A', 'B', 'C', 'Unknown'] as const;
+export const GRADE_KEYS = ['A+', 'A', 'B', 'C', 'D', 'E', 'F', 'Reject', 'Unknown'] as const;
 export type GradeKey = (typeof GRADE_KEYS)[number];
+
+/** Risk-flag buckets for the dashboard drill-downs (mirrors assetHealthSummary). */
+export const RISK_KEYS = ['storage', 'thermal', 'tamper'] as const;
+export type RiskKey = (typeof RISK_KEYS)[number];
 
 /** Supported server-side sort orders for the results list. */
 export const SORT_KEYS = ['grade_desc', 'grade_asc', 'date_desc', 'date_asc', 'id_asc'] as const;
@@ -37,6 +41,18 @@ export const listQuerySchema = z.object({
                       .split(',')
                       .map((s) => s.trim())
                       .filter((s): s is GradeKey => (GRADE_KEYS as readonly string[]).includes(s))
+                : undefined
+        ),
+    // Comma-separated risk-flag buckets; unknown tokens are dropped (never rejects).
+    risk: z
+        .string()
+        .optional()
+        .transform((v) =>
+            v
+                ? v
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter((s): s is RiskKey => (RISK_KEYS as readonly string[]).includes(s))
                 : undefined
         ),
     // Sort order; anything unrecognized falls back to newest-first.

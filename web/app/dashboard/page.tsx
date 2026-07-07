@@ -204,7 +204,8 @@ export default function DashboardPage() {
 
                     <h2 className="text-xl font-semibold mb-4 text-slate-800">Risk & Diagnostics</h2>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
-                        <Card className="shadow-none border-amber-200 bg-amber-50/30">
+                        <Link href="/dashboard/reports?grades=C,D,E" className="block rounded-xl transition-shadow hover:shadow-md">
+                        <Card className="shadow-none border-amber-200 bg-amber-50/30 h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-amber-800">At Risk</CardTitle>
                                 <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
@@ -216,8 +217,10 @@ export default function DashboardPage() {
                                 <p className="text-xs text-amber-600/80 mt-1">Warning grades</p>
                             </CardContent>
                         </Card>
+                        </Link>
 
-                        <Card className="shadow-none border-red-200 bg-red-50/40">
+                        <Link href="/dashboard/reports?grades=F,Reject" className="block rounded-xl transition-shadow hover:shadow-md">
+                        <Card className="shadow-none border-red-200 bg-red-50/40 h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-red-800">Reject Assets</CardTitle>
                                 <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
@@ -229,8 +232,10 @@ export default function DashboardPage() {
                                 <p className="text-xs text-red-600/80 mt-1">Failing grades</p>
                             </CardContent>
                         </Card>
+                        </Link>
 
-                        <Card className="shadow-none border-orange-200 bg-orange-50/30">
+                        <Link href="/dashboard/reports?risk=storage" className="block rounded-xl transition-shadow hover:shadow-md">
+                        <Card className="shadow-none border-orange-200 bg-orange-50/30 h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-orange-800">Storage Issues</CardTitle>
                                 <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center">
@@ -242,8 +247,10 @@ export default function DashboardPage() {
                                 <p className="text-xs text-orange-600/80 mt-1">Failing drives/SMART</p>
                             </CardContent>
                         </Card>
+                        </Link>
 
-                        <Card className="shadow-none border-rose-200 bg-rose-50/30">
+                        <Link href="/dashboard/reports?risk=thermal" className="block rounded-xl transition-shadow hover:shadow-md">
+                        <Card className="shadow-none border-rose-200 bg-rose-50/30 h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-rose-800">Thermal Issues</CardTitle>
                                 <div className="h-8 w-8 rounded-lg bg-rose-100 flex items-center justify-center">
@@ -255,8 +262,10 @@ export default function DashboardPage() {
                                 <p className="text-xs text-rose-600/80 mt-1">Overheating / throttling</p>
                             </CardContent>
                         </Card>
+                        </Link>
 
-                        <Card className="shadow-none border-slate-300 bg-slate-50">
+                        <Link href="/dashboard/reports?risk=tamper" className="block rounded-xl transition-shadow hover:shadow-md">
+                        <Card className="shadow-none border-slate-300 bg-slate-50 h-full">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-slate-800">Tamper Flags</CardTitle>
                                 <div className="h-8 w-8 rounded-lg bg-slate-200 flex items-center justify-center">
@@ -268,6 +277,7 @@ export default function DashboardPage() {
                                 <p className="text-xs text-slate-500 mt-1">Security / part swaps</p>
                             </CardContent>
                         </Card>
+                        </Link>
                     </div>
                 </>
             ) : (

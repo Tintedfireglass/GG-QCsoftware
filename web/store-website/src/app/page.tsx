@@ -14,7 +14,8 @@ import {
   faqs,
   partnership,
 } from "@/data/content";
-import { getWindowsDownloadUrl } from "@/lib/releases";
+import DownloadButton from "@/components/DownloadButton";
+import { getDownloadOptions } from "@/lib/releases";
 
 export const metadata: Metadata = {
   title: "Pramaan – Electronics Lifecycle Intelligence Platform",
@@ -26,8 +27,11 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  // Pull the newest published Windows installer URL from the admin update API.
-  const downloadUrl = await getWindowsDownloadUrl();
+  // Discover every published installer (per platform/arch) from the admin update
+  // API for the download dropdowns. `downloadUrl` is the first option's link,
+  // used where a single URL is needed (Free Trial CTA).
+  const downloadOptions = await getDownloadOptions();
+  const downloadUrl = downloadOptions[0]?.url;
 
   return (
     <>
@@ -48,10 +52,31 @@ export default async function HomePage() {
               <div className="banner-content">
                 <p>{banner.description}</p>
                 <div className="gap-3">
-                  <a href={downloadUrl} className="btn-primary">
-                    {banner.downloadCtaText} <i className="fa fa-arrow-down"></i>
+                  <DownloadButton options={downloadOptions} ctaText={banner.downloadCtaText} />
+                  <a href="#contact" className="book-demo-link">
+                    Book a Demo <i className="fa fa-arrow-right" aria-hidden="true"></i>
                   </a>
-                  <span className="download-text">{banner.downloadText}</span>
+                </div>
+                <div className="runs-on">
+                  <span className="runs-on-label">Runs on</span>
+                  <ul className="runs-on-list">
+                    <li>
+                      <i className="fab fa-windows" aria-hidden="true"></i>
+                      <span>Windows</span>
+                    </li>
+                    <li>
+                      <i className="fab fa-apple" aria-hidden="true"></i>
+                      <span>macOS</span>
+                    </li>
+                    <li>
+                      <i className="fab fa-android" aria-hidden="true"></i>
+                      <span>Android</span>
+                    </li>
+                    <li>
+                      <i className="fab fa-linux" aria-hidden="true"></i>
+                      <span>Linux</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -174,10 +199,7 @@ export default async function HomePage() {
             <div className="col-md-4 col-12">
               <div className="refrence-download text-md-end text-center">
                 <span>
-                  <a href={downloadUrl} className="btn-primary">
-                    {certification.downloadCtaText}{" "}
-                    <i className="fa fa-arrow-down"></i>
-                  </a>
+                  <DownloadButton options={downloadOptions} ctaText={certification.downloadCtaText} />
                 </span>
                 <span className="download-text">
                   {certification.downloadText}

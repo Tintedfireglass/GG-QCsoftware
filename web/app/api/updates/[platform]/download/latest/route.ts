@@ -16,9 +16,9 @@ export const GET = wrap(async (request, { params }) => {
     const platform = platformSchema.safeParse(params.platform);
     if (!platform.success) throw new ValidationError('Unknown platform');
 
-    const { channel } = parseQuery(request, updateCheckQuerySchema);
+    const { channel, arch } = parseQuery(request, updateCheckQuerySchema);
 
-    const { row, stream, size } = await openLatestForDownload(platform.data, channel);
+    const { row, stream, size } = await openLatestForDownload(platform.data, channel, arch);
 
     // Node Readable -> web stream for the NextResponse body.
     const body = Readable.toWeb(stream) as unknown as ReadableStream<Uint8Array>;

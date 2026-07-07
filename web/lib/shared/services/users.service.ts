@@ -50,7 +50,7 @@ export async function getUser(authUser: AuthenticatedUser, id: string) {
     if ((authUser.role === 'Technician' || authUser.role === 'Client') && authUser.id !== userId) {
         throw new ForbiddenError('You can only view your own profile');
     }
-    if (TEAM_ROLES.includes(authUser.role) && !canManageUser(authUser, userId, target.created_by as number | undefined)) {
+    if (TEAM_ROLES.includes(authUser.role) && !canManageUser(authUser, userId, target.created_by as number | undefined, target.role as UserRole | undefined)) {
         throw new ForbiddenError('You can only view users in your team');
     }
 
@@ -61,12 +61,13 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
     const userId = parseUserId(id);
     const target = await repo.findUserForManage(userId);
     if (!target) throw new NotFoundError('User not found');
-    if (!canManageUser(authUser, userId, target.created_by ?? undefined)) {
+    if (!canManageUser(authUser, userId, target.created_by ?? undefined, target.role as UserRole | undefined)) {
         throw new ForbiddenError('You cannot modify this user');
     }
 
     const { email, display_name, role, is_active, password, license_credits,
-        allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys
+        allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys,
+        allow_windows_keys, allow_android_keys, allow_ios_keys, allow_mac_keys
     } = body;
     const set: UserUpdateSet = {};
 
@@ -91,6 +92,14 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
         if (allow_6month_keys !== undefined) set.allow6MonthKeys = allow_6month_keys;
         if (allow_yearly_keys !== undefined) set.allowYearlyKeys = allow_yearly_keys;
         if (allow_perpetual_keys !== undefined) set.allowPerpetualKeys = allow_perpetual_keys;
+    }
+
+    // Per-platform license permissions — SuperAdmin only, for Employees.
+    if (authUser.role === 'SuperAdmin' && target.role === 'Employee') {
+        if (allow_windows_keys !== undefined) set.allowWindowsKeys = allow_windows_keys;
+        if (allow_android_keys !== undefined) set.allowAndroidKeys = allow_android_keys;
+        if (allow_ios_keys !== undefined) set.allowIosKeys = allow_ios_keys;
+        if (allow_mac_keys !== undefined) set.allowMacKeys = allow_mac_keys;
     }
 
     const hasFieldUpdates = Object.keys(set).length > 0;
@@ -126,7 +135,7 @@ export async function deactivateUser(authUser: AuthenticatedUser, id: string) {
     }
     const target = await repo.findUserForManage(userId);
     if (!target) throw new NotFoundError('User not found');
-    if (!canManageUser(authUser, userId, target.created_by ?? undefined)) {
+    if (!canManageUser(authUser, userId, target.created_by ?? undefined, target.role as UserRole | undefined)) {
         throw new ForbiddenError('You cannot deactivate this user');
     }
     await repo.deactivateUser(userId);

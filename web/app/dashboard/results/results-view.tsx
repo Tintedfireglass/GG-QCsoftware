@@ -34,6 +34,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const [exportingSampleXlsx, setExportingSampleXlsx] = useState(false)
     const [exportingSampleZip, setExportingSampleZip] = useState(false)
     const [showIssuesOnly, setShowIssuesOnly] = useState(false)
+    const [selectedRisks, setSelectedRisks] = useState<string[]>([])
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
     const [isInitialized, setIsInitialized] = useState(false)
@@ -51,6 +52,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
         sort = resultSort,
         start = startDate,
         end = endDate,
+        risks = selectedRisks,
     ) {
         setLoading(true)
         try {
@@ -59,6 +61,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             if (userId) filters.userId = userId
             if (issuesOnly) filters.hasIssues = "true"
             if (grades.length) filters.grades = grades.join(",")
+            if (risks.length) filters.risk = risks.join(",")
             if (sort) filters.sort = sort
             if (start) filters.startDate = start
             if (end) filters.endDate = end
@@ -95,16 +98,20 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             if (params.get('hasIssues') === 'true') {
                 setShowIssuesOnly(true);
             }
+            const grades = params.get('grades');
+            if (grades) setSelectedGrades(grades.split(',').map((g) => g.trim()).filter(Boolean));
+            const risk = params.get('risk');
+            if (risk) setSelectedRisks(risk.split(',').map((r) => r.trim()).filter(Boolean));
         }
         setIsInitialized(true);
     }, []);
 
     useEffect(() => {
         if (isInitialized) {
-            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate)
+            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, isInitialized]) // Reload when state changes
+    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks, isInitialized]) // Reload when state changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -255,7 +262,13 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
 
     const totalPages = Math.ceil(total / limit)
 
-    const gradeOptions = ["A+", "A", "B", "C", "Unknown"]
+    const gradeOptions = ["A+", "A", "B", "C", "D", "E", "F", "Reject", "Unknown"]
+
+    const riskLabels: Record<string, string> = {
+        storage: "Storage issues",
+        thermal: "Thermal issues",
+        tamper: "Tamper flags",
+    }
 
     // Grade filtering and sorting are applied server-side (see the qc-results
     // repo); the page reloads whenever the selection changes.
@@ -356,6 +369,25 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                                 </div>
                             )}
                         </div>
+                        {selectedRisks.map((risk) => (
+                            <span
+                                key={risk}
+                                className="inline-flex items-center gap-1.5 h-10 rounded-md border border-rose-200 bg-rose-50 px-3 text-sm text-rose-700"
+                            >
+                                {riskLabels[risk] ?? risk}
+                                <button
+                                    type="button"
+                                    aria-label={`Clear ${riskLabels[risk] ?? risk} filter`}
+                                    className="text-rose-400 hover:text-rose-700"
+                                    onClick={() => {
+                                        setPage(1)
+                                        setSelectedRisks((prev) => prev.filter((r) => r !== risk))
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </span>
+                        ))}
                         {canManageUsers() && (
                             <div className="relative" ref={clientFilterRef}>
                                 <button

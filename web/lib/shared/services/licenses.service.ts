@@ -92,9 +92,6 @@ export async function generateLicense(user: AuthenticatedUser, input: GenerateLi
     if (!type || !VALID_TYPES.includes(type)) {
         throw new ValidationError('Invalid input parameters');
     }
-    if (user.role === 'Employee' && type !== 'demo') {
-        throw new ForbiddenError('Employees can only generate demo keys');
-    }
     if (type === 'demo' && user.role !== 'SuperAdmin' && user.role !== 'Employee') {
         throw new ForbiddenError('Only SuperAdmin and Employee users can generate demo keys');
     }
@@ -103,6 +100,15 @@ export async function generateLicense(user: AuthenticatedUser, input: GenerateLi
     const resolved = type === 'demo'
         ? resolveDemoFields(product_scope, platform_caps)
         : resolveProductFields(product_scope, platform_caps, max_uses ?? 0);
+
+    // Employees may generate non-demo keys only for the platforms SuperAdmin assigned them.
+    if (user.role === 'Employee' && type !== 'demo') {
+        const allowed = await repo.getEmployeeAllowedPlatforms(user.id);
+        const blocked = resolved.productScope.filter((p) => !allowed.includes(p));
+        if (blocked.length > 0) {
+            throw new ForbiddenError(`You are not permitted to generate ${blocked.join(', ')} license keys`);
+        }
+    }
 
     const { maxUses } = resolved;
     if (!maxUses || maxUses < 1) {
@@ -115,8 +121,9 @@ export async function generateLicense(user: AuthenticatedUser, input: GenerateLi
     const assignedKey = generateRandomKey();
 
     const key = await db.transaction(async (tx) => {
-        // Non-SuperAdmins spend license credits (demo keys are free).
-        if (user.role !== 'SuperAdmin' && type !== 'demo') {
+        // Non-SuperAdmins spend license credits (demo keys are free). Employees
+        // generate on SuperAdmin's behalf, so their keys are free too.
+        if (user.role !== 'SuperAdmin' && user.role !== 'Employee' && type !== 'demo') {
             const credits = await repo.getUserCredits(tx, user.id);
             if (credits < maxUses) {
                 throw new AppError(

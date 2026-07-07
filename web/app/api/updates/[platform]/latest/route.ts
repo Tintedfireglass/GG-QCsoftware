@@ -12,10 +12,10 @@ export const GET = wrap(async (request, { params }) => {
     const platform = platformSchema.safeParse(params.platform);
     if (!platform.success) throw new ValidationError('Unknown platform');
 
-    const { current, channel } = parseQuery(request, updateCheckQuerySchema);
+    const { current, channel, arch } = parseQuery(request, updateCheckQuerySchema);
 
     const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
-    const manifest = await getUpdateManifest(platform.data, channel, current, base);
+    const manifest = await getUpdateManifest(platform.data, channel, arch, current, base);
 
     return json(manifest, {
         headers: { 'Cache-Control': 'no-store' },

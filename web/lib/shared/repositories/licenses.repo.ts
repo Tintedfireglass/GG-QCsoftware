@@ -100,6 +100,28 @@ export async function countLicenses(user: AuthenticatedUser, f: LicenseFilters):
     return (rows[0]?.n as number) ?? 0;
 }
 
+/** Platforms an Employee is permitted to generate license keys for. */
+export async function getEmployeeAllowedPlatforms(userId: number): Promise<string[]> {
+    const rows = await db
+        .select({
+            windows: users.allowWindowsKeys,
+            android: users.allowAndroidKeys,
+            ios: users.allowIosKeys,
+            mac: users.allowMacKeys,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+    const r = rows[0];
+    if (!r) return [];
+    const allowed: string[] = [];
+    if (r.windows) allowed.push('windows');
+    if (r.android) allowed.push('android');
+    if (r.ios) allowed.push('ios');
+    if (r.mac) allowed.push('mac');
+    return allowed;
+}
+
 export async function getUserCredits(tx: Tx, userId: number): Promise<number> {
     const rows = await tx.select({ credits: users.licenseCredits }).from(users).where(eq(users.id, userId)).limit(1);
     return rows[0]?.credits ?? 0;

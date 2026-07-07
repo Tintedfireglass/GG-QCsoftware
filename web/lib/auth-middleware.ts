@@ -110,8 +110,13 @@ export function hasRole(user: AuthenticatedUser, allowedRoles: UserRole[]): bool
 }
 
 // Check if user can manage another user (based on hierarchy)
-export function canManageUser(manager: AuthenticatedUser, targetUserId: number, targetCreatedBy?: number): boolean {
+export function canManageUser(manager: AuthenticatedUser, targetUserId: number, targetCreatedBy?: number, targetRole?: UserRole): boolean {
     if (manager.role === 'SuperAdmin') return true;
+    // Employees act on SuperAdmin's behalf over all non-admin users (never other
+    // Employees or SuperAdmins).
+    if (manager.role === 'Employee') {
+        return targetRole !== 'SuperAdmin' && targetRole !== 'Employee';
+    }
     if (manager.role === 'Refurbisher' || manager.role === 'Enterprise' || manager.role === 'OEM' || manager.role === 'Insurer' || manager.role === 'Reseller') {
         return targetCreatedBy === manager.id;
     }
@@ -123,6 +128,9 @@ export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
     switch (user.role) {
         case 'SuperAdmin':
             return ['Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client'];
+        case 'Employee':
+            // Same as SuperAdmin but cannot create admin roles (SuperAdmin/Employee).
+            return ['Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client'];
         case 'Refurbisher':
             return ['Technician'];
         case 'Enterprise':
@@ -133,8 +141,6 @@ export function getCreatableRoles(user: AuthenticatedUser): UserRole[] {
             return ['Technician'];
         case 'Reseller':
             return ['Technician', 'Client'];
-        case 'Employee':
-            return [];
         default:
             return [];
     }
@@ -153,7 +159,7 @@ export function requireRole(user: AuthenticatedUser, allowedRoles: UserRole[]): 
 
 // Get users that the authenticated user can see
 export async function getVisibleUsers(user: AuthenticatedUser): Promise<number[]> {
-    if (user.role === 'SuperAdmin') {
+    if (user.role === 'SuperAdmin' || user.role === 'Employee') {
         const rows = await db.select({ id: users.id }).from(users);
         return rows.map((u) => u.id);
     } else if (user.role === 'Refurbisher' || user.role === 'Enterprise' || user.role === 'OEM' || user.role === 'Insurer' || user.role === 'Reseller') {

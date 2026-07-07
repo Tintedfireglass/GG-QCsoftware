@@ -16,6 +16,7 @@ function ownerLabel(r: Record<string, unknown>): string | null {
 
 function mapRow(r: Record<string, unknown>) {
     return {
+        id: r.id,
         reportId: r.report_id,
         reportType: r.report_type,
         testType: r.test_type ?? null,
@@ -26,6 +27,7 @@ function mapRow(r: Record<string, unknown>) {
         failedCount: r.failed_count ?? null,
         deviceId: r.device_id,
         deviceModel: r.device_model ?? null,
+        appVersion: r.app_version ?? null,
         testedAt: r.tested_at ?? null,
         createdAt: r.created_at ?? null,
         customer: {

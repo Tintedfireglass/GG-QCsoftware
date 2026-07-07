@@ -28,6 +28,7 @@ function parseMeta(fields: Record<string, string>) {
     return createReleaseSchema.parse({
         platform: fields.platform,
         channel: fields.channel ?? undefined,
+        arch: fields.arch ?? undefined,
         version: fields.version,
         notes: fields.notes ?? undefined,
         mandatory: fields.mandatory ?? false,
@@ -74,11 +75,12 @@ export const POST = withAuth(['SuperAdmin'], async (request, { user }) => {
                 await assertReleaseCreatable({
                     platform: meta.platform,
                     channel: meta.channel,
+                    arch: meta.arch,
                     version: meta.version,
                     hasFile: true,
                     fileName: info.filename,
                 });
-                const key = buildRelativePath(meta.platform, meta.channel, meta.version, info.filename);
+                const key = buildRelativePath(meta.platform, meta.channel, meta.arch, meta.version, info.filename);
                 const stored = await storeReleaseFile(key, stream);
                 fileResult = { file: stored, fileName: info.filename, contentType: info.mimeType || null };
             })().catch((err) => {
@@ -110,6 +112,7 @@ export const POST = withAuth(['SuperAdmin'], async (request, { user }) => {
     await assertReleaseCreatable({
         platform: meta.platform,
         channel: meta.channel,
+        arch: meta.arch,
         version: meta.version,
         hasFile: false,
         storeUrl: meta.storeUrl ?? null,

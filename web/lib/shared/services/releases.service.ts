@@ -6,7 +6,7 @@ import {
     type StoredFile,
 } from '@/lib/shared/storage/releases-storage';
 import { compareVersions, isOutdated } from '@/lib/shared/domain/version';
-import { PLATFORM_EXTENSIONS, type Platform, type Channel } from '@/lib/shared/domain/schemas/releases';
+import { PLATFORM_EXTENSIONS, type Platform, type Channel, type Arch } from '@/lib/shared/domain/schemas/releases';
 import { ConflictError, NotFoundError, ValidationError } from '@/lib/http/errors';
 
 export async function listReleases() {
@@ -16,6 +16,7 @@ export async function listReleases() {
 export interface AssertCreatableInput {
     platform: Platform;
     channel: Channel;
+    arch: Arch;
     version: string;
     /** True if an installer file will be uploaded. */
     hasFile: boolean;
@@ -44,14 +45,17 @@ export async function assertReleaseCreatable(input: AssertCreatableInput) {
         }
     }
 
-    if (await repo.findByVersion(input.platform, input.channel, input.version)) {
-        throw new ConflictError(`${input.platform}/${input.channel} version ${input.version} already exists`);
+    if (await repo.findByVersion(input.platform, input.channel, input.arch, input.version)) {
+        throw new ConflictError(
+            `${input.platform}/${input.arch}/${input.channel} version ${input.version} already exists`
+        );
     }
 }
 
 export interface RecordReleaseInput {
     platform: Platform;
     channel: Channel;
+    arch: Arch;
     version: string;
     notes?: string;
     mandatory: boolean;
@@ -73,6 +77,7 @@ export async function recordRelease(input: RecordReleaseInput) {
     const base = {
         platform: input.platform,
         channel: input.channel,
+        arch: input.arch,
         version: input.version,
         notes: input.notes?.trim() || null,
         mandatory: input.mandatory,
@@ -124,13 +129,34 @@ export async function removeRelease(id: number) {
     return { ok: true };
 }
 
-/** Highest published version for a platform/channel, or null if none. */
-async function latestPublished(platform: Platform, channel: Channel) {
-    const rows = await repo.listPublishedReleases(platform, channel);
-    if (rows.length === 0) return null;
-    return rows.reduce((best, r) =>
-        compareVersions(String(r.version), String(best.version)) > 0 ? r : best
+/**
+ * A row satisfies a requested arch if it targets that exact arch OR is a
+ * 'universal' build (runs anywhere). So an arm64 client matches both arm64 and
+ * universal releases; a client that sends no arch (defaulted to 'universal')
+ * matches only universal builds — preserving pre-arch behaviour.
+ */
+function archSatisfies(rowArch: unknown, requested: Arch): boolean {
+    const a = String(rowArch);
+    return a === requested || a === 'universal';
+}
+
+/**
+ * Highest published version for a platform/channel that the requested arch can
+ * run, or null if none. Ties (same version as universal + arch-specific) prefer
+ * the exact-arch build so the client gets its native binary.
+ */
+async function latestPublished(platform: Platform, channel: Channel, arch: Arch) {
+    const rows = (await repo.listPublishedReleases(platform, channel)).filter((r) =>
+        archSatisfies(r.arch, arch)
     );
+    if (rows.length === 0) return null;
+    return rows.reduce((best, r) => {
+        const cmp = compareVersions(String(r.version), String(best.version));
+        if (cmp > 0) return r;
+        // Same version: prefer the exact-arch build over universal.
+        if (cmp === 0 && String(r.arch) === arch && String(best.arch) !== arch) return r;
+        return best;
+    });
 }
 
 /**
@@ -142,10 +168,11 @@ async function latestPublished(platform: Platform, channel: Channel) {
 export async function getUpdateManifest(
     platform: Platform,
     channel: Channel,
+    arch: Arch,
     current: string | undefined,
     downloadBase: string
 ) {
-    const latest = await latestPublished(platform, channel);
+    const latest = await latestPublished(platform, channel, arch);
     if (!latest) throw new NotFoundError('No release published for this platform');
 
     const latestVersion = String(latest.version);
@@ -153,7 +180,10 @@ export async function getUpdateManifest(
 
     let mandatory = Boolean(latest.mandatory);
     if (current && updateAvailable) {
-        const rows = await repo.listPublishedReleases(platform, channel);
+        // Gate only on releases this arch can actually install.
+        const rows = (await repo.listPublishedReleases(platform, channel)).filter((r) =>
+            archSatisfies(r.arch, arch)
+        );
         mandatory = rows.some(
             (r) =>
                 Boolean(r.mandatory) &&
@@ -167,6 +197,7 @@ export async function getUpdateManifest(
     return {
         platform,
         channel,
+        arch: String(latest.arch),
         version: latestVersion,
         updateAvailable,
         mandatory,
@@ -189,8 +220,8 @@ export async function getUpdateManifest(
  * it for download. Lets storefronts/clients link to a STABLE URL instead of
  * baking a volatile release id (which dies when a release is re-uploaded).
  */
-export async function openLatestForDownload(platform: Platform, channel: Channel) {
-    const latest = await latestPublished(platform, channel);
+export async function openLatestForDownload(platform: Platform, channel: Channel, arch: Arch) {
+    const latest = await latestPublished(platform, channel, arch);
     if (!latest || !latest.file_name) {
         throw new NotFoundError('No release published for this platform');
     }

@@ -11,6 +11,12 @@ const OTP_THROTTLE_WINDOW_MIN = 10;
 const OTP_THROTTLE_MAX = 5; // max OTPs per phone per window
 const isProd = process.env.NODE_ENV === 'production';
 
+// App-store review account. Reviewers (Google Play / Apple) cannot receive a real
+// SMS OTP, so this phone bypasses SMS delivery and accepts a fixed OTP. It works in
+// all environments (reviews hit the production build). Override via env if needed.
+const REVIEW_TEST_PHONE = process.env.REVIEW_TEST_PHONE || '9211156327';
+const REVIEW_TEST_OTP = process.env.REVIEW_TEST_OTP || '123456';
+
 function hashOtp(phone: string, otp: string): string {
     return createHash('sha256').update(`${phone}:${otp}:${OTP_SECRET}`).digest('hex');
 }
@@ -33,6 +39,14 @@ function parseDob(input?: string): string | null {
  * send is fatal (so the misconfiguration surfaces instead of stranding users).
  */
 export async function requestOtp(phone: string, countryCode?: string) {
+    // Review account: skip SMS entirely; the fixed OTP is always accepted on verify.
+    if (phone === REVIEW_TEST_PHONE) {
+        return {
+            message: 'OTP sent',
+            data: { otpSent: true, expiresInSeconds: OTP_TTL_MIN * 60 },
+        };
+    }
+
     const recent = await repo.countRecentOtps(phone, OTP_THROTTLE_WINDOW_MIN);
     if (recent >= OTP_THROTTLE_MAX) {
         throw new MobileError(429, 'OTP_RATE_LIMITED', 'Too many OTP requests. Try again later.');
@@ -70,16 +84,22 @@ export interface VerifyOtpInput {
 
 export async function verifyOtp(input: VerifyOtpInput) {
     const { phone, otp } = input;
-    const row = await repo.findLatestOtp(phone);
-    if (!row) throw new MobileError(400, 'OTP_NOT_FOUND', 'No active OTP for this number. Request a new one.');
-    if (new Date(row.expires_at) < new Date()) throw new MobileError(400, 'OTP_EXPIRED', 'OTP has expired. Request a new one.');
-    if (row.attempts >= OTP_MAX_ATTEMPTS) throw new MobileError(429, 'OTP_LOCKED', 'Too many incorrect attempts. Request a new OTP.');
 
-    if (row.code_hash !== hashOtp(phone, otp)) {
-        await repo.incrementOtpAttempts(row.id);
-        throw new MobileError(401, 'OTP_INVALID', 'Incorrect OTP.');
+    // Review account: accept the fixed OTP without a DB-backed challenge.
+    const isReviewLogin = phone === REVIEW_TEST_PHONE && otp === REVIEW_TEST_OTP;
+
+    if (!isReviewLogin) {
+        const row = await repo.findLatestOtp(phone);
+        if (!row) throw new MobileError(400, 'OTP_NOT_FOUND', 'No active OTP for this number. Request a new one.');
+        if (new Date(row.expires_at) < new Date()) throw new MobileError(400, 'OTP_EXPIRED', 'OTP has expired. Request a new one.');
+        if (row.attempts >= OTP_MAX_ATTEMPTS) throw new MobileError(429, 'OTP_LOCKED', 'Too many incorrect attempts. Request a new OTP.');
+
+        if (row.code_hash !== hashOtp(phone, otp)) {
+            await repo.incrementOtpAttempts(row.id);
+            throw new MobileError(401, 'OTP_INVALID', 'Incorrect OTP.');
+        }
+        await repo.consumeOtp(row.id);
     }
-    await repo.consumeOtp(row.id);
 
     let customer = await repo.findCustomerByPhone(phone);
     const isNewUser = !customer;

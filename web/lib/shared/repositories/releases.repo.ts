@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '@/lib/drizzle';
-import type { Platform, Channel } from '@/lib/shared/domain/schemas/releases';
+import type { Platform, Channel, Arch } from '@/lib/shared/domain/schemas/releases';
 
 const { appReleases } = schema;
 
@@ -9,6 +9,7 @@ const releaseColumns = {
     id: appReleases.id,
     platform: appReleases.platform,
     channel: appReleases.channel,
+    arch: appReleases.arch,
     version: appReleases.version,
     notes: appReleases.notes,
     mandatory: appReleases.mandatory,
@@ -27,6 +28,7 @@ const releaseColumns = {
 export interface NewRelease {
     platform: Platform;
     channel: Channel;
+    arch: Arch;
     version: string;
     notes: string | null;
     mandatory: boolean;
@@ -66,7 +68,7 @@ export async function findReleaseById(id: number) {
     return rows[0] ?? null;
 }
 
-export async function findByVersion(platform: Platform, channel: Channel, version: string) {
+export async function findByVersion(platform: Platform, channel: Channel, arch: Arch, version: string) {
     const rows = await db
         .select()
         .from(appReleases)
@@ -74,6 +76,7 @@ export async function findByVersion(platform: Platform, channel: Channel, versio
             and(
                 eq(appReleases.platform, platform),
                 eq(appReleases.channel, channel),
+                eq(appReleases.arch, arch),
                 eq(appReleases.version, version)
             )
         )
@@ -87,6 +90,7 @@ export async function insertRelease(data: NewRelease) {
         .values({
             platform: data.platform,
             channel: data.channel,
+            arch: data.arch,
             version: data.version,
             notes: data.notes,
             mandatory: data.mandatory,

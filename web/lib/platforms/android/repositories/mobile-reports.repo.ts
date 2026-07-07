@@ -111,6 +111,25 @@ export async function listHistory(
     return { reports: rows as Record<string, unknown>[], total };
 }
 
+/**
+ * Public, UNSCOPED lookup for the /verify certificate endpoint — no auth, so it
+ * exposes only the safe summary fields (no payload). Only SCORED reports are
+ * verifiable certificates, mirroring the PC rule (`pramaan_score IS NOT NULL`).
+ */
+export async function findReportForVerify(reportId: string): Promise<Record<string, unknown> | null> {
+    const { rows } = await db.execute(sql`
+        SELECT mr.report_id, mr.report_type, mr.grade, mr.score, mr.tested_at,
+               mr.payload_json->>'appVersion' AS app_version,
+               COALESCE(md.model, mr.device_snapshot_json->>'model', mr.payload_json->>'model') AS device_model,
+               COALESCE(mr.device_snapshot_json->>'manufacturer', mr.payload_json->>'manufacturer') AS manufacturer
+        FROM mobile_reports mr
+        LEFT JOIN mobile_devices md
+               ON md.customer_user_id = mr.customer_user_id AND md.device_id = mr.device_id
+        WHERE mr.report_id = ${reportId} AND mr.grade IS NOT NULL
+        LIMIT 1`);
+    return (rows[0] as Record<string, unknown>) ?? null;
+}
+
 /** Full report (payload verbatim) scoped to the owner. */
 export async function findReportByReportId(
     customerId: number,

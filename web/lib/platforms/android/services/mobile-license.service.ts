@@ -18,7 +18,9 @@ export async function activate(customerId: number, key: string, deviceId: string
         if (lic.expires_at && new Date(lic.expires_at) < new Date()) {
             throw new MobileError(403, 'LICENSE_EXPIRED', 'This license key has expired');
         }
-        // A customer-owned key may only be activated by its owner.
+        // A single_use key is owned by one customer and may only be activated by
+        // its owner. Bulk/demo keys are shared across accounts (up to the device
+        // cap) and are never bound to a customer, so this guard never trips them.
         if (lic.customer_user_id != null && lic.customer_user_id !== customerId) {
             throw new MobileError(403, 'LICENSE_NOT_YOURS', 'This license key belongs to another account');
         }
@@ -36,14 +38,18 @@ export async function activate(customerId: number, key: string, deviceId: string
             if (used >= cap) {
                 throw new MobileError(403, 'LICENSE_DEVICE_LIMIT', 'This license key has reached its maximum Android device activations');
             }
-            await authRepo.insertActivation(tx, lic.id, deviceId, PLATFORM);
+            // Attribute the activation to this customer so status/entitlement
+            // queries can find shared keys without binding the key to one owner.
+            await authRepo.insertActivation(tx, lic.id, deviceId, PLATFORM, customerId);
             await authRepo.incrementCurrentUses(tx, lic.id);
             used += 1;
         }
 
-        // Bind an unowned key to this customer so status/entitlement queries (which key off
-        // customer_user_id) can find it on later app restarts. No-op if already owned.
-        if (lic.customer_user_id == null) {
+        // Only single_use keys are owned by a customer. Binding one lets the
+        // ownership guard reject other accounts. Bulk/demo keys stay unowned and
+        // shareable — their per-customer entitlement comes from the activation
+        // rows above. No-op if the key is already owned.
+        if (lic.type === 'single_use' && lic.customer_user_id == null) {
             await authRepo.claimLicenseForCustomer(tx, lic.id, customerId);
         }
 

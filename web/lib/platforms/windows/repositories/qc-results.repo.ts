@@ -2,7 +2,7 @@ import { and, desc, eq, gt, sql, type SQL } from 'drizzle-orm';
 import { db, schema, type Tx } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { ownerVisibilitySql } from '@/lib/shared/domain/visibility';
-import { GradeKey, ListQuery, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { GradeKey, ListQuery, RiskKey, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
 
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
 
@@ -48,8 +48,34 @@ function gradesFilterSql(gradeCol: string, grades: GradeKey[]): string {
                 return `${g} LIKE 'B%'`;
             case 'C':
                 return `${g} LIKE 'C%'`;
+            case 'D':
+                return `${g} LIKE 'D%'`;
+            case 'E':
+                return `${g} LIKE 'E%'`;
+            case 'F':
+                return `${g} LIKE 'F%'`;
+            case 'Reject':
+                return `${g} LIKE 'REJECT%'`;
             case 'Unknown':
-                return `(${gradeCol} IS NULL OR (${g} NOT LIKE 'A%' AND ${g} NOT LIKE 'B%' AND ${g} NOT LIKE 'C%'))`;
+                return `(${gradeCol} IS NULL OR (${g} NOT LIKE 'A%' AND ${g} NOT LIKE 'B%' AND ${g} NOT LIKE 'C%' AND ${g} NOT LIKE 'D%' AND ${g} NOT LIKE 'E%' AND ${g} NOT LIKE 'F%' AND ${g} NOT LIKE 'REJECT%'))`;
+        }
+    });
+    return `(${parts.join(' OR ')})`;
+}
+
+/**
+ * WHERE predicate matching a set of risk-flag buckets, mirroring assetHealthSummary().
+ * Multiple selected risks are OR'd (show assets flagged for ANY of them).
+ */
+function riskFilterSql(risks: RiskKey[]): string {
+    const parts = risks.map((key) => {
+        switch (key) {
+            case 'storage':
+                return `((qr.pramaan_risk_flags->>'storage')::boolean IS TRUE OR (qr.pramaan_risk_flags->>'criticalStorage')::boolean IS TRUE OR (qr.pramaan_risk_flags->>'lowStorage')::boolean IS TRUE)`;
+            case 'thermal':
+                return `(qr.pramaan_risk_flags->>'thermal')::boolean IS TRUE`;
+            case 'tamper':
+                return `((qr.storage_details_json->>'isTampered')::boolean IS TRUE OR (qr.battery_details_json->>'isTampered')::boolean IS TRUE)`;
         }
     });
     return `(${parts.join(' OR ')})`;
@@ -116,6 +142,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     }
     if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
     if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.pramaan_grade', q.grades)));
+    if (q.risk && q.risk.length) conds.push(sql.raw(riskFilterSql(q.risk)));
     // Inclusive date range: endDate covers the whole day (< next midnight).
     if (q.startDate) conds.push(sql`qr.timestamp >= ${q.startDate}`);
     if (q.endDate) conds.push(sql`qr.timestamp < (${q.endDate}::date + INTERVAL '1 day')`);

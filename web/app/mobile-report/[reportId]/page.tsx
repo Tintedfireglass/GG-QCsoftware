@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import { getMobileReport } from "@/lib/api"
 import { QRCodeSVG } from "qrcode.react"
-import { formatDbDateTime } from "@/lib/utils"
+import { formatDbDateTime, maskPhone } from "@/lib/utils"
 import { gradeHeroColor, gradeLabel } from "@/lib/platforms/windows/grades"
 
 type Report = Awaited<ReturnType<typeof getMobileReport>>["report"]
@@ -171,7 +171,7 @@ export default function DedicatedMobileReportPage() {
                     </p>
                 </div>
                 <div className="text-right">
-                    <div className="text-lg font-bold">Report ID: {report.reportId}</div>
+                    <div className="text-lg font-bold">Test ID: #{report.id}</div>
                     <div className="text-sm text-gray-600">{report.testedAt ? formatDbDateTime(report.testedAt) : "—"}</div>
                 </div>
             </header>
@@ -200,6 +200,10 @@ export default function DedicatedMobileReportPage() {
                         <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Device ID</div>
                         <div className="font-mono text-xl">{report.deviceId}</div>
                     </div>
+                    <div className="max-w-[180px]">
+                        <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-1">Health ID</div>
+                        <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded break-all text-gray-700">{report.reportId}</div>
+                    </div>
                     <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex flex-col items-center">
                         <QRCodeSVG
                             value={`https://pramaan-dashboard.gadgetguruz.com/verify/${report.reportId}`}
@@ -218,10 +222,6 @@ export default function DedicatedMobileReportPage() {
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600 w-1/3">Model</td>
                                 <td className="py-2 font-medium">{report.deviceModel || "—"}</td>
-                            </tr>
-                            <tr className="border-b border-dotted border-gray-300">
-                                <td className="py-2 text-gray-600">Device ID</td>
-                                <td className="py-2 font-mono">{report.deviceId}</td>
                             </tr>
                             {snapshot?.manufacturer != null && (
                                 <tr className="border-b border-dotted border-gray-300">
@@ -282,27 +282,17 @@ export default function DedicatedMobileReportPage() {
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Phone</td>
-                                <td className="py-2 font-medium">{report.customer.phone || "—"}</td>
+                                <td className="py-2 font-medium">{report.customer.phone ? maskPhone(report.customer.phone) : "—"}</td>
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Email</td>
                                 <td className="py-2 font-medium">{report.customer.email || "—"}</td>
                             </tr>
                             {report.reseller ? (
-                                <>
-                                    <tr className="border-b border-dotted border-gray-300">
-                                        <td className="py-2 text-gray-600">Reseller</td>
-                                        <td className="py-2 font-medium">{report.reseller.name || "—"}</td>
-                                    </tr>
-                                    <tr className="border-b border-dotted border-gray-300">
-                                        <td className="py-2 text-gray-600">Role</td>
-                                        <td className="py-2 font-medium">{report.reseller.role || "—"}</td>
-                                    </tr>
-                                    <tr className="border-b border-dotted border-gray-300">
-                                        <td className="py-2 text-gray-600">License Key</td>
-                                        <td className="py-2 font-mono">{report.reseller.licenseKey || "—"}</td>
-                                    </tr>
-                                </>
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">Reseller</td>
+                                    <td className="py-2 font-medium">{report.reseller.name || "—"}</td>
+                                </tr>
                             ) : (
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Reseller</td>
@@ -428,7 +418,7 @@ export default function DedicatedMobileReportPage() {
             {/* Footer */}
             <footer className="mt-12 pt-6 border-t border-gray-300 text-center text-xs text-gray-500 flex justify-between">
                 <div>Generated by pramaan</div>
-                <div>Report ID: {report.reportId}</div>
+                <div>Test ID: #{report.id}</div>
                 <div>Date Printed: {new Date().toLocaleDateString()}</div>
             </footer>
 
