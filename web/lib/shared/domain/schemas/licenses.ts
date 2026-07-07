@@ -16,10 +16,18 @@ export const generateLicenseSchema = z.object({
 
 export type GenerateLicenseInput = z.infer<typeof generateLicenseSchema>;
 
-/** PATCH /api/licenses body. */
+/** PATCH /api/licenses body — toggle active status. */
 export const toggleLicenseSchema = z.object({
     id: z.coerce.number().int(),
     is_active: z.boolean(),
 });
 
 export type ToggleLicenseInput = z.infer<typeof toggleLicenseSchema>;
+
+/** PATCH /api/licenses body — update expiry date. */
+export const updateExpirySchema = z.object({
+    id: z.coerce.number().int(),
+    expires_at: z.string().nullable(),
+});
+
+export type UpdateExpiryInput = z.infer<typeof updateExpirySchema>;

@@ -1,7 +1,7 @@
 import { withAuth, json } from '@/lib/http/handler';
 import { parseBody } from '@/lib/http/validate';
-import { generateLicenseSchema, toggleLicenseSchema } from '@/lib/shared/domain/schemas/licenses';
-import { listLicenses, generateLicense, toggleLicense } from '@/lib/shared/services/licenses.service';
+import { generateLicenseSchema, toggleLicenseSchema, updateExpirySchema } from '@/lib/shared/domain/schemas/licenses';
+import { listLicenses, generateLicense, toggleLicense, updateLicenseExpiry } from '@/lib/shared/services/licenses.service';
 
 const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
 const TOGGLE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
@@ -26,8 +26,14 @@ export const POST = withAuth([...MANAGE_ROLES], async (request, { user }) => {
     return json(await generateLicense(user, body));
 });
 
-// PATCH /api/licenses - toggle a key's active status
+// PATCH /api/licenses - toggle a key's active status OR update its expiry date
 export const PATCH = withAuth([...TOGGLE_ROLES], async (request, { user }) => {
-    const body = await parseBody(request, toggleLicenseSchema);
+    const raw = await request.json();
+    if ('expires_at' in raw) {
+        const body = updateExpirySchema.parse(raw);
+        return json(await updateLicenseExpiry(user, body));
+    }
+    const body = toggleLicenseSchema.parse(raw);
     return json(await toggleLicense(user, body));
 });
+
