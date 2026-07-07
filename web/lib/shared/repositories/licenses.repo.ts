@@ -200,3 +200,24 @@ export async function toggleActiveWithAudit(
         SELECT * FROM updated`);
     return (rows[0] as Record<string, unknown>) ?? null;
 }
+
+/**
+ * Update a key's expiry date. SuperAdmins can update any key; others only their own.
+ * Returns the updated row, or null if no key matched.
+ */
+export async function updateKeyExpiry(
+    id: number,
+    expiresAt: Date | null,
+    restrictToCreator: number | null,
+): Promise<Record<string, unknown> | null> {
+    const ownership = restrictToCreator !== null
+        ? sql` AND created_by = ${restrictToCreator}`
+        : sql``;
+
+    const { rows } = await db.execute(sql`
+        UPDATE license_keys
+        SET expires_at = ${expiresAt ? expiresAt.toISOString() : null}
+        WHERE id = ${id}${ownership}
+        RETURNING *`);
+    return (rows[0] as Record<string, unknown>) ?? null;
+}

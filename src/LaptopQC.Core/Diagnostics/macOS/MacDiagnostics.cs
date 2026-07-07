@@ -1039,3 +1039,204 @@ public class MacAudioVideoTestService : IAudioVideoTestService
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MAC USB WATCHER
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Polls <c>system_profiler SPUSBDataType -json</c> on macOS to detect
+/// newly inserted USB devices. Call <see cref="StartAsync"/> to begin
+/// polling and subscribe to <see cref="DeviceInserted"/> for events.
+/// Call <see cref="Stop"/> to end the session.
+/// </summary>
+public class MacUsbWatcher : IDisposable
+{
+    // Set of device keys seen at the last poll; used to diff against the new snapshot.
+    private readonly HashSet<string> _knownDevices = new();
+
+    private CancellationTokenSource? _cts;
+    private Task? _pollTask;
+
+    /// <summary>
+    /// Raised on the polling background thread when a new USB device is detected.
+    /// Arguments: (deviceId, deviceName, usbVersion).
+    /// </summary>
+    public event Action<string, string, string>? DeviceInserted;
+
+    /// <summary>
+    /// Interval between polls. Default is 1.5 seconds — fast enough to feel
+    /// responsive without hammering the CPU.
+    /// </summary>
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>
+    /// Starts a background polling loop.
+    /// The first snapshot is taken silently to establish a baseline (so devices
+    /// already plugged in at start time do not trigger events).
+    /// </summary>
+    public void Start()
+    {
+        Stop(); // ensure any previous session is cleaned up
+
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        _pollTask = Task.Run(async () =>
+        {
+            // ── Baseline snapshot ──────────────────────────────────────────
+            // Populate _knownDevices silently so pre-existing devices are
+            // not reported as newly inserted.
+            TakeSnapshot(_knownDevices, out _);
+
+            // ── Poll loop ─────────────────────────────────────────────────
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(PollInterval, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+
+                var currentDevices = new HashSet<string>();
+                var deviceDetails = new Dictionary<string, (string Name, string UsbVersion)>();
+
+                TakeSnapshot(currentDevices, out deviceDetails);
+
+                // Diff: anything in current but NOT in known is a new insertion.
+                foreach (var key in currentDevices)
+                {
+                    if (!_knownDevices.Contains(key))
+                    {
+                        var (name, version) = deviceDetails.TryGetValue(key, out var d)
+                            ? d : ("USB Device", "USB");
+
+                        DeviceInserted?.Invoke(key, name, version);
+                    }
+                }
+
+                // Update the baseline for the next iteration.
+                _knownDevices.Clear();
+                foreach (var k in currentDevices)
+                    _knownDevices.Add(k);
+            }
+        }, token);
+    }
+
+    /// <summary>
+    /// Stops the polling loop and waits for it to finish.
+    /// </summary>
+    public void Stop()
+    {
+        _cts?.Cancel();
+        try { _pollTask?.Wait(TimeSpan.FromSeconds(3)); } catch { }
+        _cts?.Dispose();
+        _cts = null;
+        _pollTask = null;
+    }
+
+    public void Dispose() => Stop();
+
+    // ──────────────────────────────────────────────────────────────
+    // Private helpers
+    // ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Runs <c>system_profiler SPUSBDataType -json</c>, walks the device
+    /// tree recursively, and populates <paramref name="keys"/> with a
+    /// unique key per device plus <paramref name="details"/> with
+    /// name / USB-version info.
+    /// </summary>
+    private static void TakeSnapshot(
+        HashSet<string> keys,
+        out Dictionary<string, (string Name, string UsbVersion)> details)
+    {
+        details = new Dictionary<string, (string, string)>();
+
+        try
+        {
+            var json = CommandRunner.TryRun("system_profiler", "SPUSBDataType -json", 8000);
+            if (string.IsNullOrWhiteSpace(json)) return;
+
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("SPUSBDataType", out var usbData)) return;
+
+            // system_profiler returns a list of "USB Bus" controller objects;
+            // each may contain _items (the attached devices).
+            foreach (var bus in usbData.EnumerateArray())
+                WalkBus(bus, keys, details);
+        }
+        catch { /* Silently ignore parse / process errors */ }
+    }
+
+    private static void WalkBus(
+        JsonElement node,
+        HashSet<string> keys,
+        Dictionary<string, (string Name, string UsbVersion)> details)
+    {
+        if (!node.TryGetProperty("_items", out var items)) return;
+
+        foreach (var device in items.EnumerateArray())
+        {
+            var name = device.TryGetProperty("_name", out var n)
+                ? n.GetString() ?? "USB Device" : "USB Device";
+
+            // Skip internal hubs / root controllers — they are always present
+            // and would pollute the baseline.
+            if (IsHubOrController(name)) continue;
+
+            // ── PORT-BASED KEY ────────────────────────────────────────────
+            // Use location_id as the unique key for each physical port slot.
+            // macOS reports location_id as e.g. "0x14100000 / 20" where the
+            // hex value encodes the USB bus controller + downstream port path.
+            // This means moving the same USB device between ports produces
+            // a NEW key each time (different physical slot → new event),
+            // which is exactly the same behaviour as Windows LocationInformation.
+            //
+            // Fallback chain:
+            //   1. location_id  — authoritative physical port address
+            //   2. name         — last resort (e.g. device with no location_id)
+            var locationId = device.TryGetProperty("location_id", out var loc)
+                ? loc.GetString() ?? "" : "";
+
+            // Trim the human-readable suffix (" / 20") — keep only the hex part.
+            // "0x14100000 / 20" → "0x14100000"
+            var slashIdx = locationId.IndexOf(" / ", StringComparison.Ordinal);
+            if (slashIdx > 0)
+                locationId = locationId[..slashIdx].Trim();
+
+            var key = !string.IsNullOrEmpty(locationId) ? locationId : name;
+
+            // ── USB VERSION ───────────────────────────────────────────────
+            // system_profiler reports values like "3.20", "2.00", "1.10".
+            var usbVersion = "USB";
+            if (device.TryGetProperty("usb_version", out var uv))
+            {
+                var uvStr = uv.GetString() ?? "";
+                if (uvStr.StartsWith("3", StringComparison.Ordinal))
+                    usbVersion = "USB 3.x";
+                else if (uvStr.StartsWith("2", StringComparison.Ordinal))
+                    usbVersion = "USB 2.0";
+                else if (uvStr.StartsWith("1", StringComparison.Ordinal))
+                    usbVersion = "USB 1.x";
+            }
+
+            keys.Add(key);
+            details[key] = (name, usbVersion);
+
+            // Recurse into nested hubs (e.g. USB hub with downstream devices).
+            WalkBus(device, keys, details);
+        }
+    }
+
+    private static bool IsHubOrController(string name)
+    {
+        return name.Contains("Hub",        StringComparison.OrdinalIgnoreCase)
+            || name.Contains("Controller", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("Root",       StringComparison.OrdinalIgnoreCase)
+            || name.Contains("Bus",        StringComparison.OrdinalIgnoreCase);
+    }
+}
+

@@ -5,6 +5,9 @@ using System.Collections.ObjectModel;
 #if WINDOWS
 using System.Management;
 #endif
+#if !WINDOWS
+using LaptopQC.Core.Diagnostics.macOS;
+#endif
 
 namespace Pramaan.Avalonia.ViewModels;
 
@@ -17,6 +20,8 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
 #if WINDOWS
     private ManagementEventWatcher? _insertWatcher;
     private ManagementEventWatcher? _removeWatcher;
+#else
+    private MacUsbWatcher? _macWatcher;
 #endif
 
     private DateTime _lastPortCountTime = DateTime.MinValue;
@@ -98,8 +103,17 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
             IsWatching = true;
             Instructions = "Listening for USB insertions... Plug devices into each port.";
 #else
+            // macOS: poll system_profiler SPUSBDataType to detect insertions
+            _macWatcher = new MacUsbWatcher();
+            _macWatcher.DeviceInserted += (deviceId, name, usbVersion) =>
+            {
+                global::Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    RegisterInsertion(deviceId, name, usbVersion));
+            };
+            _macWatcher.Start();
+
             IsWatching = true;
-            Instructions = "Automated USB insertion testing is a Windows-only feature. Please click Complete if ports are functional.";
+            Instructions = "Listening for USB insertions... Plug devices into each port.";
 #endif
         }
         catch (Exception ex)
@@ -119,11 +133,67 @@ public partial class UsbPortTestViewModel : ObservableObject, IDisposable
         _removeWatcher?.Stop();
         _removeWatcher?.Dispose();
         _removeWatcher = null;
+#else
+        _macWatcher?.Stop();
+        _macWatcher?.Dispose();
+        _macWatcher = null;
 #endif
 
         IsWatching = false;
         Instructions = "USB watching stopped. Click Start to resume.";
     }
+
+#if !WINDOWS
+    /// <summary>
+    /// Called on the UI thread when the macOS USB watcher detects a new
+    /// insertion. <paramref name="portKey"/> is the physical port address
+    /// (location_id, e.g. "0x14100000"), so plugging the same USB stick
+    /// into a different port produces a new event — matching Windows behaviour.
+    /// </summary>
+    private void RegisterInsertion(string portKey, string name, string usbVersion)
+    {
+        if (name.Contains("Hub", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Controller", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Root", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var now = DateTime.Now;
+
+        if ((now - _lastPortCountTime) < _globalDebounce)
+            return;
+
+        // portKey is the physical port address — re-plugging into the same
+        // port shows up with the same key and is filtered as a repeat.
+        if (_testedPortLocations.Contains(portKey))
+        {
+            InsertionEvents.Insert(0, new UsbInsertionEvent
+            {
+                Time = now.ToString("HH:mm:ss"),
+                DeviceName = $"Same port tested again: {name} ({portKey})",
+                PortNumber = 0,
+                IsSkipped = true
+            });
+            return;
+        }
+
+        _lastPortCountTime = now;
+        _testedPortLocations.Add(portKey);
+        _testState.RegisterDeviceInsertion(portKey, name);
+
+        InsertionEvents.Insert(0, new UsbInsertionEvent
+        {
+            Time = now.ToString("HH:mm:ss"),
+            DeviceName = $"Port {_testState.PortsTested}: {name} ({portKey})",
+            PortNumber = _testState.PortsTested,
+            IsSkipped = false,
+            UsbVersion = usbVersion
+        });
+
+        UpdateProgress();
+    }
+#endif
 
 #if WINDOWS
     private void OnDeviceInserted(object sender, EventArrivedEventArgs e)

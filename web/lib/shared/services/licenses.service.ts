@@ -1,7 +1,7 @@
 import { db } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { AppError, ValidationError, ForbiddenError, NotFoundError } from '@/lib/http/errors';
-import { GenerateLicenseInput, ToggleLicenseInput } from '@/lib/shared/domain/schemas/licenses';
+import { GenerateLicenseInput, ToggleLicenseInput, UpdateExpiryInput } from '@/lib/shared/domain/schemas/licenses';
 import * as repo from '@/lib/shared/repositories/licenses.repo';
 
 const VALID_TYPES = ['single_use', 'bulk', 'demo'];
@@ -165,4 +165,20 @@ export async function toggleLicense(user: AuthenticatedUser, input: ToggleLicens
         throw new NotFoundError('License key not found or not permitted');
     }
     return { message: 'License key updated', key: updated };
+}
+
+export async function updateLicenseExpiry(user: AuthenticatedUser, input: UpdateExpiryInput) {
+    if (user.role !== 'SuperAdmin' && user.role !== 'Employee') {
+        throw new ForbiddenError('Only SuperAdmin and Employee users can update license expiry');
+    }
+    const expiresAt = input.expires_at ? new Date(input.expires_at) : null;
+    const updated = await repo.updateKeyExpiry(
+        input.id,
+        expiresAt,
+        user.role === 'SuperAdmin' ? null : user.id,
+    );
+    if (!updated) {
+        throw new NotFoundError('License key not found or not permitted');
+    }
+    return { message: 'License expiry updated', key: updated };
 }

@@ -41,6 +41,7 @@ public class QCWizard
             _state.StatusMessage = $"✓ Activated: {authService.LicenseKey}";
             activeToken = authService.Token;
             report.DeviceId = authService.MachineId ?? 0;
+            _state.DeviceId = authService.MachineId ?? 0; // Show in dashboard
         }
         else if (trialService.IsTrialActive)
         {
@@ -71,6 +72,7 @@ public class QCWizard
                 {
                     activeToken = authService.Token;
                     report.DeviceId = authService.MachineId ?? 0;
+                    _state.DeviceId = authService.MachineId ?? 0; // Show in dashboard
                     _state.StatusMessage = "✓ Activation successful!";
                 }
                 else
@@ -164,7 +166,16 @@ public class QCWizard
         report.TrackpadTest = ManualTest("Trackpad", "Mouse movement and clicks work");
         _state.ProgressComp = 50; Refresh();
 
-        report.UsbTest = ManualTest("USB Ports", "Plug a device into each port");
+        // USB Ports Test
+        AnsiConsole.MarkupLine("\n[bold cyan]Testing USB Ports...[/]");
+        var usbDiag = new LinuxUsbPortDiagnostic();
+        var (usbHealthy, usbMsg) = usbDiag.QuickValidation();
+        report.UsbTest = new TestResult 
+        { 
+            Tested = true, 
+            Passed = usbHealthy, 
+            Message = usbMsg 
+        };
         _state.ProgressComp = 65; Refresh();
 
         report.AudioVideoTest = ManualTest("Audio/Video", "Speakers and webcam work");
@@ -173,7 +184,22 @@ public class QCWizard
         report.AudioJackTest = ManualTest("Audio Jack", "Headphone jack outputs sound");
         _state.ProgressComp = 90; Refresh();
 
-        report.NetworkTest = ManualTest("Network", "WiFi or Ethernet connected");
+        // Ethernet Test
+        AnsiConsole.MarkupLine("\n[bold cyan]Testing Ethernet...[/]");
+        var ethDiag = new LinuxEthernetDiagnostic();
+        var ethResult = ethDiag.RunDiagnostic();
+        var ethOk = ethResult.HasWorkingPort;
+        report.NetworkTest = new TestResult
+        {
+            Tested = true,
+            Passed = ethOk || report.NetworkTest.Passed, // Keep WiFi result if already tested
+            Message = ethOk ? ethResult.Summary : (report.NetworkTest.Passed ? report.NetworkTest.Message : "No network connection")
+        };
+        if (ethOk)
+        {
+            var connectedPort = ethResult.DetectedPorts.First(p => p.IsConnected);
+            report.NetworkTest.Details.Add($"Ethernet: {connectedPort.InterfaceName} @ {connectedPort.LinkSpeed}");
+        }
         _state.ProgressComp = 100; Refresh();
 
         // ── Phase 5: Grade & Submit ────────────────────────────────────────
