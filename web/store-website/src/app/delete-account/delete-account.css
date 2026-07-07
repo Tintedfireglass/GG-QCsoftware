@@ -1,0 +1,312 @@
+/* Scoped to `.da-page` so the background/fonts do not leak into other routes.
+   Visual language mirrors privacy-policy.css for a consistent legal-page look. */
+
+.da-page {
+  --ink: #1a1f2e;
+  --ink-light: #4a5568;
+  --ink-muted: #718096;
+  --accent: #1a56db;
+  --accent-soft: #ebf2ff;
+  --danger: #d32f2f;
+  --danger-soft: #fdeeee;
+  --border: #e2e8f0;
+  --bg: #fafbfd;
+  --white: #ffffff;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-weight: 400;
+}
+
+.da-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 24px 96px;
+}
+
+/* Hero */
+.da-hero {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 40px;
+  margin-bottom: 48px;
+}
+
+.da-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.da-brand::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.da-hero h1 {
+  font-family: "DM Serif Display", serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.da-hero .subtitle {
+  font-size: 15px;
+  color: var(--ink-light);
+  margin: 0 0 28px;
+  font-weight: 300;
+}
+
+.da-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.da-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid #c3d9f8;
+}
+
+/* Sections */
+.da-section {
+  margin-bottom: 44px;
+  scroll-margin-top: 80px;
+}
+
+.da-section h2 {
+  font-family: "DM Serif Display", serif;
+  font-size: 1.45rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.3;
+}
+
+.da-section p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink-light);
+  margin-bottom: 14px;
+}
+
+.da-section a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.da-section a:hover {
+  text-decoration: underline;
+}
+
+.da-section ul {
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.da-section ul li {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-light);
+  padding: 4px 0 4px 20px;
+  position: relative;
+}
+
+.da-section ul li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Numbered step cards for the in-app flow */
+.da-steps {
+  list-style: none;
+  counter-reset: da-step;
+  padding: 0;
+  margin: 20px 0 8px;
+}
+
+.da-steps li {
+  counter-increment: da-step;
+  position: relative;
+  padding: 14px 18px 14px 58px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-light);
+}
+
+.da-steps li strong {
+  color: var(--ink);
+}
+
+.da-steps li::before {
+  content: counter(da-step);
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--white);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Callout boxes */
+.da-infobox {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: var(--ink-light);
+  line-height: 1.65;
+}
+
+.da-infobox strong {
+  color: var(--ink);
+}
+
+.da-warnbox {
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: #7a1f1f;
+  line-height: 1.65;
+}
+
+.da-warnbox strong {
+  color: var(--danger);
+}
+
+/* Tables */
+.da-table-wrap {
+  overflow-x: auto;
+  margin: 20px 0 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.da-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--white);
+}
+
+.da-table thead {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.da-table thead th {
+  padding: 11px 16px;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.da-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.da-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.da-table td {
+  padding: 11px 16px;
+  color: var(--ink-light);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.da-table td:first-child {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Contact grid */
+.da-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.da-contact-item {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.da-contact-item .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 5px;
+}
+
+.da-contact-item .value {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.da-contact-item .value a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.da-contact-item .value a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .da-wrap {
+    padding: 36px 18px 72px;
+  }
+  .da-contact-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -53,7 +53,9 @@ export default async function HomePage() {
                 <p>{banner.description}</p>
                 <div className="gap-3">
                   <DownloadButton options={downloadOptions} ctaText={banner.downloadCtaText} />
-                  <span className="download-text">{banner.downloadText}</span>
+                  <a href="#contact" className="book-demo-link">
+                    Book a Demo <i className="fa fa-arrow-right" aria-hidden="true"></i>
+                  </a>
                 </div>
                 <div className="runs-on">
                   <span className="runs-on-label">Runs on</span>

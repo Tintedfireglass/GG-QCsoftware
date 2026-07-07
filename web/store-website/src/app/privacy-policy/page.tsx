@@ -514,6 +514,13 @@ export default function PrivacyPolicyPage() {
                 </tbody>
               </table>
             </div>
+            <div className="pp-infobox">
+              <strong>Deleting your account:</strong> You can permanently delete
+              your PRAMAAN account and associated data at any time — either from
+              within the app or by written request. For step-by-step instructions
+              on what is deleted and what is retained, see our{" "}
+              <a href="/delete-account">Account Deletion page</a>.
+            </div>
           </div>
 
           {/* 13. Rights */}

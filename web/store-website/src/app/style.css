@@ -120,6 +120,30 @@ p {
   color: var(--color-primary);
 }
 
+.book-demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: var(--spacing-sm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.book-demo-link:hover {
+  opacity: 0.8;
+}
+
+.book-demo-link i {
+  transition: transform 0.15s ease;
+}
+
+.book-demo-link:hover i {
+  transform: translateX(3px);
+}
+
 .runs-on {
   margin-top: var(--spacing-md);
 }
@@ -980,6 +1004,14 @@ p {
     padding-left: 0;
     margin-top: var(--spacing-xs);
     text-align: center;
+  }
+
+  .banner-content .book-demo-link {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    padding-left: 0;
+    margin-top: var(--spacing-xs);
   }
 
   .banner-content .runs-on {
