@@ -1,22 +1,25 @@
-name: Build macOS App
+name: Build & Release PRAMAAN
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch: # Allows manual trigger from the GitHub UI
+  workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
+  # ──────────────────────────────────────────
+  # Job 1: Build macOS App (arm64 + x64)
+  # ──────────────────────────────────────────
   build-mac:
-    # Use macos-latest (which is macOS 14 / Apple Silicon on GitHub Actions)
+    name: Build macOS
     runs-on: macos-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Setup .NET
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
@@ -24,24 +27,131 @@ jobs:
     - name: Make Build Script Executable
       run: chmod +x publish_mac.sh
 
-    - name: Run Build Script
-      run: ./publish_mac.sh
-      
-    - name: Archive macOS App Artifact (Apple Silicon)
+    - name: Build macOS App (arm64 + x64)
+      run: ./publish_mac.sh both
+
+    - name: Upload macOS arm64 Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_arm64
-        # Upload the ditto-created zip — it preserves Unix execute permissions.
-        # Uploading the raw .app directory strips the +x bit from the binary,
-        # making the downloaded artifact non-executable.
+        # ditto-created zip preserves Unix +x permissions on the binary
         path: publish/Pramaan_QC_Tool_macOS_arm64.zip
-        retention-days: 7
+        retention-days: 30
         if-no-files-found: error
-        
-    - name: Archive macOS App Artifact (Intel)
+
+    - name: Upload macOS x64 Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_x64
         path: publish/Pramaan_QC_Tool_macOS_x64.zip
-        retention-days: 7
+        retention-days: 30
         if-no-files-found: error
+
+  # ──────────────────────────────────────────
+  # Job 2: Build Windows App (x64)
+  # ──────────────────────────────────────────
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Publish Windows App
+      run: |
+        dotnet publish src/LaptopQC.App/LaptopQC.App.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:Brand=Pramaan `
+          -p:PublishSingleFile=false `
+          -p:PublishReadyToRun=true `
+          -o publish/Pramaan
+
+    - name: Copy smartctl Tools
+      shell: pwsh
+      run: |
+        $toolsSrc = "src/LaptopQC.App/tools"
+        $toolsDst = "publish/Pramaan/tools"
+        New-Item -ItemType Directory -Force -Path $toolsDst | Out-Null
+        if (Test-Path "$toolsSrc/smartctl.exe") {
+          Copy-Item "$toolsSrc/smartctl.exe" $toolsDst -Force
+          Write-Host "  ✓ smartctl.exe copied"
+        } else {
+          Write-Warning "smartctl.exe not found — SMART diagnostics will be unavailable"
+        }
+        if (Test-Path "$toolsSrc/*.dll") {
+          Copy-Item "$toolsSrc/*.dll" $toolsDst -Force
+        }
+
+    - name: Zip Windows Build
+      shell: pwsh
+      run: |
+        Compress-Archive -Path publish/Pramaan/* `
+          -DestinationPath publish/Pramaan_QC_Tool_Windows_x64.zip -Force
+
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pramaan_QC_Tool_Windows_x64
+        path: publish/Pramaan_QC_Tool_Windows_x64.zip
+        retention-days: 30
+        if-no-files-found: error
+
+  # ──────────────────────────────────────────
+  # Job 3: Create GitHub Release (main only)
+  # ──────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [ build-mac, build-windows ]
+    runs-on: ubuntu-latest
+    # Only create a release on direct pushes to main (not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: write  # Required to create releases and upload assets
+
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-assets
+
+    - name: Generate Release Tag
+      id: tag
+      run: echo "tag=build-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: "PRAMAAN QC Tool — ${{ steps.tag.outputs.tag }}"
+        body: |
+          ## Automated Build
+
+          Triggered by commit: `${{ github.sha }}`
+          Branch: `${{ github.ref_name }}`
+
+          ### Downloads
+          | Platform | File |
+          |----------|------|
+          | 🍎 macOS Apple Silicon | `Pramaan_QC_Tool_macOS_arm64.zip` |
+          | 🍎 macOS Intel | `Pramaan_QC_Tool_macOS_x64.zip` |
+          | 🪟 Windows x64 | `Pramaan_QC_Tool_Windows_x64.zip` |
+
+          > **macOS note:** If blocked by Gatekeeper, run:
+          > ```
+          > xattr -rd com.apple.quarantine PRAMAAN.app
+          > ```
+        draft: false
+        prerelease: false
+        files: |
+          release-assets/Pramaan_QC_Tool_macOS_arm64/Pramaan_QC_Tool_macOS_arm64.zip
+          release-assets/Pramaan_QC_Tool_macOS_x64/Pramaan_QC_Tool_macOS_x64.zip
+          release-assets/Pramaan_QC_Tool_Windows_x64/Pramaan_QC_Tool_Windows_x64.zip
