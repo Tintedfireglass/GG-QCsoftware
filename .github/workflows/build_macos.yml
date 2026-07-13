@@ -2,9 +2,9 @@ name: Build & Release PRAMAAN
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, prod ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, prod ]
   workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
@@ -105,14 +105,14 @@ jobs:
         if-no-files-found: error
 
   # ──────────────────────────────────────────
-  # Job 3: Create GitHub Release (main only)
+  # Job 3: Create GitHub Release (prod only)
   # ──────────────────────────────────────────
   release:
     name: Create GitHub Release
     needs: [ build-mac, build-windows ]
     runs-on: ubuntu-latest
-    # Only create a release on direct pushes to main (not PRs)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Only create a release on direct pushes to prod (not main, not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
 
     permissions:
       contents: write  # Required to create releases and upload assets
