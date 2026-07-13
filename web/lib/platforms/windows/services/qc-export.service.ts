@@ -461,7 +461,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         const { edition: parsedEdition, release: winRelease } = parseWindowsVersion(
             (sysInfo.osVersion as string | undefined) || '',
             (sysInfo.windowsProductName as string | undefined) || ''
-        );
+        ) ?? { edition: '', release: '' };
         const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
         const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
         const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';
@@ -721,7 +721,7 @@ function winActivationText(sysInfo: JsonRecord): string {
 function winVersionText(sysInfo: JsonRecord): string {
     const osRaw = safeStr(sysInfo.osVersion);
     const prodName = safeStr(sysInfo.windowsProductName);
-    const { edition, release } = parseWindowsVersion(osRaw, prodName);
+    const { edition, release } = parseWindowsVersion(osRaw, prodName) ?? { edition: '', release: '' };
     const finalEdition = prodName ? cleanWindowsProductName(prodName, edition) : edition;
     if (release) return `${finalEdition} ${release}`;
     return finalEdition || 'Unknown';
@@ -1057,7 +1057,7 @@ export async function exportSampleDataset(
             const { edition: parsedEdition, release: winRelease } = parseWindowsVersion(
                 (sysInfo.osVersion as string | undefined) || '',
                 (sysInfo.windowsProductName as string | undefined) || ''
-            );
+            ) ?? { edition: '', release: '' };
             const windowsProductName = (sysInfo.windowsProductName as string | undefined) || '';
             const osEdition = windowsProductName ? cleanWindowsProductName(windowsProductName, parsedEdition) : parsedEdition;
             const rawAntivirus = (sysInfo.antivirusStatus as string | undefined) || '';

@@ -158,17 +158,21 @@ export default function DedicatedReportPage() {
                                 <td className="py-2 font-mono">{data.mac_address}</td>
                             </tr>
                             <tr className="border-b border-dotted border-gray-300">
-                                <td className="py-2 text-gray-600">Windows Version</td>
+                                <td className="py-2 text-gray-600">OS Version</td>
                                 <td className="py-2 font-medium">{formatWindowsVersion(data.system_info_json?.osVersion, data.system_info_json?.windowsProductName)}</td>
                             </tr>
-                            <tr className="border-b border-dotted border-gray-300">
-                                <td className="py-2 text-gray-600">Windows Last Updated</td>
-                                <td className="py-2 font-medium">{formatDbDate(data.system_info_json?.windowsLastUpdatedAt)}</td>
-                            </tr>
-                            <tr className="border-b border-dotted border-gray-300">
-                                <td className="py-2 text-gray-600">Windows Activation</td>
-                                <td className="py-2 font-medium">{activationText}</td>
-                            </tr>
+                            {data.system_info_json?.windowsLastUpdatedAt && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">OS Last Updated</td>
+                                    <td className="py-2 font-medium">{formatDbDate(data.system_info_json.windowsLastUpdatedAt)}</td>
+                                </tr>
+                            )}
+                            {(data.system_info_json?.windowsActivationStatus != null || data.system_info_json?.isWindowsActivated != null) && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">OS Activation</td>
+                                    <td className="py-2 font-medium">{activationText}</td>
+                                </tr>
+                            )}
                             <tr className="border-b border-dotted border-gray-300">
                                 <td className="py-2 text-gray-600">Antivirus Status</td>
                                 <td className="py-2 font-medium">{antivirusText}</td>

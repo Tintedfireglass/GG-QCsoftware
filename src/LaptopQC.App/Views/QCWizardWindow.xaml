@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
         mc:Ignorable="d"
-        Title="QC Wizard" Height="480" Width="620"
+        Title="QC Wizard" SizeToContent="Height" MinHeight="400" MaxHeight="700" Width="620"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
         ResizeMode="NoResize">
@@ -179,12 +179,12 @@
             <!-- Step 4: Report -->
             <StackPanel Visibility="{Binding IsReportStep, Converter={StaticResource BoolToVisibilityConverter}}"
                         VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
                     <TextBlock Text="✓" FontFamily="Segoe UI" FontSize="24" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SuccessYesBrush}"/>
                     <TextBlock Text="QC Complete" FontSize="22" FontWeight="SemiBold" Foreground="#8B3D88" FontFamily="Segoe UI" VerticalAlignment="Center"/>
                 </StackPanel>
                 
-                <Grid Width="90" Height="90" Margin="0,0,0,10" HorizontalAlignment="Center">
+                <Grid Width="80" Height="80" Margin="0,0,0,6" HorizontalAlignment="Center">
                     <!-- Animated Checkbox Square -->
                     <Rectangle Stroke="{DynamicResource SuccessYesBrush}" StrokeThickness="5" RadiusX="16" RadiusY="16" Fill="Transparent" StrokeDashArray="400,400" StrokeDashOffset="400">
                         <Rectangle.Triggers>
@@ -225,17 +225,17 @@
                            HorizontalAlignment="Center" Margin="0,0,0,8" FontFamily="Segoe UI"
                            Foreground="{Binding OverallGrade, Converter={StaticResource GradeToColorConverter}}"/>
                 
-                <StackPanel Visibility="{Binding HasQrCode, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,12,0,16" HorizontalAlignment="Center">
+                <StackPanel Visibility="{Binding HasQrCode, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,6,0,8" HorizontalAlignment="Center">
                     <TextBlock Text="PRAMAAN Certification Verification" HorizontalAlignment="Center" FontSize="12" Foreground="#6b7280" Margin="0,0,0,4"/>
                     <Border BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="4" Padding="6" Background="White">
-                        <Image Source="{Binding QrCodeImage}" Width="110" Height="110" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Image Source="{Binding QrCodeImage}" Width="100" Height="100" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
                 </StackPanel>
 
-                <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
+                <TextBlock Text="{Binding ReportPath}" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,6" Foreground="#9ca3af" FontSize="11" FontFamily="Segoe UI"/>
                 
                 <TextBlock Text="{Binding SubmissionStatus}" FontSize="14" FontWeight="SemiBold" 
-                           HorizontalAlignment="Center" Margin="0,0,0,24" Foreground="{Binding SubmissionStatusColor}" FontFamily="Segoe UI"/>
+                           HorizontalAlignment="Center" Margin="0,0,0,12" Foreground="{Binding SubmissionStatusColor}" FontFamily="Segoe UI"/>
 
                 <Button Command="{Binding OpenReportCommand}" Content="View Report" 
                         Style="{StaticResource PrimaryButton}" Margin="0,0,0,10"/>

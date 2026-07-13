@@ -12,7 +12,7 @@
     <BrandProductName Condition="'$(BrandProductName)' == ''">PRAMAAN</BrandProductName>
     <BrandCompanyName Condition="'$(BrandCompanyName)' == ''">Gadget Guruz</BrandCompanyName>
     <BrandPublisherName Condition="'$(BrandPublisherName)' == ''">GadgetGuruz</BrandPublisherName>
-    <BrandUpdateUrl Condition="'$(BrandUpdateUrl)' == ''">https://gadgetguruz.com/api/pramaan/download</BrandUpdateUrl>
+    <BrandUpdateUrl Condition="'$(BrandUpdateUrl)' == ''">https://pramaan-dashboard.gadgetguruz.com</BrandUpdateUrl>
     <BrandIconPath Condition="'$(BrandIconPath)' == ''">Resources\pramana_icon.ico</BrandIconPath>
     <BrandXamlKey Condition="'$(BrandXamlKey)' == ''">Pramaan</BrandXamlKey>
   </PropertyGroup>
@@ -57,7 +57,7 @@
 	    <AssemblyName>$(BrandExeName)</AssemblyName>
 	    <Product>$(BrandProductName)</Product>
 	    <Company>$(BrandCompanyName)</Company>
-	    <Version>1.0.6</Version>
+	    <Version>1.0.7</Version>
 	    
 	  </PropertyGroup>
 

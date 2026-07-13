@@ -39,14 +39,21 @@ public static class BrandInfo
     public static string BrandXamlKey => Get("Brand", "Pramaan");
     public static string AppDisplayName => Get("Brand.AppDisplayName", "PRAMAAN");
     public static string Publisher => Get("Brand.Publisher", "GadgetGuruz");
-    public static string? UpdateUrl
+    public static string? UpdateBaseUrl
     {
         get
         {
             var value = Get("Brand.UpdateUrl", "");
-            return string.IsNullOrWhiteSpace(value) ? null : value;
+            return string.IsNullOrWhiteSpace(value) ? null : value.TrimEnd('/');
         }
     }
+
+    /// <summary>
+    /// Builds the manifest check URL for the given platform.
+    /// e.g. https://pramaan-dashboard.gadgetguruz.com/api/updates/windows/latest
+    /// </summary>
+    public static string? UpdateCheckUrl(string platform = "windows")
+        => UpdateBaseUrl is { } b ? $"{b}/api/updates/{platform}/latest" : null;
 
     public static string InstallerFileNamePrefix => $"{AppDisplayName}_Setup_";
     public static string IconFileName => Get("Brand.IconFileName", "pramana_icon.ico");

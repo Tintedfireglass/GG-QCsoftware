@@ -87,12 +87,18 @@ function getWindowsServerRelease(build: number): string {
 /**
  * Parse the raw Environment.OSVersion string (e.g. "Microsoft Windows NT 10.0.22631.0")
  * and return a friendly edition name and a release version label.
+ * Returns null if the string is not a recognised Windows NT version string.
  */
-export function parseWindowsVersion(osVersionRaw: string, productNameRaw?: string | null): { edition: string; release: string } {
-    if (!osVersionRaw) return { edition: '', release: '' };
+export function parseWindowsVersion(osVersionRaw: string, productNameRaw?: string | null): { edition: string; release: string } | null {
+    if (!osVersionRaw) return null;
+
+    // Only attempt Windows parsing for strings that look like NT version strings
+    if (!/microsoft windows nt/i.test(osVersionRaw) && !/^\d+\.\d+\.\d+/.test(osVersionRaw)) {
+        return null;
+    }
 
     const match = osVersionRaw.match(/(\d+)\.(\d+)\.(\d+)/);
-    if (!match) return { edition: osVersionRaw, release: '' };
+    if (!match) return null;
 
     const major = parseInt(match[1], 10);
     const build = parseInt(match[3], 10);
@@ -151,12 +157,28 @@ export function cleanWindowsProductName(rawName: string, baseEditionFromBuild: s
     return cleaned;
 }
 
-export function formatWindowsVersion(osVersionRaw?: string | null, productName?: string | null): string {
+/**
+ * Format an OS version string in an OS-neutral way.
+ * - Windows NT strings (e.g. "Microsoft Windows NT 10.0.22631.0") are parsed
+ *   into a friendly label like "Windows 11 23H2".
+ * - All other strings (Linux/macOS pretty names) are returned as-is.
+ */
+export function formatOsVersion(osVersionRaw?: string | null, productName?: string | null): string {
     if (!osVersionRaw && !productName) return "Unknown";
-    const { edition, release } = parseWindowsVersion(osVersionRaw || "", productName);
-    const finalEdition = productName ? cleanWindowsProductName(productName, edition) : edition;
-    if (release) return `${finalEdition} ${release}`;
-    return finalEdition || "Unknown";
+    const parsed = parseWindowsVersion(osVersionRaw || "", productName);
+    if (parsed) {
+        const { edition, release } = parsed;
+        const finalEdition = productName ? cleanWindowsProductName(productName, edition) : edition;
+        if (release) return `${finalEdition} ${release}`;
+        return finalEdition || osVersionRaw || "Unknown";
+    }
+    // Non-Windows: return the OS string directly (e.g. "Ubuntu 22.04.3 LTS", "macOS 14.5")
+    return productName || osVersionRaw || "Unknown";
+}
+
+/** @deprecated Use formatOsVersion instead */
+export function formatWindowsVersion(osVersionRaw?: string | null, productName?: string | null): string {
+    return formatOsVersion(osVersionRaw, productName);
 }
 
 export function deduplicateAntivirus(status: string | null | undefined): string {

@@ -2,7 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 using LaptopQC.App.Branding;
@@ -12,86 +14,136 @@ namespace LaptopQC.App.Services;
 
 public static class UpdateService
 {
+    // Platform token sent to the manifest API.
+    private const string Platform = "windows";
+
     public static async Task CheckForUpdatesAsync(Window owner)
     {
-        if (string.IsNullOrWhiteSpace(BrandInfo.UpdateUrl))
+        if (BrandInfo.UpdateCheckUrl() is not { } checkUrl)
             return;
 
         try
         {
-            var updateInfo = await FetchLatestAsync();
-            if (updateInfo == null) return;
+            var currentVersionText = AppVersionProvider.GetVersion().Split('+')[0].Trim();
 
-            var current = ParseVersion(AppVersionProvider.GetVersion());
-            if (current == null) return;
+            // ── 1. Fetch manifest ────────────────────────────────────────────
+            var manifest = await FetchManifestAsync(checkUrl, currentVersionText);
+            if (manifest == null) return;
 
-            if (updateInfo.Version <= current)
-                return;
+            if (!manifest.UpdateAvailable) return;
 
-            var result = MessageBox.Show(
-                owner,
-                $"A new version ({updateInfo.Version}) is available. Download and install now?",
-                "Update Available",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            var progressWindow = new Views.UpdateDownloadWindow
+            // ── 2. Mandatory vs. optional prompt ────────────────────────────
+            if (!manifest.Mandatory)
             {
-                Owner = owner
-            };
+                var result = MessageBox.Show(
+                    owner,
+                    $"Version {manifest.Version} is available.\n\n" +
+                    $"{(string.IsNullOrWhiteSpace(manifest.Notes) ? "" : manifest.Notes + "\n\n")}" +
+                    $"Size: {FormatBytes(manifest.Size)}\n\n" +
+                    "Download and install now?",
+                    "Update Available",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+            }
+            else
+            {
+                MessageBox.Show(
+                    owner,
+                    $"A mandatory update to version {manifest.Version} is required.\n\n" +
+                    $"{(string.IsNullOrWhiteSpace(manifest.Notes) ? "" : manifest.Notes + "\n\n")}" +
+                    $"Size: {FormatBytes(manifest.Size)}\n\n" +
+                    "The update will now be downloaded and installed.",
+                    "Mandatory Update Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+
+            // ── 3. Download ──────────────────────────────────────────────────
+            var downloadUrl = new Uri(manifest.Url);
+            var fileName = string.IsNullOrWhiteSpace(manifest.FileName)
+                ? Path.GetFileName(downloadUrl.LocalPath)
+                : manifest.FileName;
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = $"{BrandInfo.AppDisplayName}_Setup.exe";
+
+            var progressWindow = new Views.UpdateDownloadWindow { Owner = owner };
             progressWindow.Show();
 
-            var installerPath = await DownloadInstallerAsync(updateInfo.DownloadUrl, progress =>
+            string? installerPath;
+            try
             {
-                owner.Dispatcher.Invoke(() =>
+                installerPath = await DownloadInstallerAsync(downloadUrl, fileName, progress =>
                 {
-                    progressWindow.UpdateProgress(progress.BytesReceived, progress.TotalBytes);
+                    owner.Dispatcher.Invoke(() =>
+                        progressWindow.UpdateProgress(progress.BytesReceived, progress.TotalBytes));
                 });
-            });
+            }
+            finally
+            {
+                progressWindow.Close();
+            }
 
-            progressWindow.Close();
             if (string.IsNullOrWhiteSpace(installerPath) || !File.Exists(installerPath))
+            {
+                MessageBox.Show(owner, "Download failed. Please try again later.",
+                    "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
+            }
 
+            // ── 4. SHA-256 verification ──────────────────────────────────────
+            if (!string.IsNullOrWhiteSpace(manifest.Sha256))
+            {
+                var ok = await VerifyChecksumAsync(installerPath, manifest.Sha256);
+                if (!ok)
+                {
+                    File.Delete(installerPath);
+                    MessageBox.Show(owner,
+                        "The downloaded installer failed the integrity check and was removed.\n" +
+                        "Please try again.",
+                        "Checksum Mismatch", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            // ── 5. Launch installer & exit ───────────────────────────────────
             Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true });
             Application.Current.Shutdown();
         }
         catch
         {
-            // Best-effort only; don't interrupt the app if update check fails.
+            // Best-effort — never crash the app because of an update check.
         }
     }
 
-    private static async Task<UpdateInfo?> FetchLatestAsync()
-    {
-        using var handler = new HttpClientHandler { AllowAutoRedirect = true };
-        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+    // ── Private helpers ──────────────────────────────────────────────────────
 
-        using var response = await http.GetAsync(BrandInfo.UpdateUrl!, HttpCompletionOption.ResponseHeadersRead);
+    /// <summary>
+    /// Calls GET /api/updates/{platform}/latest?current={version}
+    /// and deserialises the JSON manifest.
+    /// </summary>
+    private static async Task<UpdateManifest?> FetchManifestAsync(string checkUrl, string currentVersion)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var url = $"{checkUrl}?current={Uri.EscapeDataString(currentVersion)}";
+        var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         if (!response.IsSuccessStatusCode)
             return null;
 
-        var finalUri = response.RequestMessage?.RequestUri;
-        if (finalUri == null)
-            return null;
-
-        var version = ParseVersionFromUrl(finalUri);
-        if (version == null)
-            return null;
-
-        return new UpdateInfo(version, finalUri);
+        return await response.Content.ReadFromJsonAsync<UpdateManifest>();
     }
 
-    private static async Task<string?> DownloadInstallerAsync(Uri downloadUrl, Action<DownloadProgress>? onProgress = null)
+    /// <summary>
+    /// Streams the installer to %TEMP% and reports progress.
+    /// </summary>
+    private static async Task<string?> DownloadInstallerAsync(
+        Uri downloadUrl,
+        string fileName,
+        Action<DownloadProgress>? onProgress = null)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-        var fileName = Path.GetFileName(downloadUrl.LocalPath);
-        if (string.IsNullOrWhiteSpace(fileName))
-            fileName = $"{BrandInfo.AppDisplayName}_Setup.exe";
-
         var targetPath = Path.Combine(Path.GetTempPath(), fileName);
 
         using var response = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -120,30 +172,47 @@ public static class UpdateService
         return targetPath;
     }
 
-    private static Version? ParseVersion(string? versionText)
+    /// <summary>
+    /// Computes the SHA-256 hash of the file and compares it to the expected hex string.
+    /// </summary>
+    private static async Task<bool> VerifyChecksumAsync(string filePath, string expectedHex)
     {
-        if (string.IsNullOrWhiteSpace(versionText))
-            return null;
-
-        var clean = versionText.Split('+')[0].Trim();
-        return Version.TryParse(clean, out var version) ? version : null;
+        using var sha256 = SHA256.Create();
+        await using var stream = File.OpenRead(filePath);
+        var hashBytes = await sha256.ComputeHashAsync(stream);
+        var actual = Convert.ToHexString(hashBytes);   // uppercase hex
+        return actual.Equals(expectedHex.Replace("-", ""), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static Version? ParseVersionFromUrl(Uri url)
+    private static string FormatBytes(long bytes)
     {
-        var file = Path.GetFileName(url.LocalPath);
-        if (string.IsNullOrWhiteSpace(file))
-            return null;
+        const double gb = 1024 * 1024 * 1024;
+        const double mb = 1024 * 1024;
+        const double kb = 1024;
 
-        var prefix = Regex.Escape(BrandInfo.InstallerFileNamePrefix);
-        var match = Regex.Match(file, $@"{prefix}(\d+(?:\.\d+){{1,3}})\.exe", RegexOptions.IgnoreCase);
-        if (!match.Success)
-            return null;
-
-        return Version.TryParse(match.Groups[1].Value, out var version) ? version : null;
+        if (bytes >= gb) return $"{bytes / gb:0.00} GB";
+        if (bytes >= mb) return $"{bytes / mb:0.00} MB";
+        if (bytes >= kb) return $"{bytes / kb:0.00} KB";
+        return $"{bytes} B";
     }
 
-    private record UpdateInfo(Version Version, Uri DownloadUrl);
+    // ── Data models ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Maps to the JSON returned by GET /api/updates/{platform}/latest
+    /// </summary>
+    private sealed class UpdateManifest
+    {
+        [JsonPropertyName("version")]      public string  Version        { get; init; } = "";
+        [JsonPropertyName("updateAvailable")] public bool UpdateAvailable { get; init; }
+        [JsonPropertyName("mandatory")]    public bool    Mandatory       { get; init; }
+        [JsonPropertyName("notes")]        public string? Notes           { get; init; }
+        [JsonPropertyName("url")]          public string  Url             { get; init; } = "";
+        [JsonPropertyName("sha256")]       public string? Sha256          { get; init; }
+        [JsonPropertyName("size")]         public long    Size            { get; init; }
+        [JsonPropertyName("fileName")]     public string? FileName        { get; init; }
+        [JsonPropertyName("publishedAt")]  public string? PublishedAt     { get; init; }
+    }
 }
 
 public record DownloadProgress(long BytesReceived, long? TotalBytes);

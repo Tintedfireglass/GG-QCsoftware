@@ -342,17 +342,21 @@ export default function ResultDetailPage() {
                                     <dd className="sm:col-span-2 font-mono text-slate-900 break-all">{data.mac_address}</dd>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
-                                    <dt className="font-medium text-slate-500">Windows Version</dt>
+                                    <dt className="font-medium text-slate-500">OS Version</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{formatWindowsVersion(data.system_info_json?.osVersion, data.system_info_json?.windowsProductName)}</dd>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
-                                    <dt className="font-medium text-slate-500">Windows Last Updated</dt>
-                                    <dd className="sm:col-span-2 text-slate-900 break-words">{formatDbDate(data.system_info_json?.windowsLastUpdatedAt)}</dd>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
-                                    <dt className="font-medium text-slate-500">Windows Activation</dt>
-                                    <dd className="sm:col-span-2 text-slate-900 break-words">{activationText}</dd>
-                                </div>
+                                {data.system_info_json?.windowsLastUpdatedAt && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">OS Last Updated</dt>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{formatDbDate(data.system_info_json.windowsLastUpdatedAt)}</dd>
+                                    </div>
+                                )}
+                                {(data.system_info_json?.windowsActivationStatus != null || data.system_info_json?.isWindowsActivated != null) && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">OS Activation</dt>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{activationText}</dd>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Antivirus Status</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{antivirusText}</dd>
