@@ -1,5 +1,7 @@
 import { IPaymentGateway, PaymentGatewayConfig } from './gateway.interface';
 import { RazorpayGateway } from './razorpay.gateway';
+import { StripeGateway } from './stripe.gateway';
+import { PayPalGateway } from './paypal.gateway';
 
 export interface ResolvedCredentials {
     mode: 'test' | 'live';
@@ -43,6 +45,25 @@ export function createPaymentGateway(config: PaymentGatewayConfig): IPaymentGate
                 keyId: creds.keyId || '',
                 keySecret: creds.keySecret || '',
                 webhookSecret: creds.webhookSecret,
+                displayName: creds.displayName,
+            });
+        }
+        case 'stripe': {
+            const creds = resolveGatewayCredentials(config.config);
+            return new StripeGateway({
+                keyId: creds.keyId,
+                keySecret: creds.keySecret || '',
+                webhookSecret: creds.webhookSecret,
+                displayName: creds.displayName,
+            });
+        }
+        case 'paypal': {
+            const creds = resolveGatewayCredentials(config.config);
+            return new PayPalGateway({
+                keyId: creds.keyId || '',
+                keySecret: creds.keySecret || '',
+                webhookSecret: creds.webhookSecret,
+                mode: creds.mode,
                 displayName: creds.displayName,
             });
         }

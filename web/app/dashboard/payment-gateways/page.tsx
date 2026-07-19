@@ -35,6 +35,48 @@ interface Gateway {
 type KeySet = { keyId: string; keySecret: string; webhookSecret: string }
 const emptyKeys = (): KeySet => ({ keyId: "", keySecret: "", webhookSecret: "" })
 
+type FieldMeta = { label: string; testPlaceholder: string; livePlaceholder: string; required: boolean; secret?: boolean }
+type ProviderMeta = {
+    label: string
+    icon: string
+    /** Labels for the test/live key-set modes (PayPal calls test "Sandbox"). */
+    testModeLabel: string
+    liveModeLabel: string
+    keyId: FieldMeta
+    keySecret: FieldMeta
+    webhookSecret: FieldMeta
+}
+
+const PROVIDERS: Record<string, ProviderMeta> = {
+    razorpay: {
+        label: "🇮🇳 Razorpay (India)",
+        icon: "🇮🇳",
+        testModeLabel: "Test",
+        liveModeLabel: "Live",
+        keyId: { label: "Key ID", testPlaceholder: "rzp_test_xxxxx", livePlaceholder: "rzp_live_xxxxx", required: true },
+        keySecret: { label: "Key Secret", testPlaceholder: "Your test secret", livePlaceholder: "Your live secret", required: true, secret: true },
+        webhookSecret: { label: "Webhook Secret", testPlaceholder: "From Razorpay → Webhooks", livePlaceholder: "From Razorpay → Webhooks", required: false, secret: true },
+    },
+    stripe: {
+        label: "💳 Stripe (Global)",
+        icon: "💳",
+        testModeLabel: "Test",
+        liveModeLabel: "Live",
+        keyId: { label: "Publishable Key (optional)", testPlaceholder: "pk_test_xxxxx", livePlaceholder: "pk_live_xxxxx", required: false },
+        keySecret: { label: "Secret Key", testPlaceholder: "sk_test_xxxxx", livePlaceholder: "sk_live_xxxxx", required: true, secret: true },
+        webhookSecret: { label: "Webhook Signing Secret", testPlaceholder: "whsec_xxxxx", livePlaceholder: "whsec_xxxxx", required: false, secret: true },
+    },
+    paypal: {
+        label: "🅿️ PayPal (Global)",
+        icon: "🅿️",
+        testModeLabel: "Sandbox",
+        liveModeLabel: "Live",
+        keyId: { label: "Client ID", testPlaceholder: "Sandbox client id", livePlaceholder: "Live client id", required: true },
+        keySecret: { label: "Client Secret", testPlaceholder: "Sandbox client secret", livePlaceholder: "Live client secret", required: true, secret: true },
+        webhookSecret: { label: "Webhook ID", testPlaceholder: "From PayPal → Webhooks", livePlaceholder: "From PayPal → Webhooks", required: false, secret: true },
+    },
+}
+
 export default function PaymentGatewaysPage() {
     const { isSuperAdmin } = useAuth()
     const [gateways, setGateways] = useState<Gateway[]>([])
@@ -126,10 +168,16 @@ export default function PaymentGatewaysPage() {
         }
 
         // On create, the selected mode's keys are required. On edit, blanks keep existing.
-        if (!editId && formProvider.toLowerCase() === "razorpay") {
+        const meta = PROVIDERS[formProvider.toLowerCase()]
+        if (!editId && meta) {
             const active = formMode === "live" ? liveKeys : testKeys
-            if (!active.keyId || !active.keySecret) {
-                setFormError(`Razorpay requires Key ID and Key Secret for the active (${formMode}) mode`)
+            const modeLabel = formMode === "live" ? meta.liveModeLabel : meta.testModeLabel
+            if (meta.keyId.required && !active.keyId) {
+                setFormError(`${meta.label.replace(/^\S+\s/, "")} requires ${meta.keyId.label} for the active (${modeLabel}) mode`)
+                return
+            }
+            if (meta.keySecret.required && !active.keySecret) {
+                setFormError(`${meta.label.replace(/^\S+\s/, "")} requires ${meta.keySecret.label} for the active (${modeLabel}) mode`)
                 return
             }
         }
@@ -211,110 +259,100 @@ export default function PaymentGatewaysPage() {
     }
 
     function getProviderIcon(provider: string) {
-        switch (provider.toLowerCase()) {
-            case "razorpay":
-                return "🇮🇳"
-            default:
-                return "💰"
-        }
+        return PROVIDERS[provider.toLowerCase()]?.icon ?? "💰"
     }
 
     function getProviderDisplayName(provider: string) {
-        switch (provider.toLowerCase()) {
-            case "razorpay":
-                return "Razorpay"
-            default:
-                return provider.charAt(0).toUpperCase() + provider.slice(1)
-        }
+        const key = provider.toLowerCase()
+        if (key === "razorpay") return "Razorpay"
+        if (key === "stripe") return "Stripe"
+        if (key === "paypal") return "PayPal"
+        return provider.charAt(0).toUpperCase() + provider.slice(1)
     }
 
     function renderConfigFields() {
-        const provider = formProvider.toLowerCase()
+        const meta = PROVIDERS[formProvider.toLowerCase()]
+        if (!meta) {
+            return <p className="text-sm text-slate-500">Select a supported provider to configure its credentials.</p>
+        }
 
-        if (provider === "razorpay") {
-            const renderKeySet = (label: string, mode: "test" | "live", keys: KeySet, setKeys: (k: KeySet) => void) => (
-                <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-slate-800">{label}</h4>
-                        {formMode === mode && (
-                            <span className="text-xs rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">Active</span>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Key ID</label>
+        const renderField = (
+            field: FieldMeta,
+            mode: "test" | "live",
+            fieldKey: "keyId" | "keySecret" | "webhookSecret",
+            keys: KeySet,
+            setKeys: (k: KeySet) => void,
+        ) => {
+            const placeholder = editId
+                ? "Leave blank to keep current"
+                : (mode === "test" ? field.testPlaceholder : field.livePlaceholder)
+            const toggleKey = `${mode}${fieldKey}`
+            return (
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {field.label}
+                        {!field.required && <span className="text-slate-400"> (recommended)</span>}
+                    </label>
+                    <div className="relative">
                         <Input
-                            type="text"
-                            placeholder={editId ? "Leave blank to keep current" : (mode === "test" ? "rzp_test_xxxxx" : "rzp_live_xxxxx")}
-                            value={keys.keyId}
-                            onChange={(e) => setKeys({ ...keys, keyId: e.target.value })}
+                            type={field.secret && !showSecrets[toggleKey] ? "password" : "text"}
+                            placeholder={placeholder}
+                            value={keys[fieldKey]}
+                            onChange={(e) => setKeys({ ...keys, [fieldKey]: e.target.value })}
                         />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Key Secret</label>
-                        <div className="relative">
-                            <Input
-                                type={showSecrets[`${mode}Secret`] ? "text" : "password"}
-                                placeholder={editId ? "Leave blank to keep current" : "Your secret key"}
-                                value={keys.keySecret}
-                                onChange={(e) => setKeys({ ...keys, keySecret: e.target.value })}
-                            />
+                        {field.secret && (
                             <button type="button"
-                                onClick={() => setShowSecrets({ ...showSecrets, [`${mode}Secret`]: !showSecrets[`${mode}Secret`] })}
+                                onClick={() => setShowSecrets({ ...showSecrets, [toggleKey]: !showSecrets[toggleKey] })}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                {showSecrets[`${mode}Secret`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                {showSecrets[toggleKey] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Webhook Secret <span className="text-slate-400">(recommended)</span></label>
-                        <div className="relative">
-                            <Input
-                                type={showSecrets[`${mode}Webhook`] ? "text" : "password"}
-                                placeholder={editId ? "Leave blank to keep current" : "From Razorpay → Webhooks"}
-                                value={keys.webhookSecret}
-                                onChange={(e) => setKeys({ ...keys, webhookSecret: e.target.value })}
-                            />
-                            <button type="button"
-                                onClick={() => setShowSecrets({ ...showSecrets, [`${mode}Webhook`]: !showSecrets[`${mode}Webhook`] })}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                {showSecrets[`${mode}Webhook`] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
             )
-            return (
-                <>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Active mode</label>
-                        <select
-                            value={formMode}
-                            onChange={(e) => setFormMode(e.target.value as "test" | "live")}
-                            className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm"
-                        >
-                            <option value="test">Test</option>
-                            <option value="live">Live</option>
-                        </select>
-                        <p className="text-xs text-slate-500 mt-1">Which key set processes payments right now — switchable anytime.</p>
-                    </div>
-                    {renderKeySet("Test keys", "test", testKeys, setTestKeys)}
-                    {renderKeySet("Live keys", "live", liveKeys, setLiveKeys)}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Checkout Display Name <span className="text-slate-400">(optional)</span></label>
-                        <Input
-                            type="text"
-                            placeholder="LaptopQC License"
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                        />
-                        <p className="text-xs text-slate-500 mt-1">On edit, leave key fields blank to keep the saved values.</p>
-                    </div>
-                </>
-            )
         }
 
+        const renderKeySet = (label: string, mode: "test" | "live", keys: KeySet, setKeys: (k: KeySet) => void) => (
+            <div className="border border-slate-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-800">{label}</h4>
+                    {formMode === mode && (
+                        <span className="text-xs rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 font-semibold">Active</span>
+                    )}
+                </div>
+                {renderField(meta.keyId, mode, "keyId", keys, setKeys)}
+                {renderField(meta.keySecret, mode, "keySecret", keys, setKeys)}
+                {renderField(meta.webhookSecret, mode, "webhookSecret", keys, setKeys)}
+            </div>
+        )
+
         return (
-            <p className="text-sm text-slate-500">Select a supported provider to configure its credentials.</p>
+            <>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Active mode</label>
+                    <select
+                        value={formMode}
+                        onChange={(e) => setFormMode(e.target.value as "test" | "live")}
+                        className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm"
+                    >
+                        <option value="test">{meta.testModeLabel}</option>
+                        <option value="live">{meta.liveModeLabel}</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Which key set processes payments right now — switchable anytime.</p>
+                </div>
+                {renderKeySet(`${meta.testModeLabel} keys`, "test", testKeys, setTestKeys)}
+                {renderKeySet(`${meta.liveModeLabel} keys`, "live", liveKeys, setLiveKeys)}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Checkout Display Name <span className="text-slate-400">(optional)</span></label>
+                    <Input
+                        type="text"
+                        placeholder="LaptopQC License"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">On edit, leave key fields blank to keep the saved values.</p>
+                </div>
+            </>
         )
     }
 
@@ -391,7 +429,9 @@ export default function PaymentGatewaysPage() {
                                 className="w-full h-10 px-3 border border-slate-200 rounded-md text-sm disabled:bg-slate-100 disabled:text-slate-500"
                             >
                                 <option value="">Select a provider...</option>
-                                <option value="razorpay">🇮🇳 Razorpay (India)</option>
+                                {Object.entries(PROVIDERS).map(([key, meta]) => (
+                                    <option key={key} value={key}>{meta.label}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -597,12 +637,31 @@ export default function PaymentGatewaysPage() {
                         </ol>
                     </div>
                     <div>
+                        <h4 className="font-semibold text-slate-900 mb-2">Stripe Setup (Global)</h4>
+                        <ol className="list-decimal list-inside space-y-1 ml-2">
+                            <li>Create account at <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">stripe.com</a></li>
+                            <li>Go to Developers → API keys; copy the <strong>Secret key</strong> (<code className="text-xs bg-slate-100 px-1 py-0.5 rounded">sk_test_…</code> / <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">sk_live_…</code>)</li>
+                            <li>In Developers → Webhooks, add an endpoint at the webhook URL below</li>
+                            <li>Subscribe to <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">checkout.session.completed</code> and <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">payment_intent.payment_failed</code></li>
+                            <li>Copy the <strong>Signing secret</strong> (<code className="text-xs bg-slate-100 px-1 py-0.5 rounded">whsec_…</code>) into Webhook Signing Secret above</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-slate-900 mb-2">PayPal Setup (Global)</h4>
+                        <ol className="list-decimal list-inside space-y-1 ml-2">
+                            <li>Create an app at <a href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">developer.paypal.com</a> (Sandbox or Live)</li>
+                            <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> into the matching mode above</li>
+                            <li>Under the app&apos;s Webhooks, add the webhook URL below and subscribe to <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">PAYMENT.CAPTURE.COMPLETED</code> and <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">PAYMENT.CAPTURE.DENIED</code></li>
+                            <li>Copy the <strong>Webhook ID</strong> into Webhook ID above</li>
+                            <li>Note: PayPal does not support auto-renewal in this integration — use Razorpay or Stripe for recurring plans</li>
+                        </ol>
+                    </div>
+                    <div>
                         <h4 className="font-semibold text-slate-900 mb-2">Webhook Setup (recommended)</h4>
                         <ol className="list-decimal list-inside space-y-1 ml-2">
-                            <li>In Razorpay → Settings → Webhooks, add a webhook</li>
-                            <li>URL: <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">{`${typeof window !== "undefined" ? window.location.origin : ""}/api/customer/payment/webhook`}</code></li>
-                            <li>Subscribe to events: <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">payment.captured</code>, <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">payment.failed</code></li>
-                            <li>Copy the webhook secret and paste it into the gateway config above</li>
+                            <li>Webhook URL (all providers): <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">{`${typeof window !== "undefined" ? window.location.origin : ""}/api/customer/payment/webhook`}</code></li>
+                            <li>Razorpay events: <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">payment.captured</code>, <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">payment.failed</code></li>
+                            <li>Copy the provider&apos;s webhook secret/ID and paste it into the gateway config above</li>
                         </ol>
                         <p className="text-xs text-slate-500 mt-1">Without a webhook, a license key may not be issued if the customer closes the browser before redirect.</p>
                     </div>

@@ -35,12 +35,27 @@ async function parseCallbackInput(request: NextRequest, body: Record<string, unk
     const search = request.nextUrl.searchParams;
     const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
-    // Razorpay signed return → verify the signature.
-    if (body.razorpay_signature) {
+    // Query params and body merged into one bag (body wins) so gateway returns that
+    // arrive as either a GET redirect or a form POST are handled uniformly.
+    const merged: Record<string, unknown> = { ...Object.fromEntries(search.entries()), ...body };
+    const state = (typeof body.state === 'string' ? body.state : null) ?? search.get('state');
+
+    // Explicit cancellation from a gateway cancel_url / dismissed modal.
+    const rawStatus = String(merged.status ?? '').toLowerCase();
+    if (rawStatus === 'cancelled' || rawStatus === 'canceled') {
+        return { state, status: 'failed', paymentRef: null, gatewayRef: null, appBaseUrl };
+    }
+
+    // Any return that must be confirmed server-side (signed Razorpay POST, Stripe
+    // session_id, PayPal order token) is verified through the active gateway, which
+    // reads its own fields from the merged bag.
+    const needsVerify =
+        !!body.razorpay_signature || merged.session_id != null || merged.token != null;
+    if (needsVerify) {
         const headers = Object.fromEntries(request.headers.entries());
-        const verification = await verifyPaymentCallback(body, headers);
+        const verification = await verifyPaymentCallback(merged, headers);
         return {
-            state: (typeof body.state === 'string' ? body.state : null) ?? search.get('state'),
+            state,
             status: verification.status,
             paymentRef: verification.paymentRef || null,
             gatewayRef: verification.gatewayRef || null,

@@ -13,7 +13,7 @@ export const POST = withAuth(['SuperAdmin'], async (request) => {
     if (!provider || typeof provider !== 'string') {
         return json({ error: 'Provider is required' }, { status: 400 });
     }
-    const SUPPORTED_PROVIDERS = ['razorpay'];
+    const SUPPORTED_PROVIDERS = ['razorpay', 'stripe', 'paypal'];
     if (!SUPPORTED_PROVIDERS.includes(provider.toLowerCase())) {
         return json({ error: `Unsupported provider. Supported: ${SUPPORTED_PROVIDERS.join(', ')}` }, { status: 400 });
     }
