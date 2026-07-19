@@ -41,6 +41,7 @@ export const POST = wrap(async (request) => {
             autoRenew: parsed.data.autoRenew,
             couponCode: parsed.data.couponCode ?? null,
             quantity: parsed.data.quantity ?? 1,
+            platformCaps: parsed.data.platformCaps ?? null,
         }, appBaseUrl);
         return NextResponse.json({ ok: true, ...result }, { headers: CORS });
     } catch (err) {

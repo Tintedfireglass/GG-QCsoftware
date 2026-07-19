@@ -11,5 +11,8 @@ export const publicCheckoutSchema = z.object({
     autoRenew: z.boolean().optional(),
     couponCode: z.string().trim().max(40).nullish(),
     quantity: z.number().int().min(1).max(999).optional(),
+    // Per-platform device counts, e.g. { windows: 4, android: 2 }. When present the
+    // key is minted from these caps (priced per device) instead of quantity.
+    platformCaps: z.record(z.string(), z.number().int().min(0).max(9999)).optional(),
 });
 export type PublicCheckoutInput = z.infer<typeof publicCheckoutSchema>;

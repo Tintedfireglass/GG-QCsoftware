@@ -8,6 +8,7 @@ import * as repo from '@/lib/shared/repositories/customer.repo';
 import * as plansRepo from '@/lib/shared/repositories/plans.repo';
 import * as couponsRepo from '@/lib/shared/repositories/coupons.repo';
 import { evaluateCoupon } from '@/lib/shared/services/coupons.service';
+import { computePlanPricing } from '@/lib/shared/services/pricing';
 import { createPaymentCheckout, fetchSavedMandate } from '@/lib/shared/services/payment.service';
 import { sendMail } from '@/lib/shared/email/mailer';
 import { renderTemplate } from '@/lib/shared/services/email-settings.service';
@@ -134,8 +135,9 @@ export async function listLicenses(customerId: number) {
     return { licenses: await repo.listCustomerLicenses(customerId) };
 }
 
-export async function createCheckout(customerId: number, email: string, appBaseUrl: string, planId?: number | null, autoRenew?: boolean, couponCode?: string | null, quantity = 1, buyer?: BuyerInfo) {
+export async function createCheckout(customerId: number, email: string, appBaseUrl: string, planId?: number | null, autoRenew?: boolean, couponCode?: string | null, quantity = 1, buyer?: BuyerInfo, platformCaps?: Record<string, number> | null) {
     const qty = Math.max(1, Math.floor(quantity || 1));
+    const usePerPlatform = !!platformCaps && Object.keys(platformCaps).length > 0;
     // Plan-driven pricing when a planId is given; otherwise fall back to the legacy env one-time price.
     let planName = 'one_time';
     let amountCents = getPlanPriceCents();
@@ -148,11 +150,17 @@ export async function createCheckout(customerId: number, email: string, appBaseU
     let discountCents = 0;
     let couponId: number | null = null;
 
+    // The per-platform caps that get minted onto the key (store per-platform checkout).
+    let resolvedPlatformCaps: Record<string, number> | null = null;
+
     if (planId) {
         const plan = await plansRepo.findPlanById(db, planId);
         if (!plan || !plan.is_active) throw new NotFoundError('Plan not found or inactive');
         planName = plan.name;
-        amountCents = plan.price_cents * qty;
+        // Either per-platform device counts (priced per device) or uniform quantity.
+        const pricing = computePlanPricing(plan, { quantity: qty, platformCaps: usePerPlatform ? platformCaps : null });
+        amountCents = pricing.amountCents;
+        if (usePerPlatform) resolvedPlatformCaps = pricing.platformCaps;
         currency = (plan.currency || 'INR').toUpperCase();
         resolvedPlanId = plan.id;
         subtotalCents = amountCents;
@@ -182,11 +190,18 @@ export async function createCheckout(customerId: number, email: string, appBaseU
         subtotalCents,
         discountCents,
         couponId,
-        quantity: qty,
+        // Per-platform orders store absolute caps; quantity is 1 (no uniform multiplier).
+        quantity: usePerPlatform ? 1 : qty,
+        platformCaps: resolvedPlatformCaps,
         pendingPassword: buyer?.pendingPassword ?? null,
     });
 
-    const checkoutState = signCheckoutState({ orderId, customerId, plan: planName });
+    const checkoutState = signCheckoutState({
+        orderId,
+        customerId,
+        plan: planName,
+        ...(resolvedPlatformCaps ? { platformCaps: resolvedPlatformCaps } : {}),
+    });
     await repo.updateOrderCheckoutState(orderId, checkoutState);
 
     const callbackUrl = `${appBaseUrl}/api/customer/payment/callback`;
@@ -212,6 +227,8 @@ export interface GuestCheckoutInput {
     autoRenew?: boolean;
     couponCode?: string | null;
     quantity?: number;
+    /** Buyer-chosen per-platform device counts (per-platform checkout). */
+    platformCaps?: Record<string, number> | null;
 }
 
 /**
@@ -243,7 +260,7 @@ export async function guestCheckout(input: GuestCheckoutInput, appBaseUrl: strin
 
     const result = await createCheckout(customerId, email, appBaseUrl, input.planId, input.autoRenew, input.couponCode, input.quantity ?? 1, {
         pendingPassword,
-    });
+    }, input.platformCaps ?? null);
     return { redirectUrl: result.redirectUrl, orderId: result.orderId };
 }
 
@@ -307,16 +324,18 @@ export async function processPaymentCallback(input: CallbackInput): Promise<Call
         if (order.plan_id) {
             const plan = await plansRepo.findPlanById(tx, order.plan_id);
             if (!plan) throw new Error('Plan not found for order');
-            // Quantity multiplies the plan's per-platform device caps on this one key.
-            const qty = Math.max(1, order.quantity || 1);
-            const scaledCaps: Record<string, number> = {};
-            for (const [k, v] of Object.entries(plan.platform_caps)) scaledCaps[k] = v * qty;
-            const totalDevices = Object.values(scaledCaps).reduce((a, b) => a + b, 0) || 1;
+            // Per-platform orders carry the exact caps on the order row (the signed
+            // state is a fallback for orders placed across a deploy); legacy orders
+            // scale the plan's caps by quantity. Either way one key is minted.
+            const pricing = computePlanPricing(plan, {
+                quantity: order.quantity,
+                platformCaps: order.platform_caps ?? payload.platformCaps ?? null,
+            });
             entitlement = {
-                type: totalDevices === 1 ? 'single_use' : 'bulk',
-                maxUses: totalDevices,
-                productScope: plan.product_scope,
-                platformCaps: scaledCaps,
+                type: pricing.totalDevices === 1 ? 'single_use' : 'bulk',
+                maxUses: pricing.totalDevices,
+                productScope: pricing.productScope,
+                platformCaps: pricing.platformCaps,
                 expiry: plan.duration_days ? new Date(Date.now() + plan.duration_days * 86_400_000) : null,
                 autoRenew: order.auto_renew && plan.duration_days != null,
                 renewalPlanId: order.auto_renew && plan.duration_days != null ? plan.id : null,

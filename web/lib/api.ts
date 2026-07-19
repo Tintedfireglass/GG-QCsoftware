@@ -679,6 +679,10 @@ export interface OrderDTO {
     customer_name: string | null
     created_at: string
     updated_at: string
+    // Purchased quantity (uniform orders) and per-platform device caps
+    // (per-platform checkout). platform_caps is authoritative for the key when set.
+    quantity?: number | null
+    platform_caps?: Record<string, number> | null
     // Detail-only fields (populated by GET /api/admin/orders/[id])
     subtotal_cents?: number | null
     discount_cents?: number | null

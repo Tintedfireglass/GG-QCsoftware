@@ -14,6 +14,13 @@ const STATUS_STYLES: Record<string, string> = {
     refunded: "border-slate-200 bg-slate-100 text-slate-600",
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+    windows: "Windows",
+    android: "Android",
+    ios: "iOS",
+    mac: "Mac",
+}
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex items-start justify-between gap-4 py-3 border-b border-slate-100 last:border-0">
@@ -138,6 +145,22 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 className="text-sm font-semibold text-slate-900 mb-2">Plan & license</h2>
                 <Row label="Plan">{order.plan_name || order.plan || "—"}</Row>
+                {order.platform_caps && Object.keys(order.platform_caps).length > 0 ? (
+                    <Row label="Platforms & devices">
+                        <div className="flex flex-wrap gap-1 justify-end">
+                            {Object.entries(order.platform_caps).map(([p, n]) => (
+                                <span key={p} className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                                    {PLATFORM_LABELS[p] || p} ×{n}
+                                </span>
+                            ))}
+                            <span className="inline-flex items-center rounded bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-[var(--brand-purple)]">
+                                {Object.values(order.platform_caps).reduce((a, b) => a + b, 0)} devices
+                            </span>
+                        </div>
+                    </Row>
+                ) : order.quantity && order.quantity > 1 ? (
+                    <Row label="Quantity">{order.quantity}</Row>
+                ) : null}
                 <Row label="License key">
                     {order.license_key ? <span className="font-mono">{order.license_key}</span> : "—"}
                 </Row>

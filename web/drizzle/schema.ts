@@ -309,6 +309,10 @@ export const customerOrders = pgTable("customer_orders", {
 	// Purchased quantity — multiplies the plan's per-platform device caps on the
 	// minted key, and the price. Default 1.
 	quantity: integer().default(1).notNull(),
+	// Buyer-chosen per-platform device caps for per-platform checkout, e.g.
+	// { windows: 4, android: 2 }. Null for legacy/uniform-quantity orders; when set
+	// it's authoritative for the minted key (scope = its keys, maxUses = sum).
+	platformCaps: jsonb("platform_caps").$type<Record<string, number>>(),
 	// Transient plaintext of an auto-generated password for a brand-new customer,
 	// emailed once on successful purchase then cleared. Null for existing customers.
 	pendingPassword: varchar("pending_password"),
