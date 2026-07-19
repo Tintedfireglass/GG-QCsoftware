@@ -170,7 +170,42 @@
   cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
 }
 .coupon-toggle:hover { color: var(--color-primary-dark); }
+.coupon-field { position: relative; }
 .coupon-inline { display: flex; gap: var(--spacing-xs); margin-top: var(--spacing-xs); }
+
+/* Selectable dropdown of advertised coupons */
+.coupon-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+  background: var(--color-white);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: 0 12px 32px rgba(31, 20, 45, 0.14);
+  overflow: hidden; max-height: 260px; overflow-y: auto;
+}
+.coupon-dd-head {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-text-light); font-weight: 600;
+  padding: 10px 12px 6px;
+}
+.coupon-dd-item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-sm);
+  width: 100%; text-align: left;
+  padding: 10px 12px; cursor: pointer;
+  background: none; border: none; border-top: 1px solid #f2eef7;
+  transition: background 0.12s ease;
+}
+.coupon-dd-item:hover { background: rgba(139, 60, 150, 0.06); }
+.coupon-dd-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.coupon-dd-code { font-weight: 700; color: var(--color-text-dark); font-size: 0.85rem; }
+.coupon-dd-code i { color: var(--color-primary); margin-right: 4px; }
+.coupon-dd-desc {
+  color: var(--color-text-light); font-size: 0.75rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.coupon-dd-off {
+  color: var(--color-primary); font-weight: 700; font-size: 0.8rem;
+  white-space: nowrap; flex-shrink: 0;
+}
 .coupon-input {
   flex: 1;
   border: 1.5px solid var(--border-color);

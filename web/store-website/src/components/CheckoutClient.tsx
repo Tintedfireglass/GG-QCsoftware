@@ -26,6 +26,12 @@ interface LivePlan {
   platform_caps: Record<string, number> | null;
 }
 
+interface AvailableCoupon {
+  code: string;
+  label: string;
+  description: string | null;
+}
+
 const PLATFORM_LABELS: Record<string, string> = {
   windows: "Windows",
   android: "Android",
@@ -65,6 +71,8 @@ export default function CheckoutClient() {
   const [coupon, setCoupon] = useState<{ code: string; discount_cents: number } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [showCoupon, setShowCoupon] = useState(false);
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -97,6 +105,21 @@ export default function CheckoutClient() {
       }
     })();
 
+    return () => { cancelled = true; };
+  }, [planId]);
+
+  // Load coupons the admin chose to advertise for this plan (for the dropdown).
+  useEffect(() => {
+    if (!planId || !hasApiBase()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("public/coupons") + `?planId=${planId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setAvailableCoupons(data?.coupons || []);
+      } catch { /* no dropdown on failure */ }
+    })();
     return () => { cancelled = true; };
   }, [planId]);
 
@@ -138,9 +161,11 @@ export default function CheckoutClient() {
     return out;
   }, [counts]);
 
-  async function applyCoupon() {
-    const code = couponCode.trim();
+  async function applyCoupon(codeArg?: string) {
+    const code = (codeArg ?? couponCode).trim();
     if (!code || !plan || totalDevices < 1) return;
+    setCouponCode(code);
+    setCouponOpen(false);
     setApplyingCoupon(true);
     setCouponError("");
     try {
@@ -322,13 +347,32 @@ export default function CheckoutClient() {
                       <i className="fas fa-tag"></i> Have a coupon code?
                     </button>
                   ) : (
-                    <div className="coupon-inline">
-                      <input className="coupon-input" placeholder="Coupon code" autoFocus value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())} />
-                      <button type="button" className="coupon-apply" onClick={applyCoupon}
-                        disabled={applyingCoupon || !couponCode.trim() || totalDevices < 1}>
-                        {applyingCoupon ? "…" : "Apply"}
-                      </button>
+                    <div className="coupon-field">
+                      <div className="coupon-inline">
+                        <input className="coupon-input" placeholder="Enter or pick a code" autoFocus value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onFocus={() => setCouponOpen(true)}
+                          onBlur={() => setTimeout(() => setCouponOpen(false), 150)} />
+                        <button type="button" className="coupon-apply" onClick={() => applyCoupon()}
+                          disabled={applyingCoupon || !couponCode.trim() || totalDevices < 1}>
+                          {applyingCoupon ? "…" : "Apply"}
+                        </button>
+                      </div>
+                      {couponOpen && availableCoupons.length > 0 ? (
+                        <div className="coupon-dropdown">
+                          <div className="coupon-dd-head">Available offers</div>
+                          {availableCoupons.map((c) => (
+                            <button key={c.code} type="button" className="coupon-dd-item"
+                              onMouseDown={(e) => { e.preventDefault(); applyCoupon(c.code); }}>
+                              <span className="coupon-dd-text">
+                                <span className="coupon-dd-code"><i className="fas fa-tag"></i> {c.code}</span>
+                                {c.description ? <span className="coupon-dd-desc">{c.description}</span> : null}
+                              </span>
+                              <span className="coupon-dd-off">{c.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   )}
                   {couponError ? <div className="field-error">{couponError}</div> : null}
