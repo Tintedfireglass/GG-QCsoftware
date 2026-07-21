@@ -8,6 +8,7 @@ import {
     RecurringChargeResult,
 } from './gateway.interface';
 import { logger } from '@/lib/logger';
+import { getBranding } from '@/lib/shared/services/branding.service';
 
 interface PayPalConfig {
     /** REST app Client ID. */
@@ -151,7 +152,7 @@ export class PayPalGateway implements IPaymentGateway {
                     },
                 ],
                 application_context: {
-                    brand_name: this.config.displayName || 'LaptopQC License',
+                    brand_name: this.config.displayName || `${(await getBranding()).siteName} License`,
                     user_action: 'PAY_NOW',
                     return_url: returnUrl.toString(),
                     cancel_url: cancelUrl.toString(),

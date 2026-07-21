@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Settings, Shield, CheckCircle2, Mail, FileText } from "lucide-react"
+import { Settings, Shield, CheckCircle2, Mail, FileText, Image as ImageIcon, Upload, Trash2 } from "lucide-react"
 import Link from "next/link"
 
 interface GeneralSettings {
@@ -14,17 +14,34 @@ interface GeneralSettings {
     companyName: string
     companyAddress: string
     loginUrl: string
+    websiteUrl: string
+    verifyBaseUrl: string
 }
 
 const FIELDS: { key: keyof GeneralSettings; label: string; placeholder: string; help?: string }[] = [
-    { key: "siteName", label: "Site / Brand name", placeholder: "Pramaan", help: "Shown in emails and across the UI." },
+    { key: "siteName", label: "Site / Brand name", placeholder: "Pramaan", help: "Used everywhere the product is named — UI, reports, PDFs, emails and payment checkouts." },
     { key: "supportEmail", label: "Support email", placeholder: "support@pramaan.gadgetguruz.com", help: "Where customers are told to reach you." },
     { key: "companyName", label: "Company (legal) name", placeholder: "GadgetGuruz Pvt. Ltd." },
     { key: "companyAddress", label: "Company address", placeholder: "City, State, Country" },
     { key: "loginUrl", label: "Customer portal URL", placeholder: "https://app.pramaan.com/customer/account", help: "Account link used in purchase emails." },
+    { key: "websiteUrl", label: "Public website URL", placeholder: "https://example.com", help: "Marketing/store site linked from the customer login and checkout pages." },
+    { key: "verifyBaseUrl", label: "Certificate verification URL", placeholder: "https://dashboard.example.com", help: "Base URL encoded into report QR codes — must be where this dashboard is publicly reachable." },
 ]
 
-const empty: GeneralSettings = { siteName: "", supportEmail: "", companyName: "", companyAddress: "", loginUrl: "" }
+const empty: GeneralSettings = { siteName: "", supportEmail: "", companyName: "", companyAddress: "", loginUrl: "", websiteUrl: "", verifyBaseUrl: "" }
+
+type AssetKind = "logo" | "favicon" | "loginImage"
+
+const ASSETS: { kind: AssetKind; label: string; help: string }[] = [
+    { kind: "logo", label: "Logo / wordmark", help: "Sidebar, login screens and report headers. PNG or JPEG (SVG works in the UI but not in exported PDFs)." },
+    { kind: "favicon", label: "Favicon", help: "Browser tab icon. PNG or ICO, square." },
+    { kind: "loginImage", label: "Login illustration", help: "Artwork beside the login and register forms." },
+]
+
+interface BrandingState {
+    storageConfigured: boolean
+    assets: Record<AssetKind, string>
+}
 
 interface LegalContent {
     termsContent: string
@@ -47,14 +64,18 @@ export default function SystemSettingsPage() {
     const [savingLegal, setSavingLegal] = useState(false)
     const [savedLegal, setSavedLegal] = useState(false)
 
+    const [branding, setBranding] = useState<BrandingState | null>(null)
+    const [uploading, setUploading] = useState<AssetKind | null>(null)
+
     async function load() {
         setLoading(true)
         setError(null)
         try {
             const token = localStorage.getItem("qc_token")
-            const [sRes, lRes] = await Promise.all([
+            const [sRes, lRes, bRes] = await Promise.all([
                 fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } }),
                 fetch("/api/admin/legal", { headers: { Authorization: `Bearer ${token}` } }),
+                fetch("/api/admin/branding", { headers: { Authorization: `Bearer ${token}` } }),
             ])
             if (!sRes.ok) throw new Error("Failed to load settings")
             const data = await sRes.json()
@@ -63,6 +84,7 @@ export default function SystemSettingsPage() {
                 const ldata = await lRes.json()
                 setLegal({ ...emptyLegal, ...ldata.legal })
             }
+            if (bRes.ok) setBranding(await bRes.json())
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load settings")
         } finally {
@@ -99,6 +121,46 @@ export default function SystemSettingsPage() {
     useEffect(() => {
         if (isSuperAdmin()) load()
     }, [])
+
+    /** Upload a replacement asset, or pass no file to revert to the bundled default. */
+    async function saveAsset(kind: AssetKind, file: File | null) {
+        setUploading(kind)
+        setError(null)
+        try {
+            const token = localStorage.getItem("qc_token")
+            let res: Response
+            if (file) {
+                const body = new FormData()
+                body.append("kind", kind)
+                body.append("file", file)
+                res = await fetch("/api/admin/branding", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                    body,
+                })
+            } else {
+                res = await fetch(`/api/admin/branding?kind=${kind}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+            }
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(data.message || data.error || "Failed to update branding")
+            }
+            const data = await res.json()
+            setBranding((prev) =>
+                prev ? { ...prev, assets: { ...prev.assets, [kind]: data.url || "" } } : prev
+            )
+            // The logo lives in the server-rendered layout, so a reload is what
+            // actually swaps it everywhere.
+            setTimeout(() => window.location.reload(), 600)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to update branding")
+        } finally {
+            setUploading(null)
+        }
+    }
 
     async function save() {
         setSaving(true)
@@ -184,6 +246,74 @@ export default function SystemSettingsPage() {
                                 )}
                             </div>
                         </>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5" />
+                        Branding &amp; Artwork
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {loading ? (
+                        <div className="text-center py-8 text-slate-500">Loading...</div>
+                    ) : branding && !branding.storageConfigured ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                            Object storage isn&apos;t configured, so artwork can&apos;t be uploaded. Set the
+                            <code className="mx-1">SPACES_*</code> environment variables to enable it — the bundled
+                            default artwork is used until then.
+                        </div>
+                    ) : (
+                        ASSETS.map((asset) => {
+                            const url = branding?.assets[asset.kind] || ""
+                            return (
+                                <div key={asset.kind} className="flex items-start gap-4">
+                                    <div className="h-16 w-24 shrink-0 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                                        {url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={url} alt={asset.label} className="max-h-full max-w-full object-contain" />
+                                        ) : (
+                                            <span className="text-[10px] text-slate-400 text-center px-1">Default</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-sm font-medium text-slate-700">{asset.label}</label>
+                                        <p className="text-xs text-slate-500 mt-0.5">{asset.help}</p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <label className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                                <Upload className="h-3.5 w-3.5" />
+                                                {uploading === asset.kind ? "Uploading..." : "Upload"}
+                                                <input
+                                                    type="file"
+                                                    accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon"
+                                                    className="hidden"
+                                                    disabled={uploading !== null}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0]
+                                                        // Reset so re-picking the same file fires change again.
+                                                        e.target.value = ""
+                                                        if (file) saveAsset(asset.kind, file)
+                                                    }}
+                                                />
+                                            </label>
+                                            {url && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={uploading !== null}
+                                                    onClick={() => saveAsset(asset.kind, null)}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Reset
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })
                     )}
                 </CardContent>
             </Card>

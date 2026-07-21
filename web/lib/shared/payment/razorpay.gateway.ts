@@ -9,6 +9,7 @@ import {
     RecurringChargeResult,
 } from './gateway.interface';
 import { logger } from '@/lib/logger';
+import { getBranding } from '@/lib/shared/services/branding.service';
 
 interface RazorpayConfig {
     keyId: string;
@@ -140,7 +141,7 @@ export class RazorpayGateway implements IPaymentGateway {
         redirectUrl.searchParams.set('key_id', this.config.keyId);
         redirectUrl.searchParams.set('amount', String(params.amountCents));
         redirectUrl.searchParams.set('currency', params.currency);
-        redirectUrl.searchParams.set('name', this.config.displayName || 'LaptopQC License');
+        redirectUrl.searchParams.set('name', this.config.displayName || `${(await getBranding()).siteName} License`);
         redirectUrl.searchParams.set('prefill_email', params.customerEmail);
         redirectUrl.searchParams.set('state', params.state);
         redirectUrl.searchParams.set('callback_url', params.callbackUrl);

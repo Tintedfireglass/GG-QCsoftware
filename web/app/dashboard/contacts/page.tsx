@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/components/auth-provider"
+import { useBranding } from "@/components/branding-provider"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
@@ -22,6 +23,7 @@ const FILTERS = [
 ]
 
 export default function ContactsPage() {
+    const { siteName } = useBranding()
     const { user } = useAuth()
     const router = useRouter()
 
@@ -139,7 +141,7 @@ export default function ContactsPage() {
                                 <tr key={c.id} onClick={() => open(c)} className="border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer">
                                     <td className="py-4 px-4">
                                         <div className={`text-slate-900 ${c.status === "new" ? "font-semibold" : ""}`}>{c.name}</div>
-                                        <div className="text-xs text-slate-400">{c.service || "PRAMAAN"}</div>
+                                        <div className="text-xs text-slate-400">{c.service || siteName}</div>
                                     </td>
                                     <td className="py-4 px-4 text-slate-600">{c.company_name || "—"}</td>
                                     <td className="py-4 px-4">

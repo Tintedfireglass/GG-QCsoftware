@@ -9,6 +9,7 @@ import {
     RecurringChargeResult,
 } from './gateway.interface';
 import { logger } from '@/lib/logger';
+import { getBranding } from '@/lib/shared/services/branding.service';
 
 interface StripeConfig {
     /** Secret key (sk_live_… / sk_test_…) — used for all server-side API calls. */
@@ -149,7 +150,7 @@ export class StripeGateway implements IPaymentGateway {
                     'price_data': {
                         currency: params.currency.toLowerCase(),
                         'unit_amount': params.amountCents,
-                        'product_data': { name: this.config.displayName || 'LaptopQC License' },
+                        'product_data': { name: this.config.displayName || `${(await getBranding()).siteName} License` },
                     },
                 },
             ],

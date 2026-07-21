@@ -10,6 +10,7 @@ import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 import { isIssue } from "@/lib/platforms/windows/issues"
+import { useBranding } from "@/components/branding-provider"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
 
@@ -117,6 +118,7 @@ function computeHwDiff(prev: any | null, curr: any): HwChangeSummary {
 
 
 export default function ResultDetailPage() {
+    const branding = useBranding()
     const { id } = useParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -299,7 +301,7 @@ export default function ResultDetailPage() {
                             )}
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-medium mb-1">PRAMAAN Score</div>
+                            <div className="text-lg font-medium mb-1">{branding.siteName} Score</div>
                             {data.pramaan_grade ? (
                                 <>
                                     <div className={`text-5xl font-bold ${gradeHeroColor(data.pramaan_grade)}`}>{data.pramaan_grade}</div>
@@ -422,13 +424,13 @@ export default function ResultDetailPage() {
                 </CardContent>
             </Card>
 
-            {/* PRAMAAN Scoring Section */}
+            {/* Health scoring section */}
             {showPramaanSection && (
                 <Card className="border-t-4 border-t-emerald-600">
                     <CardContent className="p-8">
                         <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 md:gap-0">
                             <div>
-                                <h2 className="text-2xl font-bold mb-1">PRAMAAN Health Score</h2>
+                                <h2 className="text-2xl font-bold mb-1">{branding.siteName} Health Score</h2>
                                 <p className="text-sm text-slate-500">
                                     {data.pramaan_algorithm_version || 'Scoring Engine v1.0.3'}
                                 </p>

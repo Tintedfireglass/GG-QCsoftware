@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
+import { useBranding } from "@/components/branding-provider"
 import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCount, getUserStats, getIssuesSummary, getAssetHealthSummary } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
+    const { siteName } = useBranding()
     const { user, isSuperAdmin, isEmployee, isRefurbisher, isReseller, isTechnician, isEnterprise, isOEM, isInsurer, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
@@ -139,7 +141,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() || isOEM() || isInsurer() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
+                        {siteName} • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() || isOEM() || isInsurer() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>

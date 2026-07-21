@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+import { BrandLogo } from "@/components/brand-logo"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
@@ -198,7 +198,7 @@ export function Sidebar() {
     return (
         <div className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white text-slate-700">
             <div className="flex h-20 items-center px-6 border-b border-transparent">
-                <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={160} height={36} className="w-auto h-8 object-contain" />
+                <BrandLogo className="w-auto h-8 object-contain" />
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto py-4">

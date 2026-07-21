@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
 import { Sidebar } from "./sidebar"
-import Image from "next/image"
+import { BrandLogo } from "@/components/brand-logo"
 
 export function MobileSidebar() {
     const [open, setOpen] = useState(false)
@@ -12,7 +12,7 @@ export function MobileSidebar() {
         <div className="md:hidden">
             {/* Top Bar for Mobile */}
             <div className="flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4">
-                <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={120} height={28} className="w-auto h-6 object-contain" />
+                <BrandLogo className="w-auto h-6 object-contain" />
                 <button
                     onClick={() => setOpen(true)}
                     className="p-2 -mr-2 text-slate-600 hover:text-slate-900"
