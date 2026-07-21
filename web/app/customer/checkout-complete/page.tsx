@@ -3,8 +3,10 @@
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useBranding } from "@/components/branding-provider"
 
 function Content() {
+    const { websiteUrl } = useBranding()
     const sp = useSearchParams()
     const status = sp.get("status")
     const message = sp.get("message")
@@ -39,7 +41,7 @@ function Content() {
                     >
                         {ok ? "Log in to your account" : "Go to login"}
                     </Link> */}
-                    <a href="https://pramaan.gadgetguruz.com" className="text-sm text-slate-500 hover:underline mt-1">
+                    <a href={websiteUrl} className="text-sm text-slate-500 hover:underline mt-1">
                         Back to website
                     </a>
                 </div>

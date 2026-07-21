@@ -15,6 +15,7 @@ const schema = z.object({
     code: z.string().trim().min(1),
     planId: z.number().int().positive(),
     quantity: z.number().int().min(1).max(999).optional(),
+    platformCaps: z.record(z.string(), z.number().int().min(0).max(9999)).optional(),
 });
 
 export async function OPTIONS() {
@@ -33,7 +34,7 @@ export const POST = wrap(async (request) => {
     }
 
     try {
-        const preview = await previewCouponPublic(parsed.data.code, parsed.data.planId, parsed.data.quantity);
+        const preview = await previewCouponPublic(parsed.data.code, parsed.data.planId, parsed.data.quantity, parsed.data.platformCaps);
         return NextResponse.json({ ok: true, ...preview }, { headers: CORS });
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Invalid coupon';

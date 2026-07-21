@@ -221,6 +221,7 @@ export async function createOrder(v: {
     discountCents?: number;
     couponId?: number | null;
     quantity?: number;
+    platformCaps?: Record<string, number> | null;
     pendingPassword?: string | null;
 }): Promise<number> {
     const rows = await db.insert(customerOrders).values({
@@ -237,6 +238,7 @@ export async function createOrder(v: {
         discountCents: v.discountCents ?? 0,
         couponId: v.couponId ?? null,
         quantity: v.quantity ?? 1,
+        platformCaps: v.platformCaps ?? null,
         pendingPassword: v.pendingPassword ?? null,
     }).returning({ id: customerOrders.id });
     return rows[0].id;
@@ -281,6 +283,7 @@ export interface OrderRow {
     coupon_id: number | null;
     discount_cents: number;
     quantity: number;
+    platform_caps: Record<string, number> | null;
 }
 
 export async function findOrder(tx: Tx, orderId: number, customerId: number): Promise<OrderRow | null> {
@@ -292,12 +295,13 @@ export async function findOrder(tx: Tx, orderId: number, customerId: number): Pr
         coupon_id: customerOrders.couponId,
         discount_cents: customerOrders.discountCents,
         quantity: customerOrders.quantity,
+        platform_caps: customerOrders.platformCaps,
     })
         .from(customerOrders)
         .where(and(eq(customerOrders.id, orderId), eq(customerOrders.customerUserId, customerId)))
         .limit(1);
     const r = rows[0];
-    return r ? { ...r, auto_renew: r.auto_renew ?? false, discount_cents: r.discount_cents ?? 0, quantity: r.quantity ?? 1 } : null;
+    return r ? { ...r, auto_renew: r.auto_renew ?? false, discount_cents: r.discount_cents ?? 0, quantity: r.quantity ?? 1, platform_caps: r.platform_caps ?? null } : null;
 }
 
 export async function findLicenseKeyById(tx: Tx, id: number): Promise<string | null> {

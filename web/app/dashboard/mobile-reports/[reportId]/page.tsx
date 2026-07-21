@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDbDateTime, formatAppVersion, maskPhone } from "@/lib/utils"
 import { gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
+import { useBranding } from "@/components/branding-provider"
 
 type Report = Awaited<ReturnType<typeof getMobileReport>>["report"]
 
@@ -175,6 +176,7 @@ function extractStressCategories(payload: Record<string, unknown>): CategoryScor
 }
 
 export default function MobileReportDetailPage() {
+    const branding = useBranding()
     const params = useParams<{ reportId: string }>()
     const reportId = params?.reportId
     const [report, setReport] = useState<Report | null>(null)
@@ -285,7 +287,7 @@ export default function MobileReportDetailPage() {
                             </p>
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-medium mb-1">PRAMAAN Score</div>
+                            <div className="text-lg font-medium mb-1">{branding.siteName} Score</div>
                             {report.grade ? (
                                 <>
                                     <div className={`text-5xl font-bold ${gradeHeroColor(report.grade)}`}>{report.grade}</div>

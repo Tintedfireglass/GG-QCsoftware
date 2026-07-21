@@ -197,7 +197,7 @@ Content-Type: application/json
 | `systemInfo` | object | – | Arbitrary key/value snapshot |
 | `testResults` | array | – | `{ testType, tested, passed, score?, grade?, message?, details?, timestamp? }` |
 | `cpuDetails` / `ramDetails` / `storageDetails` / `batteryDetails` / `deviceDetails` | object | – | Stored as JSON |
-| `pramaanScore` / `pramaanGrade` / `pramaanHash` / `healthId` / `pramaanCategoryScores` / `pramaanRiskFlags` / `pramaanAlgorithmVersion` | mixed | – | PRAMAAN scoring outputs |
+| `pramaanScore` / `pramaanGrade` / `pramaanHash` / `healthId` / `pramaanCategoryScores` / `pramaanRiskFlags` / `pramaanAlgorithmVersion` | mixed | – | Health scoring outputs. **These wire names are frozen** for compatibility with deployed clients — the server stores them as `health_score` / `health_grade` / `health_hash` / `category_scores` / `risk_flags` / `scoring_algorithm_version` and maps them on ingest. Clients must keep sending the names in this column. |
 
 Extra fields beyond this list are preserved.
 

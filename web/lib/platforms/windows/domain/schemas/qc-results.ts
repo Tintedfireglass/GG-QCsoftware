@@ -98,6 +98,10 @@ export const submitSchema = z
         storageDetails: z.any().optional(),
         batteryDetails: z.any().optional(),
         deviceDetails: z.any().optional(),
+        // FROZEN WIRE CONTRACT — do not rename. Deployed desktop clients post
+        // these exact field names; the storage columns behind them are now
+        // health_score / health_grade / … and the mapping lives in
+        // qc-results.service.ts. Renaming here breaks every installed client.
         pramaanScore: z.number().optional(),
         healthId: z.string().optional(),
         pramaanHash: z.string().optional(),

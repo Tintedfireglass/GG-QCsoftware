@@ -285,13 +285,15 @@ export async function submitResult(
             deviceDetailsJson: body.deviceDetails ?? null,
             submissionIp,
             technicianId: body.technicianId || authUserId || null,
-            pramaanScore: body.pramaanScore ?? null,
+            // Wire field (left of the dot, frozen for desktop clients) mapped to
+            // the neutral storage name. This line is the whole compatibility layer.
+            healthScore: body.pramaanScore ?? null,
             healthId: body.healthId || null,
-            pramaanHash: body.pramaanHash || null,
-            pramaanGrade: body.pramaanGrade || null,
-            pramaanCategoryScores: body.pramaanCategoryScores ?? null,
-            pramaanRiskFlags: body.pramaanRiskFlags ?? null,
-            pramaanAlgorithmVersion: body.pramaanAlgorithmVersion || null,
+            healthHash: body.pramaanHash || null,
+            healthGrade: body.pramaanGrade || null,
+            categoryScores: body.pramaanCategoryScores ?? null,
+            riskFlags: body.pramaanRiskFlags ?? null,
+            scoringAlgorithmVersion: body.pramaanAlgorithmVersion || null,
             isDemo,
             demoLicenseKeyId: demoKeyId,
         });

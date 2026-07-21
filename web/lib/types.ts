@@ -44,13 +44,13 @@ export interface QCResult {
     submission_ip?: string;
 
     // PRAMAAN scoring
-    pramaan_score?: number;
+    health_score?: number;
     health_id?: string;
-    pramaan_hash?: string;
-    pramaan_grade?: string;
-    pramaan_category_scores?: PramaanCategoryScores;
-    pramaan_risk_flags?: PramaanRiskFlags;
-    pramaan_algorithm_version?: string;
+    health_hash?: string;
+    health_grade?: string;
+    category_scores?: CategoryScores;
+    risk_flags?: RiskFlags;
+    scoring_algorithm_version?: string;
     is_demo?: boolean;
     demo_license_key_id?: number;
 
@@ -212,13 +212,13 @@ export interface SubmitQCResultRequest {
     deviceDetails?: any;
 
     // PRAMAAN scoring
-    pramaanScore?: number;
+    healthScore?: number;
     healthId?: string;
-    pramaanHash?: string;
-    pramaanGrade?: string;
-    pramaanCategoryScores?: PramaanCategoryScores;
-    pramaanRiskFlags?: PramaanRiskFlags;
-    pramaanAlgorithmVersion?: string;
+    healthHash?: string;
+    healthGrade?: string;
+    categoryScores?: CategoryScores;
+    riskFlags?: RiskFlags;
+    scoringAlgorithmVersion?: string;
 }
 
 export interface SubmitMachineHistoryRequest {
@@ -260,7 +260,7 @@ export interface ApiError {
 
 // ── PRAMAAN Types ──
 
-export interface PramaanCategoryScores {
+export interface CategoryScores {
     storage: number;
     thermal: number;
     battery: number;
@@ -270,7 +270,7 @@ export interface PramaanCategoryScores {
     [key: string]: number;
 }
 
-export interface PramaanRiskFlags {
+export interface RiskFlags {
     storage: boolean;
     thermal: boolean;
     battery: boolean;
@@ -280,9 +280,9 @@ export interface PramaanRiskFlags {
     [key: string]: boolean;
 }
 
-export type PramaanGrade = 'A+' | 'A' | 'B' | 'C' | 'Reject';
+export type HealthGrade = 'A+' | 'A' | 'B' | 'C' | 'Reject';
 
-export const PramaanGradeLabels: Record<PramaanGrade, string> = {
+export const HealthGradeLabels: Record<HealthGrade, string> = {
     'A+': 'Certified Premium',
     'A': 'Certified',
     'B': 'Good Condition',
@@ -290,7 +290,7 @@ export const PramaanGradeLabels: Record<PramaanGrade, string> = {
     'Reject': 'Not Certified',
 };
 
-export const PramaanCategoryLabels: Record<string, string> = {
+export const CategoryLabels: Record<string, string> = {
     storage: 'Storage Health',
     thermal: 'Thermal Performance',
     battery: 'Battery Health',

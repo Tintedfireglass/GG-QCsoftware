@@ -10,6 +10,7 @@ import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 import { isIssue } from "@/lib/platforms/windows/issues"
+import { useBranding } from "@/components/branding-provider"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
 
@@ -117,6 +118,7 @@ function computeHwDiff(prev: any | null, curr: any): HwChangeSummary {
 
 
 export default function ResultDetailPage() {
+    const branding = useBranding()
     const { id } = useParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -237,8 +239,8 @@ export default function ResultDetailPage() {
         return list.sort((a: any, b: any) => String(a?.test_type || "").localeCompare(String(b?.test_type || "")))
     }, [filteredTests, testSort])
 
-    const pramaanGradeKey = getGradeKey(safeData?.pramaan_grade)
-    const showPramaanSection = safeData.pramaan_score != null && isGradeSelected(pramaanGradeKey)
+    const healthGradeKey = getGradeKey(safeData?.health_grade)
+    const showPramaanSection = safeData.health_score != null && isGradeSelected(healthGradeKey)
 
     if (loading) return <div className="p-8">Loading result details...</div>
     if (!data) return <div className="p-8">Result not found</div>
@@ -299,11 +301,11 @@ export default function ResultDetailPage() {
                             )}
                         </div>
                         <div className="text-right">
-                            <div className="text-lg font-medium mb-1">PRAMAAN Score</div>
-                            {data.pramaan_grade ? (
+                            <div className="text-lg font-medium mb-1">{branding.siteName} Score</div>
+                            {data.health_grade ? (
                                 <>
-                                    <div className={`text-5xl font-bold ${gradeHeroColor(data.pramaan_grade)}`}>{data.pramaan_grade}</div>
-                                    <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.pramaan_grade)} - {data.pramaan_score}/100</div>
+                                    <div className={`text-5xl font-bold ${gradeHeroColor(data.health_grade)}`}>{data.health_grade}</div>
+                                    <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.health_grade)} - {data.health_score}/100</div>
                                 </>
                             ) : (
                                 data.overall_pass ? (
@@ -426,29 +428,29 @@ export default function ResultDetailPage() {
                 </CardContent>
             </Card>
 
-            {/* PRAMAAN Scoring Section */}
+            {/* Health scoring section */}
             {showPramaanSection && (
                 <Card className="border-t-4 border-t-emerald-600">
                     <CardContent className="p-8">
                         <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 md:gap-0">
                             <div>
-                                <h2 className="text-2xl font-bold mb-1">PRAMAAN Health Score</h2>
+                                <h2 className="text-2xl font-bold mb-1">{branding.siteName} Health Score</h2>
                                 <p className="text-sm text-slate-500">
-                                    {data.pramaan_algorithm_version || 'Scoring Engine v1.0.3'}
+                                    {data.scoring_algorithm_version || 'Scoring Engine v1.0.3'}
                                 </p>
                             </div>
                             <div className="text-right">
-                                <div className={`text-5xl font-bold ${gradeHeroColor(data.pramaan_grade)}`}>{data.pramaan_grade}</div>
-                                <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.pramaan_grade)} - {data.pramaan_score}/100</div>
+                                <div className={`text-5xl font-bold ${gradeHeroColor(data.health_grade)}`}>{data.health_grade}</div>
+                                <div className="text-sm text-slate-500 mt-1">{gradeLabel(data.health_grade)} - {data.health_score}/100</div>
                             </div>
                         </div>
 
                         {/* Category Sub-Scores */}
-                        {data.pramaan_category_scores && (
+                        {data.category_scores && (
                             <div className="mt-6 pt-6 border-t">
                                 <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
                                 <div className="grid gap-3">
-                                    {Object.entries(data.pramaan_category_scores as Record<string, number>).map(([key, score]) => {
+                                    {Object.entries(data.category_scores as Record<string, number>).map(([key, score]) => {
                                         const labels: Record<string, string> = {
                                             storage: 'Storage Health',
                                             thermal: 'Thermal Performance',
@@ -457,7 +459,7 @@ export default function ResultDetailPage() {
                                             physical_ports: 'Physical Ports',
                                             repair_modifier: 'Repair History',
                                         };
-                                        const isRisk = data.pramaan_risk_flags?.[key] === true;
+                                        const isRisk = data.risk_flags?.[key] === true;
                                         const barColor = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-amber-500' : score >= 40 ? 'bg-orange-500' : 'bg-red-500';
                                         return (
                                             <div key={key} className="flex items-center gap-4">
@@ -481,10 +483,10 @@ export default function ResultDetailPage() {
                         )}
 
                         {/* Risk Summary */}
-                        {data.pramaan_risk_flags && Object.values(data.pramaan_risk_flags as Record<string, boolean>).some(v => v) && (
+                        {data.risk_flags && Object.values(data.risk_flags as Record<string, boolean>).some(v => v) && (
                             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                                 <p className="text-sm font-semibold text-red-700">
-                                    Risk flags raised in: {Object.entries(data.pramaan_risk_flags as Record<string, boolean>)
+                                    Risk flags raised in: {Object.entries(data.risk_flags as Record<string, boolean>)
                                         .filter(([, v]) => v)
                                         .map(([k]) => {
                                             const labels: Record<string, string> = {

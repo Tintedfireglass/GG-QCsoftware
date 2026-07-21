@@ -132,7 +132,7 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
              SELECT DISTINCT ON (qr.machine_id)
                qr.machine_id,
                qr.submission_ip as latest_ip,
-               COALESCE(qr.pramaan_grade, qr.overall_grade) as latest_grade
+               COALESCE(qr.health_grade, qr.overall_grade) as latest_grade
              FROM qc_results qr
              ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
          )
@@ -223,7 +223,7 @@ export async function listTestHistory(user: AuthenticatedUser, id: string): Prom
             id, report_id, timestamp, refurbish_id, overall_pass,
             system_serial, cpu_model, ram_total,
             storage_details_json, battery_details_json, ram_details_json,
-            COALESCE(pramaan_grade, overall_grade) as overall_grade
+            COALESCE(health_grade, overall_grade) as overall_grade
          FROM qc_results
          WHERE machine_id = ${machineId}${clause}
          ORDER BY timestamp DESC`);

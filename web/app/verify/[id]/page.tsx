@@ -4,8 +4,10 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { formatAppVersion } from "@/lib/utils"
 import { getPublicVerify } from "@/lib/api"
+import { useBranding } from "@/components/branding-provider"
 
 export default function VerificationPage() {
+    const branding = useBranding()
     const { id } = useParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -30,7 +32,7 @@ export default function VerificationPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="p-10 font-sans text-center text-gray-600">Verifying PRAMAAN Certificate...</div>
+                <div className="p-10 font-sans text-center text-gray-600">Verifying {branding.siteName} Certificate...</div>
             </div>
         );
     }
@@ -60,13 +62,13 @@ export default function VerificationPage() {
                         Verified Authentic
                     </h1>
                     <p className="mt-2 text-slate-300 font-medium tracking-wide">
-                        PRAMAAN Device Certification
+                        {branding.siteName} Device Certification
                     </p>
                 </div>
 
                 {/* Score Section */}
                 <div className="px-8 py-10 text-center border-b border-gray-100">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">PRAMAAN Health Score</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">{branding.siteName} Health Score</p>
                     <div className="flex justify-center items-end space-x-4">
                         <div className={`text-7xl font-black tracking-tighter ${data.grade === 'A+' ? 'text-green-600' :
                             data.grade === 'A' ? 'text-green-500' :
@@ -115,8 +117,8 @@ export default function VerificationPage() {
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-200 text-center bg-gray-100 text-xs text-gray-500">
-                    <p>Powered by PRAMAAN v{formatAppVersion(data.appVersion)}</p>
-                    <p className="mt-1">This digital certificate guarantees that the device hardware was scanned and verified by PRAMAAN scoring algorithms.</p>
+                    <p>Powered by {branding.siteName} v{formatAppVersion(data.appVersion)}</p>
+                    <p className="mt-1">This digital certificate guarantees that the device hardware was scanned and verified by {branding.siteName} scoring algorithms.</p>
                 </div>
             </div>
         </div>

@@ -9,6 +9,10 @@ export interface CheckoutPayload {
     orderId: number;
     customerId: number;
     plan: string;
+    /** Buyer-chosen per-platform device caps (store per-platform checkout). When
+     *  present, the callback mints the key from these exact caps instead of
+     *  scaling the plan's caps by quantity. */
+    platformCaps?: Record<string, number>;
     scope: 'customer_checkout';
 }
 

@@ -114,7 +114,7 @@ export async function listHistory(
 /**
  * Public, UNSCOPED lookup for the /verify certificate endpoint — no auth, so it
  * exposes only the safe summary fields (no payload). Only SCORED reports are
- * verifiable certificates, mirroring the PC rule (`pramaan_score IS NOT NULL`).
+ * verifiable certificates, mirroring the PC rule (`health_score IS NOT NULL`).
  */
 export async function findReportForVerify(reportId: string): Promise<Record<string, unknown> | null> {
     const { rows } = await db.execute(sql`

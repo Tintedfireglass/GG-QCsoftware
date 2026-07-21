@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/lib/drizzle';
 
-const { pramaanScoringVersions } = schema;
+const { scoringVersions } = schema;
 
 export interface ScoringConfigRow {
     version_id: string;
@@ -13,10 +13,10 @@ export interface ScoringConfigRow {
 /** The active PRAMAAN scoring configuration, or null if none. */
 export async function getActiveScoringConfig(): Promise<ScoringConfigRow | null> {
     const rows = await db.select({
-        version_id: pramaanScoringVersions.versionId,
-        weights: pramaanScoringVersions.weights,
-        grade_bands: pramaanScoringVersions.gradeBands,
-        risk_thresholds: pramaanScoringVersions.riskThresholds,
-    }).from(pramaanScoringVersions).where(eq(pramaanScoringVersions.isActive, true)).limit(1);
+        version_id: scoringVersions.versionId,
+        weights: scoringVersions.weights,
+        grade_bands: scoringVersions.gradeBands,
+        risk_thresholds: scoringVersions.riskThresholds,
+    }).from(scoringVersions).where(eq(scoringVersions.isActive, true)).limit(1);
     return rows[0] ?? null;
 }

@@ -3,6 +3,7 @@ import { ValidationError, NotFoundError, ConflictError } from '@/lib/http/errors
 import { CreateCouponInput, UpdateCouponInput } from '@/lib/shared/domain/schemas/coupons';
 import * as repo from '@/lib/shared/repositories/coupons.repo';
 import * as plansRepo from '@/lib/shared/repositories/plans.repo';
+import { computePlanPricing } from '@/lib/shared/services/pricing';
 
 // ── Admin CRUD ──
 
@@ -196,11 +197,13 @@ export async function previewCoupon(code: string, planId: number, customerId: nu
  * subtotal and skips the per-customer limit (re-checked at checkout). Per-customer
  * enforcement happens once the buyer's email resolves to a real account.
  */
-export async function previewCouponPublic(code: string, planId: number, quantity = 1) {
+export async function previewCouponPublic(code: string, planId: number, quantity = 1, platformCaps?: Record<string, number> | null) {
     const plan = await plansRepo.findPlanById(db, planId);
     if (!plan || !plan.is_active) throw new NotFoundError('Plan not found or inactive');
     const qty = Math.max(1, Math.floor(quantity || 1));
-    const eval_ = await evaluateCoupon(code, { ...plan, price_cents: plan.price_cents * qty }, 0);
+    // Match the checkout's pricing: per-device when caps are given, else quantity.
+    const pricing = computePlanPricing(plan, { quantity: qty, platformCaps: platformCaps ?? null });
+    const eval_ = await evaluateCoupon(code, { ...plan, price_cents: pricing.amountCents }, 0);
     return {
         valid: true,
         code: eval_.code,

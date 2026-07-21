@@ -16,6 +16,24 @@ const STATUS_STYLES: Record<string, string> = {
     refunded: "border-slate-200 bg-slate-100 text-slate-600",
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+    windows: "Win",
+    android: "Android",
+    ios: "iOS",
+    mac: "Mac",
+}
+
+/** Compact per-platform / quantity summary for the orders table. */
+function orderUnitsSummary(o: OrderDTO): string | null {
+    if (o.platform_caps && Object.keys(o.platform_caps).length > 0) {
+        return Object.entries(o.platform_caps)
+            .map(([p, n]) => `${PLATFORM_LABELS[p] || p}×${n}`)
+            .join(" · ")
+    }
+    if (o.quantity && o.quantity > 1) return `Qty ${o.quantity}`
+    return null
+}
+
 export default function OrdersPage() {
     const { user } = useAuth()
     const router = useRouter()
@@ -122,7 +140,12 @@ export default function OrdersPage() {
                                         <div className="text-slate-900">{o.customer_name || "—"}</div>
                                         <div className="text-xs text-slate-400">{o.customer_email || "—"}</div>
                                     </td>
-                                    <td className="py-4 px-4 text-slate-600">{o.plan_name || o.plan || "—"}</td>
+                                    <td className="py-4 px-4 text-slate-600">
+                                        <div>{o.plan_name || o.plan || "—"}</div>
+                                        {orderUnitsSummary(o) ? (
+                                            <div className="text-xs text-slate-400 mt-0.5">{orderUnitsSummary(o)}</div>
+                                        ) : null}
+                                    </td>
                                     <td className="py-4 px-4 text-center text-slate-700 whitespace-nowrap">{fmtPrice(o.amount_cents, o.currency)}</td>
                                     <td className="py-4 px-4 text-center">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-medium capitalize ${STATUS_STYLES[o.status] || "border-slate-200 bg-slate-50 text-slate-600"}`}>

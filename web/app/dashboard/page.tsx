@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
+import { useBranding } from "@/components/branding-provider"
 import { getMachineHistoryAlerts, getMachinesCount, getQCResults, getQCResultsCount, getUserStats, getIssuesSummary, getAssetHealthSummary } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
+    const { siteName } = useBranding()
     const { user, isSuperAdmin, isEmployee, isRefurbisher, isReseller, isTechnician, isEnterprise, isOEM, isInsurer, isAdmin, isUser, isClient, getRoleDisplayName } = useAuth()
     const [stats, setStats] = useState({
         totalTests: 0,
@@ -59,9 +61,9 @@ export default function DashboardPage() {
             )
 
             // Calculate average score from recent tests
-            const scoredTests = resultsData.results.filter((t: any) => t.pramaan_score > 0)
+            const scoredTests = resultsData.results.filter((t: any) => t.health_score > 0)
             const avgScore = scoredTests.length > 0
-                ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.pramaan_score, 0) / scoredTests.length)
+                ? Math.round(scoredTests.reduce((sum: number, t: any) => sum + t.health_score, 0) / scoredTests.length)
                 : 0
 
             setStats({
@@ -139,7 +141,7 @@ export default function DashboardPage() {
                         Welcome back, {user?.display_name || user?.username}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Pramaan • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() || isOEM() || isInsurer() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
+                        {siteName} • {isSuperAdmin() ? "Full system access" : isEmployee() ? "Demo access" : isEnterprise() || isOEM() || isInsurer() ? "Fleet management" : isReseller() ? "Reseller access" : isRefurbisher() ? "Team management access" : isClient() ? "Client access" : "QC Technician access"}
                     </p>
                 </div>
             </div>
@@ -540,11 +542,11 @@ export default function DashboardPage() {
                                             <span>{timeStr}</span>
                                         </div>
                                         <div>
-                                            {test.pramaan_grade ? (() => {
-                                                const s = getGradeStyle(test.pramaan_grade);
+                                            {test.health_grade ? (() => {
+                                                const s = getGradeStyle(test.health_grade);
                                                 return (
                                                     <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap ${s.bg} ${s.text}`}>
-                                                        {test.pramaan_grade}-{test.pramaan_score}
+                                                        {test.health_grade}-{test.health_score}
                                                     </span>
                                                 );
                                             })() : (
@@ -609,15 +611,15 @@ export default function DashboardPage() {
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
                                             <td className="p-4 align-middle font-medium text-slate-900 whitespace-nowrap">#{test.id}</td>
                                             <td className="p-4 align-middle whitespace-nowrap">
-                                                {test.pramaan_grade ? (() => {
-                                                    const s = getGradeStyle(test.pramaan_grade);
+                                                {test.health_grade ? (() => {
+                                                    const s = getGradeStyle(test.health_grade);
                                                     return (
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`text-[15px] font-bold ${gradeHeroColor(test.pramaan_grade)}`}>
-                                                                {test.pramaan_grade}
+                                                            <span className={`text-[15px] font-bold ${gradeHeroColor(test.health_grade)}`}>
+                                                                {test.health_grade}
                                                             </span>
                                                             <span className={`inline-flex items-center rounded-lg px-3 py-1 text-sm font-bold ${s.bg} ${s.text} border-2 border-[currentColor]/10`}>
-                                                                {test.pramaan_score}
+                                                                {test.health_score}
                                                             </span>
                                                         </div>
                                                     );

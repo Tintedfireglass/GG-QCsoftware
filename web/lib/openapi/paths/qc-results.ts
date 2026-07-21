@@ -20,7 +20,7 @@ const qcResultSummary = {
         machine_id: { type: 'string' },
         overall_grade: { type: 'string', example: 'A+' },
         overall_pass: { type: 'boolean' },
-        pramaan_score: { type: 'number', nullable: true },
+        health_score: { type: 'number', nullable: true },
         timestamp: { type: 'string', format: 'date-time' },
     },
 } as const;

@@ -16,7 +16,7 @@ export async function listOrdersAdmin(p: { status?: string; search?: string; lim
     const { rows } = await db.execute(sql`
         SELECT co.id, co.plan, co.plan_id, co.amount_cents, co.currency, co.status,
                co.payment_reference, co.gateway_reference, co.generated_license_key_id,
-               co.created_at, co.updated_at,
+               co.quantity, co.platform_caps, co.created_at, co.updated_at,
                cu.email AS customer_email, cu.full_name AS customer_name,
                lk.key AS license_key,
                p.name AS plan_name

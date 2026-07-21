@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check } from "lucide-react"
-import Image from "next/image"
+import { BrandLogo, BrandLoginImage } from "@/components/brand-logo"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -45,13 +45,7 @@ export default function LoginPage() {
         <div className="flex min-h-screen w-full bg-white">
             {/* Left Section - Hero */}
             <div className="hidden lg:block w-1/2 relative bg-slate-50 border-r border-slate-100">
-                <Image
-                    src="/loginImg.png"
-                    alt="Laptop QC Testing Illustration"
-                    fill
-                    className="object-cover"
-                    priority
-                />
+                <BrandLoginImage className="absolute inset-0 h-full w-full object-cover" />
             </div>
 
             {/* Right Section - Login Form */}
@@ -59,7 +53,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-[400px]">
                     {/* Logo Area */}
                     <div className="mb-16">
-                        <Image src="/prmn_logo.png" alt="PRAMAAN Logo" width={180} height={40} className="w-auto h-8 lg:h-10 object-contain" />
+                        <BrandLogo className="w-auto h-8 lg:h-10 object-contain" />
                     </div>
 
                     <div className="mb-8">

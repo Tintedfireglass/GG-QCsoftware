@@ -48,13 +48,13 @@ export const qcResults = pgTable("qc_results", {
 	technicianId: integer("technician_id"),
 	overallScore: integer("overall_score").default(0),
 	overallGrade: varchar("overall_grade").default(""),
-	pramaanScore: integer("pramaan_score"),
-	pramaanGrade: varchar("pramaan_grade"),
-	pramaanCategoryScores: jsonb("pramaan_category_scores"),
-	pramaanRiskFlags: jsonb("pramaan_risk_flags"),
-	pramaanAlgorithmVersion: varchar("pramaan_algorithm_version"),
+	healthScore: integer("health_score"),
+	healthGrade: varchar("health_grade"),
+	categoryScores: jsonb("category_scores"),
+	riskFlags: jsonb("risk_flags"),
+	scoringAlgorithmVersion: varchar("scoring_algorithm_version"),
 	healthId: uuid("health_id"),
-	pramaanHash: varchar("pramaan_hash"),
+	healthHash: varchar("health_hash"),
 	appVersion: varchar("app_version"),
 	submissionIp: varchar("submission_ip"),
 	isDemo: boolean("is_demo").default(false),
@@ -117,7 +117,7 @@ export const machineGroups = pgTable("machine_groups", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const pramaanScoringVersions = pgTable("pramaan_scoring_versions", {
+export const scoringVersions = pgTable("scoring_versions", {
 	versionId: varchar("version_id").notNull(),
 	weights: jsonb().notNull(),
 	gradeBands: jsonb("grade_bands").notNull(),
@@ -309,6 +309,10 @@ export const customerOrders = pgTable("customer_orders", {
 	// Purchased quantity — multiplies the plan's per-platform device caps on the
 	// minted key, and the price. Default 1.
 	quantity: integer().default(1).notNull(),
+	// Buyer-chosen per-platform device caps for per-platform checkout, e.g.
+	// { windows: 4, android: 2 }. Null for legacy/uniform-quantity orders; when set
+	// it's authoritative for the minted key (scope = its keys, maxUses = sum).
+	platformCaps: jsonb("platform_caps").$type<Record<string, number>>(),
 	// Transient plaintext of an auto-generated password for a brand-new customer,
 	// emailed once on successful purchase then cleared. Null for existing customers.
 	pendingPassword: varchar("pending_password"),

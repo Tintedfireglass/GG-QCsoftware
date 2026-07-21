@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
@@ -8,6 +8,7 @@ import { SELF_ONLY_ROLES } from '@/lib/shared/domain/visibility';
 import { ValidationError, ForbiddenError } from '@/lib/http/errors';
 import { parseWindowsVersion, cleanWindowsProductName, deduplicateAntivirus } from '@/lib/utils';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
+import { getBranding } from '@/lib/shared/services/branding.service';
 
 type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
 type JsonRecord = Record<string, unknown>;
@@ -177,12 +178,32 @@ function formatGeneratedDateTime(timeZone: string): string {
     });
 }
 
-async function loadPramaanLogoBytes(): Promise<Uint8Array | null> {
+/**
+ * Embeds the configured brand logo into `pdf`.
+ *
+ * Prefers the admin-uploaded artwork (fetched from object storage), falling back
+ * to the artwork bundled in /public so exports still carry a mark on a fresh
+ * install. pdf-lib can only embed PNG and JPEG, so an SVG upload falls back too.
+ */
+async function embedBrandLogo(pdf: PDFDocument, logoUrl: string): Promise<PDFImage | null> {
+    if (/^https?:\/\//i.test(logoUrl)) {
+        try {
+            const res = await fetch(logoUrl);
+            if (res.ok) {
+                const bytes = new Uint8Array(await res.arrayBuffer());
+                const type = (res.headers.get('content-type') || '').toLowerCase();
+                if (type.includes('png')) return await pdf.embedPng(bytes);
+                if (type.includes('jpeg') || type.includes('jpg')) return await pdf.embedJpg(bytes);
+            }
+        } catch {
+            // Unreachable storage must not fail the export — fall back below.
+        }
+    }
     const candidates = ['prmn_logo.png', 'Pramaan_logo_F1.png', 'loginImg.png'];
     for (const fileName of candidates) {
         try {
             const file = await readFile(path.join(process.cwd(), 'public', fileName));
-            return new Uint8Array(file);
+            return await pdf.embedPng(new Uint8Array(file));
         } catch {
             // Try next candidate
         }
@@ -203,8 +224,8 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const logoBytes = await loadPramaanLogoBytes();
-    const logoImage = logoBytes ? await pdf.embedPng(logoBytes) : null;
+    const branding = await getBranding();
+    const logoImage = await embedBrandLogo(pdf, branding.logoUrl);
 
     const pageWidth = 842;
     const pageHeight = 595;
@@ -236,7 +257,7 @@ async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone
         const logoWidth = (logoImage.width / logoImage.height) * logoHeight;
         page.drawImage(logoImage, { x: margin, y: pageHeight - 64, width: logoWidth, height: logoHeight });
     }
-    page.drawText('PRAAMAAN', { x: margin + 60, y: pageHeight - 42, size: 20, font: boldFont, color: rgb(1, 1, 1) });
+    page.drawText(branding.siteName.toUpperCase(), { x: margin + 60, y: pageHeight - 42, size: 20, font: boldFont, color: rgb(1, 1, 1) });
     page.drawText('Professional Device Quality Assessment', { x: margin + 60, y: pageHeight - 58, size: 10, font, color: rgb(0.88, 0.92, 0.98) });
     page.drawText(`Generated: ${formatGeneratedDateTime(timeZone)}`, { x: pageWidth - 220, y: pageHeight - 46, size: 9, font, color: rgb(0.93, 0.95, 0.99) });
 
@@ -470,7 +491,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
         const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
         const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
-        const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
+        const riskFlags = (r.risk_flags as JsonRecord | null) || {};
         const hasThermalIssue = riskFlags.thermal === true;
         const serialNo = (r.system_serial as string | undefined) || '';
 
@@ -499,8 +520,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
             freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
             diskHealthLabel,
             isTampered ? 'Tampered' : 'Clean',
-            (r.pramaan_grade as string | undefined) || '',
-            r.pramaan_score != null ? String(r.pramaan_score) : '',
+            (r.health_grade as string | undefined) || '',
+            r.health_score != null ? String(r.health_score) : '',
             serialNo,
             (r.mac_address as string | undefined) || '',
             (r.system_manufacturer as string | undefined) || '',
@@ -753,6 +774,7 @@ export async function buildIndividualReportPdf(
     timeZone = 'Asia/Kolkata'
 ): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
+    const branding = await getBranding();
     // A4 portrait: 595 x 842 pts
     const PW = 595;
     const PH = 842;
@@ -800,12 +822,12 @@ export async function buildIndividualReportPdf(
     y = PH - 64;
 
     // ── GRADE HERO PANEL ──────────────────────────────────────────────────────────
-    const grade = safeStr(rec.pramaan_grade);
-    const score = safeNum(rec.pramaan_score);
+    const grade = safeStr(rec.health_grade);
+    const score = safeNum(rec.health_score);
     const [gr, gg, gb2] = gradeColorRgb(grade);
     const [bgr, bgg, bgb] = gradeBgRgb(grade);
     page.drawRectangle({ x: M, y: y - 58, width: contentW, height: 58, color: rgb(bgr, bgg, bgb), borderColor: rgb(gr, gg, gb2), borderWidth: 1 });
-    drawText('PRAMAAN Health Score', M + 10, y - 14, 7.5, font, rgb(0.35, 0.35, 0.35));
+    drawText(`${branding.siteName} Health Score`, M + 10, y - 14, 7.5, font, rgb(0.35, 0.35, 0.35));
     drawText(grade || 'N/A', M + 10, y - 38, 26, boldFont, rgb(gr, gg, gb2));
     drawText(gradeLabelStr(grade), M + 10, y - 50, 8, font, rgb(0.35, 0.35, 0.35));
     if (score !== null) drawText(`${score}/100`, M + 68, y - 42, 14, boldFont, rgb(gr, gg, gb2));
@@ -956,7 +978,7 @@ export async function buildIndividualReportPdf(
     // ── FOOTER ───────────────────────────────────────────────────────────────────
     hRule(M + 22, 0.6, rgb(0.75, 0.75, 0.75));
     const footerItems: [string, number][] = [
-        ['Generated by Pramaan', M],
+        [`Generated by ${branding.siteName}`, M],
         [`App Version: ${(safeStr(rec.app_version) || 'Unknown').split('+')[0]}`, M + 120],
         [`Test ID: #${safeStr(rec.id)}`, M + 270],
         [`Date Printed: ${new Date().toLocaleDateString('en-GB')}`, M + 370],
@@ -1066,7 +1088,7 @@ export async function exportSampleDataset(
             const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
             const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
             const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
-            const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
+            const riskFlags = (r.risk_flags as JsonRecord | null) || {};
             const hasThermalIssue = riskFlags.thermal === true;
             const serialNo = (r.system_serial as string | undefined) || '';
 
@@ -1095,8 +1117,8 @@ export async function exportSampleDataset(
                 freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
                 diskHealthLabel,
                 isTampered ? 'Tampered' : 'Clean',
-                (r.pramaan_grade as string | undefined) || '',
-                r.pramaan_score != null ? String(r.pramaan_score) : '',
+                (r.health_grade as string | undefined) || '',
+                r.health_score != null ? String(r.health_score) : '',
                 serialNo,
                 (r.mac_address as string | undefined) || '',
                 (r.system_manufacturer as string | undefined) || '',
@@ -1206,7 +1228,7 @@ export async function exportSampleDataset(
         metaSheet.getRow(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
         const gradeCountMap: Record<string, number> = {};
         results.forEach((r) => {
-            const g = (r.pramaan_grade as string) || 'Unknown';
+            const g = (r.health_grade as string) || 'Unknown';
             gradeCountMap[g] = (gradeCountMap[g] || 0) + 1;
         });
         Object.entries(gradeCountMap).sort().forEach(([g, cnt]) => {
