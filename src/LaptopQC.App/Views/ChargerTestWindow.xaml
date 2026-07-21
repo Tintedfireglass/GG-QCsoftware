@@ -1,0 +1,154 @@
+<Window x:Class="LaptopQC.App.Views.ChargerTestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource AppDisplayName}" Width="440"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#f5f5f5">
+
+    <Grid>
+        <Border Background="White"
+                BorderBrush="{DynamicResource BorderGreyBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Margin="20"
+                Padding="30"
+                Effect="{StaticResource CardShadow}">
+            <StackPanel>
+                <!-- Header -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <Border Background="#fefce8" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <TextBlock Text="⚡" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Charger / Charging Test" FontSize="20" FontWeight="Bold"
+                               HorizontalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}"/>
+                    <TextBlock Text="Checks if the power adapter is connected and the battery is charging."
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}"
+                               HorizontalAlignment="Center" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Instruction notice -->
+                <Border Background="#fefce8" BorderBrush="#fde68a" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚠" FontSize="16" VerticalAlignment="Top" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#92400e" FontFamily="{DynamicResource AppFontFamily}">
+                            <Run FontWeight="SemiBold">Note:</Run>
+                            <Run>Ensure the battery is NOT at full charge for accurate detection. A fully charged battery may show as not charging even with the adapter plugged in.</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Check button (shown before check runs) -->
+                <Button x:Name="CheckButton"
+                        Content="🔌 Check Charging Status"
+                        Click="CheckButton_Click"
+                        Padding="12,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Margin="0,0,0,16">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Results (shown after check runs) -->
+                <StackPanel x:Name="ResultsPanel" Visibility="Collapsed" Margin="0,0,0,16">
+
+                    <!-- Battery Presence -->
+                    <Border Background="{DynamicResource BorderGreyBrush}" BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="1"
+                            CornerRadius="6" Padding="12,10" Margin="0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="BatteryPresenceIcon" Text="🔋" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
+                            <StackPanel>
+                                <TextBlock Text="Battery" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="13"/>
+                                <TextBlock x:Name="BatteryPresenceText" Text="-" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Charging Status -->
+                    <Border Background="{DynamicResource BorderGreyBrush}" BorderBrush="{DynamicResource BorderGreyDarkBrush}" BorderThickness="1"
+                            CornerRadius="6" Padding="12,10" Margin="0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ChargingIcon" Text="⚡" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Segoe UI Emoji"/>
+                            <StackPanel>
+                                <TextBlock Text="Charging Status" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="13"/>
+                                <TextBlock x:Name="ChargingStatusText" Text="-" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="{DynamicResource AppFontFamily}" FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Overall Result -->
+                    <Border x:Name="OverallResultBorder" CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock x:Name="OverallResultText" HorizontalAlignment="Center"
+                                   FontWeight="SemiBold" FontFamily="Segoe UI" FontSize="13"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Continue Button -->
+                <Button x:Name="ContinueButton"
+                        Content="Continue"
+                        Click="ContinueButton_Click"
+                        IsEnabled="False"
+                        Padding="12,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        FontFamily="{DynamicResource AppFontFamily}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="6"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Background" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -26,6 +26,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
     <PackageReference Include="QRCoder" Version="1.7.0" />
+    <PackageReference Include="System.Management" Version="10.0.1" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -57,7 +58,7 @@
 	    <AssemblyName>$(BrandExeName)</AssemblyName>
 	    <Product>$(BrandProductName)</Product>
 	    <Company>$(BrandCompanyName)</Company>
-	    <Version>1.0.7</Version>
+	    <Version>1.0.8</Version>
 	    
 	  </PropertyGroup>
 

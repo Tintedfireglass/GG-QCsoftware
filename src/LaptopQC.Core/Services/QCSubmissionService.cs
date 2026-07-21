@@ -106,6 +106,8 @@ public class QCSubmissionService
             RefurbishId = report.RefurbishId,
             TechnicianNotes = report.TechnicianNotes,
             AppVersion = string.IsNullOrWhiteSpace(report.AppVersion) ? AppVersionProvider.GetVersion() : report.AppVersion,
+            PhysicalCondition = report.PhysicalCondition,
+            ScratchesAndDents = report.ScratchesAndDents,
             OverallPass = report.OverallPass,
             OverallScore = report.OverallScore,
             OverallGrade = report.OverallGrade,

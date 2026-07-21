@@ -50,12 +50,14 @@ public class QCWorkflowService
         _gradingService = new GradingService();
     }
 
-    public void StartNewSession(string refurbId, string notes)
+    public void StartNewSession(string refurbId, string technicianId, string physicalCondition = "", string scratchesAndDents = "")
     {
         Report = new QCReport
         {
             RefurbishId = refurbId,
-            TechnicianNotes = notes,
+            TechnicianId = technicianId,
+            PhysicalCondition = physicalCondition,
+            ScratchesAndDents = scratchesAndDents,
             Timestamp = DateTime.Now,
             AppVersion = AppVersionProvider.GetVersion()
         };
@@ -573,6 +575,30 @@ public class QCWorkflowService
         Report.NetworkTest.Timestamp = DateTime.Now;
         if (details != null)
             Report.NetworkTest.Details = details;
+    }
+
+    public void RecordDisplayPortResult(bool passed, string message)
+    {
+        Report.DisplayPortTest.Tested = true;
+        Report.DisplayPortTest.Passed = passed;
+        Report.DisplayPortTest.Message = message;
+        Report.DisplayPortTest.Timestamp = DateTime.Now;
+    }
+
+    public void RecordBluetoothResult(bool passed, string message)
+    {
+        Report.BluetoothTest.Tested = true;
+        Report.BluetoothTest.Passed = passed;
+        Report.BluetoothTest.Message = message;
+        Report.BluetoothTest.Timestamp = DateTime.Now;
+    }
+
+    public void RecordChargerResult(bool passed, string message)
+    {
+        Report.ChargerTest.Tested = true;
+        Report.ChargerTest.Passed = passed;
+        Report.ChargerTest.Message = message;
+        Report.ChargerTest.Timestamp = DateTime.Now;
     }
 
     /// <summary>

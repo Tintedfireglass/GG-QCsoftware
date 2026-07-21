@@ -363,6 +363,18 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">Antivirus Status</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{antivirusText}</dd>
                                 </div>
+                                {data.physical_condition && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">Physical Condition</dt>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{data.physical_condition as string}</dd>
+                                    </div>
+                                )}
+                                {data.scratches_and_dents && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">Scratches &amp; Dents</dt>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{data.scratches_and_dents as string}</dd>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">IP Address</dt>
                                     <dd className="sm:col-span-2 font-mono text-slate-900 break-all">{data.submission_ip || "N/A"}</dd>

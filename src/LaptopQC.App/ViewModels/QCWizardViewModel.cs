@@ -35,7 +35,13 @@ public partial class QCWizardViewModel : ObservableObject
     private string _refurbId = "";
 
     [ObservableProperty]
-    private string _technicianNotes = "";
+    private string _technicianId = "";
+
+    [ObservableProperty]
+    private string _physicalCondition = "B"; // Default: Good
+
+    [ObservableProperty]
+    private string _scratchesAndDents = "Minor"; // Default: Minor
 
     [ObservableProperty]
     private int _automatedProgress;
@@ -60,6 +66,12 @@ public partial class QCWizardViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isWifiNext;
+
+    [ObservableProperty]
+    private bool _isBluetoothNext;
+
+    [ObservableProperty]
+    private bool _isChargerNext;
 
     [ObservableProperty]
     private string _wifiStatus = "";
@@ -131,7 +143,7 @@ public partial class QCWizardViewModel : ObservableObject
             return;
         }
 
-        _workflowService.StartNewSession(RefurbId, TechnicianNotes);
+        _workflowService.StartNewSession(RefurbId, TechnicianId, PhysicalCondition, ScratchesAndDents);
         
         IsPrepStep = false;
         IsAutomatedStep = true;
@@ -160,6 +172,8 @@ public partial class QCWizardViewModel : ObservableObject
         else if (IsUsbNext) InteractiveInstruction = "Next: USB Port Test";
         else if (IsAvNext) InteractiveInstruction = "Next: Audio / Video Test";
         else if (IsWifiNext) InteractiveInstruction = "Next: Network Connectivity Test";
+        else if (IsBluetoothNext) InteractiveInstruction = "Next: Bluetooth Test";
+        else if (IsChargerNext) InteractiveInstruction = "Next: Charger / Charging Test";
     }
 
     [RelayCommand]
@@ -235,6 +249,13 @@ public partial class QCWizardViewModel : ObservableObject
             {
                 _workflowService.RecordAudioJackResult(vm.JackPassed, 
                     vm.JackPassed ? "3.5mm Jack Test Passed" : "3.5mm Jack Test Failed");
+            }
+
+            // Record DisplayPort / HDMI result
+            if (vm.DisplayPortTested)
+            {
+                _workflowService.RecordDisplayPortResult(vm.DisplayPortPassed,
+                    vm.DisplayPortPassed ? "Display Port / HDMI Test Passed" : "Display Port / HDMI Test Failed");
             }
             
             IsAvNext = false;
@@ -408,7 +429,42 @@ public partial class QCWizardViewModel : ObservableObject
 
         // Short delay so tester can see result before moving on
         await Task.Delay(1500);
-        FinishAndGenerateReport();
+        NetworkCheckDone = false;
+        IsBluetoothNext = true;
+        UpdateInteractiveState();
+    }
+
+    [RelayCommand]
+    private void RunBluetoothTest()
+    {
+        var win = new BluetoothTestWindow { Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive) };
+        var result = win.ShowDialog();
+
+        if (result.HasValue)
+        {
+            var (passed, msg) = win.GetResult();
+            _workflowService.RecordBluetoothResult(passed, msg);
+
+            IsBluetoothNext = false;
+            IsChargerNext = true;
+            UpdateInteractiveState();
+        }
+    }
+
+    [RelayCommand]
+    private void RunChargerTest()
+    {
+        var win = new ChargerTestWindow { Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive) };
+        var result = win.ShowDialog();
+
+        if (result.HasValue)
+        {
+            var (passed, msg) = win.GetResult();
+            _workflowService.RecordChargerResult(passed, msg);
+
+            IsChargerNext = false;
+            FinishAndGenerateReport();
+        }
     }
 
     private async void FinishAndGenerateReport()

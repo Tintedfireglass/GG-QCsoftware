@@ -302,6 +302,7 @@ export async function findResultById(user: AuthenticatedUser, id: number): Promi
             qr.health_id, qr.submission_ip, qr.app_version, qr.system_manufacturer, qr.system_model,
             qr.system_serial, qr.mac_address, qr.cpu_model, qr.ram_total, qr.system_info_json,
             qr.ram_details_json, qr.storage_details_json, qr.battery_details_json,
+            qr.physical_condition, qr.scratches_and_dents,
             m.machine_id as machine_identifier, m.location as machine_location,
             m.manufacturer as machine_manufacturer, m.model as machine_model, m.computer_name
         FROM qc_results qr
@@ -576,6 +577,8 @@ export interface NewQcResult {
     scoringAlgorithmVersion: string | null;
     isDemo: boolean;
     demoLicenseKeyId: number | null;
+    physicalCondition: string | null;
+    scratchesAndDents: string | null;
 }
 
 export async function insertQcResult(tx: Tx, v: NewQcResult): Promise<number> {
@@ -612,6 +615,8 @@ export async function insertQcResult(tx: Tx, v: NewQcResult): Promise<number> {
         scoringAlgorithmVersion: v.scoringAlgorithmVersion,
         isDemo: v.isDemo,
         demoLicenseKeyId: v.demoLicenseKeyId,
+        physicalCondition: v.physicalCondition,
+        scratchesAndDents: v.scratchesAndDents,
     }).returning({ id: qcResults.id });
     return rows[0].id;
 }

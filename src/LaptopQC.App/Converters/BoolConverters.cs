@@ -107,3 +107,26 @@ public class BoolToWidthConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+/// Compares a string value to a parameter string.
+/// Returns true when they match — used for binding radio buttons to a string property.
+/// ConvertBack returns the parameter string when the radio button is checked.
+/// </summary>
+public class EqualityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        // Called when radio button IsChecked changes to true — return the parameter string
+        if (value is bool isChecked && isChecked)
+            return parameter?.ToString() ?? string.Empty;
+
+        // Return Binding.DoNothing so unchecking a radio doesn't clear the value
+        return System.Windows.Data.Binding.DoNothing;
+    }
+}

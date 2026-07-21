@@ -37,6 +37,10 @@
         <local:KeyWidthConverter x:Key="KeyWidthConverter" 
                                   xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
         
+        <!-- Equality Converter (string comparison for radio button groups) -->
+        <local:EqualityConverter x:Key="EqualityConverter" 
+                                  xmlns:local="clr-namespace:LaptopQC.App.Converters"/>
+        
         <!-- Card Shadow Effect -->
         <DropShadowEffect x:Key="CardShadow" 
                           ShadowDepth="4" 

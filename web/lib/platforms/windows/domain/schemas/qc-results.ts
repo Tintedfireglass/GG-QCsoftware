@@ -109,6 +109,8 @@ export const submitSchema = z
         pramaanCategoryScores: z.any().optional(),
         pramaanRiskFlags: z.any().optional(),
         pramaanAlgorithmVersion: z.string().optional(),
+        physicalCondition: z.enum(['A+', 'A', 'B', 'C', 'D', 'E']).optional(),
+        scratchesAndDents: z.enum(['None', 'Minor', 'Major']).optional(),
     })
     // Preserve any extra fields the desktop client sends.
     .loose();

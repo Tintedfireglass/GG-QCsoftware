@@ -23,6 +23,12 @@ public class SubmitQCResultRequest
     [JsonPropertyName("appVersion")]
     public string? AppVersion { get; set; }
     
+    [JsonPropertyName("physicalCondition")]
+    public string? PhysicalCondition { get; set; }
+
+    [JsonPropertyName("scratchesAndDents")]
+    public string? ScratchesAndDents { get; set; }
+    
     [JsonPropertyName("overallPass")]
     public bool OverallPass { get; set; }
     

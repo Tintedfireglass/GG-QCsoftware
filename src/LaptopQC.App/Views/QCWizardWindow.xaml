@@ -82,13 +82,50 @@
                          Padding="12,10" FontFamily="Segoe UI" FontSize="14"
                          Background="#f9fafb" BorderBrush="#d1d5db" BorderThickness="1"
                          Margin="0,0,0,16"/>
-                
-                <TextBlock Text="Technician Notes (Optional):" Margin="0,8" Foreground="#374151" FontFamily="Segoe UI"/>
-                <TextBox Text="{Binding TechnicianNotes}" Height="100" TextWrapping="Wrap" AcceptsReturn="True" 
-                         Padding="12,10" FontFamily="Segoe UI" FontSize="14"
+
+                <TextBlock Text="Technician ID / Name:" Margin="0,0,0,4" Foreground="#374151" FontFamily="Segoe UI"/>
+                <TextBox Text="{Binding TechnicianId, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="12,8" FontFamily="Segoe UI" FontSize="13"
                          Background="#f9fafb" BorderBrush="#d1d5db" BorderThickness="1"
-                         Margin="0,0,0,24"/>
-                
+                         Margin="0,0,0,16"/>
+
+                <!-- Physical Condition -->
+                <TextBlock Text="Physical Condition:" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI" FontWeight="SemiBold"/>
+                <WrapPanel Margin="0,0,0,16">
+                    <RadioButton Content="A+  Excellent" GroupName="PhysicalCondition" Margin="0,0,16,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='A+'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="A  Very Good" GroupName="PhysicalCondition" Margin="0,0,16,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='A'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="B  Good" GroupName="PhysicalCondition" Margin="0,0,16,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='B'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="C  Fair" GroupName="PhysicalCondition" Margin="0,0,16,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='C'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="D  Poor" GroupName="PhysicalCondition" Margin="0,0,16,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='D'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="E  Damaged" GroupName="PhysicalCondition" Margin="0,0,0,4"
+                                 IsChecked="{Binding PhysicalCondition, Converter={StaticResource EqualityConverter}, ConverterParameter='E'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                </WrapPanel>
+
+                <!-- Scratches and Dents -->
+                <TextBlock Text="Scratches and Dents:" Margin="0,0,0,6" Foreground="#374151" FontFamily="Segoe UI" FontWeight="SemiBold"/>
+                <WrapPanel Margin="0,0,0,24">
+                    <RadioButton Content="None" GroupName="ScratchesAndDents" Margin="0,0,20,0"
+                                 IsChecked="{Binding ScratchesAndDents, Converter={StaticResource EqualityConverter}, ConverterParameter='None'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="Minor" GroupName="ScratchesAndDents" Margin="0,0,20,0"
+                                 IsChecked="{Binding ScratchesAndDents, Converter={StaticResource EqualityConverter}, ConverterParameter='Minor'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                    <RadioButton Content="Major" GroupName="ScratchesAndDents" Margin="0,0,0,0"
+                                 IsChecked="{Binding ScratchesAndDents, Converter={StaticResource EqualityConverter}, ConverterParameter='Major'}"
+                                 FontFamily="Segoe UI" FontSize="13" Foreground="#374151" Cursor="Hand"/>
+                </WrapPanel>
+
                 <Button Command="{Binding StartTestsCommand}" Content="Start QC Process" 
                         Style="{StaticResource PrimaryButton}" Height="44" FontSize="14"/>
             </StackPanel>
@@ -165,6 +202,26 @@
                     <Button Command="{Binding RunWifiTestCommand}" Content="🌐 Test Network Connectivity" 
                             Style="{StaticResource PrimaryButton}"
                             Height="50" Margin="0,4" FontSize="14"/>
+                </StackPanel>
+
+                <!-- Bluetooth Test -->
+                <StackPanel Visibility="{Binding IsBluetoothNext, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Ensure Bluetooth is enabled in Windows Settings before running."
+                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12"
+                               Foreground="#6b7280" FontSize="13" FontFamily="Segoe UI"/>
+                    <Button Command="{Binding RunBluetoothTestCommand}" Content="🔵 Test Bluetooth"
+                            Style="{StaticResource PrimaryButton}"
+                            Height="50" Margin="0,8" FontSize="14"/>
+                </StackPanel>
+
+                <!-- Charger / Charging Test -->
+                <StackPanel Visibility="{Binding IsChargerNext, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Plug in the power adapter before running this test. Note: ensure battery is not at full charge for accurate detection."
+                               TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,0,0,12"
+                               Foreground="#6b7280" FontSize="13" FontFamily="Segoe UI"/>
+                    <Button Command="{Binding RunChargerTestCommand}" Content="⚡ Test Charger / Charging"
+                            Style="{StaticResource PrimaryButton}"
+                            Height="50" Margin="0,8" FontSize="14"/>
                 </StackPanel>
                 
                 <!-- Network check status (shown while/after testing) -->

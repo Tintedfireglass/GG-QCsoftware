@@ -426,6 +426,7 @@ const HEADERS = [
     'S.No', 'Computer Name', 'Shift Date', 'OS Edition', 'Windows', 'Version', 'Windows Last Updated',
     'Processor', 'RAM (GB)', 'Antivirus', 'Total Storage (GB)', 'Free Storage (GB)', 'Disk Health (Per Drive)',
     'Tamper Status', 'Grade', 'Score', 'Serial No', 'MAC Address', 'Manufacturer', 'Model', 'Client',
+    'Physical Condition', 'Scratches & Dents',
 ];
 
 export interface ExportOptions {
@@ -527,6 +528,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
             (r.system_manufacturer as string | undefined) || '',
             (r.system_model as string | undefined) || '',
             (r.technician_name as string | undefined) || (r.technician_username as string | undefined) || '',
+            (r.physical_condition as string | undefined) || '',
+            (r.scratches_and_dents as string | undefined) || '',
         ];
 
         return { rowValues, freePercent, isWindowsInactive, isTampered, hasThermalIssue, isStale, computerName, compactProcessor, serialNo };
@@ -553,7 +556,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         { width: 8 }, { width: 24 }, { width: 14 }, { width: 24 }, { width: 14 }, { width: 12 },
         { width: 16 }, { width: 12 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 36 },
         { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 }, { width: 22 }, { width: 18 },
-        { width: 20 }, { width: 20 },
+        { width: 20 }, { width: 20 }, { width: 18 }, { width: 18 },
     ];
 
     const freeStorageColumnIndex = 11;
@@ -887,6 +890,8 @@ export async function buildIndividualReportPdf(
         ['RAM',          ramGbVal],
         ['Storage',      storageTotalLabelStr(storageJson)],
         ['Battery',      battWear],
+        ['Phys. Condition', safeStr(rec.physical_condition)],
+        ['Scratches/Dents', safeStr(rec.scratches_and_dents)],
     ];
     if (battBrand) rightRows.push(['Bat. Brand', battBrand]);
 

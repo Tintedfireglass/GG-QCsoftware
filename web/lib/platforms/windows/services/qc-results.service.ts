@@ -296,6 +296,8 @@ export async function submitResult(
             scoringAlgorithmVersion: body.pramaanAlgorithmVersion || null,
             isDemo,
             demoLicenseKeyId: demoKeyId,
+            physicalCondition: body.physicalCondition || null,
+            scratchesAndDents: body.scratchesAndDents || null,
         });
 
         for (const test of body.testResults) {
