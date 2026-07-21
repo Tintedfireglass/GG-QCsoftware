@@ -30,6 +30,7 @@ export const qcResults = pgTable("qc_results", {
 	timestamp: timestamp({ mode: 'string' }).notNull(),
 	refurbishId: varchar("refurbish_id"),
 	technicianNotes: text("technician_notes"),
+	technicianLabel: text("technician_label"),
 	overallPass: boolean("overall_pass").notNull(),
 	systemManufacturer: varchar("system_manufacturer"),
 	systemModel: varchar("system_model"),

@@ -21,6 +21,7 @@ export interface QCResult {
     timestamp: Date;
     refurbish_id?: string;
     technician_notes?: string;
+    technician_label?: string;
     app_version?: string;
     overall_pass: boolean;
     overall_score?: number;

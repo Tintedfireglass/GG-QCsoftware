@@ -5,6 +5,7 @@ import { ownerVisibilitySql } from '@/lib/shared/domain/visibility';
 import { GradeKey, ListQuery, RiskKey, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
 
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
+const ISSUE_SCORE_THRESHOLD = 70;
 
 const BATTERY_PRESENT_FROM_JSON = `(
     qr.battery_details_json IS NOT NULL
@@ -15,9 +16,37 @@ const BATTERY_PRESENT_FROM_JSON = `(
  * Build the "has issues" EXISTS predicate.
  */
 function hasIssuesExists(rowIdRef: string): string {
+    return `EXISTS (
+        SELECT 1
+        FROM test_results tr
+        JOIN qc_results issue_qr ON issue_qr.id = tr.qc_result_id
+        WHERE tr.qc_result_id = ${rowIdRef}
+          AND ${issueTestPredicateSql('tr', 'issue_qr')}
+    )`;
+}
+
+function issueTestPredicateSql(testAlias: string, resultAlias: string): string {
     return `(
-        SELECT health_score FROM qc_results WHERE id = ${rowIdRef}
-    ) < 70`;
+        (
+            LOWER(${testAlias}.test_type) LIKE 'cpu%'
+            OR LOWER(${testAlias}.test_type) LIKE 'memory%'
+            OR LOWER(${testAlias}.test_type) LIKE 'ram%'
+            OR LOWER(${testAlias}.test_type) LIKE 'storage%'
+            OR LOWER(${testAlias}.test_type) LIKE 'nvme%'
+            OR LOWER(${testAlias}.test_type) LIKE 'ssd%'
+            OR LOWER(${testAlias}.test_type) LIKE 'smart%'
+            OR (
+                (LOWER(${testAlias}.test_type) LIKE 'gpu%' OR LOWER(${testAlias}.test_type) LIKE 'graphics%')
+                AND NOT (COALESCE(${testAlias}.score, 0) = 0 AND ${testAlias}.passed IS NOT FALSE)
+            )
+            OR (
+                LOWER(${testAlias}.test_type) LIKE 'battery%'
+                AND ${resultAlias}.battery_details_json IS NOT NULL
+                AND (${resultAlias}.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+            )
+        )
+        AND (${testAlias}.passed IS FALSE OR COALESCE(${testAlias}.score, 0) < ${ISSUE_SCORE_THRESHOLD})
+    )`;
 }
 
 /**
@@ -175,9 +204,10 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
       SELECT page_rows.*,
         ${sql.raw(hasIssuesExists('page_rows.id'))} AS has_issues,
         (
-          SELECT tr.test_type || ': ' || tr.message
-          FROM test_results tr
-          WHERE tr.qc_result_id = page_rows.id AND tr.score < 70
+           SELECT tr.test_type || ': ' || tr.message
+           FROM test_results tr
+           WHERE tr.qc_result_id = page_rows.id
+             AND ${sql.raw(issueTestPredicateSql('tr', 'page_rows'))}
           ORDER BY tr.test_type ASC LIMIT 1
         ) AS latest_issue
       FROM page_rows
@@ -251,18 +281,9 @@ export async function countQcResults(user: AuthenticatedUser, f: CountFilters): 
     return parseInt((rows[0] as { total?: string })?.total ?? '0', 10);
 }
 
-const ISSUES_CORE_PREFIXES = ['cpu', 'memory', 'ram', 'storage', 'nvme', 'ssd', 'smart', 'battery'];
-
 /** Core-test "is issue" predicate (tr alias, latest-row alias lpm). */
 function issuesCoreTestSql(): SQL {
-    const nonBattery = ISSUES_CORE_PREFIXES.filter((p) => p !== 'battery')
-        .map((p) => `LOWER(tr.test_type) LIKE '${p}%'`)
-        .join('\n        OR ');
-    return sql.raw(`(
-        ( ${nonBattery} )
-        OR ((LOWER(tr.test_type) LIKE 'gpu%' OR LOWER(tr.test_type) LIKE 'graphics%') AND tr.score > 0)
-        OR (LOWER(tr.test_type) LIKE 'battery%' AND lpm.battery_details_json IS NOT NULL AND (lpm.battery_details_json->>'isPresent')::boolean IS NOT FALSE)
-    )`);
+    return sql.raw(issueTestPredicateSql('tr', 'lpm'));
 }
 
 export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDevices: number; devicesWithIssues: number }> {
@@ -270,15 +291,16 @@ export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDev
     const { rows } = await db.execute(sql`
       WITH latest_per_machine AS (
         SELECT DISTINCT ON (qr.machine_id)
-          qr.id AS result_id, qr.machine_id, qr.health_score
+           qr.id AS result_id, qr.machine_id, qr.health_score, qr.battery_details_json
         FROM qc_results qr
         WHERE ${whereSql} AND qr.is_hidden = false
         ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
       ),
       issues AS (
-        SELECT lpm.machine_id
-        FROM latest_per_machine lpm
-        WHERE lpm.health_score < 70
+         SELECT lpm.machine_id
+         FROM latest_per_machine lpm
+         JOIN test_results tr ON tr.qc_result_id = lpm.result_id
+         WHERE ${issuesCoreTestSql()}
       )
       SELECT
         (SELECT COUNT(*) FROM latest_per_machine) AS total_devices,
@@ -297,6 +319,7 @@ export async function findResultById(user: AuthenticatedUser, id: number): Promi
     const { rows } = await db.execute(sql`
         SELECT
             qr.id, qr.report_id, qr.machine_id, qr.timestamp, qr.refurbish_id, qr.technician_notes,
+            qr.technician_label,
             qr.technician_id,
             qr.overall_pass, qr.overall_score, qr.overall_grade, qr.health_score, qr.health_grade,
             qr.category_scores, qr.risk_flags, qr.scoring_algorithm_version, qr.health_hash,
@@ -553,6 +576,7 @@ export interface NewQcResult {
     machineId: number;
     refurbishId: string | null;
     technicianNotes: string | null;
+    technicianLabel: string | null;
     appVersion: string | null;
     overallPass: boolean;
     overallScore: number;
@@ -591,6 +615,7 @@ export async function insertQcResult(tx: Tx, v: NewQcResult): Promise<number> {
         timestamp: sql`NOW()`,
         refurbishId: v.refurbishId,
         technicianNotes: v.technicianNotes,
+        technicianLabel: v.technicianLabel,
         appVersion: v.appVersion,
         overallPass: v.overallPass,
         overallScore: v.overallScore,

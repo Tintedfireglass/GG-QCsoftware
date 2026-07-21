@@ -86,6 +86,7 @@ export const submitSchema = z
         timestamp: z.string().min(1),
         refurbishId: z.string().optional(),
         technicianNotes: z.string().optional(),
+        technicianLabel: z.string().optional(),
         appVersion: z.string().optional(),
         overallPass: z.boolean(),
         overallScore: z.number().optional(),

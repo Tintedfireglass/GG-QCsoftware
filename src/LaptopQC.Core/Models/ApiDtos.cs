@@ -40,6 +40,9 @@ public class SubmitQCResultRequest
     
     [JsonPropertyName("technicianId")]
     public int? TechnicianId { get; set; }
+
+    [JsonPropertyName("technicianLabel")]
+    public string? TechnicianLabel { get; set; }
     
     [JsonPropertyName("systemInfo")]
     public SystemInfoSnapshot? SystemInfo { get; set; }

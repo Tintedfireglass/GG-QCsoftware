@@ -57,10 +57,9 @@ export function ReportLayout({ data }: { data: any }) {
                 <div className="text-right">
                     <div className="text-lg font-bold">Test ID: #{data.id}</div>
                     <div className="text-sm text-gray-600">{formatDbDateTime(data.timestamp)}</div>
-                    {(data.technician_name || data.technician_username || data.technician_id) && (
+                    {data.technician_label && (
                         <div className="text-sm text-gray-600 mt-1">
-                            Technician: {data.technician_name || data.technician_username || "Unknown"}
-                            {data.technician_id ? ` (ID: ${data.technician_id})` : ""}
+                            Technician: {data.technician_label}
                         </div>
                     )}
                 </div>

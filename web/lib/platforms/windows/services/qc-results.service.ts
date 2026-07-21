@@ -267,6 +267,7 @@ export async function submitResult(
             machineId: machineDbId,
             refurbishId: body.refurbishId || null,
             technicianNotes: body.technicianNotes || null,
+            technicianLabel: body.technicianLabel || null,
             appVersion: body.appVersion || null,
             overallPass: body.overallPass,
             overallScore: body.overallScore || 0,

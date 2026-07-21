@@ -382,8 +382,7 @@ export default function ResultDetailPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                     <dt className="font-medium text-slate-500">Technician</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">
-                                        {data.technician_name || data.technician_username || "Unassigned"}
-                                        {data.technician_id ? ` (ID: ${data.technician_id})` : ""}
+                                        {data.technician_label || "Not provided"}
                                     </dd>
                                 </div>
                             </dl>

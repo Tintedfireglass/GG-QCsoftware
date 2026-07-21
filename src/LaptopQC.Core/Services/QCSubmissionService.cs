@@ -112,6 +112,7 @@ public class QCSubmissionService
             OverallScore = report.OverallScore,
             OverallGrade = report.OverallGrade,
             TechnicianId = technicianId, // Include logged-in technician ID if available
+            TechnicianLabel = report.TechnicianId,
             
             SystemInfo = new SystemInfoSnapshot
             {
