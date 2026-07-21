@@ -3,6 +3,8 @@
 import React, { createContext, useContext } from "react"
 import type { Branding } from "@/lib/shared/services/branding.service"
 
+export { verifyUrl, customerPortalUrl } from "@/lib/shared/branding-links"
+
 /**
  * White-label branding for client components (sidebar, auth pages, reports).
  *
@@ -20,9 +22,4 @@ export function useBranding(): Branding {
     const value = useContext(BrandingContext)
     if (!value) throw new Error("useBranding must be used within <BrandingProvider>")
     return value
-}
-
-/** Certificate verification URL for a health/report id, from configured branding. */
-export function verifyUrl(branding: Branding, id: string | number): string {
-    return `${branding.verifyBaseUrl}/verify/${id}`
 }

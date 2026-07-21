@@ -13,9 +13,7 @@ interface GeneralSettings {
     supportEmail: string
     companyName: string
     companyAddress: string
-    loginUrl: string
     websiteUrl: string
-    verifyBaseUrl: string
 }
 
 const FIELDS: { key: keyof GeneralSettings; label: string; placeholder: string; help?: string }[] = [
@@ -23,12 +21,10 @@ const FIELDS: { key: keyof GeneralSettings; label: string; placeholder: string; 
     { key: "supportEmail", label: "Support email", placeholder: "support@pramaan.gadgetguruz.com", help: "Where customers are told to reach you." },
     { key: "companyName", label: "Company (legal) name", placeholder: "GadgetGuruz Pvt. Ltd." },
     { key: "companyAddress", label: "Company address", placeholder: "City, State, Country" },
-    { key: "loginUrl", label: "Customer portal URL", placeholder: "https://app.pramaan.com/customer/account", help: "Account link used in purchase emails." },
-    { key: "websiteUrl", label: "Public website URL", placeholder: "https://example.com", help: "Marketing/store site linked from the customer login and checkout pages." },
-    { key: "verifyBaseUrl", label: "Certificate verification URL", placeholder: "https://dashboard.example.com", help: "Base URL encoded into report QR codes — must be where this dashboard is publicly reachable." },
+    { key: "websiteUrl", label: "Public website URL", placeholder: "https://example.com", help: "Separate marketing/store site, linked from the customer login and checkout pages. This dashboard's own URL is not configurable here — it comes from the deployment." },
 ]
 
-const empty: GeneralSettings = { siteName: "", supportEmail: "", companyName: "", companyAddress: "", loginUrl: "", websiteUrl: "", verifyBaseUrl: "" }
+const empty: GeneralSettings = { siteName: "", supportEmail: "", companyName: "", companyAddress: "", websiteUrl: "" }
 
 type AssetKind = "logo" | "favicon" | "loginImage"
 

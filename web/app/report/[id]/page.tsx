@@ -123,7 +123,7 @@ export default function DedicatedReportPage() {
                     {data.health_id && (
                         <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex flex-col items-center">
                             <QRCodeSVG
-                                value={verifyUrl(branding, data.health_id)}
+                                value={verifyUrl(branding.appUrl, data.health_id)}
                                 size={80}
                             />
                         </div>

@@ -208,7 +208,7 @@ export default function DedicatedMobileReportPage() {
                     </div>
                     <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex flex-col items-center">
                         <QRCodeSVG
-                            value={verifyUrl(branding, report.reportId)}
+                            value={verifyUrl(branding.appUrl, report.reportId)}
                             size={80}
                         />
                     </div>

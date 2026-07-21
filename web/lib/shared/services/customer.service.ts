@@ -12,6 +12,7 @@ import { computePlanPricing } from '@/lib/shared/services/pricing';
 import { createPaymentCheckout, fetchSavedMandate } from '@/lib/shared/services/payment.service';
 import { sendMail } from '@/lib/shared/email/mailer';
 import { renderTemplate } from '@/lib/shared/services/email-settings.service';
+import { getBranding, customerPortalUrl } from '@/lib/shared/services/branding.service';
 import { randomInt } from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -378,14 +379,16 @@ export async function processPaymentCallback(input: CallbackInput): Promise<Call
         try {
             const info = await repo.getOrderEmailInfo(payload.orderId);
             if (info) {
-                const base = input.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+                // Configured dashboard URL wins: the request origin can be an
+                // internal/proxy host that customers cannot reach.
+                const branding = await getBranding();
                 const message = await renderTemplate('purchase_confirmation', {
                     name: info.full_name,
                     email: info.email,
                     licenseKey: newlyMintedKey,
-                    planName: info.plan_name || 'Pramaan License',
+                    planName: info.plan_name || `${branding.siteName} License`,
                     password: info.pending_password,
-                    loginUrl: `${base}/customer/account`,
+                    loginUrl: customerPortalUrl(branding.appUrl),
                 });
                 if (message) await sendMail(message);
                 if (info.pending_password) await repo.clearPendingPassword(payload.orderId);

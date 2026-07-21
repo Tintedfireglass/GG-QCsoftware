@@ -1,5 +1,7 @@
 import { getGeneralSettings } from '@/lib/shared/services/settings.service';
 
+export { verifyUrl, customerPortalUrl } from '@/lib/shared/branding-links';
+
 /**
  * Resolved white-label branding — the single source of truth for the product
  * name, artwork and certificate URLs shown anywhere in the UI, in exported PDFs
@@ -18,8 +20,15 @@ export interface Branding {
     faviconUrl: string;
     /** Illustration beside the login/register forms. */
     loginImageUrl: string;
-    /** Base URL encoded into certificate QR codes (no trailing slash). */
-    verifyBaseUrl: string;
+    /**
+     * Public origin of this dashboard, no trailing slash — from NEXT_PUBLIC_APP_URL,
+     * NOT from settings. Where the dashboard is reachable is a property of the
+     * deployment (it already drives payment callbacks and update downloads), so a
+     * second, editable copy could only ever disagree with reality. Certificate QR
+     * codes and the emailed portal link derive from it via verifyUrl()/
+     * customerPortalUrl() rather than being concatenated by hand.
+     */
+    appUrl: string;
     supportEmail: string;
     companyName: string;
     /** Public marketing site, linked from the customer auth pages. */
@@ -30,11 +39,12 @@ export interface Branding {
 const DEFAULT_LOGO = '/prmn_logo.png';
 const DEFAULT_LOGIN_IMAGE = '/loginImg.png';
 
-/**
- * Where certificate QR codes pointed before this was configurable. Kept as the
- * fallback so QRs on already-printed certificates keep resolving.
- */
-const LEGACY_VERIFY_BASE = 'https://pramaan-dashboard.gadgetguruz.com';
+/** Fallback when NEXT_PUBLIC_APP_URL is unset, so QR codes still resolve. */
+const LEGACY_APP_URL = 'https://pramaan-dashboard.gadgetguruz.com';
+
+function resolveAppUrl(): string {
+    return (process.env.NEXT_PUBLIC_APP_URL || LEGACY_APP_URL).replace(/\/+$/, '');
+}
 
 /** Likewise the marketing site the customer auth pages linked to. */
 const LEGACY_WEBSITE = 'https://pramaan.gadgetguruz.com';
@@ -44,7 +54,7 @@ export const DEFAULT_BRANDING: Branding = {
     logoUrl: DEFAULT_LOGO,
     faviconUrl: '',
     loginImageUrl: DEFAULT_LOGIN_IMAGE,
-    verifyBaseUrl: LEGACY_VERIFY_BASE,
+    appUrl: resolveAppUrl(),
     supportEmail: '',
     companyName: '',
     websiteUrl: LEGACY_WEBSITE,
@@ -67,9 +77,7 @@ function resolve(settings: Awaited<ReturnType<typeof getGeneralSettings>>): Bran
         logoUrl: settings.logoUrl || DEFAULT_LOGO,
         faviconUrl: settings.faviconUrl || '',
         loginImageUrl: settings.loginImageUrl || DEFAULT_LOGIN_IMAGE,
-        // Legacy constant before NEXT_PUBLIC_APP_URL on purpose: until an admin
-        // sets this explicitly, already-printed QR codes must keep resolving.
-        verifyBaseUrl: (settings.verifyBaseUrl || LEGACY_VERIFY_BASE).replace(/\/+$/, ''),
+        appUrl: resolveAppUrl(),
         supportEmail: settings.supportEmail || '',
         companyName: settings.companyName || '',
         websiteUrl: (settings.websiteUrl || LEGACY_WEBSITE).replace(/\/+$/, ''),

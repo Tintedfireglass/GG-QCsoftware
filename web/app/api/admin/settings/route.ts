@@ -9,7 +9,7 @@ export const GET = withAuth(['SuperAdmin'], async () => {
 export const PUT = withAuth(['SuperAdmin'], async (request) => {
     const body = await request.json();
     const updated = await settings.updateGeneralSettings(body || {});
-    // siteName / verifyBaseUrl feed the branding cache read on every render.
+    // siteName / appUrl feed the branding cache read on every render.
     invalidateBrandingCache();
     return json({ settings: updated });
 });

@@ -7,12 +7,8 @@ export interface GeneralSettings {
     supportEmail: string;
     companyName: string;
     companyAddress: string;
-    /** Customer account / login portal URL. */
-    loginUrl: string;
     /** Public marketing/store site linked from the customer auth pages. */
     websiteUrl: string;
-    /** Public base URL encoded into certificate QR codes (no trailing slash). */
-    verifyBaseUrl: string;
     /** Main wordmark/logo — public URL, empty means "use the bundled default". */
     logoUrl: string;
     /** Object key behind logoUrl, kept so the old file can be deleted on replace. */
@@ -26,15 +22,12 @@ export interface GeneralSettings {
 }
 
 function defaults(): GeneralSettings {
-    const base = process.env.NEXT_PUBLIC_APP_URL || '';
     return {
         siteName: 'Pramaan',
         supportEmail: '',
         companyName: '',
         companyAddress: '',
-        loginUrl: base ? `${base}/customer/account` : '',
         websiteUrl: '',
-        verifyBaseUrl: '',
         logoUrl: '',
         logoKey: '',
         faviconUrl: '',
@@ -55,10 +48,11 @@ const STRING_FIELDS: (keyof GeneralSettings)[] = [
     'supportEmail',
     'companyName',
     'companyAddress',
-    'loginUrl',
     'websiteUrl',
-    'verifyBaseUrl',
 ];
+
+/** URLs are stored without a trailing slash so paths can be appended blindly. */
+const URL_FIELDS = new Set<keyof GeneralSettings>(['websiteUrl']);
 
 /**
  * Persist general settings. Unknown fields are ignored; values are trimmed.
@@ -70,7 +64,7 @@ export async function updateGeneralSettings(input: Partial<GeneralSettings>): Pr
     const next: GeneralSettings = { ...current };
     for (const field of STRING_FIELDS) {
         const v = input[field];
-        if (typeof v === 'string') next[field] = field === 'verifyBaseUrl' ? v.trim().replace(/\/+$/, '') : v.trim();
+        if (typeof v === 'string') next[field] = URL_FIELDS.has(field) ? v.trim().replace(/\/+$/, '') : v.trim();
     }
     await repo.setSetting(GENERAL_KEY, next);
     return next;
