@@ -297,6 +297,7 @@ export async function findResultById(user: AuthenticatedUser, id: number): Promi
     const { rows } = await db.execute(sql`
         SELECT
             qr.id, qr.report_id, qr.machine_id, qr.timestamp, qr.refurbish_id, qr.technician_notes,
+            qr.technician_id,
             qr.overall_pass, qr.overall_score, qr.overall_grade, qr.health_score, qr.health_grade,
             qr.category_scores, qr.risk_flags, qr.scoring_algorithm_version, qr.health_hash,
             qr.health_id, qr.submission_ip, qr.app_version, qr.system_manufacturer, qr.system_model,
@@ -304,9 +305,11 @@ export async function findResultById(user: AuthenticatedUser, id: number): Promi
             qr.ram_details_json, qr.storage_details_json, qr.battery_details_json,
             qr.physical_condition, qr.scratches_and_dents,
             m.machine_id as machine_identifier, m.location as machine_location,
-            m.manufacturer as machine_manufacturer, m.model as machine_model, m.computer_name
+            m.manufacturer as machine_manufacturer, m.model as machine_model, m.computer_name,
+            u.username as technician_username, u.display_name as technician_name
         FROM qc_results qr
         LEFT JOIN machines m ON qr.machine_id = m.id
+        LEFT JOIN users u ON qr.technician_id = u.id
         WHERE qr.id = ${id}${visClause}`);
     return (rows[0] as Record<string, unknown>) ?? null;
 }

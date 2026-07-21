@@ -100,13 +100,17 @@ public class CpuStressTest : ICpuStressTest
         }
         catch (TaskCanceledException) { }
 
-        // 4. Stop everything
-        _isRunning = false;
+        // 4. Stop everything. Thread.Join can block for up to a second per
+        // worker. Do the shutdown off the caller's synchronization context;
+        // RunAsync is normally awaited by the Avalonia UI thread.
+        await Task.Run(() =>
+        {
+            _isRunning = false;
 
-        // Wait for threads to finish
-        foreach (var t in stressThreads)
-            t.Join(1000);
-        monitorThread.Join(1000);
+            foreach (var t in stressThreads)
+                t.Join(1000);
+            monitorThread.Join(1000);
+        });
 
         stopwatch.Stop();
 

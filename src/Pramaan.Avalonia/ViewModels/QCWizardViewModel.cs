@@ -133,8 +133,12 @@ public partial class QCWizardViewModel : ObservableObject
         _reportGenerator = new ReportGenerator();
         _submissionService = new QCSubmissionService();
 
-        _workflowService.OnStatusUpdate += (status) => AutomatedStatus = status;
-        _workflowService.OnProgressUpdate += (progress) => AutomatedProgress = progress;
+        // Stress-test progress is raised from worker threads. Marshal updates
+        // back to Avalonia's UI thread before changing bound properties.
+        _workflowService.OnStatusUpdate += (status) =>
+            Dispatcher.UIThread.Post(() => AutomatedStatus = status);
+        _workflowService.OnProgressUpdate += (progress) =>
+            Dispatcher.UIThread.Post(() => AutomatedProgress = progress);
     }
 
     [RelayCommand]
