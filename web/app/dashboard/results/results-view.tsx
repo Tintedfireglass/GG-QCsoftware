@@ -537,12 +537,12 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                                             )}
                                         </div>
                                         <div>
-                                            {test.pramaan_grade ? (() => {
-                                                const s = getGradeStyle(test.pramaan_grade);
+                                            {test.health_grade ? (() => {
+                                                const s = getGradeStyle(test.health_grade);
                                                 return (
                                                     <div className="flex flex-col items-end gap-1">
                                                         <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap ${s.bg} ${s.text}`}>
-                                                            {test.pramaan_grade}-{test.pramaan_score}
+                                                            {test.health_grade}-{test.health_score}
                                                         </span>
                                                     </div>
                                                 );
@@ -669,16 +669,16 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                                                 )}
                                             </td>
                                             <td className="p-2 align-middle break-words">
-                                                {test.pramaan_grade ? (() => {
-                                                    const s = getGradeStyle(test.pramaan_grade);
+                                                {test.health_grade ? (() => {
+                                                    const s = getGradeStyle(test.health_grade);
                                                     return (
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`text-[15px] font-bold ${gradeHeroColor(test.pramaan_grade)}`}>
-                                                                    {test.pramaan_grade}
+                                                                <span className={`text-[15px] font-bold ${gradeHeroColor(test.health_grade)}`}>
+                                                                    {test.health_grade}
                                                                 </span>
                                                                 <span className={`inline-flex items-center rounded-lg px-3 py-1 text-sm font-bold ${s.bg} ${s.text} border-2 border-[currentColor]/10`}>
-                                                                    {test.pramaan_score}
+                                                                    {test.health_score}
                                                                 </span>
                                                             </div>
                                                         </div>

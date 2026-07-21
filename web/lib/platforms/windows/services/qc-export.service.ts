@@ -491,7 +491,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
         const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
         const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
-        const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
+        const riskFlags = (r.risk_flags as JsonRecord | null) || {};
         const hasThermalIssue = riskFlags.thermal === true;
         const serialNo = (r.system_serial as string | undefined) || '';
 
@@ -520,8 +520,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
             freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
             diskHealthLabel,
             isTampered ? 'Tampered' : 'Clean',
-            (r.pramaan_grade as string | undefined) || '',
-            r.pramaan_score != null ? String(r.pramaan_score) : '',
+            (r.health_grade as string | undefined) || '',
+            r.health_score != null ? String(r.health_score) : '',
             serialNo,
             (r.mac_address as string | undefined) || '',
             (r.system_manufacturer as string | undefined) || '',
@@ -822,8 +822,8 @@ export async function buildIndividualReportPdf(
     y = PH - 64;
 
     // ── GRADE HERO PANEL ──────────────────────────────────────────────────────────
-    const grade = safeStr(rec.pramaan_grade);
-    const score = safeNum(rec.pramaan_score);
+    const grade = safeStr(rec.health_grade);
+    const score = safeNum(rec.health_score);
     const [gr, gg, gb2] = gradeColorRgb(grade);
     const [bgr, bgg, bgb] = gradeBgRgb(grade);
     page.drawRectangle({ x: M, y: y - 58, width: contentW, height: 58, color: rgb(bgr, bgg, bgb), borderColor: rgb(gr, gg, gb2), borderWidth: 1 });
@@ -1088,7 +1088,7 @@ export async function exportSampleDataset(
             const ramGb = ramTotal > 0 ? Math.round(ramTotal / (1024 * 1024 * 1024)) : '';
             const compactProcessor = toCompactProcessor((r.cpu_model as string | null | undefined) || '');
             const computerName = ((r.computer_name as string | undefined) || (r.machine_identifier as string | undefined) || `Machine ${index + 1}`);
-            const riskFlags = (r.pramaan_risk_flags as JsonRecord | null) || {};
+            const riskFlags = (r.risk_flags as JsonRecord | null) || {};
             const hasThermalIssue = riskFlags.thermal === true;
             const serialNo = (r.system_serial as string | undefined) || '';
 
@@ -1117,8 +1117,8 @@ export async function exportSampleDataset(
                 freeStorageBytes > 0 ? formatBytes(freeStorageBytes) : '',
                 diskHealthLabel,
                 isTampered ? 'Tampered' : 'Clean',
-                (r.pramaan_grade as string | undefined) || '',
-                r.pramaan_score != null ? String(r.pramaan_score) : '',
+                (r.health_grade as string | undefined) || '',
+                r.health_score != null ? String(r.health_score) : '',
                 serialNo,
                 (r.mac_address as string | undefined) || '',
                 (r.system_manufacturer as string | undefined) || '',
@@ -1228,7 +1228,7 @@ export async function exportSampleDataset(
         metaSheet.getRow(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
         const gradeCountMap: Record<string, number> = {};
         results.forEach((r) => {
-            const g = (r.pramaan_grade as string) || 'Unknown';
+            const g = (r.health_grade as string) || 'Unknown';
             gradeCountMap[g] = (gradeCountMap[g] || 0) + 1;
         });
         Object.entries(gradeCountMap).sort().forEach(([g, cnt]) => {

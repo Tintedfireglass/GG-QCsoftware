@@ -48,13 +48,13 @@ export const qcResults = pgTable("qc_results", {
 	technicianId: integer("technician_id"),
 	overallScore: integer("overall_score").default(0),
 	overallGrade: varchar("overall_grade").default(""),
-	pramaanScore: integer("pramaan_score"),
-	pramaanGrade: varchar("pramaan_grade"),
-	pramaanCategoryScores: jsonb("pramaan_category_scores"),
-	pramaanRiskFlags: jsonb("pramaan_risk_flags"),
-	pramaanAlgorithmVersion: varchar("pramaan_algorithm_version"),
+	healthScore: integer("health_score"),
+	healthGrade: varchar("health_grade"),
+	categoryScores: jsonb("category_scores"),
+	riskFlags: jsonb("risk_flags"),
+	scoringAlgorithmVersion: varchar("scoring_algorithm_version"),
 	healthId: uuid("health_id"),
-	pramaanHash: varchar("pramaan_hash"),
+	healthHash: varchar("health_hash"),
 	appVersion: varchar("app_version"),
 	submissionIp: varchar("submission_ip"),
 	isDemo: boolean("is_demo").default(false),
@@ -117,7 +117,7 @@ export const machineGroups = pgTable("machine_groups", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const pramaanScoringVersions = pgTable("pramaan_scoring_versions", {
+export const scoringVersions = pgTable("scoring_versions", {
 	versionId: varchar("version_id").notNull(),
 	weights: jsonb().notNull(),
 	gradeBands: jsonb("grade_bands").notNull(),

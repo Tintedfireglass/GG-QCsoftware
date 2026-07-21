@@ -96,12 +96,12 @@ export default function DedicatedReportPage() {
             <div className="mb-8 flex items-center justify-between bg-gray-50 p-6 border border-gray-200 rounded-sm">
                 <div>
                     <div className="text-sm uppercase tracking-wider text-gray-500 font-semibold">{branding.siteName} Health Score</div>
-                    {data.pramaan_grade ? (
+                    {data.health_grade ? (
                         <>
-                            <div className={`text-5xl font-bold mt-2 ${gradeHeroColor(data.pramaan_grade)}`}>
-                                {data.pramaan_grade}
+                            <div className={`text-5xl font-bold mt-2 ${gradeHeroColor(data.health_grade)}`}>
+                                {data.health_grade}
                             </div>
-                            <div className="text-sm text-gray-600 mt-1">{gradeLabel(data.pramaan_grade)} — {data.pramaan_score}/100</div>
+                            <div className="text-sm text-gray-600 mt-1">{gradeLabel(data.health_grade)} — {data.health_score}/100</div>
                         </>
                     ) : (
                         <div className={`text-5xl font-bold mt-2 ${data.overall_pass ? 'text-green-700' : 'text-red-700'}`}>

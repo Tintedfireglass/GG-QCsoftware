@@ -16,7 +16,7 @@ const BATTERY_PRESENT_FROM_JSON = `(
  */
 function hasIssuesExists(rowIdRef: string): string {
     return `(
-        SELECT pramaan_score FROM qc_results WHERE id = ${rowIdRef}
+        SELECT health_score FROM qc_results WHERE id = ${rowIdRef}
     ) < 70`;
 }
 
@@ -71,9 +71,9 @@ function riskFilterSql(risks: RiskKey[]): string {
     const parts = risks.map((key) => {
         switch (key) {
             case 'storage':
-                return `((qr.pramaan_risk_flags->>'storage')::boolean IS TRUE OR (qr.pramaan_risk_flags->>'criticalStorage')::boolean IS TRUE OR (qr.pramaan_risk_flags->>'lowStorage')::boolean IS TRUE)`;
+                return `((qr.risk_flags->>'storage')::boolean IS TRUE OR (qr.risk_flags->>'criticalStorage')::boolean IS TRUE OR (qr.risk_flags->>'lowStorage')::boolean IS TRUE)`;
             case 'thermal':
-                return `(qr.pramaan_risk_flags->>'thermal')::boolean IS TRUE`;
+                return `(qr.risk_flags->>'thermal')::boolean IS TRUE`;
             case 'tamper':
                 return `((qr.storage_details_json->>'isTampered')::boolean IS TRUE OR (qr.battery_details_json->>'isTampered')::boolean IS TRUE)`;
         }
@@ -141,7 +141,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
         )`);
     }
     if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
-    if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.pramaan_grade', q.grades)));
+    if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.health_grade', q.grades)));
     if (q.risk && q.risk.length) conds.push(sql.raw(riskFilterSql(q.risk)));
     // Inclusive date range: endDate covers the whole day (< next midnight).
     if (q.startDate) conds.push(sql`qr.timestamp >= ${q.startDate}`);
@@ -150,15 +150,15 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;
 
-    const innerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'qr.timestamp', id: 'qr.id', grade: 'qr.pramaan_grade' }));
-    const outerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'timestamp', id: 'id', grade: 'pramaan_grade' }));
+    const innerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'qr.timestamp', id: 'qr.id', grade: 'qr.health_grade' }));
+    const outerOrderBy = sql.raw(orderBySql(q.sort, { ts: 'timestamp', id: 'id', grade: 'health_grade' }));
 
     // Avoid selecting large JSON columns; compute has_issues only for the page.
     const listSql = sql`
       WITH page_rows AS (
         SELECT
           qr.id, qr.report_id, qr.machine_id, qr.timestamp, qr.overall_pass,
-          qr.pramaan_score, qr.pramaan_grade, qr.system_manufacturer,
+          qr.health_score, qr.health_grade, qr.system_manufacturer,
           qr.system_model, qr.system_serial, qr.app_version,
           m.machine_id as machine_identifier,
           m.computer_name,
@@ -270,7 +270,7 @@ export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDev
     const { rows } = await db.execute(sql`
       WITH latest_per_machine AS (
         SELECT DISTINCT ON (qr.machine_id)
-          qr.id AS result_id, qr.machine_id, qr.pramaan_score
+          qr.id AS result_id, qr.machine_id, qr.health_score
         FROM qc_results qr
         WHERE ${whereSql} AND qr.is_hidden = false
         ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
@@ -278,7 +278,7 @@ export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDev
       issues AS (
         SELECT lpm.machine_id
         FROM latest_per_machine lpm
-        WHERE lpm.pramaan_score < 70
+        WHERE lpm.health_score < 70
       )
       SELECT
         (SELECT COUNT(*) FROM latest_per_machine) AS total_devices,
@@ -297,8 +297,8 @@ export async function findResultById(user: AuthenticatedUser, id: number): Promi
     const { rows } = await db.execute(sql`
         SELECT
             qr.id, qr.report_id, qr.machine_id, qr.timestamp, qr.refurbish_id, qr.technician_notes,
-            qr.overall_pass, qr.overall_score, qr.overall_grade, qr.pramaan_score, qr.pramaan_grade,
-            qr.pramaan_category_scores, qr.pramaan_risk_flags, qr.pramaan_algorithm_version, qr.pramaan_hash,
+            qr.overall_pass, qr.overall_score, qr.overall_grade, qr.health_score, qr.health_grade,
+            qr.category_scores, qr.risk_flags, qr.scoring_algorithm_version, qr.health_hash,
             qr.health_id, qr.submission_ip, qr.app_version, qr.system_manufacturer, qr.system_model,
             qr.system_serial, qr.mac_address, qr.cpu_model, qr.ram_total, qr.system_info_json,
             qr.ram_details_json, qr.storage_details_json, qr.battery_details_json,
@@ -409,19 +409,19 @@ export async function listResultsByGradesForSample(
             FROM qc_results qr
             LEFT JOIN machines m ON qr.machine_id = m.id
             LEFT JOIN users u   ON qr.technician_id = u.id
-            WHERE qr.pramaan_grade IS NOT NULL
+            WHERE qr.health_grade IS NOT NULL
               ${visClause}
               ${excludeSql}
         ),
         good_rows AS (
             SELECT * FROM base
-            WHERE pramaan_grade IN (${sql.raw(goodGradeList)})
+            WHERE health_grade IN (${sql.raw(goodGradeList)})
             ORDER BY timestamp DESC, id DESC
             LIMIT ${goodCountVal}
         ),
         poor_rows AS (
             SELECT * FROM base
-            WHERE pramaan_grade IN (${sql.raw(poorGradeList)})
+            WHERE health_grade IN (${sql.raw(poorGradeList)})
             ORDER BY timestamp DESC, id DESC
             LIMIT ${poorCountVal}
         )
@@ -448,10 +448,10 @@ export async function listTestResultsForIds(ids: number[]): Promise<Record<strin
 /** Public verification lookup by health_id (only scored results). */
 export async function findCertByHealthId(healthId: string): Promise<Record<string, unknown> | null> {
     const { rows } = await db.execute(sql`
-        SELECT report_id, health_id, pramaan_hash, pramaan_score, pramaan_grade,
-               pramaan_algorithm_version, app_version, timestamp, system_model, system_manufacturer
+        SELECT report_id, health_id, health_hash, health_score, health_grade,
+               scoring_algorithm_version, app_version, timestamp, system_model, system_manufacturer
         FROM qc_results
-        WHERE health_id = ${healthId} AND pramaan_score IS NOT NULL`);
+        WHERE health_id = ${healthId} AND health_score IS NOT NULL`);
     return (rows[0] as Record<string, unknown>) ?? null;
 }
 
@@ -567,13 +567,13 @@ export interface NewQcResult {
     deviceDetailsJson: unknown;
     submissionIp: string | null;
     technicianId: number | null;
-    pramaanScore: number | null;
+    healthScore: number | null;
     healthId: string | null;
-    pramaanHash: string | null;
-    pramaanGrade: string | null;
-    pramaanCategoryScores: unknown;
-    pramaanRiskFlags: unknown;
-    pramaanAlgorithmVersion: string | null;
+    healthHash: string | null;
+    healthGrade: string | null;
+    categoryScores: unknown;
+    riskFlags: unknown;
+    scoringAlgorithmVersion: string | null;
     isDemo: boolean;
     demoLicenseKeyId: number | null;
 }
@@ -603,13 +603,13 @@ export async function insertQcResult(tx: Tx, v: NewQcResult): Promise<number> {
         deviceDetailsJson: v.deviceDetailsJson,
         submissionIp: v.submissionIp,
         technicianId: v.technicianId,
-        pramaanScore: v.pramaanScore,
+        healthScore: v.healthScore,
         healthId: v.healthId,
-        pramaanHash: v.pramaanHash,
-        pramaanGrade: v.pramaanGrade,
-        pramaanCategoryScores: v.pramaanCategoryScores,
-        pramaanRiskFlags: v.pramaanRiskFlags,
-        pramaanAlgorithmVersion: v.pramaanAlgorithmVersion,
+        healthHash: v.healthHash,
+        healthGrade: v.healthGrade,
+        categoryScores: v.categoryScores,
+        riskFlags: v.riskFlags,
+        scoringAlgorithmVersion: v.scoringAlgorithmVersion,
         isDemo: v.isDemo,
         demoLicenseKeyId: v.demoLicenseKeyId,
     }).returning({ id: qcResults.id });
@@ -673,10 +673,10 @@ export async function assetHealthSummary(user: AuthenticatedUser): Promise<{
         WITH latest_per_machine AS (
             SELECT DISTINCT ON (qr.machine_id)
                 qr.id,
-                COALESCE(qr.pramaan_grade, qr.overall_grade) as resolved_grade,
+                COALESCE(qr.health_grade, qr.overall_grade) as resolved_grade,
                 qr.storage_details_json,
                 qr.battery_details_json,
-                qr.pramaan_risk_flags
+                qr.risk_flags
             FROM qc_results qr
             WHERE ${whereSql} AND qr.is_hidden = false
             ORDER BY qr.machine_id, qr.timestamp DESC, qr.id DESC
@@ -686,8 +686,8 @@ export async function assetHealthSummary(user: AuthenticatedUser): Promise<{
             COUNT(*) FILTER (WHERE resolved_grade IN ('A+', 'A', 'B')) AS healthy_assets,
             COUNT(*) FILTER (WHERE resolved_grade IN ('C', 'D', 'E')) AS at_risk_assets,
             COUNT(*) FILTER (WHERE resolved_grade IN ('F', 'Reject')) AS reject_assets,
-            COUNT(*) FILTER (WHERE (pramaan_risk_flags->>'storage')::boolean IS TRUE OR (pramaan_risk_flags->>'criticalStorage')::boolean IS TRUE OR (pramaan_risk_flags->>'lowStorage')::boolean IS TRUE) AS storage_issues,
-            COUNT(*) FILTER (WHERE (pramaan_risk_flags->>'thermal')::boolean IS TRUE) AS thermal_issues,
+            COUNT(*) FILTER (WHERE (risk_flags->>'storage')::boolean IS TRUE OR (risk_flags->>'criticalStorage')::boolean IS TRUE OR (risk_flags->>'lowStorage')::boolean IS TRUE) AS storage_issues,
+            COUNT(*) FILTER (WHERE (risk_flags->>'thermal')::boolean IS TRUE) AS thermal_issues,
             COUNT(*) FILTER (WHERE (storage_details_json->>'isTampered')::boolean IS TRUE OR (battery_details_json->>'isTampered')::boolean IS TRUE) AS tamper_flags
         FROM latest_per_machine
     `);

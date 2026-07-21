@@ -29,8 +29,8 @@ export async function listFleet(
             m.id, m.machine_id, m.serial_number, m.manufacturer, m.model,
             m.asset_tag, m.group_id, m.last_seen,
             mg.name as group_name,
-            latest_qr.pramaan_score as latest_score,
-            latest_qr.pramaan_grade as latest_grade,
+            latest_qr.health_score as latest_score,
+            latest_qr.health_grade as latest_grade,
             latest_qr.timestamp as latest_test_date,
             COALESCE(mle.lifecycle_event_count, 0) as lifecycle_event_count
         FROM machines m
@@ -40,7 +40,7 @@ export async function listFleet(
             FROM machine_lifecycle_events GROUP BY machine_id
         ) mle ON mle.machine_id = m.id
         LEFT JOIN LATERAL (
-            SELECT pramaan_score, pramaan_grade, timestamp
+            SELECT health_score, health_grade, timestamp
             FROM qc_results WHERE machine_id = m.id
             ORDER BY timestamp DESC LIMIT 1
         ) latest_qr ON true
