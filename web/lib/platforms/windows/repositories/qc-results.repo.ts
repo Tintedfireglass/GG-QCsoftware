@@ -7,10 +7,13 @@ import { GradeKey, ListQuery, RiskKey, SortKey } from '@/lib/platforms/windows/d
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
 const ISSUE_SCORE_THRESHOLD = 70;
 
-const BATTERY_PRESENT_FROM_JSON = `(
-    qr.battery_details_json IS NOT NULL
-    AND (qr.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+/** Battery-present boolean derived from a row alias that carries the raw JSON column. */
+function batteryPresentSql(resultAlias: string): string {
+    return `(
+    ${resultAlias}.battery_details_json IS NOT NULL
+    AND (${resultAlias}.battery_details_json->>'isPresent')::boolean IS NOT FALSE
 )`;
+}
 
 /**
  * Build the "has issues" EXISTS predicate.
@@ -21,11 +24,16 @@ function hasIssuesExists(rowIdRef: string): string {
         FROM test_results tr
         JOIN qc_results issue_qr ON issue_qr.id = tr.qc_result_id
         WHERE tr.qc_result_id = ${rowIdRef}
-          AND ${issueTestPredicateSql('tr', 'issue_qr')}
+          AND ${issueTestPredicateSql('tr', batteryPresentSql('issue_qr'))}
     )`;
 }
 
-function issueTestPredicateSql(testAlias: string, resultAlias: string): string {
+/**
+ * `batteryPresentExpr` is a boolean SQL expression, not a table alias: callers that
+ * project the raw JSON pass batteryPresentSql(alias); callers that already carry a
+ * precomputed flag (the list's page_rows CTE) pass that column instead.
+ */
+function issueTestPredicateSql(testAlias: string, batteryPresentExpr: string): string {
     return `(
         (
             LOWER(${testAlias}.test_type) LIKE 'cpu%'
@@ -41,8 +49,7 @@ function issueTestPredicateSql(testAlias: string, resultAlias: string): string {
             )
             OR (
                 LOWER(${testAlias}.test_type) LIKE 'battery%'
-                AND ${resultAlias}.battery_details_json IS NOT NULL
-                AND (${resultAlias}.battery_details_json->>'isPresent')::boolean IS NOT FALSE
+                AND ${batteryPresentExpr}
             )
         )
         AND (${testAlias}.passed IS FALSE OR COALESCE(${testAlias}.score, 0) < ${ISSUE_SCORE_THRESHOLD})
@@ -193,7 +200,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
           m.computer_name,
           u.username as technician_username,
           u.display_name as technician_name,
-          ${sql.raw(BATTERY_PRESENT_FROM_JSON)} AS battery_present
+          ${sql.raw(batteryPresentSql('qr'))} AS battery_present
         FROM qc_results qr
         LEFT JOIN machines m ON qr.machine_id = m.id
         LEFT JOIN users u ON qr.technician_id = u.id
@@ -207,7 +214,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
            SELECT tr.test_type || ': ' || tr.message
            FROM test_results tr
            WHERE tr.qc_result_id = page_rows.id
-             AND ${sql.raw(issueTestPredicateSql('tr', 'page_rows'))}
+             AND ${sql.raw(issueTestPredicateSql('tr', 'page_rows.battery_present'))}
           ORDER BY tr.test_type ASC LIMIT 1
         ) AS latest_issue
       FROM page_rows
@@ -283,7 +290,7 @@ export async function countQcResults(user: AuthenticatedUser, f: CountFilters): 
 
 /** Core-test "is issue" predicate (tr alias, latest-row alias lpm). */
 function issuesCoreTestSql(): SQL {
-    return sql.raw(issueTestPredicateSql('tr', 'lpm'));
+    return sql.raw(issueTestPredicateSql('tr', batteryPresentSql('lpm')));
 }
 
 export async function issuesSummary(user: AuthenticatedUser): Promise<{ totalDevices: number; devicesWithIssues: number }> {
