@@ -141,13 +141,10 @@ export const features = {
   ],
 };
 
-export interface PricingPlan {
-  // Catalog plan id from the admin app (/api/plans). Cards that carry one are
-  // refreshed from the live catalog and link to /checkout?planId=...
-  planId?: number;
-  // Platform tabs this card appears under. Omitted = every tab (Free Trial,
-  // Enterprise). Live cards get this from the catalog's product_scope.
-  platforms?: string[];
+// A pricing card that is NOT a purchasable plan — the free trial and Enterprise
+// enquiry cards. Every paid plan comes from the admin catalog (/api/plans) via
+// lib/plans.ts and is never listed here.
+export interface StaticPricingCard {
   title: string;
   subtitle: string;
   price: string;
@@ -180,153 +177,41 @@ export const pricing = {
   ] as PlatformTab[],
   // Shown when a tab has no purchasable plan yet.
   emptyPlatformText: "Paid plans for this platform are coming soon — the free trial is available today, and our team can set you up in the meantime.",
-  plans: [
-    {
-      title: "Free Trial",
-      subtitle: "Perfect for trying out basic features.",
-      price: `${config.CURRENCY_SYMBOL}0`,
-      period: "",
-      features: [
-        "7-day free trial",
-        "Basic QC of laptop/desktop/server",
-        "Automated testing",
-        "System health report",
-        "Customer support",
-      ],
-      ctaText: "Start Free Trial",
-      ctaLink: config.DOWNLOAD_URL,
-      ctaDownload: true,
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-    {
-      planId: 1,
-      platforms: ["windows"],
-      title: "Starter",
-      subtitle: "Cost Effective 1 month subscription plan.",
-      price: `${config.CURRENCY_SYMBOL}49`,
-      period: "/ month",
-      features: [
-        "Everything in Free Trial",
-        "1 Month subscription",
-        "Lifecycle monitoring",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-    {
-      planId: 3,
-      platforms: ["windows"],
-      title: "Basic",
-      subtitle: "Cost Effective 6 month subscription plan.",
-      price: `${config.CURRENCY_SYMBOL}199`,
-      period: "/ 6 months",
-      features: [
-        "Everything in Free Trial",
-        "6 Month subscription",
-        "Lifecycle monitoring",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-    {
-      planId: 2,
-      platforms: ["windows"],
-      title: "Professional",
-      subtitle: "For growing teams and active monitoring.",
-      price: `${config.CURRENCY_SYMBOL}${config.PRICE_PER_UNIT}`,
-      period: "/ lifetime",
-      features: [
-        "Everything in Free Trial",
-        "Lifecycle monitoring",
-        "Enterprise reporting",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-primary",
-      featured: true,
-      badge: "Recommended",
-    },
-    {
-      planId: 4,
-      platforms: ["mac"],
-      title: "Starter",
-      subtitle: "Cost Effective 1 month subscription plan.",
-      price: `${config.CURRENCY_SYMBOL}99`,
-      period: "/ month",
-      features: [
-        "Everything in Free Trial",
-        "1 Month subscription",
-        "Lifecycle monitoring",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-    {
-      planId: 5,
-      platforms: ["mac"],
-      title: "Basic",
-      subtitle: "Cost Effective 6 month subscription plan.",
-      price: `${config.CURRENCY_SYMBOL}299`,
-      period: "/ 6 months",
-      features: [
-        "Everything in Free Trial",
-        "6 Month subscription",
-        "Lifecycle monitoring",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-    {
-      planId: 6,
-      platforms: ["mac"],
-      title: "Professional",
-      subtitle: "For growing teams and active monitoring.",
-      price: `${config.CURRENCY_SYMBOL}999`,
-      period: "/ lifetime",
-      features: [
-        "Everything in Free Trial",
-        "Lifecycle monitoring",
-        "Enterprise reporting",
-        "QC certification",
-        "Advanced hardware diagnostics",
-      ],
-      ctaText: "Buy Now",
-      ctaClass: "pricing-btn-primary",
-      featured: true,
-      badge: "Recommended",
-    },
-    {
-      title: "Enterprise",
-      subtitle: "Custom solutions for large scale operations.",
-      price: "Custom",
-      period: "",
-      features: [
-        "Full dashboard integration",
-        "Customization possible",
-        "API access",
-        "Priority support",
-        "Dedicated account manager",
-      ],
-      ctaText: "Connect with us",
-      ctaLink: "/#contact",
-      ctaClass: "pricing-btn-outline",
-      featured: false,
-    },
-  ] as PricingPlan[],
+  // Non-catalog cards. Paid plans are fetched from /api/plans at render time.
+  freeTrial: {
+    title: "Free Trial",
+    subtitle: "Perfect for trying out basic features.",
+    price: `${config.CURRENCY_SYMBOL}0`,
+    period: "",
+    features: [
+      "7-day free trial",
+      "Basic QC of laptop/desktop/server",
+      "Automated testing",
+      "System health report"
+    ],
+    ctaText: "Start Free Trial",
+    ctaLink: config.DOWNLOAD_URL,
+    ctaDownload: true,
+    ctaClass: "pricing-btn-outline",
+    featured: false,
+  } as StaticPricingCard,
+  enterprise: {
+    title: "Enterprise",
+    subtitle: "Custom solutions for large scale operations.",
+    price: "Custom",
+    period: "",
+    features: [
+      "Full dashboard integration",
+      "Customization possible",
+      "API access",
+      "Priority support",
+      "Dedicated account manager",
+    ],
+    ctaText: "Connect with us",
+    ctaLink: "/#contact",
+    ctaClass: "pricing-btn-outline",
+    featured: false,
+  } as StaticPricingCard,
 };
 
 export interface FaqItem {

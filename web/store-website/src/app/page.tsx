@@ -16,6 +16,7 @@ import {
 } from "@/data/content";
 import DownloadButton from "@/components/DownloadButton";
 import { getDownloadOptions } from "@/lib/releases";
+import { getCatalogPlans } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Pramaan – Electronics Lifecycle Intelligence Platform",
@@ -30,7 +31,11 @@ export default async function HomePage() {
   // Discover every published installer (per platform/arch) from the admin update
   // API for the download dropdowns. `downloadUrl` is the first option's link,
   // used where a single URL is needed (Free Trial CTA).
-  const downloadOptions = await getDownloadOptions();
+  // Paid pricing cards come entirely from the admin plans catalog.
+  const [downloadOptions, plans] = await Promise.all([
+    getDownloadOptions(),
+    getCatalogPlans(),
+  ]);
   const downloadUrl = downloadOptions[0]?.url;
 
   return (
@@ -243,7 +248,7 @@ export default async function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <PricingSection downloadUrl={downloadUrl} downloadOptions={downloadOptions} />
+      <PricingSection downloadUrl={downloadUrl} downloadOptions={downloadOptions} plans={plans} />
 
       {/* FAQ Section */}
       <section className="faqs-section">

@@ -655,11 +655,19 @@ p {
   }
 }
 
+/* Every card in a row is the same height regardless of how many features its
+   plan lists: the column stretches (Bootstrap default) and the card fills it. */
+.pricing-col {
+  display: flex;
+}
+
 .pricing-card {
   background: var(--color-white);
   border-radius: var(--border-radius-xl);
   padding: var(--spacing-lg) var(--spacing-lg);
-  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   border: 2px solid var(--border-color);
   transition: all 0.3s ease;
   position: relative;
@@ -670,14 +678,15 @@ p {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 
+/* Emphasis without scaling — scaling would make this card taller than the rest. */
 .pricing-card-featured {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  transform: scale(1.05);
+  box-shadow: 0 16px 36px rgba(123, 42, 138, 0.25);
 }
 
 .pricing-card-featured:hover {
-  transform: scale(1.05) translateY(-8px);
+  transform: translateY(-8px);
 }
 
 .pricing-card-featured .pricing-card-title,
@@ -733,10 +742,17 @@ p {
   font-weight: 400;
 }
 
+/* CTA sits between the price and the feature list. */
+.pricing-card-cta {
+  margin-bottom: var(--spacing-lg);
+}
+
 .pricing-features {
   list-style: none;
   padding: 0;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 0;
+  /* Soaks up the leftover height so shorter plans still fill their card. */
+  flex: 1 1 auto;
 }
 
 .pricing-features li {
@@ -1175,14 +1191,6 @@ p {
   .pricing-card {
     padding: var(--spacing-lg) var(--spacing-md);
     margin-bottom: var(--spacing-md);
-  }
-
-  .pricing-card-featured {
-    transform: scale(1);
-  }
-
-  .pricing-card-featured:hover {
-    transform: scale(1) translateY(-8px);
   }
 
   .pricing-card-title {
