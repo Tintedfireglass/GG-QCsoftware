@@ -15,6 +15,8 @@ export const adminMobileListQuerySchema = z.object({
     /** Inclusive date range over mr.tested_at ("YYYY-MM-DD"); either bound optional. */
     startDate: z.string().trim().min(1).optional(),
     endDate: z.string().trim().min(1).optional(),
+    /** '1' = archive view: only reports OLDER than the retention window. */
+    archived: z.enum(['0', '1']).default('0'),
     includeTotal: z.enum(['0', '1']).default('1'),
 });
 

@@ -2,6 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { GLOBAL_ROLES } from '@/lib/shared/domain/visibility';
+import { RETENTION_INTERVAL_SQL } from '@/lib/shared/domain/retention';
 import { APP_TIME_ZONE } from '@/lib/timezone';
 
 /**
@@ -50,6 +51,7 @@ export interface AdminListFilters {
     search?: string;
     startDate?: string;
     endDate?: string;
+    archived: boolean;
     includeTotal: boolean;
 }
 
@@ -73,6 +75,15 @@ export async function listAdminReports(
     // endDate covers the whole day (< next midnight).
     if (f.startDate) conds.push(sql`mr.tested_at >= ((${f.startDate}::date)::timestamp AT TIME ZONE ${APP_TIME_ZONE})`);
     if (f.endDate) conds.push(sql`mr.tested_at < ((${f.endDate}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${APP_TIME_ZONE})`);
+    // Rolling retention window, mirroring the PC list: the default view is the last
+    // REPORT_RETENTION_DAYS days, the archive is strictly older than that. tested_at
+    // is nullable, so fall back to created_at — otherwise reports that never got a
+    // tested_at would drop out of BOTH views. An explicit date range replaces the
+    // window in the default view; the archive keeps its cutoff regardless.
+    const cutoff = sql`(NOW() - ${sql.raw(RETENTION_INTERVAL_SQL)})`;
+    const reportTime = sql`COALESCE(mr.tested_at, mr.created_at)`;
+    if (f.archived) conds.push(sql`${reportTime} < ${cutoff}`);
+    else if (!f.startDate && !f.endDate) conds.push(sql`${reportTime} >= ${cutoff}`);
     const where = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
 
     const { rows } = await db.execute(sql`

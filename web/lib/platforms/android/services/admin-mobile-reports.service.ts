@@ -51,6 +51,7 @@ export async function listAdminReports(user: AuthenticatedUser, query: AdminMobi
         search: query.search,
         startDate: query.startDate,
         endDate: query.endDate,
+        archived: query.archived === '1',
         includeTotal: query.includeTotal === '1',
     });
     return {

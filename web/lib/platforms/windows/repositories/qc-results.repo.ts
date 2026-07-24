@@ -3,6 +3,7 @@ import { db, schema, type Tx } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { ownerVisibilitySql } from '@/lib/shared/domain/visibility';
 import { GradeKey, ListQuery, RiskKey, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { RETENTION_INTERVAL_SQL } from '@/lib/shared/domain/retention';
 import { APP_TIME_ZONE } from '@/lib/timezone';
 
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
@@ -186,6 +187,15 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     // day (< next midnight).
     if (q.startDate) conds.push(sql`qr.timestamp >= ((${q.startDate}::date)::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
     if (q.endDate) conds.push(sql`qr.timestamp < ((${q.endDate}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
+
+    // Rolling retention window. qr.timestamp is naive UTC, so the cutoff is built
+    // in UTC too. Archive is *by definition* everything older than the cutoff, so
+    // that bound always applies there (an explicit date range only narrows it
+    // further). The default view drops the cutoff once the user picks explicit
+    // dates — asking for last January should return last January, not nothing.
+    const cutoff = sql`((NOW() AT TIME ZONE 'UTC') - ${sql.raw(RETENTION_INTERVAL_SQL)})`;
+    if (q.archived) conds.push(sql`qr.timestamp < ${cutoff}`);
+    else if (!q.startDate && !q.endDate) conds.push(sql`qr.timestamp >= ${cutoff}`);
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;

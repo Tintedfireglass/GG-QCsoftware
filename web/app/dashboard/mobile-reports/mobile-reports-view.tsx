@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Search, Smartphone, Eye, Printer } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { DateRangeFilter } from "@/components/ui/date-range-filter"
+import { ArchiveToggle } from "@/components/ui/archive-toggle"
 import { getMobileReports, MobileReportRow } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,8 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
     const [type, setType] = useState("")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    // false = the default last-30-days view; true = everything older than that.
+    const [showArchive, setShowArchive] = useState(false)
     const limit = 20
 
     useEffect(() => {
@@ -62,6 +65,7 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                 if (type) filters.type = type
                 if (startDate) filters.startDate = startDate
                 if (endDate) filters.endDate = endDate
+                if (showArchive) filters.archived = "1"
                 const data = await getMobileReports(page, limit, filters)
                 if (cancelled) return
                 setReports(data.reports)
@@ -74,7 +78,7 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
         }
         load()
         return () => { cancelled = true }
-    }, [page, appliedSearch, type, startDate, endDate])
+    }, [page, appliedSearch, type, startDate, endDate, showArchive])
 
     const totalPages = total != null ? Math.ceil(total / limit) : null
 
@@ -111,6 +115,13 @@ export function MobileReportsView({ embedded = false }: { embedded?: boolean }) 
                             <Search className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Search</span>
                         </Button>
                     </form>
+                    <ArchiveToggle
+                        archived={showArchive}
+                        onChange={(next) => {
+                            setPage(1)
+                            setShowArchive(next)
+                        }}
+                    />
                     <DateRangeFilter
                         startDate={startDate}
                         endDate={endDate}

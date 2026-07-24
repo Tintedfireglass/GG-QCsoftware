@@ -31,6 +31,9 @@ export const listQuerySchema = z.object({
     // Inclusive date range over qr.timestamp ("YYYY-MM-DD"); either bound optional.
     startDate: z.string().trim().optional(),
     endDate: z.string().trim().optional(),
+    // Archive view: return only results OLDER than the retention window. Absent /
+    // anything but 'true' means the default view (last REPORT_RETENTION_DAYS days).
+    archived: boolFlag,
     // Comma-separated grade buckets; unknown tokens are dropped (never rejects).
     grades: z
         .string()

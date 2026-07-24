@@ -9,6 +9,7 @@ import Link from "next/link"
 import { Search, ChevronRight, Printer, Download } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { DateRangeFilter } from "@/components/ui/date-range-filter"
+import { ArchiveToggle } from "@/components/ui/archive-toggle"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatDateDMY, formatTime12, toAppZoneDateStamp } from "@/lib/utils"
 import { APP_TIME_ZONE } from "@/lib/timezone"
@@ -38,6 +39,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const [selectedRisks, setSelectedRisks] = useState<string[]>([])
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    // false = the default last-30-days view; true = everything older than that.
+    const [showArchive, setShowArchive] = useState(false)
     const [isInitialized, setIsInitialized] = useState(false)
     const limit = 20
 
@@ -54,6 +57,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
         start = startDate,
         end = endDate,
         risks = selectedRisks,
+        archived = showArchive,
     ) {
         setLoading(true)
         try {
@@ -66,6 +70,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             if (sort) filters.sort = sort
             if (start) filters.startDate = start
             if (end) filters.endDate = end
+            if (archived) filters.archived = "true"
             const data = await getQCResults(pageToLoad, limit, filters)
             setResults(data.results)
             setTotal(data.pagination.total)
@@ -109,10 +114,10 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
 
     useEffect(() => {
         if (isInitialized) {
-            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks)
+            loadData(page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks, showArchive)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks, isInitialized]) // Reload when state changes
+    }, [page, appliedSearch, selectedUserId, showIssuesOnly, selectedGrades, resultSort, startDate, endDate, selectedRisks, showArchive, isInitialized]) // Reload when state changes
 
     useEffect(() => {
         function onDocumentMouseDown(e: MouseEvent) {
@@ -312,6 +317,13 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                         </Button>
                     </form>
                     <div className="flex items-center gap-2 flex-wrap">
+                        <ArchiveToggle
+                            archived={showArchive}
+                            onChange={(next) => {
+                                setPage(1)
+                                setShowArchive(next)
+                            }}
+                        />
                         <DateRangeFilter
                             startDate={startDate}
                             endDate={endDate}
