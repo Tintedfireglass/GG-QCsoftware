@@ -3,6 +3,7 @@ import { db, schema, type Tx } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { ownerVisibilitySql } from '@/lib/shared/domain/visibility';
 import { GradeKey, ListQuery, RiskKey, SortKey } from '@/lib/platforms/windows/domain/schemas/qc-results';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 const { qcResults, testResults, machines, licenseKeys, licenseKeyActivations, freeTrials } = schema;
 const ISSUE_SCORE_THRESHOLD = 70;
@@ -179,9 +180,12 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     if (q.hasIssues) conds.push(sql.raw(hasIssuesExists('qr.id')));
     if (q.grades && q.grades.length) conds.push(sql.raw(gradesFilterSql('qr.health_grade', q.grades)));
     if (q.risk && q.risk.length) conds.push(sql.raw(riskFilterSql(q.risk)));
-    // Inclusive date range: endDate covers the whole day (< next midnight).
-    if (q.startDate) conds.push(sql`qr.timestamp >= ${q.startDate}`);
-    if (q.endDate) conds.push(sql`qr.timestamp < (${q.endDate}::date + INTERVAL '1 day')`);
+    // Inclusive date range. The picker sends calendar dates in APP_TIME_ZONE while
+    // qc_results.timestamp is naive UTC, so convert the *boundaries* rather than the
+    // column — that keeps idx_qc_results_timestamp usable. endDate covers the whole
+    // day (< next midnight).
+    if (q.startDate) conds.push(sql`qr.timestamp >= ((${q.startDate}::date)::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
+    if (q.endDate) conds.push(sql`qr.timestamp < ((${q.endDate}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;

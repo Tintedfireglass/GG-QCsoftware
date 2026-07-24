@@ -2,7 +2,7 @@
 
 import { gradeHeroColor, gradeLabel, getGradeStyle } from "@/lib/platforms/windows/grades"
 import { QRCodeSVG } from "qrcode.react"
-import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
+import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus, formatDateDMY } from "@/lib/utils"
 import { useBranding, verifyUrl } from "@/components/branding-provider"
 
 export function ReportLayout({ data }: { data: any }) {
@@ -263,7 +263,7 @@ export function ReportLayout({ data }: { data: any }) {
                 <div>App Version: {formatAppVersion(data.app_version)}</div>
                 <div>Test ID: #{data.id}</div>
                 <div>Submission IP: {data.submission_ip || "N/A"}</div>
-                <div>Date Printed: {new Date().toLocaleDateString()}</div>
+                <div>Date Printed: {formatDateDMY(new Date())}</div>
             </footer>
         </div>
     )

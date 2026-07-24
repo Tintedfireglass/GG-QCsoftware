@@ -8,6 +8,7 @@ import { Pagination } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import { getAdminOrders, refundOrder, OrderDTO } from "@/lib/api"
 import { Search, Loader2, RotateCcw, ShoppingCart, Eye } from "lucide-react"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
     paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -82,7 +83,7 @@ export default function OrdersPage() {
     }
 
     const fmtPrice = (cents: number, cur: string) => `${cur} ${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
+    const fmtDate = (v?: string | null) => formatDateTimeDMY(v)
 
     return (
         <div className="space-y-6">

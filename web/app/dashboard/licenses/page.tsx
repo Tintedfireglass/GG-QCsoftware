@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { createLicenseKey, getLicenses, toggleLicenseKeyActive, updateLicenseExpiry } from "@/lib/api"
 import { Wand2, Search, CheckCircle2, Copy, X, Key, Loader2, Calendar, Power, PowerOff } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 interface LicenseKey {
     id: number
@@ -279,12 +280,7 @@ export default function LicensesPage() {
         return Number.isFinite(ms) ? ms : 0
     }
 
-    const formatDate = (value?: string | null) => {
-        if (!value) return "—"
-        const d = new Date(value)
-        if (!Number.isFinite(d.getTime())) return "—"
-        return d.toLocaleString()
-    }
+    const formatDate = (value?: string | null) => formatDateTimeDMY(value)
 
     const renderPlatforms = (k: LicenseKey) => {
         const scope = k.product_scope && k.product_scope.length ? k.product_scope : ["windows"]

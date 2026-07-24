@@ -13,6 +13,7 @@ import {
     ArrowLeft, Loader2, Globe, Smartphone, Pencil, Save, X,
     Power, PowerOff, Trash2, ShoppingCart, Key, LifeBuoy,
 } from "lucide-react"
+import { formatDateDMY, formatDateTimeDMY } from "@/lib/utils"
 
 const ORDER_STATUS_STYLES: Record<string, string> = {
     paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -124,8 +125,8 @@ export default function CustomerDetailPage() {
     }
 
     const fmtPrice = (cents: number, cur: string) => `${cur} ${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
-    const fmtDateShort = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : "—")
+    const fmtDate = (v?: string | null) => formatDateTimeDMY(v)
+    const fmtDateShort = (v?: string | null) => formatDateDMY(v)
 
     if (loading) {
         return <div className="p-12 text-center text-slate-500"><Loader2 className="h-6 w-6 animate-spin inline" /></div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getAdminCoupons, createCoupon, updateCoupon, deleteCoupon, getAdminPlans, CouponDTO, PlanDTO } from "@/lib/api"
 import { Plus, X, Ticket, Pencil, Trash2, Loader2 } from "lucide-react"
+import { formatDateDMY } from "@/lib/utils"
 
 type DiscountType = "percent" | "fixed"
 
@@ -224,7 +225,7 @@ export default function CouponsPage() {
                                     </td>
                                     <td className="py-4 px-4 text-center text-slate-600">{fmtUsage(c)}</td>
                                     <td className="py-4 px-4 text-center text-slate-600 text-xs whitespace-nowrap">
-                                        {c.valid_until ? `until ${new Date(c.valid_until).toLocaleDateString()}` : "No expiry"}
+                                        {c.valid_until ? `until ${formatDateDMY(c.valid_until)}` : "No expiry"}
                                     </td>
                                     <td className="py-4 px-4 text-center">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-medium ${c.is_active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
@@ -258,7 +259,7 @@ export default function CouponsPage() {
                                 <span className="text-sm text-slate-700">{fmtDiscount(c)}</span>
                             </div>
                             <div className="text-xs text-slate-500 mt-1">
-                                Used {fmtUsage(c)} · {c.valid_until ? `until ${new Date(c.valid_until).toLocaleDateString()}` : "No expiry"} · {c.is_active ? "Active" : "Inactive"}
+                                Used {fmtUsage(c)} · {c.valid_until ? `until ${formatDateDMY(c.valid_until)}` : "No expiry"} · {c.is_active ? "Active" : "Inactive"}
                             </div>
                             <div className="text-xs text-slate-500 mt-1">
                                 {c.applicable_plan_ids && c.applicable_plan_ids.length > 0 ? c.applicable_plan_ids.map(planName).join(", ") : "All plans"}

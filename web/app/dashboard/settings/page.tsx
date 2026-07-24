@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Settings, Shield, CheckCircle2, Mail, FileText, Image as ImageIcon, Upload, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 interface GeneralSettings {
     siteName: string
@@ -338,7 +339,7 @@ export default function SystemSettingsPage() {
                                     onChange={(e) => setLegal({ ...legal, termsContent: e.target.value })}
                                 />
                                 {legal.termsUpdatedAt && (
-                                    <p className="text-xs text-slate-500 mt-1">Last updated {new Date(legal.termsUpdatedAt).toLocaleString()}</p>
+                                    <p className="text-xs text-slate-500 mt-1">Last updated {formatDateTimeDMY(legal.termsUpdatedAt)}</p>
                                 )}
                             </div>
                             <div>
@@ -350,7 +351,7 @@ export default function SystemSettingsPage() {
                                     onChange={(e) => setLegal({ ...legal, privacyContent: e.target.value })}
                                 />
                                 {legal.privacyUpdatedAt && (
-                                    <p className="text-xs text-slate-500 mt-1">Last updated {new Date(legal.privacyUpdatedAt).toLocaleString()}</p>
+                                    <p className="text-xs text-slate-500 mt-1">Last updated {formatDateTimeDMY(legal.privacyUpdatedAt)}</p>
                                 )}
                             </div>
                             <div className="flex items-center gap-3 pt-2">

@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '@/lib/drizzle';
+import { tzToAppZoneSql } from '@/lib/timezone';
 
 const { visitorSessions, analyticsEvents } = schema;
 
@@ -117,7 +118,7 @@ export async function getBounce(since: string): Promise<{ bounced: number; total
 
 export async function getTimeseries(since: string): Promise<{ day: string; pageviews: number; visitors: number }[]> {
     const { rows } = await db.execute(sql`
-        SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+        SELECT to_char(date_trunc('day', ${sql.raw(tzToAppZoneSql('created_at'))}), 'YYYY-MM-DD') AS day,
                count(*) FILTER (WHERE type = 'pageview')::int AS pageviews,
                count(DISTINCT visitor_id)::int AS visitors
         FROM analytics_events

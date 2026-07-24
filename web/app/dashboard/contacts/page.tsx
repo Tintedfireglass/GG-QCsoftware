@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
 import { getAdminContacts, updateContactStatus, deleteContact, ContactDTO } from "@/lib/api"
 import { Loader2, Mail, X, Trash2, Check, Archive, Inbox } from "lucide-react"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
     new: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -94,7 +95,7 @@ export default function ContactsPage() {
         }
     }
 
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
+    const fmtDate = (v?: string | null) => formatDateTimeDMY(v)
 
     return (
         <div className="space-y-6">

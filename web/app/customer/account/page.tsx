@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getCustomerLicenses, getCustomerPlans, PlanDTO, CouponPreview } from "@/lib/api"
 import { clearClientCache } from "@/lib/client-cache"
 import { trackEvent } from "@/lib/analytics-client"
+import { formatDateDMY } from "@/lib/utils"
 
 const PLATFORM_LABELS: Record<string, string> = { windows: "Windows", android: "Android", ios: "iOS", mac: "Mac" }
 
@@ -288,7 +289,7 @@ function CustomerAccountContent() {
                                             {" | "}
                                             Status: {license.is_active ? "Active" : "Inactive"}
                                             {" | "}
-                                            Expires: {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : "Never"}
+                                            Expires: {license.expires_at ? formatDateDMY(license.expires_at) : "Never"}
                                         </div>
                                     </div>
                                 ))}

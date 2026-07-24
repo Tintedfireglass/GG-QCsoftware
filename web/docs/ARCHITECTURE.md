@@ -282,9 +282,19 @@ JWT_SECRET=...            API_KEY=...
 # Payment / email / SMS provider credentials are stored in DB settings
 # where possible, with secrets supplied via env.
 NODE_ENV=production       NEXT_PUBLIC_API_URL=...
+NEXT_PUBLIC_APP_TIMEZONE=Asia/Kolkata   # display timezone (see below)
 ```
 
 The storefront (`store-website/`) is a **separate** Next.js app with its own dependencies, build, and `.env.local`; it is deployed independently of the main `web/` app.
+
+### Timezone handling
+
+Timestamps are **stored in UTC** and **displayed in `NEXT_PUBLIC_APP_TIMEZONE`** (default `Asia/Kolkata`), so output is identical regardless of the server's or the viewer's own timezone.
+
+- `lib/timezone.ts` — `APP_TIME_ZONE` plus SQL helpers for day bucketing.
+- `lib/db.ts` — pins the pg session to UTC (writes) and parses `timestamp without time zone` columns as UTC (reads). Without this, node-postgres decodes naive columns in the *host* timezone, which silently shifts every rendered date by the host's offset.
+- `lib/utils.ts` — `formatDbDateTime` / `formatDbDate` / `formatDateDMY` / `formatTime12` / `formatDateTimeDMY` / `toAppZoneDateStamp` all render in `APP_TIME_ZONE`. Use these instead of bare `toLocaleString()`.
+- Date-range filters and analytics day buckets convert calendar boundaries into `APP_TIME_ZONE`, keeping the indexed column bare so index scans still apply.
 
 ## Security Considerations
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/http/handler';
 import { exportSampleDataset } from '@/lib/platforms/windows/services/qc-export.service';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 /**
  * GET /api/qc-results/export/sample
@@ -9,7 +10,7 @@ import { exportSampleDataset } from '@/lib/platforms/windows/services/qc-export.
  *   format    = "zip" (default) | "xlsx"
  *   goodCount = number of A+/A/B reports to include (default 90)
  *   poorCount = number of C/D reports to include (default 10)
- *   timeZone  = IANA timezone string (default "Asia/Kolkata")
+ *   timeZone  = IANA timezone string (default: APP_TIME_ZONE, i.e. NEXT_PUBLIC_APP_TIMEZONE)
  *
  * Excluded: records with tampered or inconclusive storage / battery.
  */
@@ -23,7 +24,7 @@ export const GET = withAuth(null, async (request, { user }) => {
     const format = (searchParams.get('format') || 'zip').toLowerCase() as 'zip' | 'xlsx';
     const goodCount = Math.min(500, Math.max(0, parseInt(searchParams.get('goodCount') || '90', 10)));
     const poorCount = Math.min(500, Math.max(0, parseInt(searchParams.get('poorCount') || '10', 10)));
-    const timeZone  = searchParams.get('timeZone') || 'Asia/Kolkata';
+    const timeZone  = searchParams.get('timeZone') || APP_TIME_ZONE;
 
     try {
         const result = await exportSampleDataset(user, { format, goodCount, poorCount, timeZone });

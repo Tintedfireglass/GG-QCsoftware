@@ -2,6 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { GLOBAL_ROLES } from '@/lib/shared/domain/visibility';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 /**
  * Admin-facing reads over `mobile_reports`. A mobile report is owned by a B2C
@@ -67,9 +68,11 @@ export async function listAdminReports(
             OR cu.phone ILIKE ${like} OR cu.email ILIKE ${like}
             OR cu.first_name ILIKE ${like} OR cu.last_name ILIKE ${like} OR cu.full_name ILIKE ${like})`);
     }
-    // Inclusive date range: endDate covers the whole day (< next midnight).
-    if (f.startDate) conds.push(sql`mr.tested_at >= ${f.startDate}`);
-    if (f.endDate) conds.push(sql`mr.tested_at < (${f.endDate}::date + INTERVAL '1 day')`);
+    // Inclusive date range. tested_at is timestamptz, so turn the APP_TIME_ZONE
+    // calendar boundaries into instants and leave the column bare (index-friendly).
+    // endDate covers the whole day (< next midnight).
+    if (f.startDate) conds.push(sql`mr.tested_at >= ((${f.startDate}::date)::timestamp AT TIME ZONE ${APP_TIME_ZONE})`);
+    if (f.endDate) conds.push(sql`mr.tested_at < ((${f.endDate}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${APP_TIME_ZONE})`);
     const where = conds.length ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
 
     const { rows } = await db.execute(sql`

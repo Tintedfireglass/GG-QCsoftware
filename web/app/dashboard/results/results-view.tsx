@@ -10,7 +10,8 @@ import { Search, ChevronRight, Printer, Download } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { DateRangeFilter } from "@/components/ui/date-range-filter"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
-import { formatAppVersion } from "@/lib/utils"
+import { formatAppVersion, formatDateDMY, formatTime12, toAppZoneDateStamp } from "@/lib/utils"
+import { APP_TIME_ZONE } from "@/lib/timezone"
 
 export function ResultsView({ embedded = false }: { embedded?: boolean }) {
     const { isSuperAdmin, isAdmin, isUser, canManageUsers } = useAuth()
@@ -177,7 +178,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             if (appliedSearch) params.append("search", appliedSearch)
             if (selectedUserId) params.append("userId", selectedUserId)
             params.append("format", format)
-            params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
+            params.append("timeZone", APP_TIME_ZONE)
             const res = await fetch(`/api/qc-results/export?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             })
@@ -186,7 +187,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            a.download = `qc_results_export_${new Date().toISOString().slice(0, 10)}.${format}`
+            a.download = `qc_results_export_${toAppZoneDateStamp()}.${format}`
             document.body.appendChild(a)
             a.click()
             a.remove()
@@ -212,7 +213,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             params.append("format", format === "zip" ? "json" : format)
             params.append("goodCount", "90")
             params.append("poorCount", "10")
-            params.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone)
+            params.append("timeZone", APP_TIME_ZONE)
 
             const res = await fetch(`/api/qc-results/export/sample?${params.toString()}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -242,7 +243,7 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
             const url = URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            const dateStamp = new Date().toISOString().slice(0, 10)
+            const dateStamp = toAppZoneDateStamp()
             a.download = format === "xlsx"
                 ? `pramaan_sample_100_${dateStamp}.xlsx`
                 : `pramaan_sample_100_reports_${dateStamp}.zip`
@@ -522,9 +523,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                         <div className="p-8 text-center text-slate-500">No results found</div>
                     ) : (
                         results.map((test) => {
-                            const dateObj = new Date(test.timestamp);
-                            const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            const dateStr = formatDateDMY(test.timestamp);
+                            const timeStr = formatTime12(test.timestamp);
 
                             return (
                                 <div key={test.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
@@ -647,9 +647,8 @@ export function ResultsView({ embedded = false }: { embedded?: boolean }) {
                                 <tr><td colSpan={showTechnicianColumn ? (showIssuesOnly ? 11 : 10) : (showIssuesOnly ? 10 : 9)} className="p-8 text-center text-slate-500">No results match the selected filters</td></tr>
                             ) : (
                                 results.map((test) => {
-                                    const dateObj = new Date(test.timestamp);
-                                    const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                                    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                    const dateStr = formatDateDMY(test.timestamp);
+                                    const timeStr = formatTime12(test.timestamp);
 
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">

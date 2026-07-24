@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { RefreshCw, Search, FlaskConical, X, ChevronDown, ChevronRight } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
+import { formatDateDMY, formatTime12, formatDateTimeDMY } from "@/lib/utils"
 
 type TrialStatus = "Active" | "Expired" | "Revoked"
 
@@ -27,24 +28,15 @@ function getTrialStatus(t: AdminFreeTrialRow, now: number): TrialStatus {
 }
 
 function formatDate(value: string | null | undefined) {
-    if (!value) return "—"
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return "—"
-    return d.toLocaleString()
+    return formatDateTimeDMY(value)
 }
 
 function formatDateShort(value: string | null | undefined) {
-    if (!value) return "—"
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return "—"
-    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    return formatDateDMY(value)
 }
 
 function formatTime(value: string | null | undefined) {
-    if (!value) return ""
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return ""
-    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+    return formatTime12(value)
 }
 
 function statusPill(status: TrialStatus) {

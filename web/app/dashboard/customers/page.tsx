@@ -8,6 +8,7 @@ import { Pagination } from "@/components/ui/pagination"
 import { Input } from "@/components/ui/input"
 import { getAdminCustomers, updateAdminCustomer, CustomerDTO } from "@/lib/api"
 import { Search, Loader2, Users, Globe, Smartphone, Power, PowerOff, Eye } from "lucide-react"
+import { formatDateDMY } from "@/lib/utils"
 
 export default function CustomersPage() {
     const { user } = useAuth()
@@ -62,7 +63,7 @@ export default function CustomersPage() {
         }
     }
 
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : "—")
+    const fmtDate = (v?: string | null) => formatDateDMY(v)
 
     return (
         <div className="space-y-6">

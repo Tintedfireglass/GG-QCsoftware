@@ -1,33 +1,81 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { APP_TIME_ZONE } from "./timezone"
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-function toDate(value: string | number | Date): Date | null {
+function toDate(value: string | number | Date | null | undefined): Date | null {
+    if (value === null || value === undefined || value === "") return null
     const parsed = value instanceof Date ? value : new Date(value)
     return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-// Database timestamps are stored as local time (IST) by the desktop app.
-export function formatDbDateTime(value: string | number | Date): string {
-    const date = toDate(value)
-    if (!date) return "-"
+type DateInput = string | number | Date | null | undefined
 
-    const datePart = date.toLocaleDateString()
-    const timePart = date.toLocaleTimeString([], {
+/**
+ * Database timestamps are stored in UTC; every formatter below renders them in
+ * APP_TIME_ZONE (Asia/Kolkata by default) so the output is identical whatever
+ * timezone the server or the viewer's browser happens to be in.
+ */
+export function formatDbDateTime(value: DateInput, fallback = "-"): string {
+    const date = toDate(value)
+    if (!date) return fallback
+
+    const datePart = date.toLocaleDateString("en-GB", { timeZone: APP_TIME_ZONE })
+    const timePart = date.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: APP_TIME_ZONE,
     })
 
     return `${datePart} ${timePart}`
 }
 
-export function formatDbDate(value: string | number | Date): string {
+export function formatDbDate(value: DateInput, fallback = "-"): string {
     const date = toDate(value)
-    if (!date) return "-"
-    return date.toLocaleDateString()
+    if (!date) return fallback
+    return date.toLocaleDateString("en-GB", { timeZone: APP_TIME_ZONE })
+}
+
+/** "24 Jul 2026" — the table/report date style used across the dashboard. */
+export function formatDateDMY(value: DateInput, fallback = "—"): string {
+    const date = toDate(value)
+    if (!date) return fallback
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: APP_TIME_ZONE,
+    })
+}
+
+/** "1:58 PM" — the table/report time style used across the dashboard. */
+export function formatTime12(value: DateInput, fallback = ""): string {
+    const date = toDate(value)
+    if (!date) return fallback
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: APP_TIME_ZONE,
+    })
+}
+
+/** "24 Jul 2026, 1:58 PM" — for single-line "created / updated at" labels. */
+export function formatDateTimeDMY(value: DateInput, fallback = "—"): string {
+    const date = toDate(value)
+    if (!date) return fallback
+    return `${formatDateDMY(date)}, ${formatTime12(date)}`
+}
+
+/** "2026-07-24" in APP_TIME_ZONE — for export filenames and date inputs. */
+export function toAppZoneDateStamp(value: DateInput = new Date()): string {
+    const date = toDate(value)
+    if (!date) return ""
+    // en-CA gives ISO-ordered YYYY-MM-DD.
+    return date.toLocaleDateString("en-CA", { timeZone: APP_TIME_ZONE })
 }
 
 export function formatBytes(bytes?: number | null): string {

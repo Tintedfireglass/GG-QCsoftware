@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { getAdminOrder, refundOrder, OrderDTO } from "@/lib/api"
 import { ArrowLeft, Loader2, RotateCcw, ShoppingCart } from "lucide-react"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
     paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -75,7 +76,7 @@ export default function OrderDetailPage() {
     }
 
     const fmtPrice = (cents: number, cur: string) => `${cur} ${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
+    const fmtDate = (v?: string | null) => formatDateTimeDMY(v)
 
     if (loading) return <div className="p-8 text-center text-slate-500"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
 

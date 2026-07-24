@@ -29,6 +29,7 @@ import {
     Smartphone,
     Terminal,
 } from "lucide-react"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 function formatBytes(n: number | null): string {
     if (n == null || !Number.isFinite(n) || n <= 0) return "—"
@@ -43,9 +44,7 @@ function formatBytes(n: number | null): string {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return "—"
-    const d = new Date(value)
-    return Number.isFinite(d.getTime()) ? d.toLocaleString() : "—"
+    return formatDateTimeDMY(value)
 }
 
 /** Human label for an arch, tuned to the platform (Intel vs Apple Silicon on mac). */

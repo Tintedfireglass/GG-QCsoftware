@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { formatAppVersion } from "@/lib/utils"
+import { formatAppVersion, formatDateTimeDMY } from "@/lib/utils"
 import { getPublicVerify } from "@/lib/api"
 import { useBranding } from "@/components/branding-provider"
 
@@ -102,7 +102,7 @@ export default function VerificationPage() {
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Date Issued</p>
-                        <p className="text-gray-900">{new Date(data.certificationDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-gray-900">{formatDateTimeDMY(data.certificationDate)}</p>
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">App Version</p>

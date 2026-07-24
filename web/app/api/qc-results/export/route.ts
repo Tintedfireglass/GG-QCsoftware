@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/http/handler';
 import { exportQcResults } from '@/lib/platforms/windows/services/qc-export.service';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 // GET /api/qc-results/export - export latest-per-machine QC results as XLSX or PDF
 export const GET = withAuth(null, async (request, { user }) => {
@@ -9,7 +10,7 @@ export const GET = withAuth(null, async (request, { user }) => {
         search: searchParams.get('search')?.trim() || undefined,
         userIdParam: searchParams.get('userId'),
         format: (searchParams.get('format') || 'xlsx').toLowerCase(),
-        timeZone: searchParams.get('timeZone') || 'Asia/Kolkata',
+        timeZone: searchParams.get('timeZone') || APP_TIME_ZONE,
     });
 
     return new NextResponse(result.body, {

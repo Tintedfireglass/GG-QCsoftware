@@ -12,6 +12,7 @@ import {
     SupportTicketDTO, SupportTicketMessageDTO, TicketStatus, TicketPriority,
 } from "@/lib/api"
 import { Loader2, LifeBuoy, X, Trash2, Inbox, Search, Send } from "lucide-react"
+import { formatDateTimeDMY } from "@/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
     open: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -163,7 +164,7 @@ export default function SupportPage() {
         setSearch(searchInput.trim())
     }
 
-    const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—")
+    const fmtDate = (v?: string | null) => formatDateTimeDMY(v)
 
     return (
         <div className="space-y-6">

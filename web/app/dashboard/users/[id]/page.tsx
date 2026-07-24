@@ -20,6 +20,7 @@ import {
     Calendar,
     Users
 } from "lucide-react"
+import { formatDateDMY } from "@/lib/utils"
 
 export default function EditUserPage() {
     const router = useRouter()
@@ -287,7 +288,7 @@ export default function EditUserPage() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    Joined {new Date(userData.created_at).toLocaleDateString()}
+                                    Joined {formatDateDMY(userData.created_at)}
                                 </span>
                                 {(userData.role === 'Refurbisher' || userData.role === 'Enterprise' || userData.role === 'OEM' || userData.role === 'Insurer' || userData.role === 'Reseller') && (
                                     <span className="flex items-center gap-1">

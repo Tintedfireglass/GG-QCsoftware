@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
-import { formatDbDateTime, cn } from "@/lib/utils"
+import { formatDbDateTime, formatDateDMY, formatTime12, cn } from "@/lib/utils"
 import {
     Activity,
     CheckCircle,
@@ -530,9 +530,8 @@ export default function DashboardPage() {
                         {loading ? (
                             <div className="p-8 text-center text-slate-500">Loading...</div>
                         ) : stats.recentTests.map((test) => {
-                            const dateObj = new Date(test.timestamp);
-                            const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                            const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            const dateStr = formatDateDMY(test.timestamp);
+                            const timeStr = formatTime12(test.timestamp);
 
                             return (
                                 <div key={test.id} className="bg-white border text-left border-slate-200 rounded-xl p-4 flex flex-col shadow-sm">
@@ -603,9 +602,8 @@ export default function DashboardPage() {
                                         <td colSpan={6} className="p-8 text-center text-slate-500">Loading...</td>
                                     </tr>
                                 ) : stats.recentTests.map((test) => {
-                                    const dateObj = new Date(test.timestamp);
-                                    const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                                    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                    const dateStr = formatDateDMY(test.timestamp);
+                                    const timeStr = formatTime12(test.timestamp);
 
                                     return (
                                         <tr key={test.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/50">
