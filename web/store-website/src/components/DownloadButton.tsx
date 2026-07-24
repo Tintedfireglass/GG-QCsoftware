@@ -28,10 +28,13 @@ export default function DownloadButton({
   options,
   ctaText,
   className = "btn-primary",
+  block = false,
 }: {
   options: DownloadOption[];
   ctaText: string;
   className?: string;
+  /** Stretch to the container's width (used by the pricing cards' CTA). */
+  block?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,7 +65,14 @@ export default function DownloadButton({
   }
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+    <div
+      ref={ref}
+      style={{
+        position: "relative",
+        display: block ? "block" : "inline-block",
+        width: block ? "100%" : undefined,
+      }}
+    >
       <button
         type="button"
         className={className}

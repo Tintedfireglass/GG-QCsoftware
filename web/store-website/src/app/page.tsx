@@ -243,7 +243,7 @@ export default async function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <PricingSection downloadUrl={downloadUrl} />
+      <PricingSection downloadUrl={downloadUrl} downloadOptions={downloadOptions} />
 
       {/* FAQ Section */}
       <section className="faqs-section">

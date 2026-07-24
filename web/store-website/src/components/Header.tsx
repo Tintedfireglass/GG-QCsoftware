@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { header } from "@/data/content";
 
@@ -19,27 +19,35 @@ function isGadgetGuruzReferrer(referrer: string) {
   }
 }
 
+// Resolved once per page load and memoised, so the snapshot below stays stable
+// across renders. Any storage failure (private mode / blocked) hides the link.
+let cameFromGadgetGuruz: boolean | null = null;
+
+function readCameFrom(): boolean {
+  if (cameFromGadgetGuruz !== null) return cameFromGadgetGuruz;
+  cameFromGadgetGuruz = false;
+  try {
+    if (sessionStorage.getItem(CAME_FROM_KEY) === "1") {
+      cameFromGadgetGuruz = true;
+    } else if (isGadgetGuruzReferrer(document.referrer)) {
+      sessionStorage.setItem(CAME_FROM_KEY, "1");
+      cameFromGadgetGuruz = true;
+    }
+  } catch {
+    /* storage unavailable — keep the link hidden */
+  }
+  return cameFromGadgetGuruz;
+}
+
+// Referrer is a browser-only value, so it renders hidden on the server and on
+// the hydration pass, then resolves on the client.
+const subscribe = () => () => {};
+
 // Home-page header (ported from components/header.php).
 // The mobile menu collapse is handled with React state instead of Bootstrap JS.
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  // Starts false so the server render and the first client render match.
-  const [showBackLink, setShowBackLink] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem(CAME_FROM_KEY) === "1") {
-        setShowBackLink(true);
-        return;
-      }
-      if (isGadgetGuruzReferrer(document.referrer)) {
-        sessionStorage.setItem(CAME_FROM_KEY, "1");
-        setShowBackLink(true);
-      }
-    } catch {
-      // sessionStorage unavailable (private mode / blocked) — leave it hidden.
-    }
-  }, []);
+  const showBackLink = useSyncExternalStore(subscribe, readCameFrom, () => false);
 
   return (
     <header className="site-header border-bottom">
