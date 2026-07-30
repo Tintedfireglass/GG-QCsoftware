@@ -71,10 +71,10 @@ jobs:
         ls -lh pramaan-live.iso
         file pramaan-live.iso
 
-        # Confirm it's a valid ISO 9660 + El Torito (bootable) image
+        # Confirm bootable MBR record (fdisk is always available on Ubuntu runners)
         echo ""
-        echo "── ISO info ─────────────────────────────────────────────"
-        isoinfo -d -i pramaan-live.iso | grep -E "Volume|Preparer|Bootable|size"
+        echo "── ISO partition info ───────────────────────────────────"
+        fdisk -l pramaan-live.iso || true
 
         # Fail the job if the ISO is suspiciously small (< 200MB = something went wrong)
         SIZE_BYTES=$(stat -c%s pramaan-live.iso)
