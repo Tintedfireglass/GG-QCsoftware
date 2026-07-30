@@ -399,6 +399,45 @@ public class QCWorkflowService
                 Report.StorageTest.Details.Add("SMART tools not available for self-test");
             }
 
+            // ── RAID array health summary ──────────────────────────────────────────
+            // When RAID arrays were detected, append their health details.
+            // Covers machines where smartctl found no drives but RAID is healthy.
+            if (Report.StorageDetails?.RaidArrays.Count > 0)
+            {
+                foreach (var arr in Report.StorageDetails.RaidArrays)
+                {
+                    string drivePart = arr.TotalDrives > 0
+                        ? $", {arr.ActiveDrives}/{arr.TotalDrives} drives active"
+                        : "";
+                    Report.StorageTest.Details.Add(
+                        $"[RAID] {arr.Name} ({arr.ControllerType}): {arr.HealthStatus} — {arr.Level}{drivePart}");
+
+                    foreach (var loc in arr.MemberLocations)
+                        Report.StorageTest.Details.Add($"  └─ {loc}");
+                }
+
+                // Clarify self-test situation: if all storage devices are RAID virtual disks
+                // or no physical devices are listed, self-tests were not applicable.
+                bool allDevicesAreRaid = Report.StorageDetails.Devices.Count == 0 ||
+                    Report.StorageDetails.Devices.All(d => d.IsRaid);
+
+                if (allDevicesAreRaid)
+                {
+                    Report.StorageTest.Details.Add(
+                        "[RAID] SMART self-tests: Not applicable — health assessed via RAID controller");
+                }
+
+                // Event log disk-error count (from Layer 4)
+                int errCount = Report.StorageDetails.RaidDiskErrorEventCount;
+                string errLine = errCount == 0
+                    ? "[RAID] Disk error events (last 30 days): 0"
+                    : errCount <= 5
+                        ? $"[RAID] Disk error events (last 30 days): {errCount} (minor)"
+                        : $"[RAID] Disk error events (last 30 days): {errCount} ⚠ elevated";
+                Report.StorageTest.Details.Add(errLine);
+            }
+            // ──────────────────────────────────────────────────────────────────────
+
 #if WINDOWS
 	            if (skipStressTests)
 	            {
@@ -639,6 +678,16 @@ public class QCWorkflowService
 
         foreach (var drive in info.Devices)
         {
+            // RAID virtual disks: emit a simplified line without space usage breakdown
+            if (drive.IsRaid)
+            {
+                var raidLabel = string.IsNullOrWhiteSpace(drive.RaidControllerType)
+                    ? "RAID"
+                    : drive.RaidControllerType;
+                yield return $"{drive.Model} ({drive.SizeGB:F0} GB, {raidLabel} virtual disk)";
+                continue;
+            }
+
             var driveType = drive.IsSsd ? "SSD" : "HDD";
             string spacePart;
 
@@ -661,6 +710,13 @@ public class QCWorkflowService
                 : "";
 
             yield return $"{drive.Model} ({drive.SizeGB:F0} GB {driveType}{healthPart}): {spacePart}";
+        }
+
+        // Emit RAID array summary lines after physical drives
+        foreach (var arr in info.RaidArrays)
+        {
+            string drivePart = arr.TotalDrives > 0 ? $", {arr.ActiveDrives}/{arr.TotalDrives} active" : "";
+            yield return $"[RAID Array] {arr.Name}: {arr.Level} — {arr.HealthStatus}{drivePart}";
         }
     }
 
@@ -701,7 +757,17 @@ public class QCWorkflowService
             "timed out",
             "host reset",
             "interrupted",
-            "failed to start test"
+            "failed to start test",
+            // RAID-specific markers
+            "megaraid",
+            "raid controller",
+            "device does not support",
+            "does not support self-test",
+            "smart self-test not supported",
+            "cciss",
+            "aacraid",
+            "raid member",
+            "not applicable",
         };
 
         return inconclusiveMarkers.Any(m =>
@@ -717,12 +783,21 @@ public class QCWorkflowService
         if (string.IsNullOrWhiteSpace(message))
             return "Unknown reason";
 
+        if (message.Contains("megaraid", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("cciss", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("aacraid", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("raid controller", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("raid member", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("not applicable", StringComparison.OrdinalIgnoreCase))
+            return "RAID controller — SMART self-test not available through controller passthrough";
+
         if (message.Contains("ioctl_storage", StringComparison.OrdinalIgnoreCase) ||
             message.Contains("read nvme identify", StringComparison.OrdinalIgnoreCase) ||
             message.Contains("ioctl", StringComparison.OrdinalIgnoreCase))
             return "Driver incompatibility — cannot run self-test on this drive type";
 
-        if (message.Contains("not supported", StringComparison.OrdinalIgnoreCase))
+        if (message.Contains("not supported", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("does not support", StringComparison.OrdinalIgnoreCase))
             return "Self-test not supported by this drive";
 
         if (message.Contains("unknown usb bridge", StringComparison.OrdinalIgnoreCase))

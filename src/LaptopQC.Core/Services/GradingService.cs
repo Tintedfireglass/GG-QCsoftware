@@ -297,9 +297,15 @@ public class GradingService
             return 0;
 
         if (report.StorageDetails?.IsInconclusive == true)
+        {
+            // Inconclusive is forgivable on healthy RAID machines that lack SMART passthrough
+            if (report.StorageDetails.RaidArrays.Count > 0 &&
+                report.StorageDetails.RaidArrays.All(a => a.IsHealthy))
+                return 85; // RAID healthy but no individual SMART data
             return 35;
+        }
 
-        int score = ScoreStorageFromDrives(report) ?? (result.Passed ? 70 : 25);
+        int score = ScoreStorageFromDrives(report) ?? ScoreStorageFromRaid(report) ?? (result.Passed ? 70 : 25);
 
         bool hasSelfTestFailure = result.Details.Any(d =>
             d.Contains("Self-Test Failed", StringComparison.OrdinalIgnoreCase) &&
@@ -307,12 +313,17 @@ public class GradingService
         bool hasSelfTestInconclusive = result.Details.Any(d =>
             d.Contains("Self-Test Inconclusive", StringComparison.OrdinalIgnoreCase));
 
+        // RAID self-test skips are intentional and must not penalize the score
+        bool hasSelfTestSkippedRaid = result.Details.Any(d =>
+            d.Contains("Self-Test Skipped", StringComparison.OrdinalIgnoreCase) &&
+            d.Contains("RAID", StringComparison.OrdinalIgnoreCase));
+
         if (hasSelfTestFailure)
         {
             score -= 30;
             score = Math.Min(score, 45);
         }
-        else if (hasSelfTestInconclusive)
+        else if (hasSelfTestInconclusive && !hasSelfTestSkippedRaid)
         {
             score -= 10;
         }
@@ -334,6 +345,32 @@ public class GradingService
         return Math.Clamp(score, 0, 100);
     }
 
+    /// <summary>
+    /// Scores RAID arrays when no per-drive SMART data is available.
+    /// Healthy arrays → 90 (can't be 100 without individual SMART),
+    /// any degraded → 20, elevated disk errors → penalty.
+    /// </summary>
+    private static int? ScoreStorageFromRaid(QCReport report)
+    {
+        if (report.StorageDetails == null || report.StorageDetails.RaidArrays.Count == 0)
+            return null;
+
+        bool allHealthy = report.StorageDetails.RaidArrays.All(a => a.IsHealthy);
+        int base_ = allHealthy ? 90 : 20;
+
+        // Penalise for elevated disk errors surfaced by the event log scan
+        int errCount = report.StorageDetails.RaidDiskErrorEventCount;
+        int errPenalty = errCount switch
+        {
+            0       => 0,
+            <= 5    => 5,
+            <= 20   => 15,
+            _       => 25
+        };
+
+        return Math.Clamp(base_ - errPenalty, 0, 100);
+    }
+
     private static int? ScoreStorageFromDrives(QCReport report)
     {
         if (report.StorageDetails == null || report.StorageDetails.Devices.Count == 0)
@@ -344,6 +381,10 @@ public class GradingService
 
         foreach (var drive in report.StorageDetails.Devices)
         {
+            // Skip RAID virtual disks — they have no SMART health% and are scored
+            // separately by ScoreStorageFromRaid using array-level health.
+            if (drive.IsRaid) continue;
+
             int driveScore = ScoreSingleDrive(drive);
             double weight = drive.SizeGB > 0 ? drive.SizeGB : 1;
 

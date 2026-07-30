@@ -123,7 +123,7 @@ public partial class QCWizardViewModel : ObservableObject
     public QCWizardViewModel()
     {
         _workflowService = App.Current.Services.GetRequiredService<QCWorkflowService>();
-        _reportGenerator = new ReportGenerator();
+        _reportGenerator = new ReportGenerator(LaptopQC.App.Branding.BrandInfo.ApiBaseUrl, LaptopQC.App.Branding.BrandInfo.AppDisplayName);
         _submissionService = new QCSubmissionService();
 
         // These events fire from background threads (inside Task.Run in QCWorkflowService).
@@ -483,7 +483,8 @@ public partial class QCWizardViewModel : ObservableObject
         OverallGrade = report.PramaanResult?.GradeBand ?? "N/A";
         OverallScore = report.PramaanResult?.OverallHealthScore ?? 0;
         var label = report.PramaanResult?.GradeBand != null ? LaptopQC.Core.Services.GradingService.GradeLabel(report.PramaanResult.GradeBand) : "Unknown";
-        CompletionMessage = $"PRAMAAN Score: {OverallGrade} — {label} ({OverallScore}/100)";
+        var brandName = LaptopQC.App.Branding.BrandInfo.AppDisplayName.ToUpperInvariant();
+        CompletionMessage = $"{brandName} Score: {OverallGrade} — {label} ({OverallScore}/100)";
 
         // Check if logged in - prompt login for cloud submission
         if (!App.IsLoggedIn)
@@ -575,8 +576,8 @@ public partial class QCWizardViewModel : ObservableObject
     {
         try
         {
-            // Use the dev URL
-            string verificationUrl = $"https://pramaan-dashboard.gadgetguruz.com/verify/{healthId}";
+            // Use the brand-specific verification URL (set per brand in Branding/*.props)
+            string verificationUrl = LaptopQC.App.Branding.BrandInfo.VerifyUrl(healthId);
             
             using var qrGenerator = new QRCodeGenerator();
             using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCodeGenerator.ECCLevel.M);

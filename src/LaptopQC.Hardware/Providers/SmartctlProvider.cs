@@ -60,7 +60,9 @@ public class SmartctlProvider : ISmartctlProvider
     }
     
     /// <summary>
-    /// Scans for all drives that smartctl can access
+    /// Scans for all drives that smartctl can access.
+    /// Falls back to --scan-open when --scan returns 0 results, which can expose
+    /// drives behind some RAID controllers that hide members from a standard scan.
     /// </summary>
     public List<SmartctlDrive> ScanDrives()
     {
@@ -68,19 +70,37 @@ public class SmartctlProvider : ISmartctlProvider
         var path = FindSmartctlPath();
         if (path == null) return drives;
         
-        var result = RunCommand(path, "--scan --json");
-        if (result.ExitCode != 0) return drives;
+        // Primary scan
+        ParseScanOutput(RunCommand(path, "--scan --json").Output, drives);
         
+        // Fallback: --scan-open is more aggressive and can find drives behind some RAID
+        // controllers (e.g. Intel RST). Only run if primary scan found nothing.
+        if (drives.Count == 0)
+        {
+            ParseScanOutput(RunCommand(path, "--scan-open --json").Output, drives);
+        }
+        
+        return drives;
+    }
+
+    private static void ParseScanOutput(string output, List<SmartctlDrive> drives)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return;
         try
         {
-            var json = JsonDocument.Parse(result.Output);
+            var json = JsonDocument.Parse(output);
             if (json.RootElement.TryGetProperty("devices", out var devices))
             {
                 foreach (var device in devices.EnumerateArray())
                 {
+                    var devPath = device.GetProperty("name").GetString() ?? "";
+                    // Avoid duplicates when both scan passes find the same drive
+                    if (drives.Any(d => d.DevicePath.Equals(devPath, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+
                     drives.Add(new SmartctlDrive
                     {
-                        DevicePath = device.GetProperty("name").GetString() ?? "",
+                        DevicePath = devPath,
                         Type = device.TryGetProperty("type", out var t) ? t.GetString() ?? "unknown" : "unknown",
                         Protocol = device.TryGetProperty("protocol", out var p) ? p.GetString() ?? "" : ""
                     });
@@ -88,8 +108,6 @@ public class SmartctlProvider : ISmartctlProvider
             }
         }
         catch { }
-        
-        return drives;
     }
     
     /// <summary>

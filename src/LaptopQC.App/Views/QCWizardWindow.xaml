@@ -283,7 +283,10 @@
                            Foreground="{Binding OverallGrade, Converter={StaticResource GradeToColorConverter}}"/>
                 
                 <StackPanel Visibility="{Binding HasQrCode, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,6,0,8" HorizontalAlignment="Center">
-                    <TextBlock Text="PRAMAAN Certification Verification" HorizontalAlignment="Center" FontSize="12" Foreground="#6b7280" Margin="0,0,0,4"/>
+                    <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#6b7280" Margin="0,0,0,4">
+                        <Run Text="{DynamicResource AppDisplayName}"/>
+                        <Run Text=" Certification Verification"/>
+                    </TextBlock>
                     <Border BorderBrush="#e5e7eb" BorderThickness="1" CornerRadius="4" Padding="6" Background="White">
                         <Image Source="{Binding QrCodeImage}" Width="100" Height="100" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>

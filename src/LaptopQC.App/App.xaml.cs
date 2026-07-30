@@ -141,6 +141,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         BrandingManager.LoadBrandResources(this);
+        LaptopQC.Core.Models.AppPaths.AppDataFolderName = BrandInfo.AppDataFolderName;
 
         // Restore trial session if no license session is active
         if (!IsLoggedIn)

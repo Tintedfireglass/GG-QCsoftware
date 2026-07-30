@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaptopQC.Core.Diagnostics;
 using System.Management;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace LaptopQC.App.ViewModels;
@@ -322,6 +324,7 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
 
     private void CheckDisplayConnection()
     {
+        // Run the WMI query on a background thread to avoid blocking the UI thread.
         // Win32_PnPEntity with PNPClass='Monitor' queries the Windows hardware device tree.
         // Every physically connected monitor — internal or external — gets a device entry here
         // when Windows loads its driver. This works in ALL display modes:
@@ -331,37 +334,52 @@ public partial class AudioVideoTestViewModel : ObservableObject, IDisposable
         //
         // Count == 1  → only the built-in display is connected
         // Count >= 2  → at least one external display is physically connected
-        try
+        _ = Task.Run(() =>
         {
-            using var searcher = new ManagementObjectSearcher(
-                "SELECT Name FROM Win32_PnPEntity WHERE PNPClass = 'Monitor' AND Status = 'OK'");
-
-            int physicalCount = searcher.Get().Count;
-
-            if (physicalCount >= 2)
+            int physicalCount;
+            bool queryFailed = false;
+            try
             {
-                if (!DisplayMonitorDetected)
-                {
-                    DisplayMonitorDetected = true;
-                    DisplayMonitorName = $"{physicalCount} displays connected";
-                    DisplayDetectionStatus = $"✓ External display detected ({physicalCount} displays connected)";
-                    Instructions = "External display detected! Verify the image appears correctly on the external screen.";
-                }
+                using var searcher = new ManagementObjectSearcher(
+                    "SELECT Name FROM Win32_PnPEntity WHERE PNPClass = 'Monitor' AND Status = 'OK'");
+                physicalCount = searcher.Get().Count;
             }
-            else
+            catch
             {
-                if (DisplayMonitorDetected)
-                {
-                    DisplayMonitorDetected = false;
-                    DisplayMonitorName = "";
-                }
-                DisplayDetectionStatus = "⏳ No external display detected. Connect a monitor via HDMI or DisplayPort.";
+                physicalCount = 0;
+                queryFailed = true;
             }
-        }
-        catch
-        {
-            DisplayDetectionStatus = "⚠ Could not query display hardware.";
-        }
+
+            // Marshal results back to the UI thread
+            Application.Current?.Dispatcher.InvokeAsync(() =>
+            {
+                if (queryFailed)
+                {
+                    DisplayDetectionStatus = "⚠ Could not query display hardware.";
+                    return;
+                }
+
+                if (physicalCount >= 2)
+                {
+                    if (!DisplayMonitorDetected)
+                    {
+                        DisplayMonitorDetected = true;
+                        DisplayMonitorName = $"{physicalCount} displays connected";
+                        DisplayDetectionStatus = $"✓ External display detected ({physicalCount} displays connected)";
+                        Instructions = "External display detected! Verify the image appears correctly on the external screen.";
+                    }
+                }
+                else
+                {
+                    if (DisplayMonitorDetected)
+                    {
+                        DisplayMonitorDetected = false;
+                        DisplayMonitorName = "";
+                    }
+                    DisplayDetectionStatus = "⏳ No external display detected. Connect a monitor via HDMI or DisplayPort.";
+                }
+            });
+        });
     }
 
     private void StopDisplayPolling()

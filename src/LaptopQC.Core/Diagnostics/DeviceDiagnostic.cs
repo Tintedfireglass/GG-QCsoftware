@@ -307,6 +307,7 @@ public class DeviceDiagnostic : IDeviceDiagnostic
     private void DetectDisplays(DevicesInfo info)
     {
         var monitorIds = GetMonitorIdMap();
+        var connectionTypes = GetConnectionTypeMap();
 
         foreach (var obj in _wmi.Query("Win32_DesktopMonitor"))
         {
@@ -322,8 +323,12 @@ public class DeviceDiagnostic : IDeviceDiagnostic
                 IsActive = _wmi.GetValue<ushort>(obj, "Availability", 0) == 3 // 3 = Running/Full Power
             };
 
-            // Determine connection type from device ID
-            display.ConnectionType = DetermineDisplayConnection(display.DeviceId, display.Name);
+            // Try to get precise connection type from WmiMonitorConnectionParams first,
+            // then fall back to heuristic string matching as a last resort
+            if (!string.IsNullOrWhiteSpace(pnpKey) && connectionTypes.TryGetValue(pnpKey, out var connType))
+                display.ConnectionType = connType;
+            else
+                display.ConnectionType = DetermineDisplayConnection(display.DeviceId, display.Name);
 
             if (!string.IsNullOrWhiteSpace(pnpKey) && monitorIds.TryGetValue(pnpKey, out var id))
             {
@@ -368,7 +373,9 @@ public class DeviceDiagnostic : IDeviceDiagnostic
     }
 
     /// <summary>
-    /// Determines display connection type
+    /// Determines display connection type from WmiMonitorConnectionParams VideoOutputTechnology values.
+    /// Used only as a last-resort fallback when WmiMonitorConnectionParams is unavailable.
+    /// Values: https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/wmimonitorconnectionparams
     /// </summary>
     private string DetermineDisplayConnection(string deviceId, string name)
     {
@@ -388,6 +395,72 @@ public class DeviceDiagnostic : IDeviceDiagnostic
             return "USB-C/Thunderbolt";
             
         return "External";
+    }
+
+    /// <summary>
+    /// Builds a map of PNP key → connection type string by reading WmiMonitorConnectionParams
+    /// from root\WMI. This uses the VideoOutputTechnology property which is an exact enum
+    /// value from the Windows Display Driver Model (WDDM) — far more reliable than
+    /// string-sniffing device names.
+    ///
+    /// VideoOutputTechnology values (D3DKMDT_VIDEO_OUTPUT_TECHNOLOGY):
+    ///   -1 / 0xFFFFFFFF = Uninitialized
+    ///   0  = VGA
+    ///   1  = S-Video
+    ///   2  = Composite Video
+    ///   3  = Component Video
+    ///   4  = DVI
+    ///   5  = HDMI
+    ///   6  = LVDS (Internal)
+    ///   8  = D-Jpn
+    ///   9  = SDI
+    ///   10 = DisplayPort External
+    ///   11 = DisplayPort Embedded (Internal eDP)
+    ///   12 = UDI External
+    ///   13 = UDI Embedded
+    ///   14 = SDTV Dongle
+    ///   15 = Miracast
+    ///   16 = Indirect Wired
+    ///   2147483648 = Internal (legacy catch-all)
+    /// </summary>
+    private Dictionary<string, string> GetConnectionTypeMap()
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            foreach (var obj in _wmi.Query("WmiMonitorConnectionParams", "root\\WMI"))
+            {
+                var instanceName = obj["InstanceName"]?.ToString() ?? "";
+                var key = NormalizePnpId(instanceName);
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+
+                // VideoOutputTechnology can be uint or int depending on the driver
+                var techRaw = obj["VideoOutputTechnology"];
+                var tech = techRaw is uint u ? (int)u
+                         : techRaw is int i ? i
+                         : -1;
+
+                map[key] = tech switch
+                {
+                    0  => "VGA",
+                    4  => "DVI",
+                    5  => "HDMI",
+                    6  => "Internal (LVDS)",
+                    10 => "DisplayPort",
+                    11 => "Internal (eDP)",
+                    15 => "Miracast (Wireless)",
+                    16 => "Indirect Wired",
+                    2147483647 => "Internal",  // 0x7FFFFFFF — some drivers report this
+                    _ when tech < 0 => "Unknown",
+                    _  => "External"
+                };
+            }
+        }
+        catch { /* root\WMI may be unavailable in some environments; caller falls back to string heuristics */ }
+
+        return map;
     }
 
     /// <summary>

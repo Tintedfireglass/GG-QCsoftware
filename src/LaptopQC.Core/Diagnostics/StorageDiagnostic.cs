@@ -1,5 +1,6 @@
 #if WINDOWS
 using LaptopQC.Core.Abstractions;
+using LaptopQC.Core.Services;
 using LaptopQC.Hardware.Providers;
 using System.Management;
 using System.IO;
@@ -47,6 +48,18 @@ public class StorageDiagnostic : IStorageDiagnostic
             device.IsSsd = device.IsEMMC || DetectSsd(device);
             device.SizeGB = device.SizeBytes / (1024.0 * 1024 * 1024);
 
+            // Flag RAID virtual disks early so tamper logic can be bypassed later
+            bool isRaidInterface = device.InterfaceType.Equals("RAID", StringComparison.OrdinalIgnoreCase);
+            bool isRaidModel = device.Model.Contains("RAID", StringComparison.OrdinalIgnoreCase) ||
+                               device.Model.Contains("MegaRAID", StringComparison.OrdinalIgnoreCase) ||
+                               device.Model.Contains("Smart Array", StringComparison.OrdinalIgnoreCase) ||
+                               device.Model.Contains("Intel RST", StringComparison.OrdinalIgnoreCase);
+            if (isRaidInterface || isRaidModel)
+            {
+                device.IsRaid = true;
+                device.RaidControllerType = isRaidModel ? InferControllerFromModel(device.Model) : "unknown-raid";
+            }
+
             // Skip removable media (USB flash drives, SD cards, external drives).
             // These never report SMART health data and would incorrectly penalize the score.
             bool isRemovable = device.MediaType.Contains("Removable", StringComparison.OrdinalIgnoreCase) ||
@@ -56,6 +69,49 @@ public class StorageDiagnostic : IStorageDiagnostic
 
             info.Devices.Add(device);
         }
+
+        // ── RAID Detection ─────────────────────────────────────────────────────
+        // Run the RAID health service. On non-RAID machines this returns immediately
+        // with IsRaidDetected=false and causes zero behavioural change.
+        var raidHealth = new RaidHealthService().DetectAndAssess();
+        if (raidHealth.IsRaidDetected)
+        {
+            info.RaidArrays.AddRange(raidHealth.Arrays);
+            info.RaidDiskErrorEventCount = raidHealth.DiskErrorEventCount;
+            info.RaidHealthDetails.AddRange(raidHealth.Details);
+
+            // If WMI returned no recognisable physical drives (controller hides them),
+            // synthesise a virtual disk entry so the report isn't blank.
+            if (info.Devices.Count == 0 && raidHealth.Arrays.Count > 0)
+            {
+                var arr = raidHealth.Arrays[0];
+                info.Devices.Add(new StorageDevice
+                {
+                    Model = $"RAID Volume ({arr.Level})",
+                    SerialNumber = "",
+                    InterfaceType = "RAID",
+                    MediaType = "RAID Virtual Disk",
+                    SizeGB = arr.TotalSizeGB,
+                    SizeBytes = (ulong)(arr.TotalSizeGB * 1024 * 1024 * 1024),
+                    IsSsd = true,
+                    IsRaid = true,
+                    RaidControllerType = raidHealth.ControllerType,
+                    DeviceId = "RAID-VIRTUAL-0",
+                });
+            }
+            else
+            {
+                // Mark any SCSI-interface drives as RAID (they're virtual disks from a RAID controller)
+                foreach (var dev in info.Devices.Where(d =>
+                    !d.IsRaid &&
+                    d.InterfaceType.Equals("SCSI", StringComparison.OrdinalIgnoreCase)))
+                {
+                    dev.IsRaid = true;
+                    dev.RaidControllerType = raidHealth.ControllerType;
+                }
+            }
+        }
+        // ──────────────────────────────────────────────────────────────────────
 
         // Get logical drive usage (used / free)
         try
@@ -105,6 +161,15 @@ public class StorageDiagnostic : IStorageDiagnostic
         return info;
     }
 
+    private static string InferControllerFromModel(string model)
+    {
+        var m = model.ToLowerInvariant();
+        if (m.Contains("megaraid") || m.Contains("perc")) return "megaraid";
+        if (m.Contains("smart array") || m.Contains("hp")) return "hp-smart-array";
+        if (m.Contains("intel rst") || m.Contains("intel rapid")) return "intel-rst";
+        return "unknown-raid";
+    }
+
     private bool DetectSsd(StorageDevice device)
     {
         var model = device.Model.ToLower();
@@ -149,16 +214,38 @@ public class StorageDiagnostic : IStorageDiagnostic
     public (bool IsHealthy, string Message) ValidateStorage(StorageInfo info)
     {
         if (info.Devices.Count == 0)
+        {
+            // If RAID arrays were detected even with no WMI physical drives, treat as healthy
+            if (info.RaidArrays.Count > 0 && info.RaidArrays.All(a => a.IsHealthy))
+                return (true, $"RAID array detected and healthy ({info.RaidArrays[0].Level})");
+            if (info.RaidArrays.Count > 0 && info.RaidArrays.Any(a => !a.IsHealthy))
+                return (false, $"RAID array degraded or failed");
             return (false, "No storage devices detected");
+        }
 
         if (info.IsTampered)
             return (false, string.IsNullOrWhiteSpace(info.TamperReason) ? "Storage Tampered - Unable to read data" : info.TamperReason);
 
         if (info.IsInconclusive)
+        {
+            // If RAID arrays are healthy, override the inconclusive verdict
+            if (info.RaidArrays.Count > 0 && info.RaidArrays.All(a => a.IsHealthy))
+                return (true, $"RAID array detected and healthy ({info.RaidArrays[0].Level})");
             return (false, string.IsNullOrWhiteSpace(info.InconclusiveReason) ? "Storage Inconclusive - Unable to verify health data" : info.InconclusiveReason);
+        }
+
+        // RAID-specific pass/fail based on array health
+        if (info.RaidArrays.Count > 0)
+        {
+            bool raidHealthy = info.RaidArrays.All(a => a.IsHealthy);
+            if (!raidHealthy)
+                return (false, "RAID array degraded or failed — check member drives");
+        }
 
         foreach (var device in info.Devices)
         {
+            if (device.IsRaid) continue; // health already assessed at array level above
+
             if (device.HealthPercent.HasValue && device.HealthPercent < 50)
                 return (false, $"Drive health critical: {device.Model} at {device.HealthPercent}%");
                 
@@ -169,7 +256,13 @@ public class StorageDiagnostic : IStorageDiagnostic
         if (info.IsSuspicious)
             return (true, string.IsNullOrWhiteSpace(info.SuspiciousReason) ? "Storage data suspicious - Review recommended" : info.SuspiciousReason);
 
-        return (true, $"{info.Devices.Count} drive(s) healthy");
+        int physicalCount = info.Devices.Count(d => !d.IsRaid);
+        int raidCount = info.RaidArrays.Count;
+        if (physicalCount > 0 && raidCount > 0)
+            return (true, $"{physicalCount} drive(s) healthy + {raidCount} RAID array(s) healthy");
+        if (raidCount > 0)
+            return (true, $"{raidCount} RAID array(s) healthy");
+        return (true, $"{physicalCount} drive(s) healthy");
     }
 
     private static void EvaluateTamperState(StorageInfo info)
@@ -179,6 +272,17 @@ public class StorageDiagnostic : IStorageDiagnostic
         {
             bool hasSmartTelemetry = device.HealthPercent.HasValue || device.Temperature.HasValue || device.PowerOnHours.HasValue || device.TotalBytesWritten.HasValue;
             
+            // ── RAID bypass ────────────────────────────────────────────────────────
+            // RAID virtual disks expose controller-generated metadata, not real SMART
+            // telemetry. Missing telemetry is expected and must NOT be flagged as
+            // tampered or inconclusive. Skip all tamper checks for RAID entries.
+            if (device.IsRaid)
+            {
+                allMissingSmartTelemetry = false; // don't count RAID disks as "missing"
+                continue;
+            }
+            // ──────────────────────────────────────────────────────────────────────
+
             // Skip eMMC drives when checking for missing telemetry since they rarely support SMART
             if (!device.IsEMMC)
             {
@@ -242,14 +346,21 @@ public class StorageDiagnostic : IStorageDiagnostic
             }
         }
 
+        // Only set inconclusive when there are physical (non-RAID) devices missing telemetry.
+        // If every device is a RAID virtual disk, allMissingSmartTelemetry will be false (reset above).
         if (!info.IsTampered && allMissingSmartTelemetry)
         {
-            info.IsInconclusive = true;
-            info.InconclusiveReason = "Storage Inconclusive - Unable to verify health data";
-            foreach (var device in info.Devices)
+            // Don't mark inconclusive when RAID arrays were detected — they provide their own health signal.
+            bool raidProvidesCoverage = info.RaidArrays.Count > 0;
+            if (!raidProvidesCoverage)
             {
-                device.IsInconclusive = true;
-                device.InconclusiveReason = info.InconclusiveReason;
+                info.IsInconclusive = true;
+                info.InconclusiveReason = "Storage Inconclusive - Unable to verify health data";
+                foreach (var device in info.Devices)
+                {
+                    device.IsInconclusive = true;
+                    device.InconclusiveReason = info.InconclusiveReason;
+                }
             }
         }
     }
