@@ -32,19 +32,28 @@ public class SmartTestService : ISmartTestService
         var devices = new List<SmartDriveInfo>();
         var drives = _smartctl.ScanDrives();
         var usbRemovable = GetUsbRemovableInfo();
+        // Track serials we have already added so the same physical drive
+        // reported under two different paths (e.g. /dev/sda AND /dev/pd0) is
+        // only tested once.
+        var seenSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         
         foreach (var drive in drives)
         {
-            if (IsLikelyRemovableDrive(drive.DevicePath, drive.Type, drive.Protocol))
+            // RAID passthrough paths are never removable — exempt them from all removable checks.
+            bool isRaidPassthrough = IsRaidPassthroughPath(drive.DevicePath, drive.Type);
+
+            if (!isRaidPassthrough)
             {
-                continue;
+                if (IsLikelyRemovableDrive(drive.DevicePath, drive.Type, drive.Protocol))
+                    continue;
+
+                if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(drive.DevicePath)))
+                    continue;
             }
 
-            if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(drive.DevicePath)))
-                continue;
-
             var smartData = _smartctl.GetSmartData(drive.DevicePath, drive.Type);
-            if (smartData != null)
+
+            if (!isRaidPassthrough && smartData != null)
             {
                 if (IsLikelyRemovableDrive(drive.DevicePath, drive.Type, drive.Protocol, smartData))
                     continue;
@@ -53,16 +62,19 @@ public class SmartTestService : ISmartTestService
                 if (usbRemovable.ModelSerials.Contains(key))
                     continue;
 
-            var smartSerial = smartData.SerialNumber.Trim();
-            if (!string.IsNullOrWhiteSpace(smartSerial) && usbRemovable.Serials.Contains(smartSerial))
-                continue;
+                var smartSerial = smartData.SerialNumber.Trim();
+                if (!string.IsNullOrWhiteSpace(smartSerial) && usbRemovable.Serials.Contains(smartSerial))
+                    continue;
 
-            var smartModel = smartData.Model.Trim();
-            if (!string.IsNullOrWhiteSpace(smartModel) && usbRemovable.Models.Any(m => m.Contains(smartModel, StringComparison.OrdinalIgnoreCase) || smartModel.Contains(m, StringComparison.OrdinalIgnoreCase)))
-                continue;
+                var smartModel = smartData.Model.Trim();
+                if (!string.IsNullOrWhiteSpace(smartModel) && usbRemovable.Models.Any(m => m.Contains(smartModel, StringComparison.OrdinalIgnoreCase) || smartModel.Contains(m, StringComparison.OrdinalIgnoreCase)))
+                    continue;
 
-            if (IsLikelyRemovableModel(smartModel))
-                continue;
+                if (IsLikelyRemovableModel(smartModel))
+                    continue;
+
+                if (smartModel.Contains("usb", StringComparison.OrdinalIgnoreCase))
+                    continue;
             }
 
             var model = smartData?.Model;
@@ -71,7 +83,14 @@ public class SmartTestService : ISmartTestService
             if (string.IsNullOrWhiteSpace(model))
                 model = "Unknown";
 
-            if (model.Contains("usb", StringComparison.OrdinalIgnoreCase))
+            if (!isRaidPassthrough && model.Contains("usb", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            // Skip if we already added this physical drive under a different path.
+            // smartctl on Windows can expose the same SSD as both /dev/sda and /dev/pd0,
+            // which would produce duplicate SMART health entries and duplicate self-test results.
+            var serial = smartData?.SerialNumber?.Trim() ?? "";
+            if (!string.IsNullOrWhiteSpace(serial) && !seenSerials.Add(serial))
                 continue;
 
             devices.Add(new SmartDriveInfo
@@ -79,7 +98,7 @@ public class SmartTestService : ISmartTestService
                 DevicePath = drive.DevicePath,
                 DeviceType = drive.Type ?? "",
                 Model = model,
-                SerialNumber = smartData?.SerialNumber ?? "",
+                SerialNumber = serial,
                 HealthScore = smartData?.CalculateHealthScore() ?? 0,
                 HealthPassed = smartData?.HealthPassed ?? false,
                 Temperature = smartData?.Temperature,
@@ -125,6 +144,18 @@ public class SmartTestService : ISmartTestService
             TestType = "Short",
             StartTime = DateTime.Now
         };
+
+        // Skip RAID passthrough paths immediately — self-tests are not supported on
+        // RAID virtual volumes. We still read SMART data (Layer 3 passthrough) but
+        // never attempt to start a test, which would fail or damage the RAID state.
+        if (IsRaidPassthroughPath(devicePath, deviceType))
+        {
+            result.Success = true;
+            result.Skipped = true;
+            result.Message = "Skipped: RAID member drive — SMART self-test not applicable (health assessed via RAID controller)";
+            result.EndTime = DateTime.Now;
+            return result;
+        }
 
         var usbRemovable = GetUsbRemovableInfo();
         if (usbRemovable.DeviceIds.Contains(NormalizeDevicePath(devicePath)))
@@ -353,6 +384,27 @@ public class SmartTestService : ISmartTestService
         };
 
         return removableMarkers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Returns true when the device path or type indicates a RAID controller passthrough.
+    /// These drives should never be subjected to SMART self-tests but can be read.
+    /// </summary>
+    private static bool IsRaidPassthroughPath(string? devicePath, string? deviceType)
+    {
+        string[] raidTypeMarkers = { "megaraid", "cciss", "aacraid", "sat+megaraid", "3ware" };
+        string dp = (devicePath ?? "").ToLowerInvariant();
+        string dt = (deviceType ?? "").ToLowerInvariant();
+
+        // Type-based detection (most reliable)
+        if (raidTypeMarkers.Any(m => dt.Contains(m)))
+            return true;
+
+        // Path-based detection: Intel RST uses /dev/pdN
+        if (System.Text.RegularExpressions.Regex.IsMatch(dp, @"^/dev/pd\d+$"))
+            return true;
+
+        return false;
     }
 
     private sealed class UsbRemovableInfo
