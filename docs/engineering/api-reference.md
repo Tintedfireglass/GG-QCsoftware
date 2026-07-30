@@ -319,8 +319,9 @@ Returns the active scoring configuration. Called by CLI/desktop app at the start
   "gradeBands": [
     { "grade": "A+",     "minScore": 90 },
     { "grade": "A",      "minScore": 80 },
-    { "grade": "B",      "minScore": 65 },
-    { "grade": "C",      "minScore": 50 },
+    { "grade": "B",      "minScore": 70 },
+    { "grade": "C",      "minScore": 60 },
+    { "grade": "D",      "minScore": 50 },
     { "grade": "Reject", "minScore": 0  }
   ],
   "riskThresholds": {

@@ -63,7 +63,7 @@ On Linux, the CLI uses native filesystem reads (`/proc`, `/sys`, `lsblk`, `smart
 | Physical Ports | 10% |
 | Repair Modifier | 10% |
 
-Default grade bands (from `PramaanScoringConfig.cs`): **A+** ≥ 90 · **A** ≥ 80 · **B** ≥ 65 · **C** ≥ 50 · **Reject** < 50
+Default grade bands (from `PramaanScoringConfig.cs`): **A+** ≥ 90 · **A** ≥ 80 · **B** ≥ 70 · **C** ≥ 60 · **D** ≥ 50 · **Reject** < 50
 
 ---
 
@@ -128,8 +128,8 @@ Full hardware baseline snapshots per device are **not yet persisted locally** �
 ### Can diagnostic data be converted into a deterministic grade classification?
 
 **Yes — this is the core function of the system.**
-- `PramaanScoringConfig.ScoreToGrade(int score)` → A+/A/B/C/Reject via ordered grade bands
-- Default Pramaan grade bands: A+ ≥ 90, A ≥ 80, B ≥ 65, C ≥ 50, Reject < 50
+- `PramaanScoringConfig.ScoreToGrade(int score)` → A+/A/B/C/D/Reject via ordered grade bands
+- Default Pramaan grade bands: A+ ≥ 90, A ≥ 80, B ≥ 70, C ≥ 60, D ≥ 50, Reject < 50
 - Overall pass threshold: `PramaanScore ≥ 50` (grade C minimum)
 
 ---

@@ -41,8 +41,9 @@ The **Pramaan Score** is a weighted composite of 6 hardware categories. Each cat
 |---|---|---|
 | **A+** | Certified Premium | 90 |
 | **A** | Certified | 80 |
-| **B** | Good Condition | 65 |
-| **C** | Acceptable | 50 |
+| **B** | Good Condition | 70 |
+| **C** | Acceptable | 60 |
+| **D** | Below Average | 50 |
 | **Reject** | Not Certified | 0 (score < 50) |
 
 ---
