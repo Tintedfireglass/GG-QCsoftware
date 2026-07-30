@@ -224,14 +224,12 @@ cp "$ASSETS_DIR/grub/grub.cfg" "$ISO_DIR/boot/grub/grub.cfg"
 ok "GRUB config copied"
 
 # ── Build ISO (UEFI + Legacy BIOS hybrid) ─────────────────────────────────────
+# Note: avoid passing extra args via '--' to xorriso — flag syntax varies
+# between xorriso versions and causes failures on the GitHub Actions runner.
 step "Building final ISO (UEFI + Legacy BIOS)"
 grub-mkrescue \
     --output="$OUTPUT_ISO" \
-    --compress=xz \
-    "$ISO_DIR" \
-    -- \
-    -V "PRAMAAN-QC-LIVE" \
-    -iso-level 3
+    "$ISO_DIR"
 
 # ── Report ────────────────────────────────────────────────────────────────────
 echo ""
