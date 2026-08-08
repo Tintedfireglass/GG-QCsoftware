@@ -359,6 +359,7 @@ export async function updateUser(id: number, data: UpdateUserRequest) {
 
 export interface ResellerBranding {
     logoUrl: string;
+    faviconUrl: string;
     primaryColor: string;
     hasCustomColor: boolean;
     /** Host this branding applies on; '' when it applies nowhere. */
@@ -380,18 +381,24 @@ export async function getResellerBranding(id: number): Promise<{
 }
 
 /**
- * Saves a reseller's domain, primary colour and/or logo. Multipart, so
+ * Saves a reseller's domain, primary colour, logo and/or favicon. Multipart, so
  * Content-Type is left to the browser (it has to add the boundary).
  */
 export async function saveResellerBranding(
     id: number,
-    input: { domain?: string | null; primaryColor?: string | null; logo?: File | null }
+    input: {
+        domain?: string | null;
+        primaryColor?: string | null;
+        logo?: File | null;
+        favicon?: File | null;
+    }
 ): Promise<ResellerBranding> {
     const body = new FormData();
     // "" clears the field; undefined means "leave it alone".
     if (input.domain !== undefined) body.append("domain", input.domain ?? "");
     if (input.primaryColor !== undefined) body.append("primaryColor", input.primaryColor ?? "");
     if (input.logo) body.append("file", input.logo);
+    if (input.favicon) body.append("favicon", input.favicon);
 
     const token = localStorage.getItem("qc_token");
     const res = await fetch(`/api/users/${id}/branding`, {

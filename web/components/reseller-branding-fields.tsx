@@ -22,10 +22,21 @@ export interface ResellerBrandingDraft {
     logoFile: File | null
     /** Logo already saved on the reseller, or '' when it inherits the platform. */
     existingLogoUrl: string
+    /** Newly picked tab icon, not yet uploaded. */
+    faviconFile: File | null
+    /** Favicon already saved on the reseller, or '' when it inherits the platform. */
+    existingFaviconUrl: string
 }
 
 export function emptyBrandingDraft(): ResellerBrandingDraft {
-    return { domain: "", primaryColor: DEFAULT_PRIMARY_COLOR, logoFile: null, existingLogoUrl: "" }
+    return {
+        domain: "",
+        primaryColor: DEFAULT_PRIMARY_COLOR,
+        logoFile: null,
+        existingLogoUrl: "",
+        faviconFile: null,
+        existingFaviconUrl: "",
+    }
 }
 
 /** Starting points so admins are not forced to think in hex. */
@@ -41,6 +52,91 @@ const PRESETS: { color: string; label: string }[] = [
 
 /** Buttons carry white labels, so a pale brand colour renders unreadable text. */
 const MIN_CONTRAST = 3
+
+/**
+ * One artwork slot: preview, file picker and undo. Shared by the wordmark and
+ * the favicon, which differ only in what they accept and how they preview.
+ */
+function AssetUpload({
+    label,
+    accept,
+    hint,
+    file,
+    existingUrl,
+    onPick,
+    storageConfigured,
+    disabled,
+    previewClassName,
+    previewBoxClassName,
+}: {
+    label: string
+    accept: string
+    hint: string
+    file: File | null
+    existingUrl: string
+    onPick: (file: File | null) => void
+    storageConfigured: boolean
+    disabled: boolean
+    previewClassName: string
+    previewBoxClassName: string
+}) {
+    const input = useRef<HTMLInputElement>(null)
+    const preview = file ? URL.createObjectURL(file) : existingUrl
+
+    return (
+        <div>
+            <div className="text-xs font-semibold text-slate-600 mb-2">{label}</div>
+            <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white">
+                <div className={`shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden ${previewBoxClassName}`}>
+                    {preview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={preview} alt={`${label} preview`} className={previewClassName} />
+                    ) : (
+                        <span className="text-[10px] text-slate-400 text-center px-2">Platform</span>
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <input
+                        ref={input}
+                        type="file"
+                        accept={accept}
+                        className="hidden"
+                        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={disabled || !storageConfigured}
+                        onClick={() => input.current?.click()}
+                        className="h-9 px-3 text-xs gap-1.5"
+                    >
+                        <ImageUp className="h-3.5 w-3.5" />
+                        {preview ? "Replace" : "Upload"}
+                    </Button>
+                    {file && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (input.current) input.current.value = ""
+                                onPick(null)
+                            }}
+                            className="ml-2 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+                        >
+                            <X className="h-3 w-3" /> Undo
+                        </button>
+                    )}
+                    <p className="text-[11px] text-slate-500 mt-2 truncate">
+                        {!storageConfigured
+                            ? "Uploads unavailable — object storage is not configured."
+                            : file
+                                ? file.name
+                                : hint}
+                    </p>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 interface Props {
     value: ResellerBrandingDraft
@@ -67,22 +163,19 @@ export function ResellerBrandingFields({
     resetting = false,
     disabled = false,
 }: Props) {
-    const fileInput = useRef<HTMLInputElement>(null)
-
     const color = normalizeHexColor(value.primaryColor) ?? DEFAULT_PRIMARY_COLOR
     const hover = hoverColorFor(color)
     const lowContrast = contrastWithWhite(color) < MIN_CONTRAST
-    const previewLogo = value.logoFile ? URL.createObjectURL(value.logoFile) : value.existingLogoUrl
-    const isCustomised = color.toLowerCase() !== DEFAULT_PRIMARY_COLOR.toLowerCase()
-        || Boolean(value.existingLogoUrl) || Boolean(value.logoFile) || Boolean(value.domain)
+    const hasArtwork = Boolean(value.existingLogoUrl) || Boolean(value.logoFile)
+        || Boolean(value.existingFaviconUrl) || Boolean(value.faviconFile)
+    const customColor = color.toLowerCase() !== DEFAULT_PRIMARY_COLOR.toLowerCase()
+    const isCustomised = customColor || hasArtwork || Boolean(value.domain)
 
     const domainTyped = value.domain.trim()
     const normalizedDomain = normalizeAssignableDomain(domainTyped)
     const domainInvalid = domainTyped !== "" && normalizedDomain == null
-    // Without a domain the logo and colour are stored but never rendered.
-    const brandingDormant = !domainTyped
-        && (Boolean(value.existingLogoUrl) || Boolean(value.logoFile)
-            || color.toLowerCase() !== DEFAULT_PRIMARY_COLOR.toLowerCase())
+    // Without a domain the artwork and colour are stored but never rendered.
+    const brandingDormant = !domainTyped && (hasArtwork || customColor)
 
     return (
         <div className="pt-6 border-t border-slate-100">
@@ -147,60 +240,32 @@ export function ResellerBrandingFields({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Logo */}
-                <div>
-                    <div className="text-xs font-semibold text-slate-600 mb-2">Company logo</div>
-                    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white">
-                        <div className="h-14 w-28 shrink-0 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
-                            {previewLogo ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={previewLogo} alt="Reseller logo preview" className="max-h-12 max-w-24 object-contain" />
-                            ) : (
-                                <span className="text-[10px] text-slate-400 text-center px-2">Platform logo</span>
-                            )}
-                        </div>
-                        <div className="min-w-0">
-                            <input
-                                ref={fileInput}
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0] ?? null
-                                    onChange({ ...value, logoFile: file })
-                                }}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={disabled || !storageConfigured}
-                                onClick={() => fileInput.current?.click()}
-                                className="h-9 px-3 text-xs gap-1.5"
-                            >
-                                <ImageUp className="h-3.5 w-3.5" />
-                                {previewLogo ? "Replace logo" : "Upload logo"}
-                            </Button>
-                            {value.logoFile && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (fileInput.current) fileInput.current.value = ""
-                                        onChange({ ...value, logoFile: null })
-                                    }}
-                                    className="ml-2 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
-                                >
-                                    <X className="h-3 w-3" /> Undo
-                                </button>
-                            )}
-                            <p className="text-[11px] text-slate-500 mt-2 truncate">
-                                {!storageConfigured
-                                    ? "Uploads unavailable — object storage is not configured."
-                                    : value.logoFile
-                                        ? value.logoFile.name
-                                        : "PNG, JPEG, WebP or SVG, up to 2MB."}
-                            </p>
-                        </div>
-                    </div>
+                {/* Artwork */}
+                <div className="space-y-4">
+                    <AssetUpload
+                        label="Company logo"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        hint="PNG, JPEG, WebP or SVG, up to 2MB."
+                        file={value.logoFile}
+                        existingUrl={value.existingLogoUrl}
+                        onPick={(logoFile) => onChange({ ...value, logoFile })}
+                        storageConfigured={storageConfigured}
+                        disabled={disabled}
+                        previewBoxClassName="h-14 w-28"
+                        previewClassName="max-h-12 max-w-24 object-contain"
+                    />
+                    <AssetUpload
+                        label="Favicon (browser tab icon)"
+                        accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,.ico"
+                        hint="Square ICO, PNG or SVG — 32×32 or larger."
+                        file={value.faviconFile}
+                        existingUrl={value.existingFaviconUrl}
+                        onPick={(faviconFile) => onChange({ ...value, faviconFile })}
+                        storageConfigured={storageConfigured}
+                        disabled={disabled}
+                        previewBoxClassName="h-14 w-14"
+                        previewClassName="max-h-8 max-w-8 object-contain"
+                    />
                 </div>
 
                 {/* Primary colour */}

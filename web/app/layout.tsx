@@ -20,12 +20,15 @@ async function requestBranding() {
   return getBrandingForHost(hostFromHeaders(await headers()))
 }
 
-// Tab title and icon follow the white-label branding set in System Settings.
+// Tab title and icon follow the white-label branding — the platform's from
+// System Settings, or the reseller's when the panel is reached on their domain.
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await requestBranding()
   return {
     title: branding.siteName,
-    ...(branding.faviconUrl ? { icons: { icon: branding.faviconUrl } } : {}),
+    // Always emitted: this is the only <link rel="icon"> on the page, so a
+    // reseller's icon replaces the platform one rather than racing it.
+    icons: { icon: branding.faviconUrl },
   }
 }
 

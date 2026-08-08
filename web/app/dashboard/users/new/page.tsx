@@ -154,7 +154,7 @@ export default function NewUserPage() {
             // Branding is a second call: it needs the new reseller's id, and the
             // logo travels as multipart. Only sent when something was chosen.
             const hasBranding = showBrandingSection
-                && (Boolean(branding.logoFile) || Boolean(brandingDomain)
+                && (Boolean(branding.logoFile) || Boolean(branding.faviconFile) || Boolean(brandingDomain)
                     || brandingColor !== DEFAULT_PRIMARY_COLOR.toLowerCase())
             if (hasBranding) {
                 const newUserId = created?.user?.id as number | undefined
@@ -164,6 +164,7 @@ export default function NewUserPage() {
                         domain: brandingDomain,
                         primaryColor: brandingColor,
                         logo: branding.logoFile,
+                        favicon: branding.faviconFile,
                     })
                 } catch (err) {
                     // The account exists; only the branding failed. Say so rather

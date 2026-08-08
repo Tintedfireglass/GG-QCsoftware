@@ -21,7 +21,7 @@ import * as repo from '@/lib/shared/repositories/reseller-branding.repo';
  * reseller's theme to leak into another's, since the host is fixed before any
  * session exists.
  *
- * Only the logo and colour are per-reseller. The product name, favicon, login
+ * Only the logo, favicon and colour are per-reseller. The product name, login
  * artwork and certificate URLs stay platform-wide.
  */
 
@@ -29,6 +29,8 @@ import * as repo from '@/lib/shared/repositories/reseller-branding.repo';
 export interface ResellerBrandingSettings {
     /** Uploaded wordmark, or '' when the reseller inherits the platform logo. */
     logoUrl: string;
+    /** Uploaded tab icon, or '' when the reseller inherits the platform favicon. */
+    faviconUrl: string;
     /** Chosen primary colour as `#rrggbb`; defaults to the platform purple. */
     primaryColor: string;
     /** True when a colour was explicitly chosen (vs. falling back to default). */
@@ -78,14 +80,15 @@ async function loadByDomain(domain: string): Promise<repo.UserBrandingRow | null
     return value;
 }
 
-/** Overlay a reseller's logo/colour onto the platform branding. */
+/** Overlay a reseller's logo/favicon/colour onto the platform branding. */
 function applyOverrides(base: Branding, owner: repo.UserBrandingRow | null): Branding {
     if (!owner) return base;
     const color = normalizeHexColor(owner.primaryColor) ?? base.primaryColor;
-    if (!owner.logoUrl && color === base.primaryColor) return base;
+    if (!owner.logoUrl && !owner.faviconUrl && color === base.primaryColor) return base;
     return {
         ...base,
         logoUrl: owner.logoUrl || base.logoUrl,
+        faviconUrl: owner.faviconUrl || base.faviconUrl,
         primaryColor: color,
         primaryColorHover: hoverColorFor(color),
         resellerId: owner.id,
@@ -133,6 +136,7 @@ function toSettings(row: repo.UserBrandingRow): ResellerBrandingSettings {
     const color = normalizeHexColor(row.primaryColor);
     return {
         logoUrl: row.logoUrl,
+        faviconUrl: row.faviconUrl,
         primaryColor: color ?? DEFAULT_PRIMARY_COLOR,
         hasCustomColor: color != null,
         domain: row.domain,
@@ -203,35 +207,52 @@ export async function setResellerFields(
     return toSettings({ ...target, ...patch });
 }
 
+/** The uploadable artwork slots on a reseller, and the columns behind each. */
+export const RESELLER_ASSETS = {
+    logo: { url: 'logoUrl', key: 'logoKey' },
+    favicon: { url: 'faviconUrl', key: 'faviconKey' },
+} as const;
+
+export type ResellerAsset = keyof typeof RESELLER_ASSETS;
+
 /**
- * Points a reseller at a freshly uploaded logo. Returns the previous object key
- * so the route can delete it only after the new one is committed.
+ * Points a reseller at a freshly uploaded logo or favicon. Returns the previous
+ * object key so the route can delete it only after the new one is committed.
  */
-export async function setResellerLogo(
+export async function setResellerAsset(
     authUser: AuthenticatedUser,
     targetId: number,
-    logo: { url: string; key: string }
+    asset: ResellerAsset,
+    file: { url: string; key: string }
 ): Promise<{ settings: ResellerBrandingSettings; previousKey: string }> {
     const target = await loadManageableReseller(authUser, targetId);
-    await repo.saveUserBranding(targetId, { logoUrl: logo.url, logoKey: logo.key });
+    const fields = RESELLER_ASSETS[asset];
+    const patch = { [fields.url]: file.url, [fields.key]: file.key };
+    await repo.saveUserBranding(targetId, patch);
     invalidateResellerBrandingCache();
+    const previousKey = target[fields.key];
     return {
-        settings: toSettings({ ...target, logoUrl: logo.url, logoKey: logo.key }),
-        previousKey: target.logoKey && target.logoKey !== logo.key ? target.logoKey : '',
+        settings: toSettings({ ...target, ...patch }),
+        previousKey: previousKey && previousKey !== file.key ? previousKey : '',
     };
 }
 
-/** Reverts a reseller to the platform logo and colour, and releases its domain. */
+/**
+ * Reverts a reseller to the platform artwork and colour, and releases its
+ * domain. Returns every object key it dropped so the route can delete them.
+ */
 export async function clearResellerBranding(
     authUser: AuthenticatedUser,
     targetId: number
-): Promise<{ settings: ResellerBrandingSettings; previousKey: string }> {
+): Promise<{ settings: ResellerBrandingSettings; previousKeys: string[] }> {
     const target = await loadManageableReseller(authUser, targetId);
-    const cleared = { logoUrl: '', logoKey: '', primaryColor: '', domain: '' };
+    const cleared = {
+        logoUrl: '', logoKey: '', faviconUrl: '', faviconKey: '', primaryColor: '', domain: '',
+    };
     await repo.saveUserBranding(targetId, cleared);
     invalidateResellerBrandingCache();
     return {
         settings: toSettings({ ...target, ...cleared }),
-        previousKey: target.logoKey,
+        previousKeys: [target.logoKey, target.faviconKey].filter(Boolean),
     };
 }

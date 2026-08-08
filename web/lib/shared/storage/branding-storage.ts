@@ -38,10 +38,11 @@ export type BrandingAssetKind = (typeof BRANDING_ASSET_KINDS)[number];
 
 /**
  * Slots stored in the same bucket but owned by a row rather than by settings.
- * Only the key prefix differs, so reseller logos are still recognisable in the
+ * Only the key prefix differs, so reseller artwork is still recognisable in the
  * bucket without a second storage module.
  */
-export type BrandingAssetSlot = BrandingAssetKind | 'resellerLogo';
+export const RESELLER_ASSET_SLOTS = ['resellerLogo', 'resellerFavicon'] as const;
+export type BrandingAssetSlot = BrandingAssetKind | (typeof RESELLER_ASSET_SLOTS)[number];
 
 /** Image types we accept, mapped to the extension we store them under. */
 const ALLOWED_TYPES: Record<string, string> = {
@@ -124,7 +125,7 @@ export function publicUrlFor(key: string): string {
  * `<kind>-<hex>.<ext>` shape we generate.
  */
 export function brandingKeyForAssetName(name: string): string | null {
-    const kinds = [...BRANDING_ASSET_KINDS, 'resellerLogo'].join('|');
+    const kinds = [...BRANDING_ASSET_KINDS, ...RESELLER_ASSET_SLOTS].join('|');
     if (!new RegExp(`^(?:${kinds})-[0-9a-f]+\\.[a-z0-9]+$`).test(name)) return null;
     return [KEY_PREFIX, name].filter(Boolean).join('/');
 }

@@ -7,6 +7,9 @@ const { users } = schema;
 export interface StoredResellerBranding {
     logoUrl: string;
     logoKey: string;
+    /** Browser tab icon; separate from the wordmark, which is too wide to work as one. */
+    faviconUrl: string;
+    faviconKey: string;
     primaryColor: string;
     /** Host that activates this branding, canonicalised by normalizeHost(). */
     domain: string;
@@ -27,6 +30,8 @@ const columns = {
     companyName: users.companyName,
     logoUrl: users.brandingLogoUrl,
     logoKey: users.brandingLogoKey,
+    faviconUrl: users.brandingFaviconUrl,
+    faviconKey: users.brandingFaviconKey,
     primaryColor: users.brandingPrimaryColor,
     domain: users.brandingDomain,
 };
@@ -40,6 +45,8 @@ function toRow(r: Record<string, unknown> | undefined): UserBrandingRow | null {
         companyName: (r.companyName as string | null) ?? '',
         logoUrl: (r.logoUrl as string | null) ?? '',
         logoKey: (r.logoKey as string | null) ?? '',
+        faviconUrl: (r.faviconUrl as string | null) ?? '',
+        faviconKey: (r.faviconKey as string | null) ?? '',
         primaryColor: (r.primaryColor as string | null) ?? '',
         domain: (r.domain as string | null) ?? '',
     };
@@ -79,6 +86,8 @@ export async function saveUserBranding(userId: number, patch: Partial<StoredRese
     const set: Record<string, unknown> = {};
     if (patch.logoUrl !== undefined) set.brandingLogoUrl = patch.logoUrl;
     if (patch.logoKey !== undefined) set.brandingLogoKey = patch.logoKey;
+    if (patch.faviconUrl !== undefined) set.brandingFaviconUrl = patch.faviconUrl;
+    if (patch.faviconKey !== undefined) set.brandingFaviconKey = patch.faviconKey;
     if (patch.primaryColor !== undefined) set.brandingPrimaryColor = patch.primaryColor;
     // NULL rather than '' when cleared: the unique index treats every NULL as
     // distinct, so any number of resellers can have no domain.

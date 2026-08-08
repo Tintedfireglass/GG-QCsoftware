@@ -3,8 +3,10 @@ import { ValidationError } from '@/lib/http/errors';
 import {
     getResellerBranding,
     setResellerFields,
-    setResellerLogo,
+    setResellerAsset,
     clearResellerBranding,
+    type ResellerAsset,
+    type ResellerBrandingSettings,
 } from '@/lib/shared/services/reseller-branding.service';
 import {
     MAX_BRANDING_BYTES,
@@ -33,16 +35,25 @@ export const GET = withAuth(null, async (_request, { user, params }) => {
     });
 });
 
+/** Form field carrying each uploadable slot, and the storage kind it becomes. */
+const UPLOADS: { field: string; asset: ResellerAsset; slot: 'resellerLogo' | 'resellerFavicon' }[] = [
+    // "file" rather than "logo" for the wordmark: the field predates the favicon
+    // and renaming it would break a client mid-deploy for no gain.
+    { field: 'file', asset: 'logo', slot: 'resellerLogo' },
+    { field: 'favicon', asset: 'favicon', slot: 'resellerFavicon' },
+];
+
 /**
  * POST /api/users/[id]/branding - set the domain and/or primary colour, and/or
- * replace the logo (multipart/form-data).
+ * replace the logo and favicon (multipart/form-data).
  *
  * Fields, all optional so the form can send only what changed:
  *   domain        - host the branding applies on, or "" to release it
  *   primaryColor  - hex like "#8B3D88", or "" to fall back to the platform colour
  *   file          - the logo image
+ *   favicon       - the browser tab icon
  *
- * Multipart rather than JSON because the logo has to travel the same way the
+ * Multipart rather than JSON because the artwork has to travel the same way the
  * System Settings branding upload does; the other fields ride along so one save
  * from the form is one request.
  */
@@ -54,24 +65,28 @@ export const POST = withAuth(null, async (request, { user, params }) => {
 
     const rawColor = form.get('primaryColor');
     const rawDomain = form.get('domain');
-    const file = form.get('file');
-    if (rawColor === null && rawDomain === null && (!file || typeof file === 'string')) {
-        throw new ValidationError('Nothing to update — send domain, primaryColor and/or a logo file');
+    const files = UPLOADS
+        .map((upload) => ({ ...upload, file: form.get(upload.field) }))
+        .filter((upload): upload is typeof upload & { file: File } =>
+            Boolean(upload.file) && typeof upload.file !== 'string');
+    if (rawColor === null && rawDomain === null && files.length === 0) {
+        throw new ValidationError('Nothing to update — send domain, primaryColor, a logo and/or a favicon');
     }
 
     // Column writes first: if one is rejected nothing has been uploaded yet, so
     // there is no orphaned object to clean up.
-    let settings = rawColor !== null || rawDomain !== null
+    let settings: ResellerBrandingSettings = rawColor !== null || rawDomain !== null
         ? await setResellerFields(user, targetId, {
             ...(rawColor !== null ? { color: String(rawColor).trim() } : {}),
             ...(rawDomain !== null ? { domain: String(rawDomain).trim() } : {}),
         })
         : await getResellerBranding(user, targetId);
 
-    if (file && typeof file !== 'string') {
-        if (!isBrandingStorageConfigured()) {
-            throw new ValidationError('Object storage is not configured — set the SPACES_* environment variables first');
-        }
+    if (files.length > 0 && !isBrandingStorageConfigured()) {
+        throw new ValidationError('Object storage is not configured — set the SPACES_* environment variables first');
+    }
+
+    for (const { asset, slot, file } of files) {
         if (file.size > MAX_BRANDING_BYTES) {
             throw new ValidationError(`Image is too large (max ${Math.round(MAX_BRANDING_BYTES / 1024 / 1024)}MB)`);
         }
@@ -79,7 +94,7 @@ export const POST = withAuth(null, async (request, { user, params }) => {
         let stored;
         try {
             stored = await storeBrandingAsset(
-                'resellerLogo',
+                slot,
                 file.name || `reseller-${targetId}`,
                 file.type || null,
                 Buffer.from(await file.arrayBuffer())
@@ -89,9 +104,9 @@ export const POST = withAuth(null, async (request, { user, params }) => {
             throw new ValidationError(err instanceof Error ? err.message : 'Upload failed');
         }
 
-        const result = await setResellerLogo(user, targetId, stored);
+        const result = await setResellerAsset(user, targetId, asset, stored);
         settings = result.settings;
-        // Only after the new logo is committed — a failed delete must not lose it.
+        // Only after the new file is committed — a failed delete must not lose it.
         if (result.previousKey) await deleteBrandingAsset(result.previousKey);
     }
 
@@ -100,7 +115,7 @@ export const POST = withAuth(null, async (request, { user, params }) => {
 
 // DELETE /api/users/[id]/branding - revert the reseller to platform branding.
 export const DELETE = withAuth(null, async (_request, { user, params }) => {
-    const { settings, previousKey } = await clearResellerBranding(user, parseId(params.id));
-    if (previousKey) await deleteBrandingAsset(previousKey);
+    const { settings, previousKeys } = await clearResellerBranding(user, parseId(params.id));
+    for (const key of previousKeys) await deleteBrandingAsset(key);
     return json({ branding: settings });
 });

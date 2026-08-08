@@ -17,7 +17,12 @@ export interface Branding {
     siteName: string;
     /** Wordmark shown in the sidebar, auth pages and report headers. */
     logoUrl: string;
-    /** Browser tab icon; empty means "leave the framework default alone". */
+    /**
+     * Browser tab icon. Always set: it lives in /public rather than as Next's
+     * app/favicon.ico file convention, because that convention emits its own
+     * <link> tag that competes with the one generateMetadata() renders — and a
+     * reseller's icon has to win.
+     */
     faviconUrl: string;
     /** Illustration beside the login/register forms. */
     loginImageUrl: string;
@@ -53,6 +58,7 @@ export interface Branding {
 /** Artwork bundled in /public — used until an admin uploads a replacement. */
 const DEFAULT_LOGO = '/prmn_logo.png';
 const DEFAULT_LOGIN_IMAGE = '/loginImg.png';
+const DEFAULT_FAVICON = '/favicon.ico';
 
 /** Fallback when NEXT_PUBLIC_APP_URL is unset, so QR codes still resolve. */
 const LEGACY_APP_URL = 'https://pramaan-dashboard.gadgetguruz.com';
@@ -67,7 +73,7 @@ const LEGACY_WEBSITE = 'https://pramaan.gadgetguruz.com';
 export const DEFAULT_BRANDING: Branding = {
     siteName: 'Pramaan',
     logoUrl: DEFAULT_LOGO,
-    faviconUrl: '',
+    faviconUrl: DEFAULT_FAVICON,
     loginImageUrl: DEFAULT_LOGIN_IMAGE,
     appUrl: resolveAppUrl(),
     supportEmail: '',
@@ -93,7 +99,7 @@ function resolve(settings: Awaited<ReturnType<typeof getGeneralSettings>>): Bran
     return {
         siteName: settings.siteName || DEFAULT_BRANDING.siteName,
         logoUrl: settings.logoUrl || DEFAULT_LOGO,
-        faviconUrl: settings.faviconUrl || '',
+        faviconUrl: settings.faviconUrl || DEFAULT_FAVICON,
         loginImageUrl: settings.loginImageUrl || DEFAULT_LOGIN_IMAGE,
         appUrl: resolveAppUrl(),
         supportEmail: settings.supportEmail || '',

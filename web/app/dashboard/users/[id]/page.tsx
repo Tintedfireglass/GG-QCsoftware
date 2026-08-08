@@ -55,7 +55,7 @@ export default function EditUserPage() {
         allow_mac_keys: false,
     })
     // Reseller branding — loaded and saved through its own endpoint, since the
-    // logo is a multipart upload rather than a user column.
+    // logo and favicon are multipart uploads rather than user columns.
     const [brandingDraft, setBrandingDraft] = useState(emptyBrandingDraft())
     const [brandingStorageReady, setBrandingStorageReady] = useState(true)
     const [savingBranding, setSavingBranding] = useState(false)
@@ -113,6 +113,8 @@ export default function EditUserPage() {
                 primaryColor: data.branding.primaryColor,
                 logoFile: null,
                 existingLogoUrl: data.branding.logoUrl,
+                faviconFile: null,
+                existingFaviconUrl: data.branding.faviconUrl,
             })
             setBrandingStorageReady(data.storageConfigured)
         } catch (err) {
@@ -141,8 +143,9 @@ export default function EditUserPage() {
                 domain,
                 primaryColor: color,
                 logo: brandingDraft.logoFile,
+                favicon: brandingDraft.faviconFile,
             })
-            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl })
+            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
             setSuccess("Branding updated successfully")
         } catch (err) {
             console.error("Failed to save branding:", err)
@@ -158,7 +161,7 @@ export default function EditUserPage() {
         setResettingBranding(true)
         try {
             const saved = await resetResellerBranding(userId)
-            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl })
+            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
             setSuccess("Branding reset to the platform default")
         } catch (err) {
             console.error("Failed to reset branding:", err)

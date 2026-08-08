@@ -111,6 +111,8 @@ export const users = pgTable("users", {
 	// brandingDomain. NULL/empty means "use the platform branding".
 	brandingLogoUrl: varchar("branding_logo_url"),
 	brandingLogoKey: varchar("branding_logo_key"),
+	brandingFaviconUrl: varchar("branding_favicon_url"),
+	brandingFaviconKey: varchar("branding_favicon_key"),
 	brandingPrimaryColor: varchar("branding_primary_color"),
 	brandingDomain: varchar("branding_domain"),
 }, (table) => [
