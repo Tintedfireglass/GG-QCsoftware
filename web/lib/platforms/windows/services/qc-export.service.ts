@@ -187,7 +187,14 @@ function formatGeneratedDateTime(timeZone: string): string {
  * to the artwork bundled in /public so exports still carry a mark on a fresh
  * install. pdf-lib can only embed PNG and JPEG, so an SVG upload falls back too.
  */
-async function embedBrandLogo(pdf: PDFDocument, logoUrl: string): Promise<PDFImage | null> {
+async function embedBrandLogo(pdf: PDFDocument, branding: Branding): Promise<PDFImage | null> {
+    // An uploaded asset is served by /api/branding/asset, i.e. as a path rather
+    // than an absolute URL — the bucket is private, so the app streams it. Give
+    // it an origin so it is fetchable from here; the bundled defaults stay
+    // relative and are read off disk below instead.
+    const logoUrl = branding.logoUrl.startsWith('/api/')
+        ? `${branding.appUrl}${branding.logoUrl}`
+        : branding.logoUrl;
     if (/^https?:\/\//i.test(logoUrl)) {
         try {
             const res = await fetch(logoUrl);
@@ -233,7 +240,7 @@ async function buildPdfBuffer(
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const logoImage = await embedBrandLogo(pdf, branding.logoUrl);
+    const logoImage = await embedBrandLogo(pdf, branding);
 
     const pageWidth = 842;
     const pageHeight = 595;

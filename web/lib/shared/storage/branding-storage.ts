@@ -1,8 +1,10 @@
 import { randomBytes } from 'crypto';
+import type { Readable } from 'stream';
 import path from 'path';
 import {
     S3Client,
     PutObjectCommand,
+    GetObjectCommand,
     DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 
@@ -12,15 +14,20 @@ import {
  * installers use — the container filesystem is ephemeral, so uploaded artwork
  * cannot live on local disk.
  *
- * Unlike installers, branding assets are served straight to browsers (and to
- * the PDF exporter), so they are uploaded `public-read` and referenced by their
- * public URL. Nothing here is secret.
+ * Unlike installers, branding assets have to be readable by a browser. They are
+ * NOT uploaded with a public ACL: DigitalOcean disables per-object ACLs on
+ * current Spaces buckets and rejects the request outright
+ * (UnsupportedAclConfigurationException), which silently broke every logo
+ * upload. The bucket also holds the installers, so making it public wholesale
+ * is not an option either. Instead the objects stay private and are served
+ * through /api/branding/asset/<key>, the same way installers are streamed.
  *
  * Object key layout: <SPACES_BRANDING_PREFIX>/<kind>-<random>.<ext>
  *
  * Required env: SPACES_REGION, SPACES_ENDPOINT, SPACES_BUCKET, SPACES_KEY,
  * SPACES_SECRET. Optional: SPACES_BRANDING_PREFIX (default "branding"),
- * SPACES_PUBLIC_BASE (CDN origin; defaults to the virtual-hosted bucket URL).
+ * SPACES_PUBLIC_BASE (CDN origin — only set this when the bucket really is
+ * publicly readable; without it assets go through the proxy route).
  */
 
 const KEY_PREFIX = (process.env.SPACES_BRANDING_PREFIX ?? 'branding').replace(/^\/+|\/+$/g, '');
@@ -87,13 +94,51 @@ export function isBrandingStorageConfigured(): boolean {
     );
 }
 
-/** Browser-reachable URL for a stored key (CDN base if one is configured). */
+/** Path prefix of the route that streams a private branding object. */
+export const BRANDING_ASSET_ROUTE = '/api/branding/asset';
+
+/**
+ * Browser-reachable URL for a stored key.
+ *
+ * Defaults to the same-origin proxy route, because the bucket is private (see
+ * the note at the top of this file). `SPACES_PUBLIC_BASE` overrides it with a
+ * CDN/public origin for deployments whose bucket really is world-readable.
+ *
+ * Relative on purpose: the URL is persisted, and a reseller reaches the panel on
+ * their own domain, so a path serves the logo from whichever host is asking.
+ */
 export function publicUrlFor(key: string): string {
     const override = process.env.SPACES_PUBLIC_BASE;
     if (override) return `${override.replace(/\/+$/, '')}/${key}`;
-    // Virtual-hosted style: https://<bucket>.<endpoint-host>/<key>
-    const host = new URL(process.env.SPACES_ENDPOINT as string).host;
-    return `https://${bucket()}.${host}/${key}`;
+    // Only the file name travels in the URL; the route puts the prefix back, so
+    // there is no way to point it at anything outside the branding prefix.
+    const name = key.split('/').pop() as string;
+    return `${BRANDING_ASSET_ROUTE}/${encodeURIComponent(name)}`;
+}
+
+/**
+ * Object key behind an asset file name from a proxy-route URL, or null when the
+ * name is not one storeBrandingAsset could have written. Branding objects are
+ * the only thing in this bucket a browser may read — the installers beside them
+ * are gated behind the release routes — so the name must match exactly the
+ * `<kind>-<hex>.<ext>` shape we generate.
+ */
+export function brandingKeyForAssetName(name: string): string | null {
+    const kinds = [...BRANDING_ASSET_KINDS, 'resellerLogo'].join('|');
+    if (!new RegExp(`^(?:${kinds})-[0-9a-f]+\\.[a-z0-9]+$`).test(name)) return null;
+    return [KEY_PREFIX, name].filter(Boolean).join('/');
+}
+
+/** Opens a stored branding object for streaming. Throws when the key is absent. */
+export async function openBrandingAsset(
+    key: string
+): Promise<{ stream: Readable; size: number; contentType: string }> {
+    const res = await client().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+    return {
+        stream: res.Body as Readable,
+        size: Number(res.ContentLength ?? 0),
+        contentType: res.ContentType || 'application/octet-stream',
+    };
 }
 
 export interface StoredBrandingAsset {
@@ -135,7 +180,8 @@ export async function storeBrandingAsset(
             Bucket: bucket(),
             Key: key,
             Body: body,
-            ACL: 'public-read',
+            // No ACL: current Spaces buckets reject per-object ACLs. The object
+            // is reachable through BRANDING_ASSET_ROUTE instead.
             ContentType: declared || `image/${ext}`,
             CacheControl: 'public, max-age=31536000, immutable',
         })
