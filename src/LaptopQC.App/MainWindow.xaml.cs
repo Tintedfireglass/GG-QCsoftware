@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using LaptopQC.App.Branding;
 using LaptopQC.App.ViewModels;
 using LaptopQC.App.Views;
 
@@ -16,6 +18,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        LoadBrandLogo();
         RefreshActivationUi();
         App.AuthService.LoggedOut += () =>
         {
@@ -27,6 +30,32 @@ public partial class MainWindow : Window
             await ComplianceService.EnsureOnlineComplianceAsync(this);
             RefreshActivationUi();
         };
+    }
+
+    private void LoadBrandLogo()
+    {
+        try
+        {
+            var logoFile = BrandInfo.LogoFileName;
+            var asmName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+            
+            // Try assembly pack URI
+            var packUri = new Uri($"pack://application:,,,/{asmName};component/Resources/{logoFile}", UriKind.Absolute);
+            BrandLogoImage.Source = new BitmapImage(packUri);
+        }
+        catch
+        {
+            try
+            {
+                var logoFile = BrandInfo.LogoFileName;
+                var packUri = new Uri($"pack://application:,,,/Resources/{logoFile}", UriKind.Absolute);
+                BrandLogoImage.Source = new BitmapImage(packUri);
+            }
+            catch
+            {
+                // Fallback
+            }
+        }
     }
 
     private async void UserStatus_Click(object sender, MouseButtonEventArgs e)

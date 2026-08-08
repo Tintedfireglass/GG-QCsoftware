@@ -22,6 +22,10 @@ public class StorageInfo
     public bool IsSuspicious { get; set; }
     public string SuspiciousReason { get; set; } = "";
     public List<RaidArrayInfo> RaidArrays { get; set; } = new();
+    /// <summary>Number of disk-error events (IDs 7/11/51) found in System log over last 30 days.</summary>
+    public int RaidDiskErrorEventCount { get; set; }
+    /// <summary>Human-readable detail lines from each RAID health layer (event log, passthrough, etc.).</summary>
+    public List<string> RaidHealthDetails { get; set; } = new();
 }
 
 public class RaidArrayInfo
@@ -31,6 +35,12 @@ public class RaidArrayInfo
     public string State { get; set; } = "Active";
     public int ActiveDrives { get; set; }
     public int TotalDrives { get; set; }
+    /// <summary>e.g. "storage-spaces", "megaraid", "hp-smart-array", "intel-rst", "unknown-raid"</summary>
+    public string ControllerType { get; set; } = "";
+    public bool IsHealthy { get; set; } = true;
+    public string HealthStatus { get; set; } = "";
+    public double TotalSizeGB { get; set; }
+    public List<string> MemberLocations { get; set; } = new();
 }
 
 public class StorageVolume
@@ -55,6 +65,11 @@ public class StorageDevice
     public double SizeGB { get; set; }
     public bool IsSsd { get; set; }
     public bool IsEMMC { get; set; }
+
+    // RAID flags — set when this entry represents a RAID virtual disk or member drive.
+    // When IsRaid=true, SMART telemetry absence is NOT treated as tampered/inconclusive.
+    public bool IsRaid { get; set; }
+    public string RaidControllerType { get; set; } = "";
     
     // SMART data
     public int? HealthPercent { get; set; }

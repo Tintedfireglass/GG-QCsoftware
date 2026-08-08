@@ -13,7 +13,9 @@
     <BrandCompanyName Condition="'$(BrandCompanyName)' == ''">Gadget Guruz</BrandCompanyName>
     <BrandPublisherName Condition="'$(BrandPublisherName)' == ''">GadgetGuruz</BrandPublisherName>
     <BrandUpdateUrl Condition="'$(BrandUpdateUrl)' == ''">https://pramaan-dashboard.gadgetguruz.com</BrandUpdateUrl>
+    <BrandApiUrl Condition="'$(BrandApiUrl)' == ''">https://pramaan-dashboard.gadgetguruz.com</BrandApiUrl>
     <BrandIconPath Condition="'$(BrandIconPath)' == ''">Resources\pramana_icon.ico</BrandIconPath>
+    <BrandLogoPath Condition="'$(BrandLogoPath)' == ''">Resources\pramana_logo.png</BrandLogoPath>
     <BrandXamlKey Condition="'$(BrandXamlKey)' == ''">Pramaan</BrandXamlKey>
   </PropertyGroup>
 
@@ -39,7 +41,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\pramana_logo.png" Condition="Exists('Resources\pramana_logo.png')" />
+    <Resource Include="Resources\*.png" />
     <Resource Include="$(BrandIconPath)" Condition="Exists('$(BrandIconPath)')" />
     <Content Include="$(BrandIconPath)" Condition="Exists('$(BrandIconPath)')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -58,7 +60,7 @@
 	    <AssemblyName>$(BrandExeName)</AssemblyName>
 	    <Product>$(BrandProductName)</Product>
 	    <Company>$(BrandCompanyName)</Company>
-	    <Version>1.0.8</Version>
+	    <Version>1.0.9</Version>
 	    
 	  </PropertyGroup>
 
@@ -67,6 +69,8 @@
     <AssemblyMetadata Include="Brand.AppDisplayName" Value="$(BrandAppDisplayName)" />
     <AssemblyMetadata Include="Brand.Publisher" Value="$(BrandPublisherName)" />
     <AssemblyMetadata Include="Brand.UpdateUrl" Value="$(BrandUpdateUrl)" />
+    <AssemblyMetadata Include="Brand.ApiUrl" Value="$(BrandApiUrl)" />
+    <AssemblyMetadata Include="Brand.LogoPath" Value="$(BrandLogoPath)" />
     <AssemblyMetadata Include="Brand.IconFileName" Value="$([System.IO.Path]::GetFileName('$(BrandIconPath)'))" />
   </ItemGroup>
 

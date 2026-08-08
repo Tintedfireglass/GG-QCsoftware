@@ -142,7 +142,7 @@ function applyInconclusiveFix(body: SubmitInput): void {
             if (totalWeight > 0) {
                 const ps = Math.round(totalWeightedScore / totalWeight);
                 body.pramaanScore = Math.max(0, Math.min(ps, 100));
-                body.pramaanGrade = ps >= 90 ? 'A+' : ps >= 80 ? 'A' : ps >= 65 ? 'B' : ps >= 50 ? 'C' : 'Reject';
+                body.pramaanGrade = ps >= 90 ? 'A+' : ps >= 80 ? 'A' : ps >= 70 ? 'B' : ps >= 60 ? 'C' : ps >= 50 ? 'D' : 'Reject';
             }
         }
     }

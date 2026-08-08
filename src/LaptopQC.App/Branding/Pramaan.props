@@ -6,7 +6,9 @@
     <BrandCompanyName>Gadget Guruz</BrandCompanyName>
     <BrandPublisherName>GadgetGuruz</BrandPublisherName>
     <BrandUpdateUrl>https://pramaan-dashboard.gadgetguruz.com</BrandUpdateUrl>
+    <BrandApiUrl>https://pramaan-dashboard.gadgetguruz.com</BrandApiUrl>
     <BrandIconPath>Resources\pramana_icon.ico</BrandIconPath>
+    <BrandLogoPath>Resources\pramana_logo.png</BrandLogoPath>
     <BrandXamlKey>Pramaan</BrandXamlKey>
   </PropertyGroup>
 </Project>

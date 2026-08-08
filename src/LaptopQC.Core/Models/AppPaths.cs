@@ -5,6 +5,8 @@ namespace LaptopQC.Core.Models;
 
 public static class AppPaths
 {
+    public static string AppDataFolderName { get; set; } = "Pramaan";
+
     public static string AppDataDir
     {
         get
@@ -23,7 +25,7 @@ public static class AppPaths
                     appData = Path.Combine(appData, ".config");
                 }
             }
-            return Path.Combine(appData, "Pramaan");
+            return Path.Combine(appData, AppDataFolderName);
         }
     }
 }

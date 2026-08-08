@@ -1,0 +1,495 @@
+Terms and Conditions
+Effective Date: 10 March 2026
+
+These Terms and Conditions ("Terms") govern the use of Pramaan, a device diagnostics and health testing software developed and operated by Gadget Guruz Private Limited ("Gadget Guruz", "we", "us", or "our").
+By accessing, installing, or using Pramaan, you agree to comply with and be bound by these Terms.
+If you do not agree with these Terms, you must not use the software.
+
+1. About Pramaan
+Pramaan is a device diagnostics and health testing software designed to evaluate the performance, condition, and functionality of electronic devices, including but not limited to:
+- Laptops
+- Desktop computers
+- Mobile devices
+- Tablets
+- Other supported electronic hardware
+
+The software provides diagnostic tools, quality control reports, and device health insights.
+
+2. Eligibility
+By using Pramaan, you confirm that:
+- You are at least 18 years of age, or
+- You are authorized to use the software on behalf of a business or organization.
+
+Enterprise users must ensure that their employees comply with these Terms.
+
+3. Software License
+Gadget Guruz grants you a limited, non-exclusive, non-transferable, revocable license to install and use Pramaan solely for the purpose of device diagnostics and testing.
+You may not:
+- Copy, distribute, or resell the software
+- Reverse engineer or modify the software
+- Use the software for unlawful purposes
+- Attempt to access restricted system components
+- Use the software to damage devices intentionally
+
+All intellectual property rights remain the property of Gadget Guruz Private Limited.
+
+4. Acceptable Use
+You agree to use Pramaan only for legitimate diagnostic and device testing purposes.
+You must not:
+- Use the software to conduct unauthorized surveillance
+- Manipulate diagnostic results
+- Interfere with the platform's security
+- Use automated systems to abuse the platform
+- Attempt to bypass licensing restrictions
+
+Violation of these rules may result in termination of access.
+
+5. Diagnostic Results Disclaimer
+Pramaan provides automated diagnostic assessments based on system tests and device parameters.
+While we strive to ensure accuracy:
+- Diagnostic results are informational only
+- They should not be considered a guarantee of device performance
+- Gadget Guruz does not guarantee that diagnostic results are error-free
+- Users should apply professional judgment before making repair or purchase decisions based on the reports
+
+6. Enterprise Usage
+Organizations using Pramaan may deploy the software across multiple devices.
+Enterprise administrators are responsible for:
+- Managing user access
+- Monitoring device diagnostics
+- Ensuring compliance with company policies
+- Protecting access credentials
+
+Pramaan may provide dashboards for device health monitoring and analytics.
+
+7. Software Updates
+We may release updates, patches, or improvements to the software.
+These updates may include:
+- New diagnostic modules
+- Security updates
+- Performance improvements
+- Bug fixes
+
+Continued use of the software may require installing updates.
+
+8. Availability of Service
+While we strive for continuous availability, we do not guarantee that Pramaan will operate without interruption or errors.
+The service may be temporarily unavailable due to:
+- System maintenance
+- Technical failures
+- Infrastructure upgrades
+- External service disruptions
+
+9. Limitation of Liability
+To the maximum extent permitted by law, Gadget Guruz shall not be liable for:
+- Device damage caused during testing
+- Business losses
+- Data loss
+- Indirect or consequential damages
+- Decisions made based on diagnostic reports
+
+Users run diagnostics at their own discretion and responsibility.
+
+10. Data and Privacy
+Use of Pramaan is also governed by our Privacy Policy, which explains how device information and diagnostic data are collected and used.
+By using Pramaan, you consent to the data practices described in the Privacy Policy.
+
+11. Suspension or Termination
+We reserve the right to suspend or terminate access to Pramaan if:
+- These Terms are violated
+- The software is used for illegal activities
+- Security threats are detected
+- Licensing terms are breached
+
+12. Intellectual Property
+All software, branding, technology, and materials related to Pramaan are the intellectual property of Gadget Guruz Private Limited.
+Unauthorized use, reproduction, or distribution is strictly prohibited.
+
+13. Third-Party Components
+Pramaan may incorporate third-party technologies or services.
+These components are governed by their respective licenses and policies.
+
+14. Changes to These Terms
+We may update these Terms from time to time.
+Updated Terms will be posted on the website with a revised effective date.
+Continued use of Pramaan after updates constitutes acceptance of the revised Terms.
+
+15. Governing Law
+These Terms shall be governed by and interpreted in accordance with the laws of India.
+Any disputes arising from the use of Pramaan shall be subject to the jurisdiction of the courts located in New Delhi, India.
+
+16. Contact Information
+For questions regarding these Terms, please contact:
+Gadget Guruz Private Limited
+Website: https://gadgetguruz.com
+Email: support@gadgetguruz.com
+
+
+Privacy Policy
+Effective Date: 10 March 2026
+
+Pramaan is a device diagnostics and health testing software developed and operated by Gadget Guruz Private Limited ("Gadget Guruz", "we", "us", or "our").
+This Privacy Policy explains how we collect, use, disclose, and safeguard information when you use the Pramaan software, website, dashboard, and related services (collectively referred to as the "Service").
+By installing or using Pramaan, you agree to the practices described in this Privacy Policy.
+
+1. Scope of This Policy
+This Privacy Policy applies to:
+- Individual users running diagnostics on their devices
+- Technicians using Pramaan for device testing
+- Enterprises using Pramaan for IT asset health monitoring
+- Visitors to Pramaan websites or dashboards
+
+This policy covers data collected through the Pramaan application, dashboards, APIs, and related platforms.
+
+2. Information We Collect
+Pramaan is designed primarily to collect device diagnostic data, not personal information.
+
+2.1 Device Information
+When running diagnostics or QC tests, Pramaan may collect technical device information such as:
+- Device model and manufacturer
+- Hardware configuration
+- CPU, RAM, storage health
+- Battery health
+- Display and sensor diagnostics
+- Network interface status
+- Device serial number or system identifier
+- Operating system version
+- System performance metrics
+- Diagnostic logs and error reports
+
+This information is required to perform health checks and generate QC reports.
+
+2.2 Usage Information
+We may collect usage data including:
+- Test results
+- Test timestamps
+- Diagnostic logs
+- System performance results
+- Crash reports
+- Feature usage statistics
+
+This data helps improve the reliability and accuracy of the software.
+
+2.3 Account Information
+If you create an account or use the enterprise dashboard, we may collect:
+- Name
+- Email address
+- Organization name
+- Technician ID or enterprise admin credentials
+
+This information is used to manage accounts and dashboards.
+
+2.4 Enterprise Device Monitoring
+For enterprise deployments, Pramaan may collect:
+- Device inventory information
+- Device health reports
+- Diagnostic history
+- System lifecycle analytics
+
+This data is visible only to authorized enterprise administrators.
+
+3. What We Do Not Collect
+Pramaan does not intentionally collect or access:
+- Personal files or documents
+- Photos, videos, or messages
+- Contact lists
+- Financial information
+- Browser history
+
+The software only collects hardware diagnostics and system performance data required for device health testing.
+
+4. How We Use the Information
+The collected data is used for the following purposes:
+
+4.1 Device Health Testing
+To run diagnostics, generate QC certificates, and measure device performance.
+
+4.2 Product Improvement
+To analyze diagnostic performance and improve testing accuracy.
+
+4.3 Enterprise Asset Monitoring
+To help organizations monitor the health of their IT assets.
+
+4.4 Support and Troubleshooting
+To diagnose software issues and improve stability.
+
+4.5 Security and Fraud Prevention
+To detect misuse of the platform.
+
+5. Data Storage and Security
+We implement industry-standard security practices to protect data, including:
+- Secure servers and encrypted communications (HTTPS/TLS)
+- Role-based access control
+- Secure authentication mechanisms
+- Restricted internal access to diagnostic data
+
+Diagnostic logs and device information are stored only for the period necessary to provide services.
+
+6. Data Sharing and Disclosure
+We do not sell or rent user data.
+We may share data in the following situations:
+
+6.1 With Enterprise Customers
+If Pramaan is deployed within an organization, device diagnostics may be shared with authorized administrators of that organization.
+
+6.2 Service Providers
+We may share limited information with trusted service providers who help us operate our platform.
+
+6.3 Legal Requirements
+We may disclose information if required by law or government authorities.
+
+6.4 Business Transfers
+If Gadget Guruz is involved in a merger, acquisition, or asset sale, data may be transferred as part of the business transition.
+
+7. Data Retention
+Diagnostic data is retained only as long as necessary to:
+- Generate QC reports
+- Maintain enterprise dashboards
+- Improve diagnostic models
+- Meet legal or compliance requirements
+
+Enterprise customers may request deletion of diagnostic records where applicable.
+
+8. User Rights
+Depending on applicable laws, users may have the right to:
+- Access their data
+- Request correction of inaccurate data
+- Request deletion of data
+- Withdraw consent where applicable
+
+Requests can be made by contacting us at the details below.
+
+9. Compliance With Laws
+Pramaan complies with applicable data protection laws including:
+- Information Technology Act, 2000 (India)
+- Digital Personal Data Protection Act, 2023
+- Applicable enterprise security standards and software governance practices
+
+10. Third-Party Services
+Pramaan may integrate with:
+- Enterprise IT management systems
+- Device repair workflows
+- Cloud infrastructure providers
+
+These third parties have their own privacy policies governing data handling.
+
+11. Software Permissions
+Pramaan may require certain device permissions to perform diagnostics, such as:
+- System hardware access
+- Network diagnostics
+- Storage health monitoring
+- Sensor testing
+
+These permissions are used strictly for device health testing purposes.
+
+12. Children's Privacy
+Pramaan is not intended for use by individuals under the age of 18.
+We do not knowingly collect personal information from children.
+
+13. Changes to This Policy
+We may update this Privacy Policy periodically.
+Updated versions will be posted on our website with a revised effective date.
+
+14. Contact Us
+For any privacy-related questions or requests, contact:
+Gadget Guruz Private Limited
+Email: support@gadgetguruz.com
+Website: https://gadgetguruz.com
+
+
+End User License Agreement (EULA) - Pramaan
+Effective Date: 10 March 2026
+
+This End User License Agreement ("Agreement") is a legal agreement between you ("User", "You") and Gadget Guruz Private Limited ("Gadget Guruz", "Company", "We", "Us") for the use of the Pramaan diagnostic software and related services.
+By installing, accessing, or using Pramaan, you agree to be bound by the terms of this Agreement.
+If you do not agree, do not install or use the software.
+
+1. License Grant
+Gadget Guruz grants you a limited, non-exclusive, non-transferable, revocable license to install and use Pramaan solely for the purpose of:
+- Running device diagnostics
+- Performing hardware health tests
+- Generating device QC reports
+- Monitoring device health
+
+The license is provided for personal, technician, or business use depending on the license purchased.
+
+2. Ownership
+Pramaan is licensed, not sold.
+All intellectual property rights including:
+- Software code
+- Diagnostic algorithms
+- User interface
+- Documentation
+- Branding
+
+remain the exclusive property of Gadget Guruz Private Limited.
+
+3. Permitted Use
+You may use Pramaan to:
+- Test hardware performance
+- Diagnose device issues
+- Generate quality reports
+- Assess device health
+
+You may install the software only on the number of devices permitted under your license.
+
+4. Restrictions
+You may not:
+- Reverse engineer, decompile, or modify the software
+- Distribute or resell the software without authorization
+- Use the software for illegal purposes
+- Bypass licensing or activation mechanisms
+- Attempt to access protected components of the platform
+
+Violation of these restrictions may result in termination of the license.
+
+5. Diagnostic Disclaimer
+Pramaan performs automated diagnostics based on system-level testing.
+While the software aims to provide reliable results:
+- Diagnostic results are informational only
+- Results may vary depending on hardware condition
+- The software does not guarantee device performance or reliability
+- Users should apply professional judgment when using the results
+
+6. Updates and Improvements
+Gadget Guruz may release updates that include:
+- Security improvements
+- Additional device testing modules
+- Performance enhancements
+- Bug fixes
+
+Updates may be required to continue using the software.
+
+7. Data Collection
+Pramaan may collect device diagnostic information and usage data required for the functioning of the software.
+For details on data handling practices, please refer to the Pramaan Privacy Policy.
+
+8. Termination
+This Agreement will remain in effect until terminated.
+Gadget Guruz may terminate the license if:
+- The user violates this Agreement
+- Unauthorized software usage is detected
+- Licensing terms are breached
+
+Upon termination, the user must uninstall and stop using the software.
+
+9. Limitation of Liability
+To the maximum extent permitted by law, Gadget Guruz shall not be liable for:
+- Hardware damage resulting from testing
+- Loss of business or profits
+- Data loss
+- Decisions made based on diagnostic results
+
+The software is used at the user's own risk.
+
+10. Governing Law
+This Agreement shall be governed by the laws of India.
+Any disputes shall fall under the jurisdiction of courts located in New Delhi, India.
+
+11. Contact
+For licensing questions or support:
+Gadget Guruz Private Limited
+Website: https://gadgetguruz.com
+Email: support@gadgetguruz.com
+
+
+Enterprise License Agreement (ELA)
+Effective Date: 10 March 2026
+
+This Enterprise License Agreement ("Agreement") is entered into between Gadget Guruz Private Limited ("Provider") and the Enterprise Customer ("Customer") for the use of Pramaan enterprise diagnostic software and services.
+
+1. License Scope
+Gadget Guruz grants the Customer a non-exclusive, non-transferable license to deploy Pramaan across the organization's devices for purposes including:
+- IT asset health monitoring
+- Hardware diagnostics
+- Device lifecycle management
+- Quality control testing
+
+The license may be based on:
+- Number of devices
+- Number of technicians
+- Organization-wide deployment
+
+as defined in the commercial agreement.
+
+2. Enterprise Dashboard Access
+Enterprise customers may receive access to an administrative dashboard that enables:
+- Device health monitoring
+- Diagnostic reports
+- Device inventory insights
+- Asset lifecycle analytics
+
+Access to the dashboard must be managed by authorized administrators.
+
+3. Responsibilities of the Enterprise
+The Customer agrees to:
+- Ensure authorized use by employees
+- Protect login credentials
+- Prevent unauthorized distribution of the software
+- Comply with applicable data protection laws
+
+4. Data Ownership
+Device diagnostic data generated through Pramaan remains the property of the Enterprise Customer.
+However, Gadget Guruz may use anonymized diagnostic data to:
+- Improve diagnostic algorithms
+- Enhance testing accuracy
+- Improve software performance
+
+5. Implementation and Setup
+Gadget Guruz may provide implementation support including:
+- Software deployment
+- Configuration assistance
+- Technician onboarding
+- Integration guidance
+
+Specific services may be defined in the enterprise contract.
+
+6. Service Availability
+Gadget Guruz will make reasonable efforts to maintain service availability but does not guarantee uninterrupted operation.
+Temporary downtime may occur due to:
+- Maintenance
+- Infrastructure updates
+- Technical failures
+
+7. Security
+Gadget Guruz follows industry-standard practices to protect enterprise data, including:
+- Secure data transmission
+- Role-based access control
+- Authentication mechanisms
+
+8. Fees and Payment
+Enterprise licensing fees may be based on:
+- Per device license
+- Per technician license
+- Organization-wide deployment
+
+Payment terms will be defined in the enterprise agreement or purchase order.
+
+9. Term and Termination
+This Agreement remains active for the duration of the subscription or license period.
+Either party may terminate the agreement if:
+- Terms are breached
+- Payment obligations are not met
+- Security misuse occurs
+
+Upon termination, the Customer must discontinue use of the software.
+
+10. Limitation of Liability
+To the extent permitted by law, Gadget Guruz shall not be liable for:
+- Hardware damage resulting from diagnostics
+- Loss of enterprise data
+- Operational disruptions
+- Indirect or consequential damages
+
+11. Confidentiality
+Both parties agree to maintain the confidentiality of proprietary information exchanged during the course of the agreement.
+
+12. Governing Law
+This Agreement shall be governed by the laws of India.
+Disputes shall be subject to the jurisdiction of courts located in New Delhi, India.
+
+13. Contact
+For enterprise licensing inquiries:
+Gadget Guruz Private Limited
+Email: enterprise@gadgetguruz.com
+Website: https://gadgetguruz.com

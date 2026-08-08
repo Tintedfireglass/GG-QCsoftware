@@ -852,6 +852,7 @@ public class CleanupService
         NativeMethods.SHEmptyRecycleBin(IntPtr.Zero, null, NativeMethods.SHERB_NOCONFIRMATION | NativeMethods.SHERB_NOSOUND);
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static bool IsRunningAsAdmin()
     {
         try

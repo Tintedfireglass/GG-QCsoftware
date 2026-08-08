@@ -48,6 +48,20 @@ public static class BrandInfo
         }
     }
 
+    public static string ApiBaseUrl
+    {
+        get
+        {
+            var value = Get("Brand.ApiUrl", "https://pramaan-dashboard.gadgetguruz.com");
+            return value.TrimEnd('/');
+        }
+    }
+
+    /// <summary>
+    /// Returns the verification URL for a given health ID, e.g. https://cirtyn.com/verify/abc123
+    /// </summary>
+    public static string VerifyUrl(string healthId) => $"{ApiBaseUrl}/verify/{healthId}";
+
     /// <summary>
     /// Builds the manifest check URL for the given platform.
     /// e.g. https://pramaan-dashboard.gadgetguruz.com/api/updates/windows/latest
@@ -57,6 +71,7 @@ public static class BrandInfo
 
     public static string InstallerFileNamePrefix => $"{AppDisplayName}_Setup_";
     public static string IconFileName => Get("Brand.IconFileName", "pramana_icon.ico");
+    public static string LogoFileName => System.IO.Path.GetFileName(Get("Brand.LogoPath", "Resources\\pramana_logo.png"));
     public static string TrayIconRelativePath => System.IO.Path.Combine("Resources", IconFileName);
     public static string AppDataFolderName => BrandXamlKey;
 }

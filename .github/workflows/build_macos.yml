@@ -5,12 +5,12 @@ on:
     branches: [ main, prod ]
   pull_request:
     branches: [ main, prod ]
-  workflow_dispatch: # Allow manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────────
   # Job 1: Build macOS App (arm64 + x64)
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────────
   build-mac:
     name: Build macOS
     runs-on: macos-latest
@@ -34,7 +34,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_macOS_arm64
-        # ditto-created zip preserves Unix +x permissions on the binary
         path: publish/Pramaan_QC_Tool_macOS_arm64.zip
         retention-days: 30
         if-no-files-found: error
@@ -47,11 +46,11 @@ jobs:
         retention-days: 30
         if-no-files-found: error
 
-  # ──────────────────────────────────────────
-  # Job 2: Build Windows App (x64)
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 2: Build Windows App + Inno Setup Installer (x64)
+  # ──────────────────────────────────────────────────────────────────────────
   build-windows:
-    name: Build Windows
+    name: Build Windows + Installer
     runs-on: windows-latest
 
     steps:
@@ -63,7 +62,8 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Publish Windows App
+    # ── Pramaan brand ───────────────────────────────────────────────────────
+    - name: Publish Pramaan (win-x64)
       run: |
         dotnet publish src/LaptopQC.App/LaptopQC.App.csproj `
           -c Release `
@@ -74,7 +74,7 @@ jobs:
           -p:PublishReadyToRun=true `
           -o publish/Pramaan
 
-    - name: Copy smartctl Tools
+    - name: Copy smartctl tools — Pramaan
       shell: pwsh
       run: |
         $toolsSrc = "src/LaptopQC.App/tools"
@@ -90,13 +90,97 @@ jobs:
           Copy-Item "$toolsSrc/*.dll" $toolsDst -Force
         }
 
-    - name: Zip Windows Build
+    - name: Install Inno Setup 6
+      shell: pwsh
+      run: |
+        choco install innosetup --yes --no-progress
+        # Verify ISCC is available
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $iscc)) {
+          Write-Error "ISCC.exe not found after install"
+          exit 1
+        }
+        Write-Host "✓ Inno Setup installed: $iscc"
+
+    - name: Build Pramaan Installer
+      shell: pwsh
+      run: |
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        & $iscc /DBrand=Pramaan installer\installer.iss
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Inno Setup compilation failed (exit $LASTEXITCODE)"
+          exit $LASTEXITCODE
+        }
+        Write-Host "✓ Pramaan installer built"
+        Get-ChildItem installer\Output\
+
+    # ── Cirtyn brand ────────────────────────────────────────────────────────
+    - name: Publish Cirtyn (win-x64)
+      run: |
+        dotnet publish src/LaptopQC.App/LaptopQC.App.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:Brand=Cirtyn `
+          -p:PublishSingleFile=false `
+          -p:PublishReadyToRun=true `
+          -o publish/Cirtyn
+
+    - name: Copy smartctl tools — Cirtyn
+      shell: pwsh
+      run: |
+        $toolsSrc = "src/LaptopQC.App/tools"
+        $toolsDst = "publish/Cirtyn/tools"
+        New-Item -ItemType Directory -Force -Path $toolsDst | Out-Null
+        if (Test-Path "$toolsSrc/smartctl.exe") {
+          Copy-Item "$toolsSrc/smartctl.exe" $toolsDst -Force
+        }
+        if (Test-Path "$toolsSrc/*.dll") {
+          Copy-Item "$toolsSrc/*.dll" $toolsDst -Force
+        }
+
+    - name: Build Cirtyn Installer
+      shell: pwsh
+      run: |
+        $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        & $iscc /DBrand=Cirtyn installer\installer.iss
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Inno Setup compilation failed for Cirtyn (exit $LASTEXITCODE)"
+          exit $LASTEXITCODE
+        }
+        Write-Host "✓ Cirtyn installer built"
+
+    # ── Zip raw binaries (for users who want portable install) ──────────────
+    - name: Zip Pramaan binaries
       shell: pwsh
       run: |
         Compress-Archive -Path publish/Pramaan/* `
           -DestinationPath publish/Pramaan_QC_Tool_Windows_x64.zip -Force
 
-    - name: Upload Windows Artifact
+    - name: Zip Cirtyn binaries
+      shell: pwsh
+      run: |
+        Compress-Archive -Path publish/Cirtyn/* `
+          -DestinationPath publish/Cirtyn_QC_Tool_Windows_x64.zip -Force
+
+    # ── Upload artifacts ────────────────────────────────────────────────────
+    - name: Upload Pramaan Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pramaan_Setup_Windows_x64
+        path: installer/Output/Pramaan_Setup_*.exe
+        retention-days: 30
+        if-no-files-found: error
+
+    - name: Upload Cirtyn Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: Cirtyn_Setup_Windows_x64
+        path: installer/Output/Cirtyn_Setup_*.exe
+        retention-days: 30
+        if-no-files-found: error
+
+    - name: Upload Pramaan Portable ZIP
       uses: actions/upload-artifact@v4
       with:
         name: Pramaan_QC_Tool_Windows_x64
@@ -104,24 +188,84 @@ jobs:
         retention-days: 30
         if-no-files-found: error
 
-  # ──────────────────────────────────────────
-  # Job 3: Create GitHub Release (prod only)
-  # ──────────────────────────────────────────
+    - name: Upload Cirtyn Portable ZIP
+      uses: actions/upload-artifact@v4
+      with:
+        name: Cirtyn_QC_Tool_Windows_x64
+        path: publish/Cirtyn_QC_Tool_Windows_x64.zip
+        retention-days: 30
+        if-no-files-found: error
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 3: Build Linux CLI Binary (x64, self-contained)
+  # ──────────────────────────────────────────────────────────────────────────
+  build-linux:
+    name: Build Linux CLI
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore cli/Pramaan.CLI.csproj
+
+    - name: Publish Linux CLI (linux-x64, self-contained, single-file)
+      run: |
+        dotnet publish cli/Pramaan.CLI.csproj \
+          -c Release \
+          -r linux-x64 \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:PublishReadyToRun=false \
+          -p:DebugType=none \
+          -p:DebugSymbols=false \
+          -o publish/pramaan-linux
+
+    - name: Verify binary
+      run: |
+        ls -lh publish/pramaan-linux/pramaan
+        file publish/pramaan-linux/pramaan
+
+    - name: Create tarball
+      run: |
+        cd publish
+        tar -czf pramaan-linux-x64.tar.gz -C pramaan-linux pramaan
+        ls -lh pramaan-linux-x64.tar.gz
+
+    - name: Upload Linux Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: Pramaan_CLI_Linux_x64
+        path: publish/pramaan-linux-x64.tar.gz
+        retention-days: 30
+        if-no-files-found: error
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 4: Create GitHub Release (prod branch only, not PRs)
+  # ──────────────────────────────────────────────────────────────────────────
   release:
     name: Create GitHub Release
-    needs: [ build-mac, build-windows ]
+    needs: [ build-mac, build-windows, build-linux ]
     runs-on: ubuntu-latest
-    # Only create a release on direct pushes to prod (not main, not PRs)
     if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
 
     permissions:
-      contents: write  # Required to create releases and upload assets
+      contents: write
 
     steps:
     - name: Download All Artifacts
       uses: actions/download-artifact@v4
       with:
         path: release-assets
+
+    - name: List release assets
+      run: find release-assets -type f | sort
 
     - name: Generate Release Tag
       id: tag
@@ -139,19 +283,27 @@ jobs:
           Branch: `${{ github.ref_name }}`
 
           ### Downloads
-          | Platform | File |
-          |----------|------|
-          | 🍎 macOS Apple Silicon | `Pramaan_QC_Tool_macOS_arm64.zip` |
-          | 🍎 macOS Intel | `Pramaan_QC_Tool_macOS_x64.zip` |
-          | 🪟 Windows x64 | `Pramaan_QC_Tool_Windows_x64.zip` |
+          | Platform | Type | File |
+          |----------|------|------|
+          | 🍎 macOS Apple Silicon | App | `Pramaan_QC_Tool_macOS_arm64.zip` |
+          | 🍎 macOS Intel | App | `Pramaan_QC_Tool_macOS_x64.zip` |
+          | 🪟 Windows x64 | Installer | `Pramaan_Setup_*.exe` |
+          | 🪟 Windows x64 | Installer | `Cirtyn_Setup_*.exe` |
+          | 🪟 Windows x64 | Portable | `Pramaan_QC_Tool_Windows_x64.zip` |
+          | 🐧 Linux x64 | CLI Binary | `pramaan-linux-x64.tar.gz` |
 
-          > **macOS note:** If blocked by Gatekeeper, run:
+          > **macOS:** If blocked by Gatekeeper, run:
           > ```
           > xattr -rd com.apple.quarantine PRAMAAN.app
           > ```
+          > **Linux:** Extract and run with `sudo ./pramaan`
         draft: false
         prerelease: false
         files: |
           release-assets/Pramaan_QC_Tool_macOS_arm64/Pramaan_QC_Tool_macOS_arm64.zip
           release-assets/Pramaan_QC_Tool_macOS_x64/Pramaan_QC_Tool_macOS_x64.zip
+          release-assets/Pramaan_Setup_Windows_x64/Pramaan_Setup_*.exe
+          release-assets/Cirtyn_Setup_Windows_x64/Cirtyn_Setup_*.exe
           release-assets/Pramaan_QC_Tool_Windows_x64/Pramaan_QC_Tool_Windows_x64.zip
+          release-assets/Cirtyn_QC_Tool_Windows_x64/Cirtyn_QC_Tool_Windows_x64.zip
+          release-assets/Pramaan_CLI_Linux_x64/pramaan-linux-x64.tar.gz

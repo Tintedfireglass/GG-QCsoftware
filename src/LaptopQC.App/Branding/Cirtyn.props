@@ -6,9 +6,11 @@
     <BrandCompanyName>Cirtyn</BrandCompanyName>
     <BrandPublisherName>Cirtyn</BrandPublisherName>
     <!-- Update URL is brand-specific; set to your endpoint (or leave empty to disable updates). -->
-    <BrandUpdateUrl></BrandUpdateUrl>
+    <BrandUpdateUrl>https://cirtyn.com</BrandUpdateUrl>
+    <BrandApiUrl>https://cirtyn.com</BrandApiUrl>
     <!-- Provide customer-specific icon in Resources and update this path. -->
     <BrandIconPath>Resources\cirtyn_icon.ico</BrandIconPath>
+    <BrandLogoPath>Resources\cirtyn_icon_logo.png</BrandLogoPath>
     <BrandXamlKey>Cirtyn</BrandXamlKey>
   </PropertyGroup>
 </Project>

@@ -29,9 +29,9 @@ export function gradeLabel(grade?: string): string {
         case 'A': return 'Certified';
         case 'B': return 'Good Condition';
         case 'C': return 'Acceptable';
+        case 'D': return 'Below Average';
         case 'Reject': return 'Not Certified';
         // Legacy grades
-        case 'D': return 'Below Average';
         case 'E': return 'Poor Condition';
         case 'F': return 'Non-Functional';
         default: return 'Unknown';

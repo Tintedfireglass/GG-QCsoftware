@@ -36,8 +36,9 @@ public class PramaanScoringConfig
     {
         new() { Grade = "A+",     MinScore = 90 },
         new() { Grade = "A",      MinScore = 80 },
-        new() { Grade = "B",      MinScore = 65 },
-        new() { Grade = "C",      MinScore = 50 },
+        new() { Grade = "B",      MinScore = 70 },
+        new() { Grade = "C",      MinScore = 60 },
+        new() { Grade = "D",      MinScore = 50 },
         new() { Grade = "Reject", MinScore = 0  },
     };
 
