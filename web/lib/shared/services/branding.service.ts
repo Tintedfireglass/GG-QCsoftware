@@ -1,4 +1,5 @@
 import { getGeneralSettings } from '@/lib/shared/services/settings.service';
+import { DEFAULT_PRIMARY_COLOR, DEFAULT_PRIMARY_COLOR_HOVER } from '@/lib/shared/branding-color';
 
 export { verifyUrl, customerPortalUrl } from '@/lib/shared/branding-links';
 
@@ -33,6 +34,20 @@ export interface Branding {
     companyName: string;
     /** Public marketing site, linked from the customer auth pages. */
     websiteUrl: string;
+    /**
+     * Primary theme colour as `#rrggbb`. Rendered into the `--brand-purple`
+     * custom property, which every button, link, active state and sidebar
+     * highlight already reads — so overriding it re-themes the whole panel.
+     */
+    primaryColor: string;
+    /** Pressed/hover shade of primaryColor, backing `--brand-purple-hover`. */
+    primaryColorHover: string;
+    /**
+     * Id of the Reseller whose branding produced logoUrl/primaryColor, or null
+     * when these are the platform defaults. Lets the UI say whose brand is in
+     * effect (and lets the client cache key off it).
+     */
+    resellerId: number | null;
 }
 
 /** Artwork bundled in /public — used until an admin uploads a replacement. */
@@ -58,6 +73,9 @@ export const DEFAULT_BRANDING: Branding = {
     supportEmail: '',
     companyName: '',
     websiteUrl: LEGACY_WEBSITE,
+    primaryColor: DEFAULT_PRIMARY_COLOR,
+    primaryColorHover: DEFAULT_PRIMARY_COLOR_HOVER,
+    resellerId: null,
 };
 
 // Branding is read on nearly every server render (root layout) but changes only
@@ -81,6 +99,9 @@ function resolve(settings: Awaited<ReturnType<typeof getGeneralSettings>>): Bran
         supportEmail: settings.supportEmail || '',
         companyName: settings.companyName || '',
         websiteUrl: (settings.websiteUrl || LEGACY_WEBSITE).replace(/\/+$/, ''),
+        primaryColor: DEFAULT_PRIMARY_COLOR,
+        primaryColorHover: DEFAULT_PRIMARY_COLOR_HOVER,
+        resellerId: null,
     };
 }
 

@@ -16,6 +16,10 @@ function validity(certDate: Date) {
 // Returns ONLY a structured verification summary. No raw data exposed.
 // Resolves both PC certificates (qc_results.health_id) and mobile QC reports
 // (mobile_reports.report_id) so one QR/verify page works for either.
+//
+// Branding is deliberately absent from this payload: which brand a certificate
+// renders under is decided by the host it is opened on, not by the certificate,
+// so the page takes it from the request like every other page does.
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ health_id: string }> }

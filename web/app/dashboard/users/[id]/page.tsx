@@ -4,7 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { getUser, updateUser, deleteUser } from "@/lib/api"
+import { getUser, updateUser, deleteUser, getResellerBranding, saveResellerBranding, resetResellerBranding } from "@/lib/api"
+import { ResellerBrandingFields, emptyBrandingDraft } from "@/components/reseller-branding-fields"
+import { normalizeHexColor } from "@/lib/shared/branding-color"
+import { normalizeAssignableDomain } from "@/lib/shared/branding-host"
 import { UserRole, UserRoleDisplayNames, UserRoleDescriptions, UserWithCreator } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,7 +29,7 @@ export default function EditUserPage() {
     const router = useRouter()
     const params = useParams()
     const userId = parseInt(params.id as string)
-    const { user: authUser, isSuperAdmin, isAdmin, isRefurbisher, isEnterprise, isReseller, canManageUsers } = useAuth()
+    const { user: authUser, isSuperAdmin, isEmployee, isAdmin, isRefurbisher, isEnterprise, isReseller, canManageUsers } = useAuth()
 
     const [userData, setUserData] = useState<UserWithCreator | null>(null)
     const [formData, setFormData] = useState({
@@ -51,6 +54,12 @@ export default function EditUserPage() {
         allow_ios_keys: false,
         allow_mac_keys: false,
     })
+    // Reseller branding — loaded and saved through its own endpoint, since the
+    // logo is a multipart upload rather than a user column.
+    const [brandingDraft, setBrandingDraft] = useState(emptyBrandingDraft())
+    const [brandingStorageReady, setBrandingStorageReady] = useState(true)
+    const [savingBranding, setSavingBranding] = useState(false)
+    const [resettingBranding, setResettingBranding] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -87,11 +96,75 @@ export default function EditUserPage() {
                 allow_ios_keys: data.user.allow_ios_keys ?? false,
                 allow_mac_keys: data.user.allow_mac_keys ?? false,
             })
+            if (data.user.role === 'Reseller' && (isSuperAdmin() || isEmployee())) await loadBranding()
         } catch (err) {
             console.error("Failed to load user:", err)
             setError(err instanceof Error ? err.message : "Failed to load user")
         } finally {
             setLoading(false)
+        }
+    }
+
+    async function loadBranding() {
+        try {
+            const data = await getResellerBranding(userId)
+            setBrandingDraft({
+                domain: data.branding.domain,
+                primaryColor: data.branding.primaryColor,
+                logoFile: null,
+                existingLogoUrl: data.branding.logoUrl,
+            })
+            setBrandingStorageReady(data.storageConfigured)
+        } catch (err) {
+            // Branding is secondary to the profile — surface it, but never block
+            // the rest of the page from rendering.
+            console.error("Failed to load branding:", err)
+        }
+    }
+
+    async function handleSaveBranding() {
+        const color = normalizeHexColor(brandingDraft.primaryColor)
+        if (!color) {
+            setError("Primary colour must be a hex value like #8B3D88")
+            return
+        }
+        const domain = brandingDraft.domain.trim() ? normalizeAssignableDomain(brandingDraft.domain) : ""
+        if (domain === null) {
+            setError("Branding domain must look like qc.acme.com — no scheme, port or path")
+            return
+        }
+        setError(null)
+        setSuccess(null)
+        setSavingBranding(true)
+        try {
+            const saved = await saveResellerBranding(userId, {
+                domain,
+                primaryColor: color,
+                logo: brandingDraft.logoFile,
+            })
+            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl })
+            setSuccess("Branding updated successfully")
+        } catch (err) {
+            console.error("Failed to save branding:", err)
+            setError(err instanceof Error ? err.message : "Failed to save branding")
+        } finally {
+            setSavingBranding(false)
+        }
+    }
+
+    async function handleResetBranding() {
+        setError(null)
+        setSuccess(null)
+        setResettingBranding(true)
+        try {
+            const saved = await resetResellerBranding(userId)
+            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl })
+            setSuccess("Branding reset to the platform default")
+        } catch (err) {
+            console.error("Failed to reset branding:", err)
+            setError(err instanceof Error ? err.message : "Failed to reset branding")
+        } finally {
+            setResettingBranding(false)
         }
     }
 
@@ -510,6 +583,33 @@ export default function EditUserPage() {
                             </Link>
                         </div>
                     </form>
+
+                    {/* Reseller Branding — logo + primary colour for this tenant */}
+                    {/* Only the roles that canManageUser() lets edit a Reseller —
+                        otherwise a reseller viewing its own profile would be shown
+                        a branding form that 403s on save. */}
+                    {userData.role === 'Reseller' && (isSuperAdmin() || isEmployee()) && (
+                        <div className="mt-6">
+                            <ResellerBrandingFields
+                                value={brandingDraft}
+                                onChange={setBrandingDraft}
+                                storageConfigured={brandingStorageReady}
+                                onReset={handleResetBranding}
+                                resetting={resettingBranding}
+                                disabled={savingBranding}
+                            />
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveBranding}
+                                    disabled={savingBranding || resettingBranding}
+                                    className="bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white"
+                                >
+                                    {savingBranding ? 'Saving...' : 'Save Branding'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Duration Permissions — SuperAdmin only, eligible roles only */}
                     {isSuperAdmin() && userData.role !== 'SuperAdmin' && userData.role !== 'Employee' && (

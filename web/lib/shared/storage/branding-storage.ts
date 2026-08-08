@@ -25,9 +25,16 @@ import {
 
 const KEY_PREFIX = (process.env.SPACES_BRANDING_PREFIX ?? 'branding').replace(/^\/+|\/+$/g, '');
 
-/** Branding slots an admin can replace. */
+/** Platform-wide branding slots an admin can replace via System Settings. */
 export const BRANDING_ASSET_KINDS = ['logo', 'favicon', 'loginImage'] as const;
 export type BrandingAssetKind = (typeof BRANDING_ASSET_KINDS)[number];
+
+/**
+ * Slots stored in the same bucket but owned by a row rather than by settings.
+ * Only the key prefix differs, so reseller logos are still recognisable in the
+ * bucket without a second storage module.
+ */
+export type BrandingAssetSlot = BrandingAssetKind | 'resellerLogo';
 
 /** Image types we accept, mapped to the extension we store them under. */
 const ALLOWED_TYPES: Record<string, string> = {
@@ -102,7 +109,7 @@ export interface StoredBrandingAsset {
  * oversized file so the route can surface a 400.
  */
 export async function storeBrandingAsset(
-    kind: BrandingAssetKind,
+    kind: BrandingAssetSlot,
     fileName: string,
     contentType: string | null,
     body: Buffer

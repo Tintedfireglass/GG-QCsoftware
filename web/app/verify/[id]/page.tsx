@@ -7,6 +7,9 @@ import { getPublicVerify } from "@/lib/api"
 import { useBranding } from "@/components/branding-provider"
 
 export default function VerificationPage() {
+    // Resolved from the host in the root layout: a certificate opened on a
+    // reseller's domain renders under that reseller's brand, anywhere else under
+    // the platform's — no session needed, which is the point here.
     const branding = useBranding()
     const { id } = useParams()
     const [data, setData] = useState<any>(null)
@@ -55,6 +58,21 @@ export default function VerificationPage() {
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+
+                {/* Issuer wordmark, over a rule in the issuer's primary colour —
+                    the reseller's own branding when the certificate was produced
+                    under one, the platform's otherwise. */}
+                <div
+                    className="px-6 py-5 bg-white flex justify-center border-t-4"
+                    style={{ borderTopColor: branding.primaryColor }}
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={branding.logoUrl}
+                        alt={`${branding.siteName} logo`}
+                        className="h-9 w-auto object-contain"
+                    />
+                </div>
 
                 {/* Header Banner */}
                 <div className="bg-slate-900 px-6 py-8 text-center text-white border-b-4 border-emerald-500">

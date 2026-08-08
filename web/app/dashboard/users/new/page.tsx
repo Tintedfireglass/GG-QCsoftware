@@ -4,7 +4,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { createUser } from "@/lib/api"
+import { createUser, saveResellerBranding } from "@/lib/api"
+import { ResellerBrandingFields, emptyBrandingDraft } from "@/components/reseller-branding-fields"
+import { DEFAULT_PRIMARY_COLOR, normalizeHexColor } from "@/lib/shared/branding-color"
+import { normalizeAssignableDomain } from "@/lib/shared/branding-host"
 import { UserRole, UserRoleDisplayNames, UserRoleDescriptions } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -42,6 +45,7 @@ export default function NewUserPage() {
         allow_ios_keys: false,
         allow_mac_keys: false,
     })
+    const [branding, setBranding] = useState(emptyBrandingDraft())
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -81,6 +85,9 @@ export default function NewUserPage() {
     ]
 
     const showDurationSection = isSuperAdmin() && formData.role !== 'SuperAdmin' && formData.role !== 'Employee'
+    // Branding is a Reseller-only concept: it themes the panel for the reseller
+    // and the accounts beneath it. Only whoever can create the reseller sets it.
+    const showBrandingSection = formData.role === 'Reseller'
     // Per-platform license permissions are assignable by SuperAdmin when creating an Employee.
     const showPlatformSection = isSuperAdmin() && formData.role === 'Employee'
 
@@ -115,10 +122,23 @@ export default function NewUserPage() {
             return
         }
 
+        const brandingColor = normalizeHexColor(branding.primaryColor)
+        if (showBrandingSection && !brandingColor) {
+            setError("Primary colour must be a hex value like #8B3D88")
+            return
+        }
+        const brandingDomain = branding.domain.trim()
+            ? normalizeAssignableDomain(branding.domain)
+            : ""
+        if (showBrandingSection && brandingDomain === null) {
+            setError("Branding domain must look like qc.acme.com — no scheme, port or path")
+            return
+        }
+
         setLoading(true)
 
         try {
-            await createUser({
+            const created = await createUser({
                 username: formData.username,
                 password: formData.password,
                 email: formData.email || undefined,
@@ -130,6 +150,31 @@ export default function NewUserPage() {
                 // Per-platform license permissions — only sent when creating an Employee
                 ...(showPlatformSection ? platformPerms : {})
             })
+
+            // Branding is a second call: it needs the new reseller's id, and the
+            // logo travels as multipart. Only sent when something was chosen.
+            const hasBranding = showBrandingSection
+                && (Boolean(branding.logoFile) || Boolean(brandingDomain)
+                    || brandingColor !== DEFAULT_PRIMARY_COLOR.toLowerCase())
+            if (hasBranding) {
+                const newUserId = created?.user?.id as number | undefined
+                if (newUserId == null) throw new Error("User was created but its id was not returned — set branding from the user's page")
+                try {
+                    await saveResellerBranding(newUserId, {
+                        domain: brandingDomain,
+                        primaryColor: brandingColor,
+                        logo: branding.logoFile,
+                    })
+                } catch (err) {
+                    // The account exists; only the branding failed. Say so rather
+                    // than implying the whole create was rolled back.
+                    setError(
+                        `User created, but branding could not be saved: ${err instanceof Error ? err.message : "unknown error"}. Open the user to try again.`
+                    )
+                    setLoading(false)
+                    return
+                }
+            }
 
             router.push("/dashboard/users")
         } catch (err) {
@@ -300,6 +345,14 @@ export default function NewUserPage() {
                                 ))}
                             </div>
                         </div>
+
+                        {showBrandingSection && (
+                            <ResellerBrandingFields
+                                value={branding}
+                                onChange={setBranding}
+                                disabled={loading}
+                            />
+                        )}
 
                         {showDurationSection && (
                             <div className="pt-6 border-t border-slate-100">

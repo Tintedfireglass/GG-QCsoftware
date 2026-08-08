@@ -8,9 +8,15 @@ export { verifyUrl, customerPortalUrl } from "@/lib/shared/branding-links"
 /**
  * White-label branding for client components (sidebar, auth pages, reports).
  *
- * The value is resolved server-side in the root layout and handed down as a
- * prop — no client fetch, so the brand name and logo are correct in the first
- * paint instead of flashing the default and swapping.
+ * The value is resolved server-side in the root layout — from the request's
+ * host, so a reseller's assigned domain serves that reseller's logo and colour
+ * and every other host serves the platform's — and handed down as a prop. No
+ * client fetch and no session lookup, so the brand is correct in the first paint
+ * even for anonymous visitors scanning a certificate QR code.
+ *
+ * The primary colour reaches the UI as the `--brand-purple` /
+ * `--brand-purple-hover` custom properties, set on <html> by the same layout;
+ * every button, link, active state and sidebar highlight already reads them.
  */
 const BrandingContext = createContext<Branding | null>(null)
 

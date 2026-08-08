@@ -107,8 +107,20 @@ export const users = pgTable("users", {
 	allowAndroidKeys: boolean("allow_android_keys").default(false),
 	allowIosKeys: boolean("allow_ios_keys").default(false),
 	allowMacKeys: boolean("allow_mac_keys").default(false),
+	// Per-reseller white-label branding, applied when the panel is reached on
+	// brandingDomain. NULL/empty means "use the platform branding".
+	brandingLogoUrl: varchar("branding_logo_url"),
+	brandingLogoKey: varchar("branding_logo_key"),
+	brandingPrimaryColor: varchar("branding_primary_color"),
+	brandingDomain: varchar("branding_domain"),
 }, (table) => [
 	uniqueIndex("idx_users_username").using("btree", table.username.asc().nullsLast().op("text_ops")),
+	// Branding is selected by the request host, so a domain may belong to at most
+	// one reseller. Partial, so the (many) rows with no domain stay unconstrained
+	// — NULLs are distinct to a unique index, but '' would not be.
+	uniqueIndex("idx_users_branding_domain")
+		.on(table.brandingDomain)
+		.where(sql`branding_domain IS NOT NULL AND branding_domain <> ''`),
 	check("users_role_check", sql`(role)::text = ANY ((ARRAY['SuperAdmin'::character varying, 'Employee'::character varying, 'Refurbisher'::character varying, 'Reseller'::character varying, 'Technician'::character varying, 'Enterprise'::character varying, 'OEM'::character varying, 'Insurer'::character varying, 'Client'::character varying])::text[])`),
 ]);
 
@@ -156,6 +168,14 @@ export const licenseKeys = pgTable("license_keys", {
 	gatewayTokenRef: varchar("gateway_token_ref"),
 }, (table) => [
 	check("license_keys_type_check", sql`(type)::text = ANY ((ARRAY['single_use'::character varying, 'bulk'::character varying, 'demo'::character varying])::text[])`),
+	// Scope membership is tested with the array containment operators, which
+	// only a GIN index can serve (see manual/0022).
+	index("idx_license_keys_product_scope").using("gin", table.productScope),
+	// The renewal sweep scans only auto-renewing keys, so the index carries just
+	// those rows (manual/0020).
+	index("idx_license_keys_auto_renew")
+		.on(table.autoRenew, table.isActive, table.expiresAt)
+		.where(sql`auto_renew = true`),
 ]);
 
 export const licenseKeyActivations = pgTable("license_key_activations", {
@@ -168,7 +188,15 @@ export const licenseKeyActivations = pgTable("license_key_activations", {
 	// activations. Carries per-customer entitlement for shared (bulk) keys.
 	customerUserId: integer("customer_user_id"),
 	activatedAt: timestamp("activated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => [
+	// Per-platform device-cap counting during activation (manual/0013).
+	index("idx_license_key_activations_key_platform").on(table.licenseKeyId, table.platform),
+	// Reseller-scoped mobile report visibility joins mobile_reports.device_id to
+	// machine_serial for android activations (manual/0015).
+	index("idx_lka_machine_platform").on(table.machineSerial, table.platform),
+	// Per-customer entitlement lookups on shared keys (manual/0020).
+	index("idx_lka_customer_platform").on(table.customerUserId, table.platform),
+]);
 
 export const licenseKeyAudits = pgTable("license_key_audits", {
 	id: serial().primaryKey().notNull(),
@@ -348,6 +376,8 @@ export const plans = pgTable("plans", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
 	check("plans_billing_type_check", sql`(billing_type)::text = ANY ((ARRAY['one_time'::character varying, 'recurring'::character varying])::text[])`),
+	// The public pricing page lists active plans in display order (manual/0018).
+	index("idx_plans_active").on(table.isActive, table.sortOrder),
 ]);
 
 // Discount/coupon codes applied at checkout. Independent of any single plan:
@@ -382,6 +412,10 @@ export const coupons = pgTable("coupons", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
 	check("coupons_discount_type_check", sql`(discount_type)::text = ANY ((ARRAY['percent'::character varying, 'fixed'::character varying])::text[])`),
+	// Coupon code validation filters on is_active (manual/0010)…
+	index("idx_coupons_active").on(table.isActive),
+	// …and the storefront lists the publicly advertised ones (manual/0010).
+	index("idx_coupons_public").on(table.isPublic, table.isActive),
 ]);
 
 // One row per paid coupon use — enforces per-customer limits and gives an audit trail.

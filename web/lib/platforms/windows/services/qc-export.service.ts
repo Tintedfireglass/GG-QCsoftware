@@ -9,7 +9,8 @@ import { ValidationError, ForbiddenError } from '@/lib/http/errors';
 import { parseWindowsVersion, cleanWindowsProductName, deduplicateAntivirus, formatDateDMY, toAppZoneDateStamp } from '@/lib/utils';
 import { APP_TIME_ZONE } from '@/lib/timezone';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
-import { getBranding } from '@/lib/shared/services/branding.service';
+import { getBranding, type Branding } from '@/lib/shared/services/branding.service';
+import { getBrandingForHost } from '@/lib/shared/services/reseller-branding.service';
 
 type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
 type JsonRecord = Record<string, unknown>;
@@ -221,11 +222,17 @@ function truncateToWidth(text: string, maxWidth: number, textSize: number, activ
     return `${result}...`;
 }
 
-async function buildPdfBuffer(rows: ExportRow[], issueRows: string[][], timeZone: string): Promise<Uint8Array> {
+async function buildPdfBuffer(
+    rows: ExportRow[],
+    issueRows: string[][],
+    timeZone: string,
+    // Resolved by the caller from the requesting user, so a reseller's export
+    // carries the reseller's wordmark rather than the platform one.
+    branding: Branding
+): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const branding = await getBranding();
     const logoImage = await embedBrandLogo(pdf, branding.logoUrl);
 
     const pageWidth = 842;
@@ -435,6 +442,8 @@ export interface ExportOptions {
     userIdParam?: string | null;
     format: string;
     timeZone: string;
+    /** Host the export was requested on — selects the branding it carries. */
+    host?: string | null;
 }
 
 export interface ExportResult {
@@ -540,7 +549,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
     const dateStamp = toAppZoneDateStamp();
 
     if (opts.format === 'pdf') {
-        const pdfBuffer = await buildPdfBuffer(exportRows, issueRows, opts.timeZone);
+        const pdfBuffer = await buildPdfBuffer(exportRows, issueRows, opts.timeZone, await getBrandingForHost(opts.host));
         return {
             body: toArrayBuffer(pdfBuffer),
             contentType: 'application/pdf',
@@ -775,10 +784,12 @@ function storageTotalLabelStr(storageJson: unknown): string {
 export async function buildIndividualReportPdf(
     rec: SampleRecord,
     testResults: TestResultRow[],
-    timeZone = APP_TIME_ZONE
+    timeZone = APP_TIME_ZONE,
+    /** Caller-resolved branding; falls back to the platform brand. */
+    resolvedBranding?: Branding
 ): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
-    const branding = await getBranding();
+    const branding = resolvedBranding ?? await getBranding();
     // A4 portrait: 595 x 842 pts
     const PW = 595;
     const PH = 842;
@@ -1003,6 +1014,8 @@ export interface SampleExportOptions {
     poorCount?: number;
     format: 'zip' | 'xlsx' | 'json';
     timeZone: string;
+    /** Host the export was requested on — selects the branding it carries. */
+    host?: string | null;
 }
 
 export interface SampleExportResult {
@@ -1269,11 +1282,14 @@ export async function exportSampleDataset(
 
     const zip = new JSZip();
     const pdfFolder = zip.folder('pramaan_reports')!;
+    // Resolved once for the batch: the brand follows the host the export was
+    // requested on, which is the same for every report in the zip.
+    const exportBranding = await getBrandingForHost(opts.host);
 
     for (const rec of results) {
         const id = rec.id as number;
         const testRows = testsByResultId.get(id) || [];
-        const pdfBytes = await buildIndividualReportPdf(rec, testRows, opts.timeZone);
+        const pdfBytes = await buildIndividualReportPdf(rec, testRows, opts.timeZone, exportBranding);
         const serial = (rec.system_serial as string | undefined) || `id${id}`;
         const safeName = serial.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
         pdfFolder.file(`${safeName}_report_${id}.pdf`, pdfBytes);

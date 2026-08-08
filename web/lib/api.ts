@@ -355,6 +355,69 @@ export async function updateUser(id: number, data: UpdateUserRequest) {
     return out;
 }
 
+// ── Reseller branding ──
+
+export interface ResellerBranding {
+    logoUrl: string;
+    primaryColor: string;
+    hasCustomColor: boolean;
+    /** Host this branding applies on; '' when it applies nowhere. */
+    domain: string;
+}
+
+/** A reseller's branding as stored, plus whether logo uploads are possible. */
+export async function getResellerBranding(id: number): Promise<{
+    branding: ResellerBranding;
+    storageConfigured: boolean;
+    maxBytes: number;
+}> {
+    const res = await fetchWithAuth(`/api/users/${id}/branding`);
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || error.error || "Failed to load branding");
+    }
+    return res.json();
+}
+
+/**
+ * Saves a reseller's domain, primary colour and/or logo. Multipart, so
+ * Content-Type is left to the browser (it has to add the boundary).
+ */
+export async function saveResellerBranding(
+    id: number,
+    input: { domain?: string | null; primaryColor?: string | null; logo?: File | null }
+): Promise<ResellerBranding> {
+    const body = new FormData();
+    // "" clears the field; undefined means "leave it alone".
+    if (input.domain !== undefined) body.append("domain", input.domain ?? "");
+    if (input.primaryColor !== undefined) body.append("primaryColor", input.primaryColor ?? "");
+    if (input.logo) body.append("file", input.logo);
+
+    const token = localStorage.getItem("qc_token");
+    const res = await fetch(`/api/users/${id}/branding`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body,
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || error.error || "Failed to save branding");
+    }
+    clearClientCache();
+    return (await res.json()).branding;
+}
+
+/** Reverts a reseller to the platform logo and colour. */
+export async function resetResellerBranding(id: number): Promise<ResellerBranding> {
+    const res = await fetchWithAuth(`/api/users/${id}/branding`, { method: "DELETE" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || error.error || "Failed to reset branding");
+    }
+    clearClientCache();
+    return (await res.json()).branding;
+}
+
 export async function deleteUser(id: number) {
     const res = await fetchWithAuth(`/api/users/${id}`, {
         method: 'DELETE',

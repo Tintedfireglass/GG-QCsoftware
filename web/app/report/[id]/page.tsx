@@ -82,6 +82,14 @@ export default function DedicatedReportPage() {
             {/* Header */}
             <header className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
                 <div>
+                    {/* Issuer wordmark — the reseller's when the certificate was
+                        produced under one, the platform's otherwise. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={branding.logoUrl}
+                        alt={`${branding.siteName} logo`}
+                        className="h-8 w-auto object-contain mb-3"
+                    />
                     <h1 className="text-4xl font-bold uppercase tracking-wide">QC Certificate</h1>
                     <p className="text-sm mt-1 text-gray-600">Quality Control Report</p>
                 </div>

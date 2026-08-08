@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/http/handler';
 import { exportSampleDataset } from '@/lib/platforms/windows/services/qc-export.service';
+import { hostFromHeaders } from '@/lib/shared/branding-host';
 import { APP_TIME_ZONE } from '@/lib/timezone';
 
 /**
@@ -27,7 +28,10 @@ export const GET = withAuth(null, async (request, { user }) => {
     const timeZone  = searchParams.get('timeZone') || APP_TIME_ZONE;
 
     try {
-        const result = await exportSampleDataset(user, { format, goodCount, poorCount, timeZone });
+        const result = await exportSampleDataset(user, {
+            format, goodCount, poorCount, timeZone,
+            host: hostFromHeaders(request.headers),
+        });
 
         return new NextResponse(result.body, {
             status: 200,
