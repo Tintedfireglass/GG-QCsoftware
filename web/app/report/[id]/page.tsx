@@ -42,10 +42,37 @@ export default function DedicatedReportPage() {
 
     const rawTestResults = Array.isArray(data?.test_results) ? data.test_results : []
     const hasStorageResult = rawTestResults.some((test: any) => String(test?.test_type || "").toLowerCase() === "storage")
-    const test_results = rawTestResults.filter((test: any) => {
-        const type = String(test?.test_type || "").toLowerCase()
-        return !(hasStorageResult && type === "smart")
-    })
+    const storageDevices: any[] = Array.isArray(data?.storage_details_json?.devices)
+        ? data.storage_details_json.devices
+        : []
+    // Expand a single "Storage" test into per-drive rows if multiple physical drives exist
+    const test_results = rawTestResults
+        .filter((test: any) => {
+            const type = String(test?.test_type || "").toLowerCase()
+            return !(hasStorageResult && type === "smart")
+        })
+        .flatMap((test: any) => {
+            const type = String(test?.test_type || "").toLowerCase()
+            if (type === "storage" && storageDevices.length > 1) {
+                return storageDevices.map((device: any, idx: number) => {
+                    const rawName = typeof device?.deviceName === "string" ? device.deviceName : ""
+                    const driveName = rawName || `Drive ${idx + 1}`
+                    const healthPct = typeof device?.healthPercent === "number"
+                        ? `${Math.round(device.healthPercent)}% health`
+                        : null
+                    const tamperSuffix = device?.isTampered ? " — Tampered" : ""
+                    const driveMessage = healthPct ? `${healthPct}${tamperSuffix}` : (tamperSuffix ? "Tampered" : test.message)
+                    return {
+                        ...test,
+                        id: `${test.id}-drive-${idx}`,
+                        test_type: `Storage ${idx + 1} — ${driveName}`,
+                        message: driveMessage,
+                        details_json: null,
+                    }
+                })
+            }
+            return [test]
+        })
     const batteryBrand = data?.battery_details_json
         ? (data.battery_details_json.manufactureName || data.battery_details_json.name || data.battery_details_json.partNumber)
         : null
