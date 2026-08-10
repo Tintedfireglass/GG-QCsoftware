@@ -358,6 +358,8 @@ export async function updateUser(id: number, data: UpdateUserRequest) {
 // ── Reseller branding ──
 
 export interface ResellerBranding {
+    /** Product name on the reseller's domain; '' when it inherits the platform's. */
+    siteName: string;
     logoUrl: string;
     faviconUrl: string;
     primaryColor: string;
@@ -381,12 +383,13 @@ export async function getResellerBranding(id: number): Promise<{
 }
 
 /**
- * Saves a reseller's domain, primary colour, logo and/or favicon. Multipart, so
+ * Saves a reseller's brand name, domain, colour, logo and/or favicon. Multipart, so
  * Content-Type is left to the browser (it has to add the boundary).
  */
 export async function saveResellerBranding(
     id: number,
     input: {
+        siteName?: string | null;
         domain?: string | null;
         primaryColor?: string | null;
         logo?: File | null;
@@ -395,6 +398,7 @@ export async function saveResellerBranding(
 ): Promise<ResellerBranding> {
     const body = new FormData();
     // "" clears the field; undefined means "leave it alone".
+    if (input.siteName !== undefined) body.append("siteName", input.siteName ?? "");
     if (input.domain !== undefined) body.append("domain", input.domain ?? "");
     if (input.primaryColor !== undefined) body.append("primaryColor", input.primaryColor ?? "");
     if (input.logo) body.append("file", input.logo);

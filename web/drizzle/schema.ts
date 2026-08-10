@@ -112,6 +112,7 @@ export const users = pgTable("users", {
 	allowQrLabelDownload: boolean("allow_qr_label_download").default(true),
 	// Per-reseller white-label branding, applied when the panel is reached on
 	// brandingDomain. NULL/empty means "use the platform branding".
+	brandingSiteName: varchar("branding_site_name"),
 	brandingLogoUrl: varchar("branding_logo_url"),
 	brandingLogoKey: varchar("branding_logo_key"),
 	brandingFaviconUrl: varchar("branding_favicon_url"),

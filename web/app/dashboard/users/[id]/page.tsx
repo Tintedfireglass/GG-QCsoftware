@@ -115,6 +115,7 @@ export default function EditUserPage() {
         try {
             const data = await getResellerBranding(userId)
             setBrandingDraft({
+                siteName: data.branding.siteName,
                 domain: data.branding.domain,
                 primaryColor: data.branding.primaryColor,
                 logoFile: null,
@@ -146,12 +147,13 @@ export default function EditUserPage() {
         setSavingBranding(true)
         try {
             const saved = await saveResellerBranding(userId, {
+                siteName: brandingDraft.siteName.trim(),
                 domain,
                 primaryColor: color,
                 logo: brandingDraft.logoFile,
                 favicon: brandingDraft.faviconFile,
             })
-            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
+            setBrandingDraft({ siteName: saved.siteName, domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
             setSuccess("Branding updated successfully")
         } catch (err) {
             console.error("Failed to save branding:", err)
@@ -167,7 +169,7 @@ export default function EditUserPage() {
         setResettingBranding(true)
         try {
             const saved = await resetResellerBranding(userId)
-            setBrandingDraft({ domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
+            setBrandingDraft({ siteName: saved.siteName, domain: saved.domain, primaryColor: saved.primaryColor, logoFile: null, existingLogoUrl: saved.logoUrl, faviconFile: null, existingFaviconUrl: saved.faviconUrl })
             setSuccess("Branding reset to the platform default")
         } catch (err) {
             console.error("Failed to reset branding:", err)

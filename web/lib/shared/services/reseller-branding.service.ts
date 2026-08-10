@@ -7,6 +7,7 @@ import {
     normalizeHexColor,
 } from '@/lib/shared/branding-color';
 import { normalizeAssignableDomain, normalizeHost } from '@/lib/shared/branding-host';
+import { MAX_SITE_NAME } from '@/lib/shared/branding-name';
 import { getBranding, type Branding } from '@/lib/shared/services/branding.service';
 import * as repo from '@/lib/shared/repositories/reseller-branding.repo';
 
@@ -21,12 +22,17 @@ import * as repo from '@/lib/shared/repositories/reseller-branding.repo';
  * reseller's theme to leak into another's, since the host is fixed before any
  * session exists.
  *
- * Only the logo, favicon and colour are per-reseller. The product name, login
+ * Only the product name, logo, favicon and colour are per-reseller. The login
  * artwork and certificate URLs stay platform-wide.
  */
 
 /** What an admin edits on a reseller, and what the edit form reads back. */
 export interface ResellerBrandingSettings {
+    /**
+     * Product name on this reseller's domain — the tab title, the certificate
+     * headings and the PDF footers. '' when it inherits the platform name.
+     */
+    siteName: string;
     /** Uploaded wordmark, or '' when the reseller inherits the platform logo. */
     logoUrl: string;
     /** Uploaded tab icon, or '' when the reseller inherits the platform favicon. */
@@ -80,13 +86,14 @@ async function loadByDomain(domain: string): Promise<repo.UserBrandingRow | null
     return value;
 }
 
-/** Overlay a reseller's logo/favicon/colour onto the platform branding. */
+/** Overlay a reseller's name/logo/favicon/colour onto the platform branding. */
 function applyOverrides(base: Branding, owner: repo.UserBrandingRow | null): Branding {
     if (!owner) return base;
     const color = normalizeHexColor(owner.primaryColor) ?? base.primaryColor;
-    if (!owner.logoUrl && !owner.faviconUrl && color === base.primaryColor) return base;
+    if (!owner.siteName && !owner.logoUrl && !owner.faviconUrl && color === base.primaryColor) return base;
     return {
         ...base,
+        siteName: owner.siteName || base.siteName,
         logoUrl: owner.logoUrl || base.logoUrl,
         faviconUrl: owner.faviconUrl || base.faviconUrl,
         primaryColor: color,
@@ -135,6 +142,7 @@ async function loadManageableReseller(
 function toSettings(row: repo.UserBrandingRow): ResellerBrandingSettings {
     const color = normalizeHexColor(row.primaryColor);
     return {
+        siteName: row.siteName,
         logoUrl: row.logoUrl,
         faviconUrl: row.faviconUrl,
         primaryColor: color ?? DEFAULT_PRIMARY_COLOR,
@@ -172,16 +180,24 @@ async function validateDomain(input: string, targetId: number): Promise<string> 
 }
 
 /**
- * Sets a reseller's primary colour and/or domain. Passing '' for either clears
- * it back to the platform default / to no domain.
+ * Sets a reseller's product name, primary colour and/or domain. Passing '' for
+ * any of them clears it back to the platform default / to no domain.
  */
 export async function setResellerFields(
     authUser: AuthenticatedUser,
     targetId: number,
-    fields: { color?: string | null; domain?: string | null }
+    fields: { siteName?: string | null; color?: string | null; domain?: string | null }
 ): Promise<ResellerBrandingSettings> {
     const target = await loadManageableReseller(authUser, targetId);
     const patch: Partial<repo.StoredResellerBranding> = {};
+
+    if (fields.siteName !== undefined) {
+        const next = (fields.siteName ?? '').trim();
+        if (next.length > MAX_SITE_NAME) {
+            throw new ValidationError(`Brand name must be ${MAX_SITE_NAME} characters or fewer`);
+        }
+        if (next !== target.siteName) patch.siteName = next;
+    }
 
     if (fields.color !== undefined) {
         let next = '';
@@ -247,7 +263,8 @@ export async function clearResellerBranding(
 ): Promise<{ settings: ResellerBrandingSettings; previousKeys: string[] }> {
     const target = await loadManageableReseller(authUser, targetId);
     const cleared = {
-        logoUrl: '', logoKey: '', faviconUrl: '', faviconKey: '', primaryColor: '', domain: '',
+        siteName: '', logoUrl: '', logoKey: '', faviconUrl: '', faviconKey: '',
+        primaryColor: '', domain: '',
     };
     await repo.saveUserBranding(targetId, cleared);
     invalidateResellerBrandingCache();
