@@ -5,6 +5,8 @@ const { users } = schema;
 
 /** Branding columns as stored on a user row (empty string == not set). */
 export interface StoredResellerBranding {
+    /** Product name shown wherever the platform names itself on this domain. */
+    siteName: string;
     logoUrl: string;
     logoKey: string;
     /** Browser tab icon; separate from the wordmark, which is too wide to work as one. */
@@ -28,6 +30,7 @@ const columns = {
     role: users.role,
     createdBy: users.createdBy,
     companyName: users.companyName,
+    siteName: users.brandingSiteName,
     logoUrl: users.brandingLogoUrl,
     logoKey: users.brandingLogoKey,
     faviconUrl: users.brandingFaviconUrl,
@@ -43,6 +46,7 @@ function toRow(r: Record<string, unknown> | undefined): UserBrandingRow | null {
         role: (r.role as string) ?? '',
         createdBy: (r.createdBy as number | null) ?? null,
         companyName: (r.companyName as string | null) ?? '',
+        siteName: (r.siteName as string | null) ?? '',
         logoUrl: (r.logoUrl as string | null) ?? '',
         logoKey: (r.logoKey as string | null) ?? '',
         faviconUrl: (r.faviconUrl as string | null) ?? '',
@@ -84,6 +88,7 @@ export async function domainTakenByOther(domain: string, exceptUserId: number): 
 /** Persist a partial branding change. Empty strings clear a slot. */
 export async function saveUserBranding(userId: number, patch: Partial<StoredResellerBranding>): Promise<void> {
     const set: Record<string, unknown> = {};
+    if (patch.siteName !== undefined) set.brandingSiteName = patch.siteName;
     if (patch.logoUrl !== undefined) set.brandingLogoUrl = patch.logoUrl;
     if (patch.logoKey !== undefined) set.brandingLogoKey = patch.logoKey;
     if (patch.faviconUrl !== undefined) set.brandingFaviconUrl = patch.faviconUrl;

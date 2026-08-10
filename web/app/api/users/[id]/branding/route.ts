@@ -48,6 +48,7 @@ const UPLOADS: { field: string; asset: ResellerAsset; slot: 'resellerLogo' | 're
  * replace the logo and favicon (multipart/form-data).
  *
  * Fields, all optional so the form can send only what changed:
+ *   siteName      - product name on that domain, or "" to use the platform's
  *   domain        - host the branding applies on, or "" to release it
  *   primaryColor  - hex like "#8B3D88", or "" to fall back to the platform colour
  *   file          - the logo image
@@ -63,20 +64,22 @@ export const POST = withAuth(null, async (request, { user, params }) => {
         throw new ValidationError('Expected multipart/form-data upload');
     });
 
+    const rawName = form.get('siteName');
     const rawColor = form.get('primaryColor');
     const rawDomain = form.get('domain');
     const files = UPLOADS
         .map((upload) => ({ ...upload, file: form.get(upload.field) }))
         .filter((upload): upload is typeof upload & { file: File } =>
             Boolean(upload.file) && typeof upload.file !== 'string');
-    if (rawColor === null && rawDomain === null && files.length === 0) {
-        throw new ValidationError('Nothing to update — send domain, primaryColor, a logo and/or a favicon');
+    if (rawName === null && rawColor === null && rawDomain === null && files.length === 0) {
+        throw new ValidationError('Nothing to update — send siteName, domain, primaryColor, a logo and/or a favicon');
     }
 
     // Column writes first: if one is rejected nothing has been uploaded yet, so
     // there is no orphaned object to clean up.
-    let settings: ResellerBrandingSettings = rawColor !== null || rawDomain !== null
+    let settings: ResellerBrandingSettings = rawName !== null || rawColor !== null || rawDomain !== null
         ? await setResellerFields(user, targetId, {
+            ...(rawName !== null ? { siteName: String(rawName).trim() } : {}),
             ...(rawColor !== null ? { color: String(rawColor).trim() } : {}),
             ...(rawDomain !== null ? { domain: String(rawDomain).trim() } : {}),
         })

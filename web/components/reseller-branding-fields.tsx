@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef } from "react"
-import { AlertTriangle, Globe, ImageUp, RotateCcw, X } from "lucide-react"
+import { AlertTriangle, Globe, ImageUp, RotateCcw, Tag, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -11,9 +11,12 @@ import {
     normalizeHexColor,
 } from "@/lib/shared/branding-color"
 import { normalizeAssignableDomain } from "@/lib/shared/branding-host"
+import { MAX_SITE_NAME } from "@/lib/shared/branding-name"
 
 /** Branding an admin is composing for a reseller, before it is persisted. */
 export interface ResellerBrandingDraft {
+    /** Product name on that domain; '' means "use the platform name". */
+    siteName: string
     /** Host the branding applies on; '' means it applies nowhere. */
     domain: string
     /** Always a `#rrggbb` value; the platform purple until changed. */
@@ -30,6 +33,7 @@ export interface ResellerBrandingDraft {
 
 export function emptyBrandingDraft(): ResellerBrandingDraft {
     return {
+        siteName: "",
         domain: "",
         primaryColor: DEFAULT_PRIMARY_COLOR,
         logoFile: null,
@@ -150,7 +154,7 @@ interface Props {
 }
 
 /**
- * Logo + primary colour editor for a Reseller account.
+ * Brand name, artwork and primary colour editor for a Reseller account.
  *
  * Purely presentational: the parent decides when to persist, because on the
  * create form the reseller does not exist yet when these fields are filled in.
@@ -169,13 +173,15 @@ export function ResellerBrandingFields({
     const hasArtwork = Boolean(value.existingLogoUrl) || Boolean(value.logoFile)
         || Boolean(value.existingFaviconUrl) || Boolean(value.faviconFile)
     const customColor = color.toLowerCase() !== DEFAULT_PRIMARY_COLOR.toLowerCase()
-    const isCustomised = customColor || hasArtwork || Boolean(value.domain)
+    const nameTyped = value.siteName.trim()
+    const nameTooLong = nameTyped.length > MAX_SITE_NAME
+    const isCustomised = customColor || hasArtwork || Boolean(nameTyped) || Boolean(value.domain)
 
     const domainTyped = value.domain.trim()
     const normalizedDomain = normalizeAssignableDomain(domainTyped)
     const domainInvalid = domainTyped !== "" && normalizedDomain == null
-    // Without a domain the artwork and colour are stored but never rendered.
-    const brandingDormant = !domainTyped && (hasArtwork || customColor)
+    // Without a domain the name, artwork and colour are stored but never rendered.
+    const brandingDormant = !domainTyped && (hasArtwork || customColor || Boolean(nameTyped))
 
     return (
         <div className="pt-6 border-t border-slate-100">
@@ -201,7 +207,31 @@ export function ResellerBrandingFields({
                 )}
             </div>
 
-            {/* Domain — the switch that decides where the branding below applies */}
+            {/* Brand name — replaces "Pramaan" everywhere the product names itself */}
+            <div className="mb-6">
+                <div className="text-xs font-semibold text-slate-600 mb-2">Brand name</div>
+                <div className="relative">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                        type="text"
+                        value={value.siteName}
+                        disabled={disabled}
+                        onChange={(e) => onChange({ ...value, siteName: e.target.value })}
+                        placeholder="Pramaan"
+                        maxLength={MAX_SITE_NAME}
+                        className={`h-11 pl-9 text-sm ${nameTooLong ? "border-rose-300 focus-visible:ring-rose-400" : ""}`}
+                    />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                    {nameTooLong
+                        ? `Keep it to ${MAX_SITE_NAME} characters or fewer.`
+                        : <>Used everywhere the product names itself on this domain — the browser tab,
+                            “{nameTyped || "Pramaan"} Health Score” on certificates and the footer of
+                            exported PDFs. Leave blank to keep the platform name.</>}
+                </p>
+            </div>
+
+            {/* Domain — the switch that decides where the branding above and below applies */}
             <div className="mb-6">
                 <div className="text-xs font-semibold text-slate-600 mb-2">Domain</div>
                 <div className="relative">

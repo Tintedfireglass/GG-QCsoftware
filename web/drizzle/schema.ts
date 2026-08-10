@@ -109,6 +109,7 @@ export const users = pgTable("users", {
 	allowMacKeys: boolean("allow_mac_keys").default(false),
 	// Per-reseller white-label branding, applied when the panel is reached on
 	// brandingDomain. NULL/empty means "use the platform branding".
+	brandingSiteName: varchar("branding_site_name"),
 	brandingLogoUrl: varchar("branding_logo_url"),
 	brandingLogoKey: varchar("branding_logo_key"),
 	brandingFaviconUrl: varchar("branding_favicon_url"),

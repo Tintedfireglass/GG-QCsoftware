@@ -152,15 +152,17 @@ export default function NewUserPage() {
             })
 
             // Branding is a second call: it needs the new reseller's id, and the
-            // logo travels as multipart. Only sent when something was chosen.
+            // artwork travels as multipart. Only sent when something was chosen.
+            const brandingName = branding.siteName.trim()
             const hasBranding = showBrandingSection
                 && (Boolean(branding.logoFile) || Boolean(branding.faviconFile) || Boolean(brandingDomain)
-                    || brandingColor !== DEFAULT_PRIMARY_COLOR.toLowerCase())
+                    || Boolean(brandingName) || brandingColor !== DEFAULT_PRIMARY_COLOR.toLowerCase())
             if (hasBranding) {
                 const newUserId = created?.user?.id as number | undefined
                 if (newUserId == null) throw new Error("User was created but its id was not returned — set branding from the user's page")
                 try {
                     await saveResellerBranding(newUserId, {
+                        siteName: brandingName,
                         domain: brandingDomain,
                         primaryColor: brandingColor,
                         logo: branding.logoFile,
