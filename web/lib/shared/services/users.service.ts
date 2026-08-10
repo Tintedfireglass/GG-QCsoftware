@@ -67,7 +67,8 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
 
     const { email, display_name, role, is_active, password, license_credits,
         allow_monthly_keys, allow_quarterly_keys, allow_6month_keys, allow_yearly_keys, allow_perpetual_keys,
-        allow_windows_keys, allow_android_keys, allow_ios_keys, allow_mac_keys
+        allow_windows_keys, allow_android_keys, allow_ios_keys, allow_mac_keys,
+        allow_qr_label_download
     } = body;
     const set: UserUpdateSet = {};
 
@@ -100,6 +101,15 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
         if (allow_android_keys !== undefined) set.allowAndroidKeys = allow_android_keys;
         if (allow_ios_keys !== undefined) set.allowIosKeys = allow_ios_keys;
         if (allow_mac_keys !== undefined) set.allowMacKeys = allow_mac_keys;
+    }
+
+    // QR label download toggle — SuperAdmin can set for any non-SuperAdmin user;
+    // admin-tier roles (Refurbisher, Reseller, Enterprise, OEM, Insurer) can set it
+    // for users they manage (their team members/clients).
+    const canToggleQR = authUser.role === 'SuperAdmin' ||
+        (TEAM_ROLES.includes(authUser.role) && target.role !== 'SuperAdmin');
+    if (canToggleQR && allow_qr_label_download !== undefined) {
+        set.allowQrLabelDownload = allow_qr_label_download;
     }
 
     const hasFieldUpdates = Object.keys(set).length > 0;

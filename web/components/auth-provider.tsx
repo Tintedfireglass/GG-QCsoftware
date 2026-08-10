@@ -29,6 +29,7 @@ interface AuthContextType {
     canViewMachines: () => boolean
     canManageFleet: () => boolean
     canExportBulk: () => boolean
+    canShareQRLabel: () => boolean
     getRoleDisplayName: () => string
 }
 
@@ -54,6 +55,7 @@ const AuthContext = createContext<AuthContextType>({
     canViewMachines: () => false,
     canManageFleet: () => false,
     canExportBulk: () => false,
+    canShareQRLabel: () => false,
     getRoleDisplayName: () => "",
 })
 
@@ -146,6 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const canViewMachines = () => isSuperAdmin() || isEnterprise() || isOEM() || isInsurer() || isReseller()  // Enterprise/OEM/Insurer/Reseller + SA manage fleet
     const canManageFleet = () => isEnterprise() || isOEM() || isInsurer() || isReseller()
     const canExportBulk = () => isSuperAdmin() || isRefurbisher() || isEnterprise() || isOEM() || isInsurer() || isReseller()
+    // QR label download: reads the per-user DB flag (allow_qr_label_download).
+    // Defaults to true when the field is absent so no one is locked out before
+    // the /me refresh completes. SuperAdmin is always allowed.
+    const canShareQRLabel = () => isSuperAdmin() || (user?.allow_qr_label_download !== false)
 
     const getRoleDisplayName = () => {
         if (!user) return ""
@@ -175,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             canViewMachines,
             canManageFleet,
             canExportBulk,
+            canShareQRLabel,
             getRoleDisplayName,
         }}>
             {children}
