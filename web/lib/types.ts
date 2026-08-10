@@ -122,6 +122,7 @@ export interface User {
     allow_android_keys?: boolean;
     allow_ios_keys?: boolean;
     allow_mac_keys?: boolean;
+    allow_qr_label_download?: boolean;
     created_at: Date;
 }
 
@@ -164,6 +165,7 @@ export interface UpdateUserRequest {
     allow_android_keys?: boolean;
     allow_ios_keys?: boolean;
     allow_mac_keys?: boolean;
+    allow_qr_label_download?: boolean;
 }
 
 // DTOs for API requests/responses

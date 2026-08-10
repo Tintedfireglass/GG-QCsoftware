@@ -54,6 +54,9 @@ export default function EditUserPage() {
         allow_ios_keys: false,
         allow_mac_keys: false,
     })
+    const [featurePerms, setFeaturePerms] = useState({
+        allow_qr_label_download: true,
+    })
     // Reseller branding — loaded and saved through its own endpoint, since the
     // logo and favicon are multipart uploads rather than user columns.
     const [brandingDraft, setBrandingDraft] = useState(emptyBrandingDraft())
@@ -95,6 +98,9 @@ export default function EditUserPage() {
                 allow_android_keys: data.user.allow_android_keys ?? false,
                 allow_ios_keys: data.user.allow_ios_keys ?? false,
                 allow_mac_keys: data.user.allow_mac_keys ?? false,
+            })
+            setFeaturePerms({
+                allow_qr_label_download: data.user.allow_qr_label_download ?? true,
             })
             if (data.user.role === 'Reseller' && (isSuperAdmin() || isEmployee())) await loadBranding()
         } catch (err) {
@@ -282,6 +288,24 @@ export default function EditUserPage() {
         } catch (err) {
             console.error("Failed to update platform permissions:", err)
             setError(err instanceof Error ? err.message : "Failed to update platform permissions")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleSaveFeaturePermissions() {
+        setError(null)
+        setSuccess(null)
+        setSaving(true)
+        try {
+            await updateUser(userId, {
+                allow_qr_label_download: featurePerms.allow_qr_label_download,
+            })
+            setSuccess("Feature permissions updated successfully")
+            loadUser()
+        } catch (err) {
+            console.error("Failed to update feature permissions:", err)
+            setError(err instanceof Error ? err.message : "Failed to update feature permissions")
         } finally {
             setSaving(false)
         }
@@ -726,6 +750,60 @@ export default function EditUserPage() {
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >
                                     {saving ? 'Saving...' : 'Save Platform Permissions'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Feature Permissions — SuperAdmin or admin-tier for their own team members */}
+                    {(isSuperAdmin() || (canManageUsers() && !isEmployee())) && userData.role !== 'SuperAdmin' && userData.role !== 'Employee' && (
+                        <div className="mt-6 pt-6 border-t">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-1">Feature Permissions</h3>
+                            <p className="text-xs text-slate-500 mb-4">
+                                Control which features this user can access. Changes take effect on their next page load.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    { key: 'allow_qr_label_download' as const, label: 'Download QR Label', sub: 'Export QR sticker labels for devices' },
+                                ]).map(({ key, label, sub }) => (
+                                    <label
+                                        key={key}
+                                        className={`relative flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
+                                            featurePerms[key]
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                            featurePerms[key] ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
+                                        }`}>
+                                            {featurePerms[key] && (
+                                                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={featurePerms[key]}
+                                            onChange={(e) => setFeaturePerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                        />
+                                        <div>
+                                            <div className="font-medium text-slate-900 text-sm">{label}</div>
+                                            <div className="text-xs text-slate-500">{sub}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveFeaturePermissions}
+                                    disabled={saving}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {saving ? 'Saving...' : 'Save Feature Permissions'}
                                 </Button>
                             </div>
                         </div>

@@ -107,6 +107,9 @@ export const users = pgTable("users", {
 	allowAndroidKeys: boolean("allow_android_keys").default(false),
 	allowIosKeys: boolean("allow_ios_keys").default(false),
 	allowMacKeys: boolean("allow_mac_keys").default(false),
+	// QR label download permission — toggled by SuperAdmin/admin per user. Defaults
+	// to true so all existing users keep access without a manual opt-in.
+	allowQrLabelDownload: boolean("allow_qr_label_download").default(true),
 	// Per-reseller white-label branding, applied when the panel is reached on
 	// brandingDomain. NULL/empty means "use the platform branding".
 	brandingSiteName: varchar("branding_site_name"),

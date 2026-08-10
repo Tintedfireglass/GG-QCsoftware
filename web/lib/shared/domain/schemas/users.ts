@@ -28,6 +28,7 @@ export const updateUserSchema = z.object({
     allow_android_keys: z.boolean().optional(),
     allow_ios_keys: z.boolean().optional(),
     allow_mac_keys: z.boolean().optional(),
+    allow_qr_label_download: z.boolean().optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

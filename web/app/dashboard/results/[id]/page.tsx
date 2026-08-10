@@ -1,16 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { getQCResult } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Printer } from "lucide-react"
+import { ArrowLeft, Printer, QrCode } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { getGradeStyle, gradeLabel, gradeHeroColor } from "@/lib/platforms/windows/grades"
 import { formatAppVersion, formatBytes, formatDbDate, formatDbDateTime, formatWindowsVersion, deduplicateAntivirus } from "@/lib/utils"
 import { isIssue } from "@/lib/platforms/windows/issues"
-import { useBranding } from "@/components/branding-provider"
+import { useBranding, verifyUrl } from "@/components/branding-provider"
+import { useAuth } from "@/components/auth-provider"
+import { QRCodeCanvas } from "qrcode.react"
 
 // ── Shared hardware diff helpers (serial-number aware) ───────────────────────
 
@@ -119,12 +121,14 @@ function computeHwDiff(prev: any | null, curr: any): HwChangeSummary {
 
 export default function ResultDetailPage() {
     const branding = useBranding()
+    const { canShareQRLabel } = useAuth()
     const { id } = useParams()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [selectedGrades, setSelectedGrades] = useState<string[]>([])
     const [isGradeFilterOpen, setIsGradeFilterOpen] = useState(false)
     const [testSort, setTestSort] = useState<"grade_desc" | "grade_asc" | "name_az">("grade_desc")
+    const qrCanvasRef = useRef<HTMLCanvasElement>(null)
 
     // Handle auto-print removed (moved to dedicated page)
 
@@ -245,6 +249,71 @@ export default function ResultDetailPage() {
     if (loading) return <div className="p-8">Loading result details...</div>
     if (!data) return <div className="p-8">Result not found</div>
 
+    // Download QR + Device ID as a printable PNG label
+    function downloadQRLabel() {
+        const srcCanvas = qrCanvasRef.current
+        if (!srcCanvas) return
+
+        const deviceId = data.machine_id || "N/A"
+        const testId = `#${data.id}`
+
+        // Label dimensions (in px at 96dpi — scales up for better print quality)
+        const scale = 3
+        const W = 220 * scale
+        const H = 280 * scale
+        const qrSize = 160 * scale
+
+        const label = document.createElement("canvas")
+        label.width = W
+        label.height = H
+        const ctx = label.getContext("2d")
+        if (!ctx) return
+
+        // White background
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(0, 0, W, H)
+
+        // Thin border
+        ctx.strokeStyle = "#e2e8f0"
+        ctx.lineWidth = 2 * scale
+        ctx.strokeRect(scale, scale, W - 2 * scale, H - 2 * scale)
+
+        // Site name header
+        ctx.fillStyle = "#0f172a"
+        ctx.font = `bold ${10 * scale}px system-ui, sans-serif`
+        ctx.textAlign = "center"
+        ctx.fillText(branding.siteName, W / 2, 22 * scale)
+
+        // QR code centered
+        const qrX = (W - qrSize) / 2
+        const qrY = 30 * scale
+        ctx.drawImage(srcCanvas, qrX, qrY, qrSize, qrSize)
+
+        // Device ID label
+        ctx.fillStyle = "#64748b"
+        ctx.font = `${7 * scale}px system-ui, sans-serif`
+        ctx.textAlign = "center"
+        ctx.fillText("DEVICE ID", W / 2, (qrY + qrSize + 18 * scale))
+
+        // Device ID value (monospace, prominent)
+        ctx.fillStyle = "#0f172a"
+        ctx.font = `bold ${12 * scale}px 'Courier New', monospace`
+        ctx.textAlign = "center"
+        ctx.fillText(deviceId, W / 2, (qrY + qrSize + 34 * scale))
+
+        // Test ID sub-label
+        ctx.fillStyle = "#94a3b8"
+        ctx.font = `${6 * scale}px system-ui, sans-serif`
+        ctx.textAlign = "center"
+        ctx.fillText(`Test ${testId}`, W / 2, (qrY + qrSize + 50 * scale))
+
+        const url = label.toDataURL("image/png")
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `qr-label-device-${deviceId}-test-${data.id}.png`
+        a.click()
+    }
+
     // Helper to get grade badge
     const GradeBadge = ({ grade, score }: { grade?: string; score?: number }) => {
         if (!grade) return <span className="text-xs text-gray-400">Unknown</span>;
@@ -267,6 +336,24 @@ export default function ResultDetailPage() {
                     </Button>
                 </Link>
                 <div className="space-x-2">
+                    {canShareQRLabel() && data.health_id && (
+                        <>
+                            {/* Hidden canvas used as QR source for label download */}
+                            <div className="absolute -left-[9999px] -top-[9999px] pointer-events-none" aria-hidden>
+                                <QRCodeCanvas
+                                    ref={qrCanvasRef}
+                                    value={verifyUrl(branding.appUrl, data.health_id)}
+                                    size={480}
+                                    level="H"
+                                    marginSize={2}
+                                />
+                            </div>
+                            <Button variant="outline" size="sm" onClick={downloadQRLabel}>
+                                <QrCode className="h-4 w-4 mr-2" />
+                                Download QR Label
+                            </Button>
+                        </>
+                    )}
                     <Link href={`/report/${id}`} target="_blank">
                         <Button variant="outline" size="sm">
                             <Printer className="h-4 w-4 mr-2" />
