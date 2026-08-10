@@ -407,7 +407,44 @@ public class ReportGenerator
         
         AppendTestRow(sb, "CPU", report.CpuTest);
         AppendTestRow(sb, "RAM", report.RamTest);
-        AppendTestRow(sb, "Storage", report.StorageTest);
+        // Storage: expand into per-drive rows when multiple physical drives are present
+        if (report.StorageDetails != null && report.StorageDetails.Devices.Count > 1)
+        {
+            for (int driveIdx = 0; driveIdx < report.StorageDetails.Devices.Count; driveIdx++)
+            {
+                var device = report.StorageDetails.Devices[driveIdx];
+                var driveName = !string.IsNullOrWhiteSpace(device.Model) ? device.Model : $"Drive {driveIdx + 1}";
+                var rowLabel = $"Storage {driveIdx + 1} — {driveName}";
+
+                // Build a per-drive message
+                var parts = new List<string>();
+                var driveType = device.IsSsd ? "SSD" : "HDD";
+                if (device.SizeGB > 0)
+                    parts.Add($"{device.SizeGB:F0} GB {driveType}");
+                if (device.HealthPercent.HasValue)
+                    parts.Add($"{device.HealthPercent}% health");
+                if (device.IsTampered)
+                    parts.Add("Tampered");
+                else if (device.IsInconclusive)
+                    parts.Add("Inconclusive");
+                else if (device.IsSuspicious)
+                    parts.Add("Suspicious — review recommended");
+
+                var driveResult = new TestResult
+                {
+                    Tested   = report.StorageTest.Tested,
+                    Passed   = report.StorageTest.Passed && !device.IsTampered,
+                    Grade    = report.StorageTest.Grade,
+                    Score    = report.StorageTest.Score,
+                    Message  = parts.Count > 0 ? string.Join(" — ", parts) : report.StorageTest.Message,
+                };
+                AppendTestRow(sb, rowLabel, driveResult);
+            }
+        }
+        else
+        {
+            AppendTestRow(sb, "Storage", report.StorageTest);
+        }
         AppendTestRow(sb, "Battery", report.BatteryTest);
         AppendTestRow(sb, "Keyboard", report.KeyboardTest);
         AppendTestRow(sb, "Trackpad", report.TrackpadTest);
