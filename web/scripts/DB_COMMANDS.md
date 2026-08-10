@@ -1,5 +1,15 @@
 # Quick Reference: Database Commands
 
+## Targets
+
+| Target | Config | Credentials | Scripts |
+| --- | --- | --- | --- |
+| Default (India / Pramaan) | `drizzle.config.ts` | `.env.local` → `DATABASE_URL` | `db:push`, `db:studio` |
+| Cirtyn (US) | `drizzle.config.cirtyn.ts` | `.env.cirtyn` → `CIRTYN_DATABASE_URL` | `db:push-cirtyn`, `db:studio-cirtyn` |
+
+The Cirtyn credentials are only wired into drizzle-kit — the app's runtime DB
+connection is untouched, so nothing but schema pushes talks to that database.
+
 ## NPM Scripts (Recommended)
 
 ```bash
@@ -11,6 +21,26 @@ npm run db:push
 
 # Open database browser UI
 npm run db:studio
+```
+
+## Cirtyn (US) Database
+
+```bash
+# Push the current drizzle/schema.ts to the Cirtyn DB
+npm run db:push-cirtyn
+
+# Seed a fresh DB: SuperAdmin user + general/branding settings (idempotent)
+npm run db:seed-cirtyn
+npm run db:seed-cirtyn -- --username admin --email you@cirtyn.com --password 'Secret123!'
+
+# Browse the Cirtyn DB
+npm run db:studio-cirtyn
+
+# Direct equivalent
+npx drizzle-kit push --config drizzle.config.cirtyn.ts
+
+# Backup (uses CIRTYN_DATABASE_URL from .env.cirtyn)
+pg_dump "$CIRTYN_DATABASE_URL" > cirtyn-backup.sql
 ```
 
 ## Direct Commands
