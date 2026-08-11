@@ -136,6 +136,15 @@ public class SystemInfoSnapshot
     
     [JsonPropertyName("ramTotal")]
     public long? RamTotal { get; set; }
+
+    [JsonPropertyName("biosVersion")]
+    public string? BiosVersion { get; set; }
+
+    [JsonPropertyName("biosManufacturer")]
+    public string? BiosManufacturer { get; set; }
+
+    [JsonPropertyName("biosReleaseDate")]
+    public DateTime? BiosReleaseDate { get; set; }
 }
 
 public class ApiTestResult

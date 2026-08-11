@@ -450,6 +450,21 @@ export default function ResultDetailPage() {
                                     <dt className="font-medium text-slate-500">Antivirus Status</dt>
                                     <dd className="sm:col-span-2 text-slate-900 break-words">{antivirusText}</dd>
                                 </div>
+                                {data.system_info_json?.biosVersion && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">BIOS Version</dt>
+                                        <dd className="sm:col-span-2 font-mono text-slate-900 break-all">
+                                            {data.system_info_json.biosVersion}
+                                            {data.system_info_json.biosManufacturer ? ` (${data.system_info_json.biosManufacturer})` : ""}
+                                        </dd>
+                                    </div>
+                                )}
+                                {data.system_info_json?.biosReleaseDate && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
+                                        <dt className="font-medium text-slate-500">BIOS Date</dt>
+                                        <dd className="sm:col-span-2 text-slate-900 break-words">{formatDbDate(data.system_info_json.biosReleaseDate)}</dd>
+                                    </div>
+                                )}
                                 {data.physical_condition && (
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0">
                                         <dt className="font-medium text-slate-500">Physical Condition</dt>

@@ -179,6 +179,21 @@ export function ReportLayout({ data }: { data: any }) {
                                 <td className="py-2 text-gray-600">Antivirus Status</td>
                                 <td className="py-2 font-medium">{antivirusText}</td>
                             </tr>
+                            {data.system_info_json?.biosVersion && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">BIOS Version</td>
+                                    <td className="py-2 font-mono font-medium">
+                                        {data.system_info_json.biosVersion}
+                                        {data.system_info_json.biosManufacturer ? ` (${data.system_info_json.biosManufacturer})` : ""}
+                                    </td>
+                                </tr>
+                            )}
+                            {data.system_info_json?.biosReleaseDate && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">BIOS Date</td>
+                                    <td className="py-2 font-medium">{formatDbDate(data.system_info_json.biosReleaseDate)}</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

@@ -11,6 +11,8 @@ public class SystemInfo
     public string SerialNumber { get; set; } = string.Empty;
     public string MacAddress { get; set; } = string.Empty;
     public string BiosVersion { get; set; } = string.Empty;
+    public string BiosManufacturer { get; set; } = string.Empty;
+    public DateTime? BiosReleaseDate { get; set; }
     public string OsVersion { get; set; } = string.Empty;
     public string WindowsProductName { get; set; } = string.Empty;
     public string WindowsActivationStatus { get; set; } = string.Empty;
