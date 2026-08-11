@@ -42,6 +42,20 @@ public class SystemDiagnostic : ISystemDiagnostic
         {
             systemInfo.BiosVersion = _wmi.GetValue<string>(obj, "SMBIOSBIOSVersion", "") ?? "";
             systemInfo.SerialNumber = _wmi.GetValue<string>(obj, "SerialNumber", "") ?? "";
+            systemInfo.BiosManufacturer = _wmi.GetValue<string>(obj, "Manufacturer", "") ?? "";
+            // ReleaseDate is a WMI DMTF datetime string — convert to DateTime if present
+            var releaseDateStr = _wmi.GetValue<string>(obj, "ReleaseDate", "");
+            if (!string.IsNullOrWhiteSpace(releaseDateStr))
+            {
+                try
+                {
+                    systemInfo.BiosReleaseDate = System.Management.ManagementDateTimeConverter.ToDateTime(releaseDateStr);
+                }
+                catch
+                {
+                    systemInfo.BiosReleaseDate = null;
+                }
+            }
             break;
         }
 

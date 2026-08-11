@@ -130,8 +130,11 @@ public class QCSubmissionService
                 IsAntivirusHealthy = report.SystemInfo?.IsAntivirusHealthy,
                 DeviceId = report.DeviceId,
                 CpuModel = report.CpuDetails?.Name,
-
-                RamTotal = ramTotal > 0 ? ramTotal : 0
+                RamTotal = ramTotal > 0 ? ramTotal : 0,
+                // BIOS fields — collected from Win32_BIOS via WMI
+                BiosVersion = report.SystemInfo?.BiosVersion,
+                BiosManufacturer = report.SystemInfo?.BiosManufacturer,
+                BiosReleaseDate = report.SystemInfo?.BiosReleaseDate,
             },
             
             CpuDetails = report.CpuDetails,
