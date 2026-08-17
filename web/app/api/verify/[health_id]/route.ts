@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findCertByHealthId } from '@/lib/platforms/windows/repositories/qc-results.repo';
 import { findReportForVerify } from '@/lib/platforms/android/repositories/mobile-reports.repo';
 import { gradeLabel } from '@/lib/platforms/windows/grades';
+import { parseDbTimestamp } from '@/lib/timezone';
 
 const VALIDITY_DAYS = 180;
 
@@ -39,7 +40,12 @@ export async function GET(
             result = null;
         }
         if (result) {
-            const certDate = new Date(result.timestamp as string);
+            // qc_results.timestamp is a naive UTC column — parseDbTimestamp is what
+            // stamps it as UTC, so the certification date isn't shifted by the zone.
+            const certDate = parseDbTimestamp(result.timestamp as string | Date | null);
+            if (!certDate) {
+                return NextResponse.json({ error: 'Certificate has no issue date' }, { status: 500 });
+            }
             const { validUntil, isExpired } = validity(certDate);
             return NextResponse.json({
                 verified: true,
@@ -65,7 +71,10 @@ export async function GET(
         // Fallback: a mobile QC report certificate (same response shape).
         const mobile = await findReportForVerify(health_id);
         if (mobile) {
-            const certDate = new Date(mobile.tested_at as string);
+            const certDate = parseDbTimestamp(mobile.tested_at as string | Date | null);
+            if (!certDate) {
+                return NextResponse.json({ error: 'Report has no test date' }, { status: 500 });
+            }
             const { validUntil, isExpired } = validity(certDate);
             return NextResponse.json({
                 verified: true,

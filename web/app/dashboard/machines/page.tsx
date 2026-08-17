@@ -11,7 +11,7 @@ import Link from "next/link"
 import { Monitor, ExternalLink, Search } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { DateRangeFilter } from "@/components/ui/date-range-filter"
-import { formatDbDate } from "@/lib/utils"
+import { formatDbDate, toAppZoneDateStamp } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
 
@@ -169,16 +169,15 @@ export default function MachinesPage() {
     const filteredMachines = useMemo(() => {
         const term = appliedSearch.trim().toLowerCase()
         const clientId = selectedClientId ? parseInt(selectedClientId, 10) : null
-        const startMs = startDate ? Date.parse(`${startDate}T00:00:00`) : null
-        const endMs = endDate ? Date.parse(`${endDate}T23:59:59.999`) : null
-
         return machines.filter((m) => {
             if (!isGradeSelected(getGradeKey(m?.latest_grade))) return false
-            if (startMs !== null || endMs !== null) {
-                const seenMs = m?.last_seen ? Date.parse(m.last_seen) : NaN
-                if (Number.isNaN(seenMs)) return false
-                if (startMs !== null && seenMs < startMs) return false
-                if (endMs !== null && seenMs > endMs) return false
+            if (startDate || endDate) {
+                // The picker gives calendar dates in APP_TIME_ZONE, so compare
+                // like-for-like: reduce last_seen (naive UTC) to its app-zone day.
+                const seenDay = m?.last_seen ? toAppZoneDateStamp(m.last_seen) : ""
+                if (!seenDay) return false
+                if (startDate && seenDay < startDate) return false
+                if (endDate && seenDay > endDate) return false
             }
             if (clientId !== null) {
                 // A machine belongs to a client if that client tested it, or owns it (fleet).

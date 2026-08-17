@@ -7,7 +7,7 @@ import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { SELF_ONLY_ROLES } from '@/lib/shared/domain/visibility';
 import { ValidationError, ForbiddenError } from '@/lib/http/errors';
 import { parseWindowsVersion, cleanWindowsProductName, deduplicateAntivirus, formatDateDMY, toAppZoneDateStamp } from '@/lib/utils';
-import { APP_TIME_ZONE } from '@/lib/timezone';
+import { APP_TIME_ZONE, parseDbTimestamp } from '@/lib/timezone';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
 import { getBranding, type Branding } from '@/lib/shared/services/branding.service';
 import { getBrandingForHost } from '@/lib/shared/services/reseller-branding.service';
@@ -169,8 +169,9 @@ function getIssueSummaryRows(issueMap: Record<IssueKey, Set<string>>): string[][
 }
 
 function formatShiftDate(value: string | Date | null | undefined, timeZone: string): string {
-    if (!value) return '';
-    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone });
+    const d = parseDbTimestamp(value);
+    if (!d) return '';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone });
 }
 
 function formatGeneratedDateTime(timeZone: string): string {
@@ -513,7 +514,7 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         const hasThermalIssue = riskFlags.thermal === true;
         const serialNo = (r.system_serial as string | undefined) || '';
 
-        const lastReportDate = r.timestamp ? new Date(r.timestamp as string) : null;
+        const lastReportDate = parseDbTimestamp(r.timestamp as string | Date | null | undefined);
         const isStale = lastReportDate ? (now.getTime() - lastReportDate.getTime()) > staleThresholdMs : false;
 
         if (isStale) issueMap.stale.add(computerName);
@@ -704,16 +705,14 @@ function safeNum(v: unknown): number | null {
 }
 
 function formatDbDateTimeSimple(value: unknown, timeZone = APP_TIME_ZONE): string {
-    if (!value) return '-';
-    const d = new Date(value as string);
-    if (isNaN(d.getTime())) return '-';
+    const d = parseDbTimestamp(value as string | Date | null | undefined);
+    if (!d) return '-';
     return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone });
 }
 
 function formatDbDateSimple(value: unknown, timeZone = APP_TIME_ZONE): string {
-    if (!value) return '-';
-    const d = new Date(value as string);
-    if (isNaN(d.getTime())) return '-';
+    const d = parseDbTimestamp(value as string | Date | null | undefined);
+    if (!d) return '-';
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone });
 }
 
@@ -1118,7 +1117,7 @@ export async function exportSampleDataset(
             const hasThermalIssue = riskFlags.thermal === true;
             const serialNo = (r.system_serial as string | undefined) || '';
 
-            const lastReportDate = r.timestamp ? new Date(r.timestamp as string) : null;
+            const lastReportDate = parseDbTimestamp(r.timestamp as string | Date | null | undefined);
             const isStale = lastReportDate ? (now.getTime() - lastReportDate.getTime()) > staleThresholdMs : false;
 
             if (isStale) issueMap.stale.add(computerName);

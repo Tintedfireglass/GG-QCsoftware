@@ -1,16 +1,12 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { APP_TIME_ZONE } from "./timezone"
+import { APP_TIME_ZONE, parseDbTimestamp } from "./timezone"
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-function toDate(value: string | number | Date | null | undefined): Date | null {
-    if (value === null || value === undefined || value === "") return null
-    const parsed = value instanceof Date ? value : new Date(value)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
-}
+const toDate = parseDbTimestamp
 
 type DateInput = string | number | Date | null | undefined
 
