@@ -11,6 +11,13 @@ import { Pool, types } from 'pg';
 // on an IST laptop — a silent 5:30 shift in everything the dashboard renders.
 // Pin the parser to UTC so decoding is identical everywhere; display is then
 // converted to APP_TIME_ZONE by the formatters in lib/utils.ts.
+//
+// IMPORTANT: this parser is a safety net for raw `pool.query` only — it does NOT
+// run for app queries. Drizzle (the only consumer of this pool today) overrides
+// pg's timestamp/timestamptz/date parsers with identity functions per query, so
+// those columns come back as raw strings. Normalising them to UTC is therefore
+// the job of parseDbTimestamp() in lib/timezone.ts — use it for every DB
+// timestamp instead of `new Date(value)`.
 const PG_TIMESTAMP_OID = 1114;        // timestamp without time zone
 types.setTypeParser(PG_TIMESTAMP_OID, (value: string) => {
     if (!value) return null;

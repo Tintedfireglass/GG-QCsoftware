@@ -4,8 +4,8 @@
  *
  * Timestamps are always STORED in UTC. The Postgres session runs with
  * TimeZone = GMT, so the `timestamp without time zone` columns (qc_results.timestamp,
- * machines.last_seen, ...) hold UTC wall-clock, and lib/db.ts pins the pg driver
- * to read them back as UTC regardless of the host's TZ. This constant only
+ * machines.last_seen, ...) hold UTC wall-clock, and parseDbTimestamp() below is
+ * what reads them back as UTC regardless of the host's TZ. This constant only
  * controls presentation and day-boundary maths — it never changes what is written.
  *
  * Override with APP_TIMEZONE / NEXT_PUBLIC_APP_TIMEZONE (an IANA zone name such
