@@ -88,7 +88,13 @@ function growInfinityOtpBody(otp: string): string {
     return `Your OTP from Gadget Guruz is ${otp} and is valid for the next 10 minutes. Kindly do not share OTP with anyone.`;
 }
 
-async function sendViaGrowInfinity(p: Extract<ResolvedProvider, { kind: 'grow_infinity' }>, mobile: string, otp: string): Promise<void> {
+// Grow Infinity always answers HTTP 200 and reports the real outcome in the JSON
+// `status` code: 100 = accepted for delivery (a `messageid` is returned), anything
+// else is a rejection (700 = no valid recipient, 900103 = blacklisted number, ...).
+// Never infer success from the HTTP status alone.
+const GROW_INFINITY_ACCEPTED = 100;
+
+async function sendViaGrowInfinity(p: Extract<ResolvedProvider, { kind: 'grow_infinity' }>, mobile: string, otp: string): Promise<string | undefined> {
     const res = await fetch('https://api.grow-infinity.io/api/jsms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,9 +108,18 @@ async function sendViaGrowInfinity(p: Extract<ResolvedProvider, { kind: 'grow_in
         }),
     });
     const text = await res.text();
-    if (!res.ok || /error|fail|invalid/i.test(text)) {
-        throw new Error(`grow_infinity ${res.status}: ${text.slice(0, 300)}`);
+    if (!res.ok) throw new Error(`grow_infinity http ${res.status}: ${text.slice(0, 300)}`);
+
+    let data: { status?: number | string; description?: string; messageid?: string };
+    try {
+        data = JSON.parse(text);
+    } catch {
+        throw new Error(`grow_infinity: unparseable response: ${text.slice(0, 300)}`);
     }
+    if (Number(data.status) !== GROW_INFINITY_ACCEPTED) {
+        throw new Error(`grow_infinity status ${data.status}: ${data.description || text.slice(0, 300)}`);
+    }
+    return data.messageid;
 }
 
 /** Best-effort OTP delivery. Returns true if dispatched, false if skipped/failed. */
@@ -116,15 +131,20 @@ export async function sendOtpSms(phone: string, otp: string, countryCode?: strin
     }
     const mobile = normalizeMobile(phone, countryCode);
     try {
+        let messageId: string | undefined;
         if (provider.kind === 'msg91') {
             await sendViaMsg91Otp(provider, mobile, otp);
         } else {
-            await sendViaGrowInfinity(provider, mobile, otp);
+            messageId = await sendViaGrowInfinity(provider, mobile, otp);
         }
-        logger.info('sms.otp.sent', { provider: provider.kind, phone });
+        logger.info('sms.otp.sent', { provider: provider.kind, phone, messageId });
         return true;
     } catch (err) {
-        logger.error('sms.otp.failed', { provider: provider.kind, err, phone });
+        logger.error('sms.otp.failed', {
+            provider: provider.kind,
+            phone,
+            error: err instanceof Error ? err.message : String(err),
+        });
         return false;
     }
 }
