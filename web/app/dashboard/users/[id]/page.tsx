@@ -6,6 +6,9 @@ import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
 import { getUser, updateUser, deleteUser, getResellerBranding, saveResellerBranding, resetResellerBranding } from "@/lib/api"
 import { ResellerBrandingFields, emptyBrandingDraft } from "@/components/reseller-branding-fields"
+import { PartnerApiKeysPanel } from "@/components/partner/api-keys-panel"
+import { PartnerWebhooksPanel } from "@/components/partner/webhooks-panel"
+import { canOwnPartnerKey } from "@/lib/partner/scopes"
 import { normalizeHexColor } from "@/lib/shared/branding-color"
 import { normalizeAssignableDomain } from "@/lib/shared/branding-host"
 import { UserRole, UserRoleDisplayNames, UserRoleDescriptions, UserWithCreator } from "@/lib/types"
@@ -810,6 +813,14 @@ export default function EditUserPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* API Access — partner keys, for roles that can integrate their own backend */}
+            {isSuperAdmin() && userData && canOwnPartnerKey(userData.role) && (
+                <>
+                    <PartnerApiKeysPanel userId={userId} />
+                    <PartnerWebhooksPanel userId={userId} />
+                </>
+            )}
 
             {/* Danger Zone */}
             {canDeactivate && (

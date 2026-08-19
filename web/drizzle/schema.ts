@@ -1,4 +1,4 @@
-import { pgTable, index, serial, varchar, timestamp, integer, uniqueIndex, text, boolean, bigint, jsonb, uuid, check, date, numeric } from "drizzle-orm/pg-core"
+import { pgTable, index, serial, varchar, timestamp, integer, uniqueIndex, text, boolean, bigint, jsonb, uuid, check, date, numeric, smallint, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -664,4 +664,83 @@ export const appReleases = pgTable("app_releases", {
 }, (table) => [
 	uniqueIndex("idx_app_releases_platform_channel_arch_version").using("btree", table.platform, table.channel, table.arch, table.version),
 	index("idx_app_releases_lookup").using("btree", table.platform, table.channel, table.isPublished),
+]);
+
+// Partner (reseller) API keys — long-lived credentials for /api/partner/v1/*.
+// One key maps to one users row; authority still comes from that user's role.
+export const partnerApiKeys = pgTable("partner_api_keys", {
+	id: serial().primaryKey().notNull(),
+	userId: integer("user_id").notNull(),
+	name: varchar().notNull(),
+	// Leading segment of the plaintext key, so admins can identify a key they
+	// can no longer see in full.
+	keyPrefix: varchar("key_prefix").notNull(),
+	keyHash: varchar("key_hash").notNull(),
+	scopes: text().array().notNull().default(sql`'{}'`),
+	rateLimitPerMin: integer("rate_limit_per_min").default(120).notNull(),
+	// Empty means server-to-server only: no CORS headers are emitted.
+	allowedOrigins: text("allowed_origins").array().notNull().default(sql`'{}'`),
+	isActive: boolean("is_active").default(true).notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }),
+	lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: 'string' }),
+	revokedAt: timestamp("revoked_at", { withTimezone: true, mode: 'string' }),
+	createdBy: integer("created_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+	uniqueIndex("idx_partner_api_keys_hash").using("btree", table.keyHash),
+	index("idx_partner_api_keys_user").using("btree", table.userId),
+]);
+
+// Outbound webhook subscriptions for partner integrations. Scoped to a users row
+// exactly like partnerApiKeys; an event only reaches a subscription whose owner
+// could already read the record through the API.
+export const partnerWebhooks = pgTable("partner_webhooks", {
+	id: serial().primaryKey().notNull(),
+	userId: integer("user_id").notNull(),
+	name: varchar().notNull(),
+	url: varchar().notNull(),
+	// Shared secret for the HMAC-SHA256 signature header; shown once at creation.
+	secret: varchar().notNull(),
+	events: text().array().notNull().default(sql`'{}'`),
+	isActive: boolean("is_active").default(true).notNull(),
+	// Consecutive failures; reset on success, auto-disables past the threshold.
+	failureCount: integer("failure_count").default(0).notNull(),
+	lastSuccessAt: timestamp("last_success_at", { withTimezone: true, mode: 'string' }),
+	lastFailureAt: timestamp("last_failure_at", { withTimezone: true, mode: 'string' }),
+	disabledAt: timestamp("disabled_at", { withTimezone: true, mode: 'string' }),
+	createdBy: integer("created_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+	index("idx_partner_webhooks_user").using("btree", table.userId),
+]);
+
+// One row per delivery attempt: the partner-facing audit trail, and the queue the
+// retry sweep reads.
+export const partnerWebhookDeliveries = pgTable("partner_webhook_deliveries", {
+	id: serial().primaryKey().notNull(),
+	webhookId: integer("webhook_id").notNull(),
+	event: varchar().notNull(),
+	payload: jsonb().notNull(),
+	status: varchar().default('pending').notNull(),
+	attempts: integer().default(0).notNull(),
+	responseCode: integer("response_code"),
+	error: text(),
+	nextRetryAt: timestamp("next_retry_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+	index("idx_partner_webhook_deliveries_webhook").using("btree", table.webhookId, table.createdAt.desc()),
+]);
+
+// Per-key usage rolled up by day, route template and status class. Written from
+// an in-memory buffer, so the hot path stays free of an extra INSERT.
+export const partnerApiUsage = pgTable("partner_api_usage", {
+	keyId: integer("key_id").notNull(),
+	day: date().notNull(),
+	route: varchar().notNull(),
+	statusClass: smallint("status_class").notNull(),
+	requests: integer().default(0).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.keyId, table.day, table.route, table.statusClass] }),
+	index("idx_partner_api_usage_key_day").using("btree", table.keyId, table.day.desc()),
 ]);

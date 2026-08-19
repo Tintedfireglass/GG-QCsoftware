@@ -60,3 +60,10 @@ export class UpgradeRequiredError extends AppError {
         super(426, 'Authentication Error', message);
     }
 }
+
+/** 429 Too Many Requests — the caller exceeded its rate limit. */
+export class TooManyRequestsError extends AppError {
+    constructor(message = 'Rate limit exceeded') {
+        super(429, 'Rate Limit', message);
+    }
+}

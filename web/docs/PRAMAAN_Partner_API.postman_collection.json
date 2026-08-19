@@ -1,0 +1,943 @@
+{
+  "info": {
+    "name": "PRAMAAN Partner API",
+    "description": "Reseller integration endpoints. Set the `baseUrl` and `apiKey` collection variables, then start with Meta → Verify a key. Generated from the OpenAPI spec by scripts/generate-partner-postman.ts — do not edit by hand.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}"
+      },
+      {
+        "key": "in",
+        "value": "header"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://pramaan-dashboard.gadgetguruz.com"
+    },
+    {
+      "key": "apiKey",
+      "value": "pk_live_replace_me"
+    }
+  ],
+  "item": [
+    {
+      "name": "me",
+      "item": [
+        {
+          "name": "Verify a key",
+          "request": {
+            "method": "GET",
+            "description": "Returns the account a key authenticates as and the scopes it holds. Requires no scope — use it to check credentials during setup.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "qc-results",
+      "item": [
+        {
+          "name": "List QC results",
+          "request": {
+            "method": "GET",
+            "description": "QC results visible to the key owner, newest first. Scope: `qc:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Page size, 1–200 (default 50).",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "",
+                  "description": "Rows to skip (default 0).",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over serial, model and machine id.",
+                  "disabled": true
+                },
+                {
+                  "key": "machineId",
+                  "value": "",
+                  "description": "Restrict to one machine.",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "",
+                  "description": "Inclusive lower bound, `YYYY-MM-DD`.",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "",
+                  "description": "Inclusive upper bound, `YYYY-MM-DD`.",
+                  "disabled": true
+                },
+                {
+                  "key": "grades",
+                  "value": "",
+                  "description": "Comma-separated grade buckets, e.g. `A+,A,B`.",
+                  "disabled": true
+                },
+                {
+                  "key": "overallPass",
+                  "value": "",
+                  "description": "`true` for passing reports only.",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "",
+                  "description": "Incremental sync cursor: an ISO timestamp (e.g. `2026-08-18T10:00:00Z`). Returns everything recorded at or after it, ignoring the default retention window. Inclusive — pair it with `sort=date_asc` and de-duplicate on `id`.",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "`date_desc` (default), `date_asc`, `grade_desc`, `grade_asc`, `id_asc`.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Count QC results",
+          "request": {
+            "method": "GET",
+            "description": "Lifetime total for the account. Honours `machineId`, `search`, `userId` and `overallPass` only — **date, `since` and retention filters do not apply here**. For a filtered total, read `pagination.total` from the list endpoint instead. Scope: `qc:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                "count"
+              ],
+              "query": [
+                {
+                  "key": "machineId",
+                  "value": "",
+                  "description": "Restrict to one machine.",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over serial, model and machine id.",
+                  "disabled": true
+                },
+                {
+                  "key": "overallPass",
+                  "value": "",
+                  "description": "`true` for passing reports only.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get a QC result",
+          "request": {
+            "method": "GET",
+            "description": "One result with its individual test rows. Scope: `qc:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "QC result id."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Issue summary",
+          "request": {
+            "method": "GET",
+            "description": "Device-issue counts over the latest report per machine. Scope: `qc:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/issues-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                "issues-summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Asset-health summary",
+          "request": {
+            "method": "GET",
+            "description": "Storage, thermal and tamper risk buckets. Scope: `qc:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/asset-health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                "asset-health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Hide a QC result",
+          "request": {
+            "method": "DELETE",
+            "description": "Removes a result from every listing. The row is retained and certificates already issued stay verifiable. Scope: `qc:write`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "QC result id."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export QC results",
+          "request": {
+            "method": "GET",
+            "description": "Latest report per machine as a file — the only endpoint that does not answer with JSON. Scope: `reports:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/qc-results/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "qc-results",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "",
+                  "description": "`xlsx` (default) or `pdf`.",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text filter, as on the list.",
+                  "disabled": true
+                },
+                {
+                  "key": "timeZone",
+                  "value": "",
+                  "description": "IANA zone for rendered dates, e.g. `Asia/Kolkata`.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "machines",
+      "item": [
+        {
+          "name": "List machines",
+          "request": {
+            "method": "GET",
+            "description": "Machines visible to the key owner. Scope: `machines:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/machines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "machines"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Count machines",
+          "request": {
+            "method": "GET",
+            "description": "Visible machine count. Scope: `machines:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/machines/count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "machines",
+                "count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get a machine",
+          "request": {
+            "method": "GET",
+            "description": "Machine detail with test and component history. Scope: `machines:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/machines/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "machines",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Machine id."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rename a machine",
+          "request": {
+            "method": "PATCH",
+            "description": "Sets the human-friendly display name. Scope: `machines:write`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/machines/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "machines",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "Machine id."
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customName\": \"Front-desk QC PC\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "licenses",
+      "item": [
+        {
+          "name": "List license keys",
+          "request": {
+            "method": "GET",
+            "description": "License keys owned by the account. Scope: `licenses:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/licenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "licenses"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over key and customer.",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "`active`, `inactive`, `expired`, or `all`.",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "description": "Page number (default 1).",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Page size, 1–100 (default 20).",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate a license key",
+          "request": {
+            "method": "POST",
+            "description": "Mints a key against the account's license credits, honouring its duration and platform permissions exactly as the dashboard does. Scope: `licenses:write`. Roles: Reseller, Refurbisher, Enterprise.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/licenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "licenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"yearly\",\n  \"product_scope\": [\n    \"windows\"\n  ],\n  \"platform_caps\": {\n    \"windows\": 2\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Update a license key",
+          "request": {
+            "method": "PATCH",
+            "description": "Activate or deactivate a key, or move its expiry. Send one field or the other. Scope: `licenses:write`. Roles: Reseller, Refurbisher, Enterprise.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/licenses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "licenses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "License key id."
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "mobile-reports",
+      "item": [
+        {
+          "name": "List mobile QC reports",
+          "request": {
+            "method": "GET",
+            "description": "B2C mobile reports attributed to the account's licenses. Scope: `reports:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/mobile-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "mobile-reports"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Page size, 1–100 (default 20).",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "",
+                  "description": "Rows to skip (default 0).",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "description": "Report or test type, e.g. `FULL_QC`, `BATTERY`.",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over report id, device id and customer.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get a mobile QC report",
+          "request": {
+            "method": "GET",
+            "description": "One mobile report in full. Scope: `reports:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/mobile-reports/:reportId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "mobile-reports",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "",
+                  "description": "Mobile report id."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "users",
+      "item": [
+        {
+          "name": "List team members",
+          "request": {
+            "method": "GET",
+            "description": "Accounts created by the key owner. Scope: `users:read`. Roles: Reseller, Refurbisher, Enterprise.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "",
+                  "description": "Page number (default 1).",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Page size, 1–200 (default 20).",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over username, display name and email.",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "description": "Filter to one role, e.g. `Technician`.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create a team member",
+          "request": {
+            "method": "POST",
+            "description": "The roles you may create are decided by your own role, not by the request. Scope: `users:write`. Roles: Reseller, Refurbisher, Enterprise.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tech-01\",\n  \"password\": \"S3cret!23\",\n  \"role\": \"Technician\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get a team member",
+          "request": {
+            "method": "GET",
+            "description": "Scope: `users:read`. Only reachable for accounts on your own team.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "User id."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update a team member",
+          "request": {
+            "method": "PATCH",
+            "description": "Partial update of the fields the panel exposes. Scope: `users:write`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "User id."
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"Priya S\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate a team member",
+          "request": {
+            "method": "DELETE",
+            "description": "Soft delete — the account can no longer sign in, but its QC history is kept. Scope: `users:write`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "User id."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "fleet",
+      "item": [
+        {
+          "name": "List fleet machines",
+          "request": {
+            "method": "GET",
+            "description": "Fleet inventory with its health summary. Scope: `fleet:read`. Roles: Reseller, Enterprise.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/fleet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "fleet"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Free text over asset tag, serial and model.",
+                  "disabled": true
+                },
+                {
+                  "key": "group_id",
+                  "value": "",
+                  "description": "Restrict to one machine group.",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Enrol a machine",
+          "request": {
+            "method": "POST",
+            "description": "Adds a machine to the fleet. Scope: `fleet:write`. Roles: Reseller, Enterprise.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/fleet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "fleet"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"machine_id\": \"GG-0042\",\n  \"asset_tag\": \"IT-1187\",\n  \"model\": \"ThinkPad T14\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List lifecycle events",
+          "request": {
+            "method": "GET",
+            "description": "Ownership and service history for one machine. Scope: `fleet:read`.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/fleet/:machineId/lifecycle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "fleet",
+                ":machineId",
+                "lifecycle"
+              ],
+              "variable": [
+                {
+                  "key": "machineId",
+                  "value": "",
+                  "description": "Machine id."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Record a lifecycle event",
+          "request": {
+            "method": "POST",
+            "description": "Appends an event, e.g. an assignment, repair or retirement. Scope: `fleet:write`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/v1/fleet/:machineId/lifecycle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "v1",
+                "fleet",
+                ":machineId",
+                "lifecycle"
+              ],
+              "variable": [
+                {
+                  "key": "machineId",
+                  "value": "",
+                  "description": "Machine id."
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"assigned\",\n  \"notes\": \"Issued to warehouse team\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

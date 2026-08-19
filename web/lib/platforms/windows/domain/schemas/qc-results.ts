@@ -31,6 +31,12 @@ export const listQuerySchema = z.object({
     // Inclusive date range over qr.timestamp ("YYYY-MM-DD"); either bound optional.
     startDate: z.string().trim().optional(),
     endDate: z.string().trim().optional(),
+    // Incremental-sync cursor: an ISO timestamp, returning everything recorded at
+    // or after it. Inclusive on purpose — repeating the boundary row is cheap for
+    // a caller that de-duplicates on `id`, whereas an exclusive bound silently
+    // drops results that share a timestamp across a page edge. Like an explicit
+    // date range, it overrides the default retention window.
+    since: z.string().trim().optional(),
     // Archive view: return only results OLDER than the retention window. Absent /
     // anything but 'true' means the default view (last REPORT_RETENTION_DAYS days).
     archived: boolFlag,

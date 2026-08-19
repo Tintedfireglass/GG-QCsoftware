@@ -9,6 +9,7 @@ import { customerRoutes } from './paths/customer';
 import { publicRoutes } from './paths/public';
 import { mobileRoutes } from './paths/mobile';
 import { updateRoutes } from './paths/updates';
+import { partnerRoutes } from './paths/partner';
 
 /** Sidebar groups, in display order. Each route's `tag` must match a name here. */
 const tags: TagDoc[] = [
@@ -22,6 +23,7 @@ const tags: TagDoc[] = [
     { name: 'Public', description: 'Unauthenticated endpoints: certificate verification, plans, guest checkout.' },
     { name: 'Mobile', description: 'Android app: phone+OTP auth and reports (alternate response envelope).' },
     { name: 'App Updates', description: 'Self-update manifests polled by desktop/mobile clients.' },
+    { name: 'Partner API', description: 'Reseller integrations: versioned, key-authenticated, scoped and rate-limited.' },
 ];
 
 const routes: RouteDoc[] = [
@@ -34,6 +36,7 @@ const routes: RouteDoc[] = [
     ...publicRoutes,
     ...mobileRoutes,
     ...updateRoutes,
+    ...partnerRoutes,
 ];
 
 /**
@@ -55,5 +58,33 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         servers: [{ url: '/', description: 'This host' }],
         tags,
         routes,
+    });
+}
+
+/**
+ * Build the *public* OpenAPI document — the partner surface only.
+ *
+ * Served unauthenticated at `/api/partner/v1/openapi.json` and rendered at
+ * `/docs/api`, so it deliberately contains nothing but `/api/partner/v1/*`:
+ * resellers should not be handed a map of the dashboard's internal endpoints.
+ */
+export function buildPartnerOpenApiDocument(brandName = 'Pramaan'): Record<string, unknown> {
+    return assembleDocument({
+        info: {
+            title: `${brandName} Partner API`,
+            version: '1.0.0',
+            description:
+                'Read and manage your own QC results, machines, licenses, team and fleet from your own backend.\n\n' +
+                '**Authentication** — send your key as `x-api-key: pk_live_…` (or `Authorization: Bearer pk_live_…`). ' +
+                'Keys are issued by your account manager, carry a fixed set of scopes, and can be revoked at any time. ' +
+                'Call `GET /api/partner/v1/me` to confirm which scopes yours holds.\n\n' +
+                '**Rate limits** — every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; ' +
+                'exceeding the limit returns `429` with `Retry-After`.\n\n' +
+                '**Errors** — non-2xx responses are `{ "error": "...", "message": "..." }`.\n\n' +
+                '**Scoping** — a key sees exactly what its owning account sees in the dashboard: its own records and those of the team it created. There is no way to widen that.',
+        },
+        servers: [{ url: '/', description: 'This host' }],
+        tags: [{ name: 'Partner API', description: 'Reseller integration endpoints.' }],
+        routes: partnerRoutes,
     });
 }

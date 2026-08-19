@@ -2,6 +2,7 @@ import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { ValidationError, NotFoundError } from '@/lib/http/errors';
 import { FleetEnrollInput, LifecycleEventInput } from '@/lib/platforms/windows/domain/schemas/fleet';
 import * as repo from '@/lib/platforms/windows/repositories/fleet.repo';
+import { emitPartnerEvent } from '@/lib/partner/webhooks.service';
 
 const FLEET_OWNER_ROLES = ['Enterprise', 'OEM', 'Insurer', 'Reseller'];
 const VALID_EVENT_TYPES = ['enrolled', 'tested', 'retired', 'repaired', 'transferred', 'decommissioned'];
@@ -40,6 +41,14 @@ export async function enrollMachine(user: AuthenticatedUser, body: FleetEnrollIn
         ownerId: user.id,
         recordedByUsername: user.username,
     });
+    void emitPartnerEvent('machine.enrolled', user.id, {
+        machineId,
+        assetTag: body.asset_tag ?? null,
+        serialNumber: body.serial_number ?? null,
+        manufacturer: body.manufacturer ?? null,
+        model: body.model ?? null,
+    });
+
     return { message: 'Machine enrolled in fleet', machine_id: machineId };
 }
 

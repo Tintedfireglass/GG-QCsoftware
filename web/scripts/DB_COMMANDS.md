@@ -19,6 +19,10 @@ npm run db:generate
 # Apply migrations to database
 npm run db:push
 
+# Apply ONE hand-written migration from drizzle/manual/ (additive, transactional).
+# Safer than db:push when you only want the new table/columns.
+npm run db:apply -- 0029_partner_api_keys.sql
+
 # Open database browser UI
 npm run db:studio
 ```

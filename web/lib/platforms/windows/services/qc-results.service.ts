@@ -3,6 +3,7 @@ import { AuthenticatedUser } from '@/lib/auth-middleware';
 import { SELF_ONLY_ROLES } from '@/lib/shared/domain/visibility';
 import { ListQuery, SubmitInput } from '@/lib/platforms/windows/domain/schemas/qc-results';
 import { ConflictError, ForbiddenError, NotFoundError, AppError } from '@/lib/http/errors';
+import { emitPartnerEvent } from '@/lib/partner/webhooks.service';
 import * as repo from '@/lib/platforms/windows/repositories/qc-results.repo';
 import type { LicenseRow } from '@/lib/platforms/windows/repositories/qc-results.repo';
 
@@ -318,6 +319,18 @@ export async function submitResult(
         return qcResultId;
     });
 
+    // Notify partner subscribers. Deliberately not awaited: a reseller's endpoint
+    // must never delay (or fail) a technician's submission.
+    void emitPartnerEvent('qc_result.created', authUserId, {
+        id,
+        reportId: body.reportId,
+        machineId: machineIdRaw,
+        overallPass: body.overallPass,
+        overallScore: body.overallScore ?? null,
+        overallGrade: body.overallGrade ?? null,
+        timestamp: body.timestamp,
+    });
+
     return { id, reportId: body.reportId, demoExhausted };
 }
 
@@ -325,6 +338,9 @@ export async function hideResult(user: AuthenticatedUser, id: string) {
     const resultId = parseInt(id, 10);
     if (!Number.isInteger(resultId) || resultId <= 0) throw new NotFoundError('QC result not found');
 
-    // Repo enforces visibility rules (users can only hide their own or team's results)
-    await repo.hideQcResult(user, resultId);
+    // The repo's UPDATE carries the visibility clause, so an id outside the
+    // caller's scope simply matches no rows. Report that as "not found" — a bare
+    // success would tell an integration its delete worked when nothing changed.
+    const hidden = await repo.hideQcResult(user, resultId);
+    if (!hidden) throw new NotFoundError('QC result not found');
 }

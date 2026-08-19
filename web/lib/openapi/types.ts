@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Named security schemes declared once in `security.ts`. */
-export type SecurityScheme = 'adminJWT' | 'customerJWT' | 'mobileJWT' | 'apiKey';
+export type SecurityScheme = 'adminJWT' | 'customerJWT' | 'mobileJWT' | 'apiKey' | 'partnerApiKey';
 
 /**
  * A security requirement. A plain scheme name means "this scheme alone is

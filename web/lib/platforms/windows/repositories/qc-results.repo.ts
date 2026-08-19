@@ -188,6 +188,11 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     if (q.startDate) conds.push(sql`qr.timestamp >= ((${q.startDate}::date)::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
     if (q.endDate) conds.push(sql`qr.timestamp < ((${q.endDate}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${APP_TIME_ZONE} AT TIME ZONE 'UTC')`);
 
+    // Sync cursor (partner API). Unlike startDate this is an absolute instant, so
+    // it is normalised from the caller's offset to the naive-UTC column instead of
+    // through APP_TIME_ZONE.
+    if (q.since) conds.push(sql`qr.timestamp >= (${q.since}::timestamptz AT TIME ZONE 'UTC')`);
+
     // Rolling retention window. qr.timestamp is naive UTC, so the cutoff is built
     // in UTC too. Archive is *by definition* everything older than the cutoff, so
     // that bound always applies there (an explicit date range only narrows it
@@ -195,7 +200,7 @@ export async function listQcResults(user: AuthenticatedUser, q: ListQuery): Prom
     // dates — asking for last January should return last January, not nothing.
     const cutoff = sql`((NOW() AT TIME ZONE 'UTC') - ${sql.raw(RETENTION_INTERVAL_SQL)})`;
     if (q.archived) conds.push(sql`qr.timestamp < ${cutoff}`);
-    else if (!q.startDate && !q.endDate) conds.push(sql`qr.timestamp >= ${cutoff}`);
+    else if (!q.startDate && !q.endDate && !q.since) conds.push(sql`qr.timestamp >= ${cutoff}`);
 
     const whereSql = conds.length ? sql.join(conds, sql` AND `) : sql`1=1`;
     const needsMachineJoin = !!q.machineId || !!q.search;
@@ -702,15 +707,20 @@ export async function incrementDemoRuns(tx: Tx, demoKeyId: number): Promise<void
     }).where(eq(licenseKeys.id, demoKeyId));
 }
 
-export async function hideQcResult(user: AuthenticatedUser, id: number): Promise<void> {
+/** Returns true when a row was actually hidden — false means the id is invisible
+ *  to this user (the visibility clause matched nothing), which callers surface
+ *  as a 404 rather than a silent success. */
+export async function hideQcResult(user: AuthenticatedUser, id: number): Promise<boolean> {
     const vis = ownerVisibilitySql(user, 'technician_id');
     const visClause = vis ? sql` AND ${vis}` : sql``;
-    
-    await db.execute(sql`
+
+    const result = await db.execute(sql`
         UPDATE qc_results
         SET is_hidden = true
         WHERE id = ${id}${visClause}
     `);
+
+    return (result.rowCount ?? 0) > 0;
 }
 
 export async function assetHealthSummary(user: AuthenticatedUser): Promise<{

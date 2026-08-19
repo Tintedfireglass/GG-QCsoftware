@@ -1,12 +1,13 @@
 import type { SecurityScheme } from './types';
 
 /**
- * The four ways a caller proves identity to this API. These map to the auth
+ * The ways a caller proves identity to this API. These map to the auth
  * helpers in `lib/http`:
- *  - adminJWT    → `withAuth(...)` / `authenticateRequest` (dashboard staff)
- *  - customerJWT → `requireCustomer` (B2C buyers)
- *  - mobileJWT   → `lib/platforms/android/http` (phone app users)
- *  - apiKey      → `verifyApiKey` (`x-api-key`, the C# desktop client)
+ *  - adminJWT      → `withAuth(...)` / `authenticateRequest` (dashboard staff)
+ *  - customerJWT   → `requireCustomer` (B2C buyers)
+ *  - mobileJWT     → `lib/platforms/android/http` (phone app users)
+ *  - apiKey        → `verifyApiKey` (`x-api-key`, the C# desktop client)
+ *  - partnerApiKey → `withPartner` (`lib/partner/auth`, reseller integrations)
  */
 export const securitySchemes: Record<SecurityScheme, Record<string, unknown>> = {
     adminJWT: {
@@ -32,5 +33,12 @@ export const securitySchemes: Record<SecurityScheme, Record<string, unknown>> = 
         in: 'header',
         name: 'x-api-key',
         description: 'Shared desktop-client API key, sent in the `x-api-key` header.',
+    },
+    partnerApiKey: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-api-key',
+        description:
+            'Per-reseller partner key (`pk_live_…`), issued by an administrator and sent in the `x-api-key` header (or as `Authorization: Bearer pk_…`). Scoped, rate-limited, and resolves to the reseller account that owns it.',
     },
 };

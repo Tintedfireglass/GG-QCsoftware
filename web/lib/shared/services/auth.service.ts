@@ -6,6 +6,7 @@ import { ValidationError, UnauthorizedError, ForbiddenError, ConflictError, AppE
 import { LoginInput, RegisterInput, LicenseActivateInput, TrialInput } from '@/lib/shared/domain/schemas/auth';
 import { UserRole } from '@/lib/types';
 import * as repo from '@/lib/shared/repositories/auth.repo';
+import { emitPartnerEvent } from '@/lib/partner/webhooks.service';
 
 const VALID_ROLES: UserRole[] = [
     'SuperAdmin', 'Employee', 'Refurbisher', 'Reseller', 'Technician', 'Enterprise', 'OEM', 'Insurer', 'Client',
@@ -79,7 +80,11 @@ export async function activateLicense(body: LicenseActivateInput) {
     const platform = (body.platform || 'windows').trim().toLowerCase();
     const fingerprint = buildFingerprint(serial, macAddress, computerName);
 
-    return db.transaction(async (tx) => {
+    // Captured inside the transaction, emitted after it commits — subscribers must
+    // never be told about an activation that then rolled back.
+    let activated: { licenseId: number; ownerId: number } | null = null;
+
+    const result = await db.transaction(async (tx) => {
         const license = await repo.findLicenseKeyByKey(tx, licenseKey);
         if (!license) throw new UnauthorizedError('Invalid license key');
         if (!license.is_active) throw new UnauthorizedError('This license key has been revoked');
@@ -106,6 +111,7 @@ export async function activateLicense(body: LicenseActivateInput) {
             }
             await repo.insertActivation(tx, license.id, serial, platform);
             await repo.incrementCurrentUses(tx, license.id);
+            if (license.created_by != null) activated = { licenseId: license.id, ownerId: license.created_by };
         }
 
         const machineId = await repo.findOrCreateMachineByFingerprint(tx, fingerprint, serial, macAddress, computerName);
@@ -134,6 +140,18 @@ export async function activateLicense(body: LicenseActivateInput) {
         const token = generateToken({ userId: creator.id, username: creator.username, role: creator.role, machineId });
         return { token, user: { id: creator.id, username: creator.username, role: creator.role }, machineId };
     });
+
+    if (activated) {
+        const { licenseId, ownerId } = activated;
+        void emitPartnerEvent('license.activated', ownerId, {
+            licenseId,
+            platform,
+            machineSerial: serial,
+            computerName: computerName ?? null,
+        });
+    }
+
+    return result;
 }
 
 export async function activateTrial(body: TrialInput) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { footer } from "@/data/content";
+import { appUrl, hasApiBase } from "@/lib/api-base";
 
 // Footer (ported from components/footer.php).
 export default function Footer() {
@@ -24,6 +25,16 @@ export default function Footer() {
                 {link.text}
               </Link>
             ))}
+            {/* The partner API reference is generated from the admin app's own
+                code, so it is served there rather than duplicated here. */}
+            {hasApiBase() && (
+              <a
+                href={appUrl("docs/api")}
+                className="text-white text-decoration-none footer-link"
+              >
+                Developer API
+              </a>
+            )}
           </div>
         </div>
       </div>

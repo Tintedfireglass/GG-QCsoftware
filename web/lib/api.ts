@@ -1146,3 +1146,119 @@ export async function sendTestSms(to: string, countryCode?: string): Promise<voi
         throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
     }
 }
+
+// ── Partner API keys (SuperAdmin) ───────────────────────────────────────────
+
+export interface PartnerApiKey {
+    id: number
+    userId: number
+    name: string
+    keyPrefix: string
+    scopes: string[]
+    rateLimitPerMin: number
+    allowedOrigins: string[]
+    isActive: boolean
+    expiresAt: string | null
+    lastUsedAt: string | null
+    revokedAt: string | null
+    createdAt: string | null
+}
+
+/** Unwrap a response, surfacing the API's `{ error, message }` as an Error. */
+async function unwrap<T>(res: Response): Promise<T> {
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || err?.error || `Request failed: ${res.status}`)
+    }
+    return res.json()
+}
+
+export async function listPartnerKeys(userId: number): Promise<{ keys: PartnerApiKey[] }> {
+    return unwrap(await fetchWithAuth(`/api/admin/partner-keys?userId=${userId}`))
+}
+
+export async function issuePartnerKey(input: {
+    userId: number
+    name: string
+    scopes: string[]
+    rateLimitPerMin: number
+    allowedOrigins?: string[]
+    expiresAt?: string | null
+}): Promise<{ key: PartnerApiKey; plaintext: string }> {
+    return unwrap(await fetchWithAuth("/api/admin/partner-keys", {
+        method: "POST",
+        body: JSON.stringify(input),
+    }))
+}
+
+export async function revokePartnerKey(id: number): Promise<void> {
+    await unwrap(await fetchWithAuth(`/api/admin/partner-keys/${id}`, { method: "DELETE" }))
+}
+
+export interface PartnerKeyUsage {
+    totalRequests: number
+    totalErrors: number
+    byDay: { day: string; requests: number; errors: number }[]
+    topRoutes: { route: string; requests: number }[]
+}
+
+export async function getPartnerKeyUsage(id: number, days = 30): Promise<PartnerKeyUsage> {
+    return unwrap(await fetchWithAuth(`/api/admin/partner-keys/${id}/usage?days=${days}`))
+}
+
+// ── Partner webhooks (SuperAdmin) ───────────────────────────────────────────
+
+export interface PartnerWebhook {
+    id: number
+    userId: number
+    name: string
+    url: string
+    events: string[]
+    isActive: boolean
+    failureCount: number
+    lastSuccessAt: string | null
+    lastFailureAt: string | null
+    disabledAt: string | null
+    createdAt: string | null
+}
+
+export interface PartnerWebhookDelivery {
+    id: number
+    event: string
+    status: string
+    attempts: number
+    responseCode: number | null
+    error: string | null
+    createdAt: string | null
+}
+
+export async function listPartnerWebhooks(userId: number): Promise<{ webhooks: PartnerWebhook[] }> {
+    return unwrap(await fetchWithAuth(`/api/admin/partner-webhooks?userId=${userId}`))
+}
+
+export async function createPartnerWebhook(input: {
+    userId: number
+    name: string
+    url: string
+    events: string[]
+}): Promise<{ webhook: PartnerWebhook; secret: string }> {
+    return unwrap(await fetchWithAuth("/api/admin/partner-webhooks", {
+        method: "POST",
+        body: JSON.stringify(input),
+    }))
+}
+
+export async function setPartnerWebhookActive(id: number, isActive: boolean): Promise<void> {
+    await unwrap(await fetchWithAuth(`/api/admin/partner-webhooks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive }),
+    }))
+}
+
+export async function deletePartnerWebhook(id: number): Promise<void> {
+    await unwrap(await fetchWithAuth(`/api/admin/partner-webhooks/${id}`, { method: "DELETE" }))
+}
+
+export async function listPartnerWebhookDeliveries(id: number): Promise<{ deliveries: PartnerWebhookDelivery[] }> {
+    return unwrap(await fetchWithAuth(`/api/admin/partner-webhooks/${id}/deliveries`))
+}
