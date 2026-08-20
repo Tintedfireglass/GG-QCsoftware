@@ -87,7 +87,10 @@ const collection = {
         ],
     },
     variable: [
-        { key: 'baseUrl', value: 'https://pramaan-dashboard.gadgetguruz.com' },
+        // Whoever regenerates the collection stamps their own host in via the
+        // environment; the placeholder keeps a deployment's name out of the file
+        // when it is not set.
+        { key: 'baseUrl', value: (process.env.NEXT_PUBLIC_APP_URL || 'https://your-host.example').replace(/\/+$/, '') },
         { key: 'apiKey', value: 'pk_live_replace_me' },
     ],
     item: [...folders].map(([name, item]) => ({ name, item })),

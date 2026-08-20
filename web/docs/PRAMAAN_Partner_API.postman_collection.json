@@ -24,7 +24,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://pramaan-dashboard.gadgetguruz.com"
+      "value": "https://your-host.example"
     },
     {
       "key": "apiKey",

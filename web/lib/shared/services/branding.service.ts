@@ -61,14 +61,14 @@ const DEFAULT_LOGIN_IMAGE = '/loginImg.png';
 const DEFAULT_FAVICON = '/favicon.ico';
 
 /** Fallback when NEXT_PUBLIC_APP_URL is unset, so QR codes still resolve. */
-const LEGACY_APP_URL = 'https://pramaan-dashboard.gadgetguruz.com';
+const LEGACY_APP_URL = 'https://dashboard.pramaansystems.com';
 
 function resolveAppUrl(): string {
     return (process.env.NEXT_PUBLIC_APP_URL || LEGACY_APP_URL).replace(/\/+$/, '');
 }
 
 /** Likewise the marketing site the customer auth pages linked to. */
-const LEGACY_WEBSITE = 'https://pramaan.gadgetguruz.com';
+const LEGACY_WEBSITE = 'https://pramaansystems.com';
 
 export const DEFAULT_BRANDING: Branding = {
     siteName: 'Pramaan',
