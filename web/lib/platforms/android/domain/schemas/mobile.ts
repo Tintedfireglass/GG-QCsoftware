@@ -7,6 +7,7 @@ export const RESULT_VALUES = ['PASSED', 'FAILED', 'PARTIAL_PASS', 'SKIPPED'] as 
 export const SINGLE_TEST_TYPES = [
     'VIBRATION', 'VOLUME', 'POWER_BUTTON', 'SPEAKER', 'MICROPHONE', 'CAMERA',
     'BLUETOOTH', 'WIFI', 'GPS', 'NFC', 'INFRARED', 'FINGERPRINT', 'CHARGING_PORT', 'HEADPHONE_JACK',
+    'LIVE_CALL',
 ] as const;
 
 const phone = z.string().trim().min(6, 'A valid phone number is required').max(20);
