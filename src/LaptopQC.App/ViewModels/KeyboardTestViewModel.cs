@@ -59,6 +59,15 @@ public partial class KeyboardTestViewModel : ObservableObject
         _testState.ResetExpectedKeys(value);
         InitializeKeyboard();
         
+        // Restore tested state for keys that were already pressed
+        foreach (var vk in _testState.TestedKeys)
+        {
+            if (_keyLookup.TryGetValue(vk, out var key))
+            {
+                key.IsTested = true;
+            }
+        }
+
         // Refresh progress based on new total key count
         ProgressPercent = _testState.PercentComplete;
         var tested = _testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count();
@@ -73,7 +82,6 @@ public partial class KeyboardTestViewModel : ObservableObject
         Keys.Clear();
         _keyLookup.Clear();
 
-        // Row 0: Function keys
         // Row 0: Function keys
         AddKey(0x1B, "Esc", 0, 0);
         AddKey(0x70, "F1", 0, 2);
@@ -137,7 +145,7 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0x0D, "Enter", 3, 12.75, 2.25);
 
         // Row 4: ZXCV row
-        AddKey(0x10, "Shift", 4, 0, 2.25);  // Left Shift
+        AddKey(0xA0, "Shift", 4, 0, 2.25);   // Left Shift (VK_LSHIFT)
         AddKey(0x5A, "Z", 4, 2.25);
         AddKey(0x58, "X", 4, 3.25);
         AddKey(0x43, "C", 4, 4.25);
@@ -148,13 +156,13 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0xBC, ",", 4, 9.25);
         AddKey(0xBE, ".", 4, 10.25);
         AddKey(0xBF, "/", 4, 11.25);
-        // Right shift would be 4, 12.25, 2.75 but we only track one Shift
+        AddKey(0xA1, "Shift", 4, 12.25, 2.75); // Right Shift (VK_RSHIFT)
 
-        // Row 5: Bottom row (Note: Fn key cannot be detected - it's hardware-level)
-        AddKey(0x11, "Ctrl", 5, 0, 1.25);  // Left Ctrl
+        // Row 5: Bottom row
+        AddKey(0xA2, "Ctrl", 5, 0, 1.25);   // Left Ctrl (VK_LCONTROL)
         AddKey(0x5B, "Win", 5, 1.25, 1.25);
-        AddKey(0x12, "Alt", 5, 2.5, 1.25);  // Left Alt
-        AddKey(0x20, "Space", 5, 3.75, 6);  // Spacebar
+        AddKey(0xA4, "Alt", 5, 2.5, 1.25);   // Left Alt (VK_LMENU)
+        AddKey(0x20, "Space", 5, 3.75, 6);   // Spacebar
         AddKey(0xA5, "Alt", 5, 9.75, 1.25);  // Right Alt (VK_RMENU)
         AddKey(0xA3, "Ctrl", 5, 11, 1.25);  // Right Ctrl (VK_RCONTROL)
 
@@ -179,24 +187,21 @@ public partial class KeyboardTestViewModel : ObservableObject
             AddKey(0x67, "7", 1, npStart);
             AddKey(0x68, "8", 1, npStart + 1);
             AddKey(0x69, "9", 1, npStart + 2);
-            AddKey(0x6B, "+", 1, npStart + 3, 1); // + spans 2 rows usually but let's keep it simple grid for now or use Height
+            AddKey(0x6B, "+", 1, npStart + 3, 1);
 
             // Row 2
             AddKey(0x64, "4", 2, npStart);
             AddKey(0x65, "5", 2, npStart + 1);
             AddKey(0x66, "6", 2, npStart + 2);
-            // + continues
 
             // Row 3
             AddKey(0x61, "1", 3, npStart);
             AddKey(0x62, "2", 3, npStart + 1);
             AddKey(0x63, "3", 3, npStart + 2);
-            // Enter spans 2 rows
 
             // Row 4
             AddKey(0x60, "0", 4, npStart, 2);
             AddKey(0x6E, ".", 4, npStart + 2);
-            // Enter continues
         }
     }
 
@@ -221,6 +226,44 @@ public partial class KeyboardTestViewModel : ObservableObject
     /// </summary>
     public void RegisterKeyPress(int virtualKeyCode)
     {
+        // Handle generic Shift (0x10)
+        if (virtualKeyCode == 0x10)
+        {
+            RegisterSingleKey(0xA0);
+            RegisterSingleKey(0xA1);
+            return;
+        }
+        if (virtualKeyCode == 0x11)
+        {
+            RegisterSingleKey(0xA2);
+            return;
+        }
+        if (virtualKeyCode == 0x12)
+        {
+            RegisterSingleKey(0xA4);
+            return;
+        }
+
+        // Handle Numpad navigation keys when NumLock is OFF if Numpad mode is active
+        if (ShowNumpad)
+        {
+            switch (virtualKeyCode)
+            {
+                case 0x24: RegisterSingleKey(0x67); break; // Home -> Num 7
+                case 0x21: RegisterSingleKey(0x69); break; // PgUp -> Num 9
+                case 0x0C: RegisterSingleKey(0x65); break; // Clear -> Num 5
+                case 0x23: RegisterSingleKey(0x61); break; // End -> Num 1
+                case 0x22: RegisterSingleKey(0x63); break; // PgDn -> Num 3
+                case 0x2D: RegisterSingleKey(0x60); break; // Insert -> Num 0
+                case 0x2E: RegisterSingleKey(0x6E); break; // Delete -> Num .
+            }
+        }
+
+        RegisterSingleKey(virtualKeyCode);
+    }
+
+    private void RegisterSingleKey(int virtualKeyCode)
+    {
         // Update test state
         _testState.RegisterKeyPress(virtualKeyCode);
 
@@ -232,7 +275,8 @@ public partial class KeyboardTestViewModel : ObservableObject
 
         // Update progress
         ProgressPercent = _testState.PercentComplete;
-        ProgressText = $"{ProgressPercent:F0}% tested ({_testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count()}/{_testState.ExpectedKeys.Count} keys)";
+        var tested = _testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count();
+        ProgressText = $"{ProgressPercent:F0}% tested ({tested}/{_testState.ExpectedKeys.Count} keys)";
 
         // Check if all required keys are tested
         if (ProgressPercent >= 100)

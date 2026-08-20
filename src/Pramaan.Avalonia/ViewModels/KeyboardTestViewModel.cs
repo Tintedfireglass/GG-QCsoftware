@@ -195,13 +195,50 @@ public partial class KeyboardTestViewModel : ObservableObject
 
     public void RegisterKeyPress(int virtualKeyCode)
     {
+        if (virtualKeyCode == 0x10)
+        {
+            RegisterSingleKey(0xA0);
+            RegisterSingleKey(0xA1);
+            return;
+        }
+        if (virtualKeyCode == 0x11)
+        {
+            RegisterSingleKey(0xA2);
+            return;
+        }
+        if (virtualKeyCode == 0x12)
+        {
+            RegisterSingleKey(0xA4);
+            return;
+        }
+
+        if (ShowNumpad)
+        {
+            switch (virtualKeyCode)
+            {
+                case 0x24: RegisterSingleKey(0x67); break; // Home -> Num 7
+                case 0x21: RegisterSingleKey(0x69); break; // PgUp -> Num 9
+                case 0x0C: RegisterSingleKey(0x65); break; // Clear -> Num 5
+                case 0x23: RegisterSingleKey(0x61); break; // End -> Num 1
+                case 0x22: RegisterSingleKey(0x63); break; // PgDn -> Num 3
+                case 0x2D: RegisterSingleKey(0x60); break; // Insert -> Num 0
+                case 0x2E: RegisterSingleKey(0x6E); break; // Delete -> Num .
+            }
+        }
+
+        RegisterSingleKey(virtualKeyCode);
+    }
+
+    private void RegisterSingleKey(int virtualKeyCode)
+    {
         _testState.RegisterKeyPress(virtualKeyCode);
 
         if (_keyLookup.TryGetValue(virtualKeyCode, out var keyState))
             keyState.IsTested = true;
 
         ProgressPercent = _testState.PercentComplete;
-        ProgressText = $"{ProgressPercent:F0}% tested ({_testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count()}/{_testState.ExpectedKeys.Count} keys)";
+        var tested = _testState.TestedKeys.Intersect(_testState.ExpectedKeys).Count();
+        ProgressText = $"{ProgressPercent:F0}% tested ({tested}/{_testState.ExpectedKeys.Count} keys)";
 
         if (ProgressPercent >= 100)
             Instructions = "All keys tested! Click Complete to finish.";

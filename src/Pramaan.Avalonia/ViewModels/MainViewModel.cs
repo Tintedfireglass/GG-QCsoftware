@@ -532,35 +532,40 @@ public partial class MainViewModel : ObservableObject
             }
             else
             {
-                // macOS: run RAM stress (pure .NET, cross-platform) and skip CPU/GPU sensor-based tests
-                StatusMessage = "Stress testing RAM...";
-                var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
-                ramStress.OnProgress += (p) =>
+                // macOS: run the unified 4-phase thermal stress test
+                // (BASELINE → CPU_RAMP → COMBINED_LOAD → COOLDOWN, ~75s total)
+                StatusMessage = "Thermal Stress Test: starting...";
+
+                var thermalStress = new LaptopQC.Core.Diagnostics.MacThermalStressTest();
+                thermalStress.OnProgress += (p) =>
                 {
+                    string gipsLabel = p.CurrentGips > 0 ? $" | {p.CurrentGips:F3} GIPS" : "";
                     Dispatcher.UIThread.Post(() =>
-                        StatusMessage = $"Stress testing RAM: {p.PercentComplete}%");
+                        StatusMessage = $"Thermal Stress [{p.Phase}]: {p.PercentComplete}%{gipsLabel}");
                 };
 
-                var ramResult = await ramStress.RunAsync();
-                AddResult("RAM", "Stress Test", ramResult.Passed, ramResult.Message);
-                RamStatus = ramResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+                var thermalResult = await thermalStress.RunAsync();
 
-                // CPU stress: macOS performance-based throttling test
-                StatusMessage = "Stress testing CPU...";
-                var macCpuStress = new LaptopQC.Core.Diagnostics.MacCpuStressTest(durationSeconds: 15);
-                macCpuStress.OnProgress += (p) =>
-                {
-                    var speed = p.CurrentClock > 0 ? $" | Speed: {p.CurrentClock:F1}M ops/s" : "";
-                    Dispatcher.UIThread.Post(() => 
-                        StatusMessage = $"Stress testing CPU: {p.PercentComplete}%{speed} (Math loop)");
-                };
+                // CPU
+                AddResult("CPU", "Stress Test", thermalResult.CpuPassed, thermalResult.CpuMessage);
+                if (thermalResult.BaselineGips > 0)
+                    AddResult("CPU", "GIPS Profile",
+                        true,
+                        $"Baseline {thermalResult.BaselineGips:F3} → Peak {thermalResult.PeakGips:F3} → Sustained {thermalResult.SustainedGips:F3} → Recovery {thermalResult.RecoveryGips:F3}");
+                CpuStatus = thermalResult.CpuPassed ? "Passed Stress Test" : "Failed Stress Test";
 
-                var macCpuResult = await macCpuStress.RunAsync();
-                AddResult("CPU", "Stress Test", macCpuResult.Passed, macCpuResult.Message);
-                CpuStatus = macCpuResult.Passed ? "Passed Stress Test" : "Failed Stress Test";
+                // RAM
+                AddResult("RAM", "Stress Test", thermalResult.RamPassed, thermalResult.RamMessage);
+                RamStatus = thermalResult.RamPassed ? "Passed Stress Test" : "Failed Stress Test";
 
+                // Storage speed (informational)
+                if (!string.IsNullOrEmpty(thermalResult.StorageDetail))
+                    AddResult("Storage", "Speed Benchmark", true, thermalResult.StorageDetail);
+
+                // GPU
                 AddResult("GPU", "Stress Test", true, "GPU stress test not available on macOS (DirectX not supported)");
             }
+
 
             StatusMessage = "Stress tests complete!";
         }

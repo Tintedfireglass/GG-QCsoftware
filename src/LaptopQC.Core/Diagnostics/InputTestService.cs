@@ -273,11 +273,14 @@ public class InputTestService
             0x41 => "A", 0x53 => "S", 0x44 => "D", 0x46 => "F", 0x47 => "G",
             0x48 => "H", 0x4A => "J", 0x4B => "K", 0x4C => "L",
             0xBA => ";", 0xDE => "'", 0x0D => "Enter",
-            0x10 => "Shift",
+            0x10 => "Shift", 0xA0 => "Left Shift", 0xA1 => "Right Shift",
             0x5A => "Z", 0x58 => "X", 0x43 => "C", 0x56 => "V", 0x42 => "B",
             0x4E => "N", 0x4D => "M",
             0xBC => ",", 0xBE => ".", 0xBF => "/",
-            0x11 => "Ctrl", 0x5B => "Win", 0x12 => "Alt", 0x20 => "Space",
+            0x11 => "Ctrl", 0xA2 => "Left Ctrl", 0xA3 => "Right Ctrl",
+            0x5B => "Win", 0x5C => "Right Win",
+            0x12 => "Alt", 0xA4 => "Left Alt", 0xA5 => "Right Alt",
+            0x20 => "Space",
             0x25 => "Left", 0x26 => "Up", 0x27 => "Right", 0x28 => "Down",
 
             
