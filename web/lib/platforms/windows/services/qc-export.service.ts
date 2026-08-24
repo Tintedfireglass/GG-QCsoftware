@@ -350,18 +350,19 @@ async function buildPdfBuffer(
     y -= 18;
 
     const columns = [
-        { key: 'serial', title: 'Serial No.', width: 90 },
-        { key: 'computer', title: 'Computer', width: 100 },
-        { key: 'date', title: 'Shift Date', width: 60 },
-        { key: 'proc', title: 'Processor', width: 88 },
-        { key: 'ram', title: 'RAM', width: 34 },
-        { key: 'os', title: 'OS', width: 58 },
-        { key: 'windows', title: 'Windows', width: 52 },
-        { key: 'free', title: 'Free %', width: 40 },
-        { key: 'tamper', title: 'Tamper', width: 46 },
-        { key: 'thermal', title: 'Thermal', width: 44 },
-        { key: 'grade', title: 'Grade', width: 38 },
-        { key: 'user', title: 'Client', width: 80 },
+        { key: 'serial', title: 'Serial No.', width: 84 },
+        { key: 'computer', title: 'Computer', width: 92 },
+        { key: 'device', title: 'Device ID', width: 74 },
+        { key: 'date', title: 'Shift Date', width: 56 },
+        { key: 'proc', title: 'Processor', width: 84 },
+        { key: 'ram', title: 'RAM', width: 32 },
+        { key: 'os', title: 'OS', width: 54 },
+        { key: 'windows', title: 'Windows', width: 50 },
+        { key: 'free', title: 'Free %', width: 38 },
+        { key: 'tamper', title: 'Tamper', width: 44 },
+        { key: 'thermal', title: 'Thermal', width: 42 },
+        { key: 'grade', title: 'Grade', width: 36 },
+        { key: 'user', title: 'Client', width: 74 },
     ];
     const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
 
@@ -390,19 +391,21 @@ async function buildPdfBuffer(
             borderColor: entry.isStale ? rgb(0.88, 0.22, 0.22) : rgb(0.90, 0.92, 0.95), borderWidth: entry.isStale ? 0.8 : 0.5,
         });
         const freePercentLabel = entry.freePercent == null ? '-' : `${entry.freePercent.toFixed(1)}%`;
+        // Indices follow HEADERS / rowValues order.
         const cells = [
-            entry.serialNo || String(values[15] || '-'),
+            entry.serialNo || String(values[17] || '-'),
             String(values[1] || '-'),
             String(values[2] || '-'),
-            String(entry.compactProcessor || '-'),
-            String(values[7] || '-'),
             String(values[3] || '-'),
+            String(entry.compactProcessor || '-'),
+            String(values[9] || '-'),
             String(values[4] || '-'),
+            String(values[5] || '-'),
             freePercentLabel,
             entry.isTampered ? 'Tampered' : 'Clean',
             entry.hasThermalIssue ? 'Risk' : 'OK',
-            String(values[13] || '-'),
-            String(values[19] || '-'),
+            String(values[15] || '-'),
+            String(values[21] || '-'),
         ];
 
         let x = margin + 4;
@@ -411,14 +414,14 @@ async function buildPdfBuffer(
             let fillColor: ReturnType<typeof rgb> | null = null;
             let txtColor = entry.isStale ? RED : rgb(0.15, 0.19, 0.24);
 
-            if (cellIndex === 7 && entry.freePercent != null) {
+            if (cellIndex === 8 && entry.freePercent != null) {
                 if (entry.freePercent <= 10) { fillColor = rgb(0.91, 0.20, 0.16); txtColor = rgb(1, 1, 1); }
                 else if (entry.freePercent < 25) { fillColor = rgb(0.98, 0.90, 0.25); txtColor = rgb(0.3, 0.2, 0.0); }
-            } else if (cellIndex === 8 && entry.isTampered) {
+            } else if (cellIndex === 9 && entry.isTampered) {
                 fillColor = rgb(0.91, 0.20, 0.16); txtColor = rgb(1, 1, 1);
-            } else if (cellIndex === 9 && entry.hasThermalIssue) {
+            } else if (cellIndex === 10 && entry.hasThermalIssue) {
                 fillColor = rgb(0.98, 0.90, 0.25); txtColor = AMBER;
-            } else if (cellIndex === 6 && entry.isWindowsInactive) {
+            } else if (cellIndex === 7 && entry.isWindowsInactive) {
                 fillColor = rgb(0.91, 0.20, 0.16); txtColor = rgb(1, 1, 1);
             }
 
@@ -426,7 +429,7 @@ async function buildPdfBuffer(
                 page.drawRectangle({ x: x - 2, y: y - 13, width: columns[cellIndex].width - 2, height: 12, color: fillColor });
             }
 
-            const fontSize = cellIndex === 1 ? 6.8 : 7.5;
+            const fontSize = cellIndex === 1 || cellIndex === 2 ? 6.8 : 7.5;
             const finalText = truncateToWidth(cell, colWidth, fontSize, font);
             page.drawText(finalText, { x, y: y - 10, size: fontSize, font, color: txtColor });
             x += columns[cellIndex].width;
@@ -439,7 +442,7 @@ async function buildPdfBuffer(
 }
 
 const HEADERS = [
-    'S.No', 'Computer Name', 'Shift Date', 'OS Edition', 'Windows', 'Version', 'Windows Last Updated',
+    'S.No', 'Computer Name', 'Device ID', 'Shift Date', 'OS Edition', 'Windows', 'Version', 'Windows Last Updated',
     'Processor', 'RAM (GB)', 'Antivirus', 'Total Storage (GB)', 'Free Storage (GB)', 'Disk Health (Per Drive)',
     'Tamper Status', 'Grade', 'Score', 'Serial No', 'MAC Address', 'Manufacturer', 'Model', 'Client',
     'Physical Condition', 'Scratches & Dents',
@@ -527,6 +530,8 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
         const rowValues = [
             String(index + 1),
             (r.computer_name as string | undefined) || '',
+            // machine_identifier is machines.machine_id; r.machine_id is the FK integer.
+            (r.machine_identifier as string | undefined) || '',
             formatShiftDate((r.timestamp as string | Date | null | undefined) || null, opts.timeZone),
             osEdition,
             activationLabel,
@@ -570,17 +575,19 @@ export async function exportQcResults(user: AuthenticatedUser, opts: ExportOptio
     worksheet.addRow(HEADERS);
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+    // One entry per HEADERS column, in the same order.
     worksheet.columns = [
-        { width: 8 }, { width: 24 }, { width: 14 }, { width: 24 }, { width: 14 }, { width: 12 },
-        { width: 16 }, { width: 12 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 36 },
-        { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 }, { width: 22 }, { width: 18 },
-        { width: 20 }, { width: 20 }, { width: 18 }, { width: 18 },
+        { width: 8 }, { width: 24 }, { width: 22 }, { width: 14 }, { width: 24 }, { width: 14 },
+        { width: 12 }, { width: 16 }, { width: 22 }, { width: 10 }, { width: 20 }, { width: 16 },
+        { width: 16 }, { width: 36 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 },
+        { width: 20 }, { width: 20 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 18 },
     ];
 
-    const freeStorageColumnIndex = 11;
-    const windowsColumnIndex = 5;
-    const diskHealthColumnIndex = 12;
-    const tamperStatusColumnIndex = 13;
+    // 1-based column positions in HEADERS.
+    const freeStorageColumnIndex = 13;
+    const windowsColumnIndex = 6;
+    const diskHealthColumnIndex = 14;
+    const tamperStatusColumnIndex = 15;
 
     exportRows.forEach((entry) => {
         const row = worksheet.addRow(entry.rowValues);
@@ -1130,6 +1137,8 @@ export async function exportSampleDataset(
             const rowValues = [
                 String(index + 1),
                 (r.computer_name as string | undefined) || '',
+                // machine_identifier is machines.machine_id; r.machine_id is the FK integer.
+                (r.machine_identifier as string | undefined) || '',
                 formatShiftDate((r.timestamp as string | Date | null | undefined) || null, opts.timeZone),
                 osEdition,
                 activationLabel,
@@ -1161,17 +1170,19 @@ export async function exportSampleDataset(
         worksheet.addRow(HEADERS);
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+        // One entry per HEADERS column, in the same order.
         worksheet.columns = [
-            { width: 8 }, { width: 24 }, { width: 14 }, { width: 24 }, { width: 14 }, { width: 12 },
-            { width: 16 }, { width: 12 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 36 },
-            { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 }, { width: 22 }, { width: 18 },
-            { width: 20 }, { width: 20 },
+            { width: 8 }, { width: 24 }, { width: 22 }, { width: 14 }, { width: 24 }, { width: 14 },
+            { width: 12 }, { width: 16 }, { width: 22 }, { width: 10 }, { width: 20 }, { width: 16 },
+            { width: 16 }, { width: 36 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 20 },
+            { width: 20 }, { width: 20 }, { width: 20 }, { width: 18 }, { width: 18 }, { width: 18 },
         ];
 
-        const freeStorageColIdx = 11;
-        const windowsColIdx = 5;
-        const diskHealthColIdx = 12;
-        const tamperColIdx = 13;
+        // 1-based column positions in HEADERS.
+        const freeStorageColIdx = 13;
+        const windowsColIdx = 6;
+        const diskHealthColIdx = 14;
+        const tamperColIdx = 15;
 
         exportRows.forEach((entry) => {
             const row = worksheet.addRow(entry.rowValues);
