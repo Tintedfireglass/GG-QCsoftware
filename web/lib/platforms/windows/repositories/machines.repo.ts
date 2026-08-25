@@ -63,8 +63,9 @@ function visibilityFor(user: AuthenticatedUser): Visibility {
 }
 
 /** Count machines visible to the user (fast path for dashboard cards).
- *  Archived machines are excluded unless the archive side is asked for. */
-export async function countVisibleMachines(user: AuthenticatedUser, archived?: boolean): Promise<number> {
+ *  Counts both sides of the archive split: the dashboard total is the whole
+ *  fleet, so archiving a machine must not make the number drop. */
+export async function countVisibleMachines(user: AuthenticatedUser): Promise<number> {
     const v = visibilityFor(user);
 
     let whereSql: SQL | null = null;
@@ -89,10 +90,9 @@ export async function countVisibleMachines(user: AuthenticatedUser, archived?: b
         )`;
     }
 
-    const archiveBound = archiveWhere(archived);
     const q = whereSql
-        ? sql`SELECT COUNT(*) as total FROM machines m WHERE ${archiveBound} AND ${whereSql}`
-        : sql`SELECT COUNT(*) as total FROM machines m WHERE ${archiveBound}`;
+        ? sql`SELECT COUNT(*) as total FROM machines m WHERE ${whereSql}`
+        : sql`SELECT COUNT(*) as total FROM machines`;
     const { rows } = await db.execute(q);
     return parseInt((rows[0] as { total?: string })?.total ?? '0', 10);
 }

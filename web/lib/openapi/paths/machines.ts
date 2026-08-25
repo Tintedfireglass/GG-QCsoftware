@@ -20,7 +20,7 @@ export const machineRoutes: RouteDoc[] = [
         path: '/api/machines',
         tag: 'Machines',
         summary: 'List machines',
-        description: 'Machines visible to the caller, excluding archived ones. Pass `archived=true` for the archive instead, or `countOnly=1` for just the visible count (dashboard cards).',
+        description: 'Machines visible to the caller, excluding archived ones. Pass `archived=true` for the archive instead, or `countOnly=1` for just the visible count (dashboard cards, which counts archived machines too).',
         security: ['adminJWT'],
         params: [
             { name: 'countOnly', in: 'query', description: 'Set `1`/`true` to return only `{ count }`.', schema: { type: 'string', enum: ['1', 'true'] } },

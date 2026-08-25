@@ -3,8 +3,8 @@ import { NotFoundError } from '@/lib/http/errors';
 import * as repo from '@/lib/platforms/windows/repositories/machines.repo';
 import type { UpdateMachinePatch } from '@/lib/platforms/windows/domain/schemas/machines';
 
-export async function countMachines(user: AuthenticatedUser, archived?: boolean): Promise<{ total: number }> {
-    return { total: await repo.countVisibleMachines(user, archived) };
+export async function countMachines(user: AuthenticatedUser): Promise<{ total: number }> {
+    return { total: await repo.countVisibleMachines(user) };
 }
 
 export async function listMachines(
