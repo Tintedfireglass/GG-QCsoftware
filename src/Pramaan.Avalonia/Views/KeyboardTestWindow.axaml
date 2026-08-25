@@ -4,10 +4,10 @@
         xmlns:conv="using:Pramaan.Avalonia.Converters"
         x:Class="Pramaan.Avalonia.Views.KeyboardTestWindow"
         Title="Keyboard Test" 
-        Height="660" Width="980" MinWidth="800"
+        Height="660" Width="1180" MinWidth="800"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
-        CanResize="False">
+        CanResize="True">
     
     <Window.DataContext>
         <vm:KeyboardTestViewModel />
@@ -142,7 +142,7 @@
                     <ItemsControl ItemsSource="{Binding Keys}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas Height="280" Width="900"/>
+                                <Canvas Height="280" Width="1020"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>

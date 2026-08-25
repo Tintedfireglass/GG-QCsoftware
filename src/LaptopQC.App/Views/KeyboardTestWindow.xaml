@@ -3,13 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:LaptopQC.App.ViewModels"
         Title="⌨️ Keyboard Test" 
-        Height="600" Width="1100"
+        Height="620" Width="1200" MinWidth="900"
         WindowStartupLocation="CenterOwner"
         Background="#f5f5f5"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         KeyDown="Window_KeyDown"
         PreviewKeyDown="Window_PreviewKeyDown">
-    
+
     <Window.DataContext>
         <vm:KeyboardTestViewModel />
     </Window.DataContext>
@@ -80,76 +80,76 @@
             
             <!-- Keyboard Layout -->
             <Border Grid.Row="2" Background="#f9fafb" BorderBrush="{DynamicResource BorderGreyBrush}" BorderThickness="1" CornerRadius="8" Padding="15">
-                <ItemsControl ItemsSource="{Binding Keys}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas Height="350"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Canvas.Left">
-                                <Setter.Value>
-                                    <MultiBinding Converter="{StaticResource KeyPositionConverter}" ConverterParameter="X">
-                                        <Binding Path="Column"/>
-                                        <Binding Path="Width"/>
-                                    </MultiBinding>
-                                </Setter.Value>
-                            </Setter>
-                            <Setter Property="Canvas.Top">
-                                <Setter.Value>
-                                    <Binding Path="Row" Converter="{StaticResource KeyPositionConverter}" ConverterParameter="Y"/>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border CornerRadius="6" Margin="1" 
-                                    MinHeight="40"
-                                    Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                                <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
-                                                <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <TextBlock Text="{Binding Label}" 
-                                           HorizontalAlignment="Center" 
-                                           VerticalAlignment="Center"
-                                           FontSize="11" 
-                                           FontWeight="SemiBold"
-                                           FontFamily="Segoe UI">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Keys}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Height="280" Width="1050"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left">
+                                    <Setter.Value>
+                                        <MultiBinding Converter="{StaticResource KeyPositionConverter}" ConverterParameter="X">
+                                            <Binding Path="Column"/>
+                                            <Binding Path="Width"/>
+                                        </MultiBinding>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Canvas.Top">
+                                    <Setter.Value>
+                                        <Binding Path="Row" Converter="{StaticResource KeyPositionConverter}" ConverterParameter="Y"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="6" Margin="1" 
+                                        MinHeight="40"
+                                        Width="{Binding Width, Converter={StaticResource KeyWidthConverter}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource BorderGreyBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderGreyDarkBrush}"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsTested}" Value="True">
-                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryHoverBrush}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding Label}" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"
+                                               FontSize="11" 
+                                               FontWeight="SemiBold"
+                                               FontFamily="Segoe UI">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsTested}" Value="True">
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Border>
             
             <!-- Instructions -->
             <TextBlock Grid.Row="3" 
                        Text="{Binding Instructions}" 
                        Foreground="{DynamicResource TextSecondaryBrush}" 
-                       FontFamily="Segoe UI"
-                       FontSize="14"
                        HorizontalAlignment="Center"
                        Margin="0,16,0,0"/>
             

@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 namespace LaptopQC.Core.Diagnostics;
 
 /// <summary>
-/// A CPU stress test for macOS that uses an iterations-per-second (IPS) drop approach 
-/// to detect thermal throttling, since reading exact CPU temperatures natively 
+/// A CPU stress test for macOS that uses an iterations-per-second (IPS) drop approach
+/// to detect thermal throttling, since reading exact CPU temperatures natively
 /// requires root privileges and is not supported on Apple Silicon via standard tools.
 /// </summary>
+/// <remarks>
+/// DEPRECATED — replaced by <see cref="MacThermalStressTest"/> which runs a proper
+/// 4-phase protocol (BASELINE → CPU_RAMP → COMBINED_LOAD → COOLDOWN) with GIPS
+/// measurement, concurrent RAM pressure, and a storage benchmark.
+/// This class is retained for reference only and is no longer called from production code.
+/// </remarks>
+[Obsolete("Use MacThermalStressTest instead. This class will be removed in a future release.")]
 public class MacCpuStressTest
 {
     private readonly int _durationSeconds;
@@ -17,6 +24,7 @@ public class MacCpuStressTest
 
     public MacCpuStressTest(int durationSeconds = 15)
     {
+
         _durationSeconds = durationSeconds;
     }
 

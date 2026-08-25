@@ -24,7 +24,9 @@ export function ReportLayout({ data }: { data: any }) {
             const type = String(test?.test_type || "").toLowerCase()
             if (type === "storage" && storageDevices.length > 1) {
                 return storageDevices.map((device: any, idx: number) => {
-                    const rawName = typeof device?.deviceName === "string" ? device.deviceName : ""
+                    const rawName = typeof device?.model === "string" && device.model
+                        ? device.model
+                        : typeof device?.deviceName === "string" ? device.deviceName : ""
                     const driveName = rawName || `Drive ${idx + 1}`
                     const healthPct = typeof device?.healthPercent === "number"
                         ? `${Math.round(device.healthPercent)}% health`

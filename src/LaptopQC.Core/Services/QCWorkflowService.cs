@@ -523,36 +523,49 @@ public class QCWorkflowService
             }
             else
             {
-                UpdateStatus("Running CPU Stress Test (macOS)...", 60);
-                var cpuStress = new MacCpuStressTest(durationSeconds: 15);
-                cpuStress.OnProgress += (p) => UpdateStatus($"CPU Stress Test: {p.PercentComplete}%", 60 + (p.PercentComplete / 5)); // 60-80%
-                var cpuResult = await cpuStress.RunAsync();
-                
-                Report.CpuTest.Passed &= cpuResult.Passed;
-                if (!cpuResult.Passed) 
-                {
-                    Report.CpuTest.Details.Add($"Stress Test Failed: {cpuResult.Message}");
-                }
-                else 
-                {
-                    Report.CpuTest.Details.Add($"{cpuResult.Message}");
-                }
+                UpdateStatus("Running Thermal Stress Test (macOS)...", 60);
 
-                // Bug fix: RAM stress was previously auto-marked Passed=true without running.
-                // Now actually runs the same cross-platform RamStressTest used on Windows.
-                UpdateStatus("Running RAM Stress Test (macOS)...", 75);
-                var ramStress = new RamStressTest(testSizeMB: 512, iterations: 2);
-                ramStress.OnProgress += (p) => UpdateStatus($"RAM Stress Test: {p.PercentComplete}%", 75 + (p.PercentComplete / 20));
-                var ramResult = await ramStress.RunAsync();
+                var thermalStress = new MacThermalStressTest();
+                thermalStress.OnProgress += (p) =>
+                {
+                    string gipsLabel = p.CurrentGips > 0 ? $" | {p.CurrentGips:F3} GIPS" : "";
+                    UpdateStatus($"Thermal Stress [{p.Phase}]: {p.PercentComplete}%{gipsLabel}", 60 + (p.PercentComplete / 5));
+                };
 
-                Report.RamTest.Passed &= ramResult.Passed;
-                if (!ramResult.Passed) Report.RamTest.Details.Add($"Stress Test Failed: {ramResult.Message}");
-                else Report.RamTest.Details.Add($"Stress Test Passed ({ramResult.Message})");
-                
-                Report.GpuTest.Tested = false;
-                Report.GpuTest.Message = "Not available on macOS";
-                Report.GpuTest.Passed = true;
+                var thermalResult = await thermalStress.RunAsync(cancellationToken);
+
+                // ── CPU test ─────────────────────────────────────────────
+                Report.CpuTest.Passed &= thermalResult.CpuPassed;
+                Report.CpuTest.Details.Add(thermalResult.CpuPassed
+                    ? thermalResult.CpuMessage
+                    : $"Stress Test Failed: {thermalResult.CpuMessage}");
+
+                if (thermalResult.BaselineGips > 0)
+                    Report.CpuTest.Details.Add(
+                        $"GIPS — Baseline: {thermalResult.BaselineGips:F3} | Peak: {thermalResult.PeakGips:F3} | Sustained: {thermalResult.SustainedGips:F3} | Recovery: {thermalResult.RecoveryGips:F3}");
+
+                if (thermalResult.AbortedByHeat)
+                    Report.CpuTest.Details.Add($"WARNING: Thermal abort triggered ({thermalResult.WorseThermalLevel})");
+
+                // ── RAM test ─────────────────────────────────────────────
+                Report.RamTest.Passed &= thermalResult.RamPassed;
+                Report.RamTest.Details.Add(thermalResult.RamPassed
+                    ? thermalResult.RamMessage
+                    : $"Stress Test Failed: {thermalResult.RamMessage}");
+
+                if (thermalResult.OomOccurred)
+                    Report.RamTest.Details.Add("Note: OOM encountered — allocations stopped early (not a test failure)");
+
+                // ── Storage speed (informational) ─────────────────────────
+                if (!string.IsNullOrEmpty(thermalResult.StorageDetail))
+                    Report.StorageTest.Details.Add($"Speed Benchmark: {thermalResult.StorageDetail}");
+
+                // GPU not available on macOS
+                Report.GpuTest.Tested   = false;
+                Report.GpuTest.Message  = "Not available on macOS";
+                Report.GpuTest.Passed   = true;
             }
+
 		#endif
 
 

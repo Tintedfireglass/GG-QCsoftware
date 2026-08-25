@@ -15,7 +15,7 @@ import { getBrandingForHost } from '@/lib/shared/services/reseller-branding.serv
 type IssueKey = 'criticalStorage' | 'lowStorage' | 'tampered' | 'inactiveWindows' | 'thermal' | 'stale';
 type JsonRecord = Record<string, unknown>;
 type StorageVolume = { totalBytes?: number; freeBytes?: number };
-type StorageDevice = { deviceName?: string; healthPercent?: number; isTampered?: boolean };
+type StorageDevice = { model?: string; deviceName?: string; healthPercent?: number; isTampered?: boolean };
 type StorageInfo = { volumes?: StorageVolume[]; devices?: StorageDevice[]; isTampered?: boolean };
 
 type ExportRow = {
@@ -142,7 +142,8 @@ function getStorageHealthSummary(storageInfo: StorageInfo): { label: string; isT
     if (devices.length === 0) return { label: isTampered ? 'Tampered' : '', isTampered };
 
     const driveHealth = devices.map((d, idx: number) => {
-        const rawName = typeof d?.deviceName === 'string' ? d.deviceName : '';
+        const rawName = (typeof d?.model === 'string' && d.model) ? d.model
+            : typeof d?.deviceName === 'string' ? d.deviceName : '';
         const driveName = rawName || `Drive ${idx + 1}`;
         const healthPercent = typeof d?.healthPercent === 'number' ? `${Math.round(d.healthPercent)}%` : 'N/A';
         const suffix = d?.isTampered === true ? ' (Tampered)' : '';
