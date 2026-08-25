@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:apply": "node scripts/apply-manual-migration.mjs",
+    "db:apply-cirtyn": "node scripts/apply-manual-migration.mjs --cirtyn",
     "docs:postman": "tsx scripts/generate-partner-postman.ts",
     "db:studio": "drizzle-kit studio",
     "db:backup": "node scripts/backup-db.mjs",

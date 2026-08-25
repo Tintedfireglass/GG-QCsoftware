@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { getMachine, updateMachineCustomName } from "@/lib/api"
+import { getMachine, setMachineArchived, updateMachineCustomName } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDbDateTime, formatBytes } from "@/lib/utils"
 import { getGradeStyle, gradeHeroColor } from "@/lib/platforms/windows/grades"
-import { ArrowLeft, ExternalLink, Monitor, TrendingUp, TrendingDown, Minus, FlaskConical, ChevronDown, ChevronRight } from "lucide-react"
+import { ArrowLeft, ExternalLink, Monitor, TrendingUp, TrendingDown, Minus, FlaskConical, ChevronDown, ChevronRight, Archive, ArchiveRestore } from "lucide-react"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
 
 type MachineDetail = {
@@ -344,6 +344,7 @@ export default function MachineDetailPage() {
     const [customName, setCustomName] = useState("")
     const [savingName, setSavingName] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
+    const [archiving, setArchiving] = useState(false)
     const [nowMs, setNowMs] = useState(() => Date.now())
     const [showAll, setShowAll] = useState(false)
 
@@ -453,7 +454,7 @@ export default function MachineDetailPage() {
                                     setSavingName(true); setSaveError(null)
                                     try {
                                         const updated = await updateMachineCustomName(String(id), customName)
-                                        setData({ machine: updated.machine, test_history })
+                                        setData((prev) => (prev ? { ...prev, machine: updated.machine } : prev))
                                         setCustomName(updated.machine?.custom_name || "")
                                     } catch (err) {
                                         setSaveError(err instanceof Error ? err.message : "Failed to save name")
@@ -466,6 +467,37 @@ export default function MachineDetailPage() {
                             </Button>
                         </div>
                         {saveError && <div className="text-xs text-rose-600">{saveError}</div>}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <Button
+                                variant="outline"
+                                className="rounded-full border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-sm font-medium"
+                                disabled={archiving}
+                                onClick={async () => {
+                                    if (!id) return
+                                    const next = !machine.archived_at
+                                    setArchiving(true); setSaveError(null)
+                                    try {
+                                        const updated = await setMachineArchived(String(id), next)
+                                        setData((prev) => (prev ? { ...prev, machine: updated.machine } : prev))
+                                    } catch (err) {
+                                        setSaveError(err instanceof Error ? err.message : "Failed to update machine")
+                                    } finally {
+                                        setArchiving(false)
+                                    }
+                                }}
+                            >
+                                {archiving
+                                    ? "Saving..."
+                                    : machine.archived_at
+                                        ? <>Restore to active list<ArchiveRestore className="ml-1.5 h-3.5 w-3.5" /></>
+                                        : <>Archive machine<Archive className="ml-1.5 h-3.5 w-3.5" /></>}
+                            </Button>
+                            {machine.archived_at && (
+                                <span className="text-xs text-slate-500">
+                                    Archived {formatDbDateTime(machine.archived_at)}
+                                </span>
+                            )}
+                        </div>
                         {machine.computer_name && (
                             <div className="text-xs text-slate-400">Device name: {machine.computer_name}</div>
                         )}

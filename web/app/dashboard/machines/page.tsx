@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getMachine, getMachines, getUsers } from "@/lib/api"
+import { getMachine, getMachines, getUsers, setMachineArchived } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Monitor, ExternalLink, Search } from "lucide-react"
+import { Monitor, ExternalLink, Search, Archive, ArchiveRestore } from "lucide-react"
 import { Pagination } from "@/components/ui/pagination"
 import { DateRangeFilter } from "@/components/ui/date-range-filter"
+import { ArchiveToggle } from "@/components/ui/archive-toggle"
 import { formatDbDate, toAppZoneDateStamp } from "@/lib/utils"
 import { getGradeStyle } from "@/lib/platforms/windows/grades"
 import { isMachineActive, NOW_TICK_MS, POLL_INTERVAL_MS } from "@/lib/platforms/windows/machine-status"
@@ -31,6 +32,10 @@ export default function MachinesPage() {
     // Date range filters the list by each machine's last-seen day (inclusive).
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    // false = the active list; true = the machines an operator has archived by hand.
+    const [showArchive, setShowArchive] = useState(false)
+    const [archivingId, setArchivingId] = useState<number | null>(null)
+    const [archiveError, setArchiveError] = useState<string | null>(null)
     const gradeFilterRef = useRef<HTMLDivElement | null>(null)
     const [nowMs, setNowMs] = useState(() => Date.now())
     // Client (owner) filter — only offered to user managers (SuperAdmin etc.).
@@ -47,7 +52,7 @@ export default function MachinesPage() {
         async function load(showLoading: boolean) {
             try {
                 if (showLoading) setLoading(true)
-                const data = await getMachines()
+                const data = await getMachines(showArchive)
                 if (mounted) setMachines(data.machines)
             } catch (error) {
                 console.error(error)
@@ -61,7 +66,23 @@ export default function MachinesPage() {
             mounted = false
             clearInterval(poll)
         }
-    }, [])
+    }, [showArchive])
+
+    // Archive or restore one machine. The row belongs to the other view once the
+    // write lands, so drop it from the list rather than re-fetching everything.
+    async function toggleArchived(machineId: number, archived: boolean) {
+        setArchivingId(machineId)
+        setArchiveError(null)
+        try {
+            await setMachineArchived(String(machineId), archived)
+            setMachines((prev) => prev.filter((m) => m.id !== machineId))
+        } catch (err) {
+            console.error(err)
+            setArchiveError(err instanceof Error ? err.message : "Failed to update machine")
+        } finally {
+            setArchivingId(null)
+        }
+    }
 
     useEffect(() => {
         const t = setInterval(() => setNowMs(Date.now()), NOW_TICK_MS)
@@ -243,7 +264,7 @@ export default function MachinesPage() {
     // Reset to the first page whenever the result set changes.
     useEffect(() => {
         setPage(1)
-    }, [appliedSearch, selectedGrades, selectedClientId, machineSort, startDate, endDate])
+    }, [appliedSearch, selectedGrades, selectedClientId, machineSort, startDate, endDate, showArchive])
 
     // Clamp the page if the list shrinks below the current page.
     useEffect(() => {
@@ -283,6 +304,15 @@ export default function MachinesPage() {
                         </Button>
                     </form>
                     <div className="flex flex-wrap items-center gap-2">
+                        <ArchiveToggle
+                            activeLabel="Active"
+                            archived={showArchive}
+                            onChange={(next) => {
+                                setPage(1)
+                                setArchiveError(null)
+                                setShowArchive(next)
+                            }}
+                        />
                         <DateRangeFilter
                             startDate={startDate}
                             endDate={endDate}
@@ -406,6 +436,10 @@ export default function MachinesPage() {
                 </div>
             </div>
 
+            {archiveError && (
+                <p className="text-sm text-rose-600">{archiveError}</p>
+            )}
+
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {pagedMachines.map((machine) => (
                     <Card key={machine.id} className="shadow-sm border border-slate-200 rounded-xl">
@@ -496,6 +530,23 @@ export default function MachinesPage() {
                                         {navigating === machine.id ? "Loading..." : "Latest Report"}
                                         {navigating !== machine.id && <ExternalLink className="ml-1.5 shrink-0 h-3.5 w-3.5" />}
                                     </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="rounded-full px-4 border-slate-200 text-slate-600 hover:text-[var(--brand-purple)] hover:border-[var(--brand-purple)] bg-white shadow-sm h-9 text-xs font-semibold"
+                                        disabled={archivingId === machine.id}
+                                        onClick={() => toggleArchived(machine.id, !showArchive)}
+                                        title={showArchive ? "Move back to the active list" : "Move to the archive"}
+                                    >
+                                        {archivingId === machine.id
+                                            ? "Saving..."
+                                            : showArchive
+                                                ? "Restore"
+                                                : "Archive"}
+                                        {archivingId !== machine.id &&
+                                            (showArchive
+                                                ? <ArchiveRestore className="ml-1.5 shrink-0 h-3.5 w-3.5" />
+                                                : <Archive className="ml-1.5 shrink-0 h-3.5 w-3.5" />)}
+                                    </Button>
                                 </div>
                             </div>
                         </CardContent>
@@ -503,7 +554,9 @@ export default function MachinesPage() {
                 ))}
                 {sortedMachines.length === 0 && (
                     <p className="col-span-full text-center text-slate-500 py-10">
-                        No machines match the selected filters.
+                        {machines.length === 0 && showArchive
+                            ? "No archived machines yet. Archive a machine from the active list to park it here."
+                            : "No machines match the selected filters."}
                     </p>
                 )}
             </div>

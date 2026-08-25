@@ -6,6 +6,6 @@ import { countMachines, listMachines } from '@/lib/platforms/windows/services/ma
 // GET visible machines (any authenticated user; role-scoped). `?countOnly=1`
 // returns just the count for dashboard cards.
 export const GET = withAuth(null, async (request, { user }) => {
-    const { countOnly } = parseQuery(request, machinesListQuerySchema);
-    return json(countOnly ? await countMachines(user) : await listMachines(user));
+    const { countOnly, archived } = parseQuery(request, machinesListQuerySchema);
+    return json(countOnly ? await countMachines(user, archived) : await listMachines(user, archived));
 });

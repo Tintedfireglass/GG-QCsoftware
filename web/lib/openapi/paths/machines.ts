@@ -1,4 +1,4 @@
-import { renameMachineSchema } from '@/lib/platforms/windows/domain/schemas/machines';
+import { updateMachineSchema } from '@/lib/platforms/windows/domain/schemas/machines';
 import type { RouteDoc } from '../types';
 
 const machine = {
@@ -9,6 +9,7 @@ const machine = {
         manufacturer: { type: 'string', nullable: true },
         model: { type: 'string', nullable: true },
         last_seen: { type: 'string', format: 'date-time', nullable: true },
+        archived_at: { type: 'string', format: 'date-time', nullable: true },
         report_count: { type: 'integer' },
     },
 } as const;
@@ -19,10 +20,11 @@ export const machineRoutes: RouteDoc[] = [
         path: '/api/machines',
         tag: 'Machines',
         summary: 'List machines',
-        description: 'Machines visible to the caller. Pass `countOnly=1` for just the visible count (dashboard cards).',
+        description: 'Machines visible to the caller, excluding archived ones. Pass `archived=true` for the archive instead, or `countOnly=1` for just the visible count (dashboard cards).',
         security: ['adminJWT'],
         params: [
             { name: 'countOnly', in: 'query', description: 'Set `1`/`true` to return only `{ count }`.', schema: { type: 'string', enum: ['1', 'true'] } },
+            { name: 'archived', in: 'query', description: 'Set `true` to list archived machines instead of active ones.', schema: { type: 'string', enum: ['true'] } },
         ],
         responses: {
             '200': {
@@ -47,11 +49,11 @@ export const machineRoutes: RouteDoc[] = [
         method: 'patch',
         path: '/api/machines/{id}',
         tag: 'Machines',
-        summary: 'Rename a machine',
-        description: 'Sets the human-friendly `customName` for a machine.',
+        summary: 'Update a machine',
+        description: 'Sets the human-friendly `customName` and/or the archive state. Fields left out are untouched; `archived: true` moves the machine to the archive, `false` restores it.',
         security: ['adminJWT'],
         params: [{ name: 'id', in: 'path', description: 'Machine id.' }],
-        body: { schema: renameMachineSchema, example: { customName: 'Front-desk QC PC' } },
+        body: { schema: updateMachineSchema, example: { customName: 'Front-desk QC PC', archived: false } },
         responses: {
             '200': { description: 'Updated machine.', schema: machine },
             '404': { description: 'Not found or not visible.' },

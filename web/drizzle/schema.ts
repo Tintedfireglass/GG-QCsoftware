@@ -19,6 +19,7 @@ export const machines = pgTable("machines", {
 	ownerUserId: integer("owner_user_id"),
 	groupId: integer("group_id"),
 	customName: varchar("custom_name"),
+	archivedAt: timestamp("archived_at", { mode: 'string' }),
 }, (table) => [
 	index("idx_machines_machine_id").using("btree", table.machineId.asc().nullsLast().op("text_ops")),
 ]);

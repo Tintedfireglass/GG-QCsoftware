@@ -208,8 +208,8 @@ export async function getMobileReport(reportId: string): Promise<{ report: Mobil
     return cachedGetJson(`/api/admin/mobile-reports/${encodeURIComponent(reportId)}`, TTL.long);
 }
 
-export async function getMachines() {
-    return cachedGetJson("/api/machines", TTL.medium);
+export async function getMachines(archived = false) {
+    return cachedGetJson(archived ? "/api/machines?archived=true" : "/api/machines", TTL.medium);
 }
 
 export async function getMachinesCount(): Promise<{ total: number }> {
@@ -238,6 +238,21 @@ export async function getAssetHealthSummary(): Promise<{
 
 export async function getMachine(id: string) {
     return cachedGetJson(`/api/machines/${id}`, TTL.long);
+}
+
+/** Archive (or restore) one machine. Archiving is manual and reversible: the
+ *  row keeps all its history and only moves between the two list views. */
+export async function setMachineArchived(id: string, archived: boolean) {
+    const res = await fetchWithAuth(`/api/machines/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+        throw new Error(json?.message || json?.error || (archived ? "Failed to archive machine" : "Failed to restore machine"));
+    }
+    clearClientCache();
+    return json;
 }
 
 export async function updateMachineCustomName(id: string, customName: string) {

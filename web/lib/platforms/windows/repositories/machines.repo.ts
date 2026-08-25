@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import { db, schema } from '@/lib/drizzle';
 import { AuthenticatedUser } from '@/lib/auth-middleware';
 
@@ -20,7 +20,17 @@ const machineDetailColumns = {
     asset_tag: machines.assetTag,
     owner_user_id: machines.ownerUserId,
     group_id: machines.groupId,
+    archived_at: machines.archivedAt,
 };
+
+/**
+ * The active list and the Archive view are the same query with this bound
+ * flipped. Archiving is a manual, per-machine action (unlike the report lists,
+ * which archive by age), so it is a plain NULL check on machines.archived_at.
+ */
+function archiveWhere(archived: boolean | undefined): SQL {
+    return archived ? sql`m.archived_at IS NOT NULL` : sql`m.archived_at IS NULL`;
+}
 
 /**
  * Machine visibility differs from QC-result owner visibility: Reseller is
@@ -52,8 +62,9 @@ function visibilityFor(user: AuthenticatedUser): Visibility {
     }
 }
 
-/** Count machines visible to the user (fast path for dashboard cards). */
-export async function countVisibleMachines(user: AuthenticatedUser): Promise<number> {
+/** Count machines visible to the user (fast path for dashboard cards).
+ *  Archived machines are excluded unless the archive side is asked for. */
+export async function countVisibleMachines(user: AuthenticatedUser, archived?: boolean): Promise<number> {
     const v = visibilityFor(user);
 
     let whereSql: SQL | null = null;
@@ -78,15 +89,20 @@ export async function countVisibleMachines(user: AuthenticatedUser): Promise<num
         )`;
     }
 
+    const archiveBound = archiveWhere(archived);
     const q = whereSql
-        ? sql`SELECT COUNT(*) as total FROM machines m WHERE ${whereSql}`
-        : sql`SELECT COUNT(*) as total FROM machines`;
+        ? sql`SELECT COUNT(*) as total FROM machines m WHERE ${archiveBound} AND ${whereSql}`
+        : sql`SELECT COUNT(*) as total FROM machines m WHERE ${archiveBound}`;
     const { rows } = await db.execute(q);
     return parseInt((rows[0] as { total?: string })?.total ?? '0', 10);
 }
 
-/** List visible machines with aggregated test stats and latest grade/IP. */
-export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Record<string, unknown>[]> {
+/** List visible machines with aggregated test stats and latest grade/IP.
+ *  `archived` picks the side of the manual archive split (default: active). */
+export async function listMachinesWithStats(
+    user: AuthenticatedUser,
+    archived?: boolean
+): Promise<Record<string, unknown>[]> {
     const v = visibilityFor(user);
 
     let visibilityWhere: SQL = sql`1=1`;
@@ -139,7 +155,7 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
          SELECT
            m.id, m.machine_id, m.serial_number, m.mac_address, m.manufacturer,
            m.model, m.computer_name, m.custom_name, m.last_seen, m.location, m.created_at,
-           m.owner_user_id,
+           m.owner_user_id, m.archived_at,
            agg.technician_ids,
            COALESCE(agg.test_count, 0) as test_count,
            agg.last_test_date,
@@ -150,7 +166,7 @@ export async function listMachinesWithStats(user: AuthenticatedUser): Promise<Re
          FROM machines m
          LEFT JOIN agg ON agg.machine_id = m.id
          LEFT JOIN latest_any ON latest_any.machine_id = m.id
-         WHERE ${visibilityWhere}
+         WHERE ${archiveWhere(archived)} AND ${visibilityWhere}
          ORDER BY m.last_seen DESC NULLS LAST`);
     return rows as Record<string, unknown>[];
 }
@@ -192,6 +208,20 @@ export async function findAccessibleMachine(user: AuthenticatedUser, id: number)
     const where = access ? and(eq(machines.id, id), access) : eq(machines.id, id);
     const rows = await db.select(machineDetailColumns).from(machines).where(where).limit(1);
     return rows[0] ?? null;
+}
+
+/** Archive or restore one machine. Stamps the time on the way in, clears it on
+ *  the way out; asking for the side it is already on is a no-op that still
+ *  returns the row, so the call is idempotent. */
+export async function setMachineArchived(id: number, archived: boolean) {
+    const rows = await db
+        .update(machines)
+        .set({ archivedAt: archived ? sql`NOW() AT TIME ZONE 'UTC'` : null })
+        .where(and(eq(machines.id, id), archived ? isNull(machines.archivedAt) : isNotNull(machines.archivedAt)))
+        .returning(machineDetailColumns);
+    if (rows[0]) return rows[0];
+    const current = await db.select(machineDetailColumns).from(machines).where(eq(machines.id, id)).limit(1);
+    return current[0] ?? null;
 }
 
 /** Update a machine's custom name and return the detail row. Typed Drizzle write. */

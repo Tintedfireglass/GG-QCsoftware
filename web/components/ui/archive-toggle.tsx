@@ -4,19 +4,22 @@ import { Archive, Clock } from "lucide-react"
 import { REPORT_RETENTION_DAYS } from "@/lib/shared/domain/retention"
 
 /**
- * Recent / Archive switch for the report lists. Report lists show only the last
- * REPORT_RETENTION_DAYS days by default; everything older lives behind "Archive".
- * Nothing is deleted or moved — this just flips which side of the cutoff the
- * list queries.
+ * Recent / Archive switch. Report lists show only the last REPORT_RETENTION_DAYS
+ * days by default and everything older lives behind "Archive", so that is the
+ * default label. Machines archive by hand instead of by age — they pass their
+ * own `activeLabel` ("Active") since no date cutoff is involved. Either way
+ * nothing is deleted: this only flips which side the list queries.
  */
 export function ArchiveToggle({
     archived,
     onChange,
     className,
+    activeLabel,
 }: {
     archived: boolean
     onChange: (next: boolean) => void
     className?: string
+    activeLabel?: string
 }) {
     const base =
         "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
@@ -36,7 +39,7 @@ export function ArchiveToggle({
                 className={`${base} ${archived ? idle : active}`}
             >
                 <Clock className="h-4 w-4" />
-                Last {REPORT_RETENTION_DAYS} days
+                {activeLabel ?? `Last ${REPORT_RETENTION_DAYS} days`}
             </button>
             <button
                 type="button"
