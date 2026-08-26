@@ -384,6 +384,10 @@ public class ReportGenerator
                 {
                     sb.AppendLine("<tr><td class='label'>Cycle Count</td><td class='value'>Not reported by firmware</td></tr>");
                 }
+                if (report.ChargerTest.Tested)
+                {
+                    sb.AppendLine($"<tr><td class='label'>Charger / AC</td><td class='value'>{(report.ChargerTest.Passed ? "Working / Connected" : "Failed")}</td></tr>");
+                }
             }
         }
         sb.AppendLine("</tbody>");
@@ -445,6 +449,16 @@ public class ReportGenerator
         {
             AppendTestRow(sb, "Storage", report.StorageTest);
         }
+
+        // Battery: ensure Charger / Power test result is reflected in Details if tested
+        if (report.ChargerTest.Tested)
+        {
+            string chgDetail = $"Charger / AC Power: {(report.ChargerTest.Passed ? "Passed" : "Failed")}{(string.IsNullOrWhiteSpace(report.ChargerTest.Message) ? "" : $" ({report.ChargerTest.Message})")}";
+            if (!report.BatteryTest.Details.Any(d => d.StartsWith("Charger", StringComparison.OrdinalIgnoreCase)))
+            {
+                report.BatteryTest.Details.Add(chgDetail);
+            }
+        }
         AppendTestRow(sb, "Battery", report.BatteryTest);
         AppendTestRow(sb, "Keyboard", report.KeyboardTest);
         AppendTestRow(sb, "Trackpad", report.TrackpadTest);
@@ -452,9 +466,17 @@ public class ReportGenerator
         AppendTestRow(sb, "Audio / Video", report.AudioVideoTest);
         AppendTestRow(sb, "3.5mm Audio Jack", report.AudioJackTest);
         AppendTestRow(sb, "GPU Stress Test", report.GpuTest);
+
+        // Network / WiFi: ensure Bluetooth test result is reflected in Details if tested
+        if (report.BluetoothTest.Tested)
+        {
+            string btDetail = $"Bluetooth: {(report.BluetoothTest.Passed ? "Passed" : "Failed")}{(string.IsNullOrWhiteSpace(report.BluetoothTest.Message) ? "" : $" ({report.BluetoothTest.Message})")}";
+            if (!report.NetworkTest.Details.Any(d => d.StartsWith("Bluetooth", StringComparison.OrdinalIgnoreCase)))
+            {
+                report.NetworkTest.Details.Add(btDetail);
+            }
+        }
         AppendTestRow(sb, "Network / WiFi", report.NetworkTest);
-        AppendTestRow(sb, "Bluetooth", report.BluetoothTest);
-        AppendTestRow(sb, "Charger / Power", report.ChargerTest);
         
         sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");

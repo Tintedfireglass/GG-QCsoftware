@@ -45,11 +45,23 @@ export default function DedicatedReportPage() {
     const storageDevices: any[] = Array.isArray(data?.storage_details_json?.devices)
         ? data.storage_details_json.devices
         : []
+
+    const bluetoothTest = rawTestResults.find((test: any) => {
+        const type = String(test?.test_type || "").toLowerCase()
+        return type === "bluetooth"
+    })
+    const chargerTest = rawTestResults.find((test: any) => {
+        const type = String(test?.test_type || "").toLowerCase()
+        return type === "charger" || type === "charger / power" || type === "charging"
+    })
+
     // Expand a single "Storage" test into per-drive rows if multiple physical drives exist
     const test_results = rawTestResults
         .filter((test: any) => {
             const type = String(test?.test_type || "").toLowerCase()
-            return !(hasStorageResult && type === "smart")
+            if (hasStorageResult && type === "smart") return false
+            if (type === "bluetooth" || type === "charger" || type === "charger / power" || type === "charging") return false
+            return true
         })
         .flatMap((test: any) => {
             const type = String(test?.test_type || "").toLowerCase()
@@ -72,6 +84,29 @@ export default function DedicatedReportPage() {
                         details_json: null,
                     }
                 })
+            }
+            if (type.includes("network") || type.includes("wifi")) {
+                let details = Array.isArray(test.details_json) ? [...test.details_json] : []
+                if (bluetoothTest && !details.some((d: string) => typeof d === "string" && d.toLowerCase().startsWith("bluetooth"))) {
+                    const btMsg = bluetoothTest.message ? ` (${bluetoothTest.message})` : ""
+                    details.push(`Bluetooth: ${bluetoothTest.passed ? "Passed" : "Failed"}${btMsg}`)
+                }
+                return [{
+                    ...test,
+                    test_type: "Network / WiFi",
+                    details_json: details.length > 0 ? details : test.details_json
+                }]
+            }
+            if (type === "battery") {
+                let details = Array.isArray(test.details_json) ? [...test.details_json] : []
+                if (chargerTest && !details.some((d: string) => typeof d === "string" && d.toLowerCase().startsWith("charger"))) {
+                    const chgMsg = chargerTest.message ? ` (${chargerTest.message})` : ""
+                    details.push(`Charger / AC Power: ${chargerTest.passed ? "Passed" : "Failed"}${chgMsg}`)
+                }
+                return [{
+                    ...test,
+                    details_json: details.length > 0 ? details : test.details_json
+                }]
             }
             return [test]
         })
@@ -280,6 +315,12 @@ export default function DedicatedReportPage() {
                                 <tr className="border-b border-dotted border-gray-300">
                                     <td className="py-2 text-gray-600">Cycle Count</td>
                                     <td className="py-2 text-gray-500 italic">Not reported by firmware</td>
+                                </tr>
+                            )}
+                            {chargerTest && (
+                                <tr className="border-b border-dotted border-gray-300">
+                                    <td className="py-2 text-gray-600">Charger / AC</td>
+                                    <td className="py-2 font-medium">{chargerTest.passed ? 'Working / Connected' : 'Failed'}</td>
                                 </tr>
                             )}
                         </tbody>

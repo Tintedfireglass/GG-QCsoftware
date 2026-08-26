@@ -643,6 +643,10 @@ public class QCWorkflowService
         Report.BluetoothTest.Passed = passed;
         Report.BluetoothTest.Message = message;
         Report.BluetoothTest.Timestamp = DateTime.Now;
+
+        string btDetail = $"Bluetooth: {(passed ? "Passed" : "Failed")}{(string.IsNullOrWhiteSpace(message) ? "" : $" ({message})")}";
+        Report.NetworkTest.Details.RemoveAll(d => d.StartsWith("Bluetooth", StringComparison.OrdinalIgnoreCase));
+        Report.NetworkTest.Details.Add(btDetail);
     }
 
     public void RecordChargerResult(bool passed, string message)
@@ -651,6 +655,10 @@ public class QCWorkflowService
         Report.ChargerTest.Passed = passed;
         Report.ChargerTest.Message = message;
         Report.ChargerTest.Timestamp = DateTime.Now;
+
+        string chgDetail = $"Charger / AC Power: {(passed ? "Passed" : "Failed")}{(string.IsNullOrWhiteSpace(message) ? "" : $" ({message})")}";
+        Report.BatteryTest.Details.RemoveAll(d => d.StartsWith("Charger", StringComparison.OrdinalIgnoreCase));
+        Report.BatteryTest.Details.Add(chgDetail);
     }
 
     /// <summary>

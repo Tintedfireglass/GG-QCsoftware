@@ -920,6 +920,11 @@ export async function buildIndividualReportPdf(
         ['Scratches/Dents', safeStr(rec.scratches_and_dents)],
     ];
     if (battBrand) rightRows.push(['Bat. Brand', battBrand]);
+    const earlyChargerTest = (testResults || []).find(t => {
+        const type = safeStr(t.test_type).toLowerCase();
+        return type === 'charger' || type === 'charger / power' || type === 'charging';
+    });
+    if (earlyChargerTest) rightRows.push(['Charger / AC', earlyChargerTest.passed ? 'Working' : 'Failed']);
 
     const rowH = 14;
     const startY = y;
@@ -946,10 +951,49 @@ export async function buildIndividualReportPdf(
     });
     y -= 15;
 
-    // Filter out SMART if Storage present (same logic as report page)
+    // Filter out SMART if Storage present, and merge Bluetooth into Network and Charger into Battery
     const rawTests = Array.isArray(testResults) ? testResults : [];
     const hasStorage = rawTests.some(t => safeStr(t.test_type).toLowerCase() === 'storage');
-    const filteredTests = rawTests.filter(t => !(hasStorage && safeStr(t.test_type).toLowerCase() === 'smart'));
+    const bluetoothTest = rawTests.find(t => safeStr(t.test_type).toLowerCase() === 'bluetooth');
+    const chargerTest = rawTests.find(t => {
+        const type = safeStr(t.test_type).toLowerCase();
+        return type === 'charger' || type === 'charger / power' || type === 'charging';
+    });
+
+    const filteredTests = rawTests
+        .filter(t => {
+            const type = safeStr(t.test_type).toLowerCase();
+            if (hasStorage && type === 'smart') return false;
+            if (type === 'bluetooth' || type === 'charger' || type === 'charger / power' || type === 'charging') return false;
+            return true;
+        })
+        .map(t => {
+            const type = safeStr(t.test_type).toLowerCase();
+            if (type.includes('network') || type.includes('wifi')) {
+                let details = Array.isArray(t.details_json) ? [...(t.details_json as unknown[])] : [];
+                if (bluetoothTest && !details.some((d: any) => safeStr(d).toLowerCase().startsWith('bluetooth'))) {
+                    const btMsg = bluetoothTest.message ? ` (${bluetoothTest.message})` : '';
+                    details.push(`Bluetooth: ${bluetoothTest.passed ? 'Passed' : 'Failed'}${btMsg}`);
+                }
+                return {
+                    ...t,
+                    test_type: 'Network / WiFi',
+                    details_json: details
+                };
+            }
+            if (type === 'battery') {
+                let details = Array.isArray(t.details_json) ? [...(t.details_json as unknown[])] : [];
+                if (chargerTest && !details.some((d: any) => safeStr(d).toLowerCase().startsWith('charger'))) {
+                    const chgMsg = chargerTest.message ? ` (${chargerTest.message})` : '';
+                    details.push(`Charger / AC Power: ${chargerTest.passed ? 'Passed' : 'Failed'}${chgMsg}`);
+                }
+                return {
+                    ...t,
+                    details_json: details
+                };
+            }
+            return t;
+        });
 
     for (const [idx, test] of filteredTests.entries()) {
         if (y < M + 40) break;
