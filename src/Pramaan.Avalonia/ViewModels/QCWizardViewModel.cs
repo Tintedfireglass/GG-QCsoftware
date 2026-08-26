@@ -48,6 +48,12 @@ public partial class QCWizardViewModel : ObservableObject
     private string _technicianNotes = "";
 
     [ObservableProperty]
+    private string _physicalCondition = "B"; // Default: Good
+
+    [ObservableProperty]
+    private string _scratchesAndDents = "Minor";
+
+    [ObservableProperty]
     private int _automatedProgress;
 
     [ObservableProperty]
@@ -70,6 +76,12 @@ public partial class QCWizardViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isWifiNext;
+
+    [ObservableProperty]
+    private bool _isBluetoothNext;
+
+    [ObservableProperty]
+    private bool _isChargerNext;
 
     [ObservableProperty]
     private string _wifiStatus = "";
@@ -107,9 +119,11 @@ public partial class QCWizardViewModel : ObservableObject
 
     partial void OnSubmissionStatusChanged(string value) => OnPropertyChanged(nameof(SubmissionStatusColor));
 
-    // QR Code — not yet implemented in Avalonia; placeholder
-    public bool HasQrCode => false;
-    public object? QrCodeImage => null;
+    [ObservableProperty]
+    private bool _hasQrCode;
+
+    [ObservableProperty]
+    private global::Avalonia.Media.Imaging.Bitmap? _qrCodeImage;
 
     // WiFi live status for individual display
     [ObservableProperty]
@@ -185,7 +199,7 @@ public partial class QCWizardViewModel : ObservableObject
             return;
         }
 
-        _workflowService.StartNewSession(RefurbId, TechnicianNotes);
+        _workflowService.StartNewSession(RefurbId, TechnicianNotes, PhysicalCondition, ScratchesAndDents);
         
         IsPrepStep = false;
         IsAutomatedStep = true;
@@ -210,6 +224,8 @@ public partial class QCWizardViewModel : ObservableObject
         else if (IsUsbNext) InteractiveInstruction = "Next: USB Port Test";
         else if (IsAvNext) InteractiveInstruction = "Next: Audio / Video Test";
         else if (IsWifiNext) InteractiveInstruction = "Next: Network Connectivity Test";
+        else if (IsBluetoothNext) InteractiveInstruction = "Next: Bluetooth Test";
+        else if (IsChargerNext) InteractiveInstruction = "Next: Charger / Charging Test";
     }
 
     [RelayCommand]
@@ -440,6 +456,35 @@ public partial class QCWizardViewModel : ObservableObject
         _workflowService.RecordNetworkResult(passed, message, details);
 
         await Task.Delay(1500);
+        NetworkCheckDone = false;
+        IsBluetoothNext = true;
+        UpdateInteractiveState();
+    }
+
+    [RelayCommand]
+    private async Task RunBluetoothTestAsync()
+    {
+        var win = new BluetoothTestWindow();
+        await win.ShowDialog(GetActiveWindow()!);
+
+        var (passed, msg) = win.GetResult();
+        _workflowService.RecordBluetoothResult(passed, msg);
+
+        IsBluetoothNext = false;
+        IsChargerNext = true;
+        UpdateInteractiveState();
+    }
+
+    [RelayCommand]
+    private async Task RunChargerTestAsync()
+    {
+        var win = new ChargerTestWindow();
+        await win.ShowDialog(GetActiveWindow()!);
+
+        var (passed, msg) = win.GetResult();
+        _workflowService.RecordChargerResult(passed, msg);
+
+        IsChargerNext = false;
         await FinishAndGenerateReportAsync();
     }
 
@@ -485,9 +530,15 @@ public partial class QCWizardViewModel : ObservableObject
             }
         }
 
+        // Refresh server-allocated Machine ID for this hardware (if license-based)
+        await RefreshMachineIdAsync(report);
+
         // Stamp the server-allocated Machine ID onto the report (set during activation)
         if (App.AuthService.MachineId.HasValue && App.AuthService.MachineId.Value > 0)
+        {
             report.DeviceId = App.AuthService.MachineId.Value;
+            ReportPath = _reportGenerator.SaveReport(report);
+        }
 
         // Now logged in - submit to API
         var technicianId = App.TechnicianId;
@@ -500,6 +551,12 @@ public partial class QCWizardViewModel : ObservableObject
             if (submitResult.Success)
             {
                 SubmissionStatus = $"Submitted (by {App.UserDisplayName})";
+                GenerateQrCode(report.HealthId);
+
+                if (submitResult.DemoExhausted)
+                {
+                    App.AuthService.Logout();
+                }
             }
             else if (submitResult.IsAuthError)
             {
@@ -512,14 +569,29 @@ public partial class QCWizardViewModel : ObservableObject
 
                 if (App.IsLoggedIn)
                 {
+                    await RefreshMachineIdAsync(report);
                     // Stamp the new MachineId in case it changed
                     if (App.AuthService.MachineId.HasValue && App.AuthService.MachineId.Value > 0)
+                    {
                         report.DeviceId = App.AuthService.MachineId.Value;
+                        ReportPath = _reportGenerator.SaveReport(report);
+                    }
 
                     var retryResult = await _submissionService.SubmitReportAsync(report, App.TechnicianId, App.AuthService.Token);
-                    SubmissionStatus = retryResult.Success
-                        ? $"Submitted (by {App.UserDisplayName})"
-                        : $"Failed to Submit: {retryResult.ErrorMessage}";
+                    if (retryResult.Success)
+                    {
+                        SubmissionStatus = $"Submitted (by {App.UserDisplayName})";
+                        GenerateQrCode(report.HealthId);
+
+                        if (retryResult.DemoExhausted)
+                        {
+                            App.AuthService.Logout();
+                        }
+                    }
+                    else
+                    {
+                        SubmissionStatus = $"Failed to Submit: {retryResult.ErrorMessage}";
+                    }
                 }
                 else
                 {
@@ -534,6 +606,64 @@ public partial class QCWizardViewModel : ObservableObject
         catch (Exception ex)
         {
             SubmissionStatus = $"Submission error: {ex.Message}";
+        }
+    }
+
+    private void GenerateQrCode(string healthId)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(healthId)) return;
+            var baseDomain = new LaptopQC.Core.Models.ApiConfiguration().ApiUrl.Replace("/api", "").TrimEnd('/');
+            string verificationUrl = $"{baseDomain}/verify/{healthId}";
+
+            using var qrGenerator = new QRCoder.QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
+            using var qrCode = new QRCoder.PngByteQRCode(qrCodeData);
+            byte[] qrBytes = qrCode.GetGraphic(20);
+
+            using var stream = new MemoryStream(qrBytes);
+            var bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                QrCodeImage = bitmap;
+                HasQrCode = true;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to generate QR Code: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshMachineIdAsync(LaptopQC.Core.Models.QCReport report)
+    {
+        try
+        {
+            var licenseKey = App.AuthService.LicenseKey;
+            if (string.IsNullOrWhiteSpace(licenseKey))
+                return;
+
+            var serial = report.SystemInfo?.SerialNumber ?? "";
+            if (!MachineIdentityService.IsUsableHardwareSerial(serial))
+            {
+                serial = MachineIdentityService.BuildFallbackSerial(
+                    report.SystemInfo?.MacAddress ?? report.MacAddress,
+                    report.SystemInfo?.ComputerName);
+            }
+
+            if (string.IsNullOrWhiteSpace(serial))
+                serial = MachineIdentityService.BuildFallbackSerial(string.Empty, Environment.MachineName);
+
+            var mac = report.SystemInfo?.MacAddress ?? report.MacAddress;
+            var computerName = report.SystemInfo?.ComputerName ?? Environment.MachineName;
+
+            await App.AuthService.LoginWithLicenseAsync(licenseKey, serial, mac, computerName);
+        }
+        catch
+        {
+            // Best-effort refresh; keep existing MachineId if refresh fails.
         }
     }
 

@@ -667,9 +667,18 @@ public class MacSmartTestService : ISmartTestService
 
     public MacSmartTestService()
     {
-        // Try common Homebrew install paths
-        _smartctlPath = File.Exists("/opt/homebrew/bin/smartctl") ? "/opt/homebrew/bin/smartctl"
-                      : File.Exists("/usr/local/bin/smartctl") ? "/usr/local/bin/smartctl"
+        // Resolution order:
+        //   1. Bundled binary shipped with the .app (no Homebrew required)
+        //   2. Homebrew on Apple Silicon  (/opt/homebrew)
+        //   3. Homebrew on Intel Mac      (/usr/local)
+        //   4. System PATH fallback       (may not exist)
+        var bundlePath = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "runtimes", "osx", "smartctl");
+
+        _smartctlPath = File.Exists(bundlePath)                   ? bundlePath
+                      : File.Exists("/opt/homebrew/bin/smartctl") ? "/opt/homebrew/bin/smartctl"
+                      : File.Exists("/usr/local/bin/smartctl")    ? "/usr/local/bin/smartctl"
                       : "smartctl";
     }
 

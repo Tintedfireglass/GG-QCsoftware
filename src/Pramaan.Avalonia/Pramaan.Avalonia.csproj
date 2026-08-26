@@ -46,4 +46,17 @@
     <ProjectReference Include="..\LaptopQC.Core\LaptopQC.Core.csproj" />
     <ProjectReference Include="..\LaptopQC.Hardware\LaptopQC.Hardware.csproj" />
   </ItemGroup>
+
+  <!-- macOS: Bundle a static smartctl binary so SMART drive health works without Homebrew.
+       Place a universal (arm64 + x86_64) smartctl binary at:
+         src/Pramaan.Avalonia/runtimes/osx/smartctl
+       The file is .gitignored by default (binary). Copy it manually to the source dir before publishing.
+       The binary is marked CopyToOutputDirectory=PreserveNewest so it appears next to the .exe
+       at runtimes/osx/smartctl, which is where MacSmartTestService looks first. -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="runtimes\osx\smartctl" Condition="Exists('runtimes\osx\smartctl')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>runtimes/osx/smartctl</TargetPath>
+    </Content>
+  </ItemGroup>
 </Project>

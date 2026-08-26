@@ -6,7 +6,7 @@ namespace LaptopQC.Core.Diagnostics.macOS;
 /// Helper to run macOS CLI commands and capture output.
 /// Used by all Mac diagnostic implementations.
 /// </summary>
-internal static class CommandRunner
+public static class CommandRunner
 {
     /// <summary>
     /// Runs a command and returns stdout. Throws on non-zero exit code.

@@ -453,6 +453,8 @@ public class ReportGenerator
         AppendTestRow(sb, "3.5mm Audio Jack", report.AudioJackTest);
         AppendTestRow(sb, "GPU Stress Test", report.GpuTest);
         AppendTestRow(sb, "Network / WiFi", report.NetworkTest);
+        AppendTestRow(sb, "Bluetooth", report.BluetoothTest);
+        AppendTestRow(sb, "Charger / Power", report.ChargerTest);
         
         sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");

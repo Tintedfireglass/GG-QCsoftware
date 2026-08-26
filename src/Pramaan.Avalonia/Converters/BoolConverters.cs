@@ -56,3 +56,25 @@ public class BoolToColorConverter : global::Avalonia.Data.Converters.IValueConve
         return null;
     }
 }
+
+/// <summary>
+/// Compares a string value to a parameter string.
+/// Returns true when they match — used for binding radio buttons to a string property.
+/// ConvertBack returns the parameter string when the radio button is checked.
+/// </summary>
+public class EqualityConverter : global::Avalonia.Data.Converters.IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isChecked && isChecked)
+            return parameter?.ToString() ?? string.Empty;
+
+        return global::Avalonia.AvaloniaProperty.UnsetValue;
+    }
+}
+

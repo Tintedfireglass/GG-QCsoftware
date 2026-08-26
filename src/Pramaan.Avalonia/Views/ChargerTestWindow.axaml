@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Pramaan.Avalonia.Views.ChargerTestWindow"
+        Title="Charger / Charging Test" Width="440"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#f5f5f5">
+
+    <Window.Styles>
+        <Style Selector="Button.primaryBtn">
+            <Setter Property="Background" Value="#8B3D88"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,12"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#7A3376"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5C2B5C"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primaryBtn:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#9ca3af"/>
+            <Setter Property="Foreground" Value="#e5e7eb"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Border Background="White"
+                BorderBrush="#e5e7eb"
+                BorderThickness="1"
+                CornerRadius="12"
+                Margin="20"
+                Padding="30"
+                BoxShadow="0 4 6 0 #1A000000">
+            <StackPanel>
+                <!-- Header -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <Border Background="#fefce8" CornerRadius="50" Width="60" Height="60" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <TextBlock Text="⚡" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Charger / Charging Test" FontSize="20" FontWeight="Bold"
+                               HorizontalAlignment="Center" Foreground="#1f2937" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"/>
+                    <TextBlock Text="Checks if the power adapter is connected and the battery is charging."
+                               FontSize="12" Foreground="#6b7280" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif"
+                               HorizontalAlignment="Center" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Instruction notice -->
+                <Border Background="#fefce8" BorderBrush="#fde68a" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚠" FontSize="16" VerticalAlignment="Top" Margin="0,0,8,0"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#92400e" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif">
+                            <Bold>Note:</Bold>
+                            Ensure the battery is NOT at full charge for accurate detection. A fully charged battery may show as not charging even with the adapter plugged in.
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Check button -->
+                <Button x:Name="CheckButton"
+                        Content="🔌 Check Charging Status"
+                        Click="CheckButton_Click"
+                        Classes="primaryBtn"
+                        FontSize="14"
+                        Margin="0,0,0,16"/>
+
+                <!-- Results -->
+                <StackPanel x:Name="ResultsPanel" IsVisible="False" Margin="0,0,0,16">
+
+                    <!-- Battery Presence -->
+                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1"
+                            CornerRadius="6" Padding="12,10" Margin="0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="BatteryPresenceIcon" Text="🔋" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Battery" FontWeight="SemiBold" Foreground="#1f2937" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" FontSize="13"/>
+                                <TextBlock x:Name="BatteryPresenceText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Charging Status -->
+                    <Border Background="#f9fafb" BorderBrush="#e5e7eb" BorderThickness="1"
+                            CornerRadius="6" Padding="12,10" Margin="0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ChargingIcon" Text="⚡" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Charging Status" FontWeight="SemiBold" Foreground="#1f2937" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" FontSize="13"/>
+                                <TextBlock x:Name="ChargingStatusText" Text="-" Foreground="#6b7280" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" FontSize="12"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Overall Result -->
+                    <Border x:Name="OverallResultBorder" CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+                        <TextBlock x:Name="OverallResultText" HorizontalAlignment="Center"
+                                   FontWeight="SemiBold" FontFamily="Segoe UI, SF Pro Display, Helvetica Neue, Arial, sans-serif" FontSize="13"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Continue Button -->
+                <Button x:Name="ContinueButton"
+                        Content="Continue"
+                        Click="ContinueButton_Click"
+                        IsEnabled="False"
+                        Classes="primaryBtn"
+                        FontSize="14"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
