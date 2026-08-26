@@ -532,7 +532,7 @@ public class QCWorkflowService
                     UpdateStatus($"Thermal Stress [{p.Phase}]: {p.PercentComplete}%{gipsLabel}", 60 + (p.PercentComplete / 5));
                 };
 
-                var thermalResult = await thermalStress.RunAsync(cancellationToken);
+                var thermalResult = await thermalStress.RunAsync(CancellationToken.None);
 
                 // ── CPU test ─────────────────────────────────────────────
                 Report.CpuTest.Passed &= thermalResult.CpuPassed;
