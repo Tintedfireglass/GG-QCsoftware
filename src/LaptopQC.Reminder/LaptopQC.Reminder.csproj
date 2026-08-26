@@ -8,7 +8,7 @@
     <AssemblyName>PramaanReminder</AssemblyName>
     <Product>PRAMAAN Reminder</Product>
     <Company>Gadget Guruz</Company>
-    <Version>1.0.7</Version>
+    <Version>1.0.10</Version>
   </PropertyGroup>
 
   <!-- Windows Toast Notifications -->

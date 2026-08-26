@@ -60,7 +60,7 @@
 	    <AssemblyName>$(BrandExeName)</AssemblyName>
 	    <Product>$(BrandProductName)</Product>
 	    <Company>$(BrandCompanyName)</Company>
-	    <Version>1.0.9</Version>
+	    <Version>1.0.10</Version>
 	    
 	  </PropertyGroup>
 
