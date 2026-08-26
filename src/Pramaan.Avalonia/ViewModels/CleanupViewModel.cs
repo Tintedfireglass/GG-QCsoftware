@@ -80,9 +80,20 @@ public partial class CleanupViewModel : ObservableObject
             StatusMessage = "Scan complete.";
             CurrentOperation = "";
 #else
-            // macOS: CleanupService is not available (Windows-specific file/registry cleanup)
-            await Task.Delay(500);
-            StatusMessage = "Junk cleanup is not available on macOS.";
+            // macOS: use MacCleanupService
+            var macService = new LaptopQC.Core.Diagnostics.macOS.MacCleanupService();
+            var macProgress = new Progress<string>(msg => CurrentOperation = msg);
+
+            var scanResults = await macService.ScanAsync(macProgress);
+            foreach (var r in scanResults)
+            {
+                var vm = new CleanupCategoryViewModel(r);
+                vm.PropertyChanged += CategoryOnPropertyChanged;
+                Categories.Add(vm);
+            }
+
+            UpdateTotals();
+            StatusMessage = $"Scan complete — {Categories.Count} categories found.";
             CurrentOperation = "";
 #endif
         }
@@ -206,8 +217,36 @@ public partial class CleanupViewModel : ObservableObject
             UpdateTotals();
             CurrentOperation = "";
 #else
-            await Task.CompletedTask;
-            StatusMessage = "Junk cleanup is not available on macOS.";
+            // macOS: use MacCleanupService
+            var macService = new LaptopQC.Core.Diagnostics.macOS.MacCleanupService();
+            var macProgress = new Progress<string>(msg => CurrentOperation = msg);
+
+            // Convert selected CleanupCategoryViewModel → MacCleanupService.ScanResult
+            var macSelected = selected
+                .Where(c => c.MacScanResult != null)
+                .Select(c => c.MacScanResult!)
+                .ToList();
+
+            var macResult = await macService.CleanAsync(macSelected, macProgress);
+
+            StatusMessage = $"Cleanup complete: {macResult.DeletedFiles} items, {FormatBytes(macResult.FreedBytes)} freed.";
+            if (macResult.LockedFiles > 0)
+                StatusMessage += $" ({macResult.LockedFiles} locked)";
+
+            CurrentOperation = "";
+
+            // Rescan to update sizes
+            var macRescan = await macService.ScanAsync(
+                macProgress,
+                MacCleanupService.GetCategories()
+                    .Where(c => macSelected.Any(s => s.Id == c.Id)));
+
+            foreach (var r in macRescan)
+            {
+                var vm = Categories.FirstOrDefault(c => c.Id == r.Id);
+                vm?.UpdateFromMac(r);
+            }
+            UpdateTotals();
             CurrentOperation = "";
 #endif
         }
@@ -355,6 +394,47 @@ public partial class CleanupCategoryViewModel : ObservableObject
     public string AvailabilityLabel { get; private set; } = "No";
     public string ApproximateLabel { get; private set; } = "No";
     public bool IsWindowsUpdate { get; }
+
+    // macOS: hold a reference to the scan result so CleanAsync can pass it back.
+    public LaptopQC.Core.Diagnostics.macOS.MacCleanupService.ScanResult? MacScanResult { get; private set; }
+
+#if !WINDOWS
+    public CleanupCategoryViewModel(LaptopQC.Core.Diagnostics.macOS.MacCleanupService.ScanResult r)
+    {
+        MacScanResult     = r;
+        Id                = r.Id;
+        Name              = r.Name;
+        Description       = r.Description;
+        IsApproximate     = r.IsApproximate;
+        IsAvailable       = r.IsAvailable;
+        FileCount         = r.FileCount;
+        SizeBytes         = r.SizeBytes;
+        SizeLabel         = IsApproximate ? $">= {FormatBytes(SizeBytes)}" : FormatBytes(SizeBytes);
+        RequiresAdminLabel = "No";
+        AvailabilityLabel = IsAvailable ? "Yes" : "No";
+        ApproximateLabel  = IsApproximate ? "Yes" : "No";
+        IsSelected        = IsAvailable;
+    }
+
+    public void UpdateFromMac(LaptopQC.Core.Diagnostics.macOS.MacCleanupService.ScanResult r)
+    {
+        MacScanResult = r;
+        IsAvailable   = r.IsAvailable;
+        FileCount     = r.FileCount;
+        SizeBytes     = r.SizeBytes;
+        IsApproximate = r.IsApproximate;
+        SizeLabel     = IsApproximate ? $">= {FormatBytes(SizeBytes)}" : FormatBytes(SizeBytes);
+        AvailabilityLabel = r.IsAvailable ? "Yes" : "No";
+        ApproximateLabel  = r.IsApproximate ? "Yes" : "No";
+        OnPropertyChanged(nameof(FileCount));
+        OnPropertyChanged(nameof(SizeBytes));
+        OnPropertyChanged(nameof(SizeLabel));
+        OnPropertyChanged(nameof(IsApproximate));
+        OnPropertyChanged(nameof(ApproximateLabel));
+        OnPropertyChanged(nameof(AvailabilityLabel));
+        OnPropertyChanged(nameof(IsAvailable));
+    }
+#endif
 
     /// <summary>True when this row should show a "Deep Scan" action button.</summary>
     [ObservableProperty]

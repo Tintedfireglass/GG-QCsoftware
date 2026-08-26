@@ -70,6 +70,10 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>PRAMAAN QC Tool checks network adapter status and internet connectivity as part of the QC workflow.</string>
 
+    <!-- Bluetooth: for adapter presence and radio state verification during QC -->
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>PRAMAAN QC Tool reads the Bluetooth adapter state to verify that Bluetooth hardware is functioning correctly during the QC inspection.</string>
+
     <!-- ── Security / Sandbox ──
          Pramaan is NOT sandboxed — it needs access to hardware sensors,
          system profiler, ioreg, diskutil, etc.

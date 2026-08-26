@@ -139,11 +139,25 @@ public partial class KeyboardTestViewModel : ObservableObject
         AddKey(0xA1, "Shift", 4, 12.25, 2.75);
 
         AddKey(0xA2, "Ctrl", 5, 0, 1.25);
-        AddKey(0x5B, _isMac ? "Cmd" : "Win", 5, 1.25, 1.25);
-        AddKey(0xA4, _isMac ? "Opt" : "Alt", 5, 2.5, 1.25);
-        AddKey(0x20, "Space", 5, 3.75, 6);
-        AddKey(0xA5, _isMac ? "Opt" : "Alt", 5, 9.75, 1.25);
-        AddKey(0xA3, "Ctrl", 5, 11, 1.25);
+        if (_isMac)
+        {
+            // Mac bottom row: Ctrl | Option | Command | Space | Command | Option
+            // (Mac keyboards do NOT have a right Ctrl key in this position)
+            AddKey(0xA4, "Opt",  5, 1.25, 1.25);
+            AddKey(0x5B, "Cmd",  5, 2.5,  1.25);
+            AddKey(0x20, "Space", 5, 3.75, 5.5);
+            AddKey(0x5C, "Cmd",  5, 9.25, 1.25);
+            AddKey(0xA5, "Opt",  5, 10.5, 1.25);
+        }
+        else
+        {
+            // Windows bottom row: Ctrl | Win | Alt | Space | Alt | Ctrl
+            AddKey(0x5B, "Win",  5, 1.25, 1.25);
+            AddKey(0xA4, "Alt",  5, 2.5,  1.25);
+            AddKey(0x20, "Space", 5, 3.75, 6);
+            AddKey(0xA5, "Alt",  5, 9.75, 1.25);
+            AddKey(0xA3, "Ctrl", 5, 11,   1.25);
+        }
 
         AddKey(0x25, "Left", 5, 12.25);
         AddKey(0x26, "Up", 5, 13.25);
@@ -209,6 +223,13 @@ public partial class KeyboardTestViewModel : ObservableObject
         if (virtualKeyCode == 0x12)
         {
             RegisterSingleKey(0xA4);
+            RegisterSingleKey(0xA5); // Register both Option keys together
+            return;
+        }
+        // RWin / Right-Command maps to 0x5C on Avalonia
+        if (virtualKeyCode == 0x5C)
+        {
+            RegisterSingleKey(0x5C);
             return;
         }
 
