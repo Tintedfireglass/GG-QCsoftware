@@ -185,12 +185,12 @@ export async function deactivateUser(userId: number): Promise<void> {
 }
 
 /**
- * Reseller credit allocation: atomically move `delta` credits from the reseller
- * to the target client (locking the reseller row), apply any other field
+ * Team-manager credit allocation: atomically move `delta` credits from the
+ * manager to the target client or technician (locking the manager row), apply any other field
  * updates, and return the fresh detail row. Throws 403 on insufficient credits.
  */
-export async function allocateResellerCreditsAndUpdate(opts: {
-    resellerId: number;
+export async function allocateTeamCreditsAndUpdate(opts: {
+    managerId: number;
     userId: number;
     desiredCredits: number;
     delta: number;
@@ -201,7 +201,7 @@ export async function allocateResellerCreditsAndUpdate(opts: {
         const lock = await tx
             .select({ credits: users.licenseCredits })
             .from(users)
-            .where(eq(users.id, opts.resellerId))
+            .where(eq(users.id, opts.managerId))
             .for('update');
         const resellerCredits = Number(lock[0]?.credits ?? 0);
 
@@ -212,7 +212,7 @@ export async function allocateResellerCreditsAndUpdate(opts: {
         if (opts.delta !== 0) {
             await tx.update(users)
                 .set({ licenseCredits: sql`${users.licenseCredits} - ${opts.delta}` })
-                .where(eq(users.id, opts.resellerId));
+                .where(eq(users.id, opts.managerId));
             await tx.update(users)
                 .set({ licenseCredits: opts.desiredCredits })
                 .where(eq(users.id, opts.userId));

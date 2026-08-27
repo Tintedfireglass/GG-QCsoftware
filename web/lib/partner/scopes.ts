@@ -72,7 +72,7 @@ export const PARTNER_ROLES: UserRole[] = ['Reseller', 'Refurbisher', 'Enterprise
  */
 
 /** Team members and license keys — mirrors the role lists on /api/users and /api/licenses. */
-export const TEAM_MANAGE_ROLES: UserRole[] = ['Refurbisher', 'Enterprise', 'Reseller'];
+export const TEAM_MANAGE_ROLES: UserRole[] = ['Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller'];
 
 /** Fleet inventory and lifecycle — mirrors FLEET_ROLES on /api/fleet. */
 export const FLEET_ROLES: UserRole[] = ['Enterprise', 'Reseller'];

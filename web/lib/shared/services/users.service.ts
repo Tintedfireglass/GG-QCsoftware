@@ -113,15 +113,17 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
     }
 
     const hasFieldUpdates = Object.keys(set).length > 0;
-    const isResellerAllocatingCredits = authUser.role === 'Reseller' && license_credits != null;
+    // Team managers transfer credits from their own balance to users they
+    // created. Technicians can now receive credits alongside clients.
+    const isTeamManagerAllocatingCredits = TEAM_ROLES.includes(authUser.role) && license_credits != null;
 
-    if (!hasFieldUpdates && !isResellerAllocatingCredits) {
+    if (!hasFieldUpdates && !isTeamManagerAllocatingCredits) {
         throw new ValidationError('No fields to update');
     }
 
-    if (isResellerAllocatingCredits) {
-        if (target.role !== 'Client') {
-            throw new ForbiddenError('Resellers can only allocate credits to Client users');
+    if (isTeamManagerAllocatingCredits) {
+        if (target.role !== 'Client' && target.role !== 'Technician') {
+            throw new ForbiddenError('Team managers can only allocate credits to Client or Technician users');
         }
         const desiredRaw = Number(license_credits);
         if (Number.isNaN(desiredRaw)) throw new ValidationError('license_credits must be a number');
@@ -129,7 +131,7 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
         const delta = desiredCredits - Number(target.license_credits || 0);
 
         const user = (delta !== 0 || hasFieldUpdates)
-            ? await repo.allocateResellerCreditsAndUpdate({ resellerId: authUser.id, userId, desiredCredits, delta, set, hasFieldUpdates })
+            ? await repo.allocateTeamCreditsAndUpdate({ managerId: authUser.id, userId, desiredCredits, delta, set, hasFieldUpdates })
             : await repo.findUserBasic(userId);
         return { message: 'User updated successfully', user };
     }

@@ -3,8 +3,8 @@ import { parseBody } from '@/lib/http/validate';
 import { generateLicenseSchema, toggleLicenseSchema, updateExpirySchema } from '@/lib/shared/domain/schemas/licenses';
 import { listLicenses, generateLicense, toggleLicense, updateLicenseExpiry } from '@/lib/shared/services/licenses.service';
 
-const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
-const TOGGLE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] as const;
+const MANAGE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller', 'Client', 'Technician'] as const;
+const TOGGLE_ROLES = ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller', 'Client', 'Technician'] as const;
 
 // GET /api/licenses?search=&status=&sort=&page=&limit= - list keys visible to the caller
 export const GET = withAuth([...MANAGE_ROLES], async (request, { user }) => {

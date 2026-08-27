@@ -72,13 +72,13 @@ export function Sidebar() {
             href: "/dashboard/users",
             label: "User Management",
             icon: Users,
-            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller'] // Visible to user managers
+            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller'] // Visible to user managers
         },
         {
             href: "/dashboard/licenses",
             label: "Licenses",
             icon: Key,
-            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'Reseller', 'Client'] // Visible to license managers
+            roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller', 'Client', 'Technician'] // Visible to license managers and technicians
         },
         {
             href: "/dashboard/free-trials",

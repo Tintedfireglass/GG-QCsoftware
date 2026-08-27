@@ -218,8 +218,10 @@ export default function EditUserPage() {
                     updateData.role = formData.role
                 }
             }
-            // License credits: SuperAdmin can set for supported roles, Reseller can allocate to Client
-            if (isSuperAdmin() || (isReseller() && userData?.role === 'Client')) {
+            // License credits: SuperAdmin can set supported roles; team managers
+            // can transfer credits to their technicians or clients.
+            const isTeamManager = ['Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller'].includes(authUser?.role || '')
+            if (isSuperAdmin() || (isTeamManager && (userData?.role === 'Client' || userData?.role === 'Technician'))) {
                 updateData.license_credits = formData.license_credits
             }
 
@@ -352,7 +354,8 @@ export default function EditUserPage() {
     const isOwnProfile = authUser?.id === userId
     const canChangeRole = isSuperAdmin() && !isOwnProfile
     const canDeactivate = !isOwnProfile
-    const canEditCredits = isSuperAdmin() || (isReseller() && userData.role === 'Client')
+    const isTeamManager = ['Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller'].includes(authUser?.role || '')
+    const canEditCredits = isSuperAdmin() || (isTeamManager && (userData.role === 'Client' || userData.role === 'Technician'))
 
     return (
         <div className="space-y-6 max-w-2xl">
@@ -551,8 +554,8 @@ export default function EditUserPage() {
                             </div>
                         )}
 
-                        {/* License Credits (SuperAdmin or Reseller-to-Client) */}
-                        {canEditCredits && (formData.role === 'Refurbisher' || formData.role === 'Enterprise' || formData.role === 'OEM' || formData.role === 'Insurer' || formData.role === 'Reseller' || formData.role === 'Client') && (
+                        {/* License Credits (SuperAdmin or team-manager allocation) */}
+                        {canEditCredits && (isSuperAdmin() || formData.role === 'Client' || formData.role === 'Technician') && (
                             <div className="pt-4 border-t">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
                                     License Credits
