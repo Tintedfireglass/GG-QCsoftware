@@ -90,7 +90,7 @@ public partial class App : Application
     /// Shared AuthService instance for the entire application.
     /// This is used to track logged-in technician across windows.
     /// </summary>
-    public static AuthService AuthService { get; } = new AuthService();
+    public static AuthService AuthService { get; } = new AuthService($"{Branding.BrandInfo.ApiBaseUrl}/api");
 
     /// <summary>
     /// Shared TrialService instance — manages the 7-day free trial lifecycle.
