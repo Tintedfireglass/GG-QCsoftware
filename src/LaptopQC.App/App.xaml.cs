@@ -95,7 +95,7 @@ public partial class App : Application
     /// <summary>
     /// Shared TrialService instance — manages the 7-day free trial lifecycle.
     /// </summary>
-    public static TrialService TrialService { get; } = new TrialService();
+    public static TrialService TrialService { get; } = new TrialService($"{Branding.BrandInfo.ApiBaseUrl}/api");
     
     /// <summary>
     /// Convenience property to get the current technician ID (null if not logged in)

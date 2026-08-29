@@ -57,6 +57,8 @@ public static class BrandInfo
         }
     }
 
+    public static string ApiKey => Get("Brand.ApiKey", "default-api-key-change-in-production");
+
     /// <summary>
     /// Returns the verification URL for a given health ID, e.g. https://cirtyn.com/verify/abc123
     /// </summary>

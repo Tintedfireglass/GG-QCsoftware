@@ -124,7 +124,11 @@ public partial class QCWizardViewModel : ObservableObject
     {
         _workflowService = App.Current.Services.GetRequiredService<QCWorkflowService>();
         _reportGenerator = new ReportGenerator(LaptopQC.App.Branding.BrandInfo.ApiBaseUrl, LaptopQC.App.Branding.BrandInfo.AppDisplayName);
-        _submissionService = new QCSubmissionService(new LaptopQC.Core.Models.ApiConfiguration { ApiUrl = $"{LaptopQC.App.Branding.BrandInfo.ApiBaseUrl}/api" });
+        _submissionService = new QCSubmissionService(new LaptopQC.Core.Models.ApiConfiguration
+        {
+            ApiUrl = $"{LaptopQC.App.Branding.BrandInfo.ApiBaseUrl}/api",
+            ApiKey = LaptopQC.App.Branding.BrandInfo.ApiKey
+        });
 
         // These events fire from background threads (inside Task.Run in QCWorkflowService).
         // Marshal back to the UI thread to avoid cross-thread WPF exceptions.

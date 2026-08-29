@@ -14,6 +14,7 @@
     <BrandPublisherName Condition="'$(BrandPublisherName)' == ''">GadgetGuruz</BrandPublisherName>
     <BrandUpdateUrl Condition="'$(BrandUpdateUrl)' == ''">https://pramaan-dashboard.gadgetguruz.com</BrandUpdateUrl>
     <BrandApiUrl Condition="'$(BrandApiUrl)' == ''">https://pramaan-dashboard.gadgetguruz.com</BrandApiUrl>
+    <BrandApiKey Condition="'$(BrandApiKey)' == ''">default-api-key-change-in-production</BrandApiKey>
     <BrandIconPath Condition="'$(BrandIconPath)' == ''">Resources\pramana_icon.ico</BrandIconPath>
     <BrandLogoPath Condition="'$(BrandLogoPath)' == ''">Resources\pramana_logo.png</BrandLogoPath>
     <BrandXamlKey Condition="'$(BrandXamlKey)' == ''">Pramaan</BrandXamlKey>
@@ -70,6 +71,7 @@
     <AssemblyMetadata Include="Brand.Publisher" Value="$(BrandPublisherName)" />
     <AssemblyMetadata Include="Brand.UpdateUrl" Value="$(BrandUpdateUrl)" />
     <AssemblyMetadata Include="Brand.ApiUrl" Value="$(BrandApiUrl)" />
+    <AssemblyMetadata Include="Brand.ApiKey" Value="$(BrandApiKey)" />
     <AssemblyMetadata Include="Brand.LogoPath" Value="$(BrandLogoPath)" />
     <AssemblyMetadata Include="Brand.IconFileName" Value="$([System.IO.Path]::GetFileName('$(BrandIconPath)'))" />
   </ItemGroup>

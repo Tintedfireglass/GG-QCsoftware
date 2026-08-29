@@ -8,6 +8,7 @@
     <!-- Update URL is brand-specific; set to your endpoint (or leave empty to disable updates). -->
     <BrandUpdateUrl>https://dashboard.cirtyn.com</BrandUpdateUrl>
     <BrandApiUrl>https://dashboard.cirtyn.com</BrandApiUrl>
+    <BrandApiKey>Ir4pTMxu0OmSTaFdQa50qf6ZJE-YGohSc7fUrTViA4c</BrandApiKey>
     <!-- Provide customer-specific icon in Resources and update this path. -->
     <BrandIconPath>Resources\cirtyn_icon.ico</BrandIconPath>
     <BrandLogoPath>Resources\cirtyn_icon_logo.png</BrandLogoPath>
