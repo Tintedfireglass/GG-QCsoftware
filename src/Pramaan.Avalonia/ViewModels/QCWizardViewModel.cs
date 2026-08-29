@@ -144,8 +144,9 @@ public partial class QCWizardViewModel : ObservableObject
     {
         _workflowService = App.Current?.Services?.GetRequiredService<QCWorkflowService>()
             ?? throw new InvalidOperationException("DI container not initialized");
-        _reportGenerator = new ReportGenerator();
-        _submissionService = new QCSubmissionService();
+        var apiConfig = new LaptopQC.Core.Models.ApiConfiguration { ApiUrl = new LaptopQC.Core.Models.ApiConfiguration().ApiUrl };
+        _reportGenerator = new ReportGenerator(apiConfig.ApiUrl.Replace("/api", ""));
+        _submissionService = new QCSubmissionService(apiConfig);
 
         // Stress-test progress is raised from worker threads. Marshal updates
         // back to Avalonia's UI thread before changing bound properties.
