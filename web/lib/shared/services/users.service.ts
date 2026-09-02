@@ -86,13 +86,22 @@ export async function updateUser(authUser: AuthenticatedUser, id: string, body: 
     if (password) set.passwordHash = await hashPassword(password);
     if (license_credits != null && authUser.role === 'SuperAdmin') set.licenseCredits = license_credits;
 
-    // Duration permission flags — SuperAdmin only, for eligible (non-admin) roles
+    // Duration permission flags
+    // SuperAdmin can set any flag for eligible (non-admin) roles.
+    // Resellers can set flags for their own Clients, but only up to their own level.
     if (authUser.role === 'SuperAdmin' && target.role !== 'SuperAdmin' && target.role !== 'Employee') {
         if (allow_monthly_keys !== undefined) set.allowMonthlyKeys = allow_monthly_keys;
         if (allow_quarterly_keys !== undefined) set.allowQuarterlyKeys = allow_quarterly_keys;
         if (allow_6month_keys !== undefined) set.allow6MonthKeys = allow_6month_keys;
         if (allow_yearly_keys !== undefined) set.allowYearlyKeys = allow_yearly_keys;
         if (allow_perpetual_keys !== undefined) set.allowPerpetualKeys = allow_perpetual_keys;
+    } else if (authUser.role === 'Reseller' && target.role === 'Client') {
+        // Load the reseller's own flags to enforce delegation limits
+        const resellerRow = await repo.findUserPermissions(authUser.id);
+        if (allow_monthly_keys !== undefined && resellerRow?.allowMonthlyKeys) set.allowMonthlyKeys = allow_monthly_keys;
+        if (allow_yearly_keys !== undefined && resellerRow?.allowYearlyKeys) set.allowYearlyKeys = allow_yearly_keys;
+        if (allow_perpetual_keys !== undefined && resellerRow?.allowPerpetualKeys) set.allowPerpetualKeys = allow_perpetual_keys;
+        // A reseller cannot grant a permission they don't have — silently ignore those
     }
 
     // Per-platform license permissions — SuperAdmin only, for Employees.

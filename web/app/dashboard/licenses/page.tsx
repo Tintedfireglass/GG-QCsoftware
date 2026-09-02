@@ -68,7 +68,7 @@ export default function LicensesPage() {
         mac: { on: false, cap: "1" },
     })
     const [demoCustomerName, setDemoCustomerName] = useState("")
-    const [durationMode, setDurationMode] = useState<"forever" | "temporary">("forever")
+    const [durationMode, setDurationMode] = useState<"3year" | "temporary">("3year")
     const [expiresAt, setExpiresAt] = useState("")
     const [selectedDurationDays, setSelectedDurationDays] = useState(30)
     const [generatedKeyString, setGeneratedKeyString] = useState("")
@@ -182,10 +182,14 @@ export default function LicensesPage() {
             const productScope = selectedPlatforms.map((p) => p.id)
             const maxUses = Object.values(platformCaps).reduce((a, b) => a + b, 0)
 
-            let computedExpiresAt = null;
+            let computedExpiresAt: string | null = null;
             const isPrivilegedUser = user?.role === "SuperAdmin" || user?.role === "Employee";
 
-            if (durationMode === "temporary") {
+            if (durationMode === "3year") {
+                const d = new Date();
+                d.setDate(d.getDate() + 1095);
+                computedExpiresAt = d.toISOString();
+            } else if (durationMode === "temporary") {
                 if (isPrivilegedUser && expiresAt) {
                     computedExpiresAt = new Date(expiresAt).toISOString();
                 } else if (!isPrivilegedUser && selectedDurationDays > 0) {
@@ -235,7 +239,6 @@ export default function LicensesPage() {
             setIsExtending(false)
         }
     }
-
     const openExtendModal = (k: LicenseKey) => {
         setExtendingLicense(k)
         if (k.expires_at) {
@@ -347,19 +350,18 @@ export default function LicensesPage() {
                         setExpiresAt("")
                         setGenerateError("")
                         // Default duration based on user permissions:
-                        // non-privileged users without perpetual access should start on "temporary"
-                        if (!isPrivileged && !user?.allow_perpetual_keys) {
+                        // privileged users get 3-year by default; others pick from their allowed durations
+                        if (!isPrivileged) {
                             setDurationMode("temporary")
                             // Pick first allowed duration
                             const firstDuration =
-                                user?.allow_monthly_keys ? 30
-                                : user?.allow_quarterly_keys ? 90
-                                : user?.allow_6month_keys ? 180
+                                user?.allow_perpetual_keys ? 1095
                                 : user?.allow_yearly_keys ? 365
+                                : user?.allow_monthly_keys ? 30
                                 : 30
                             setSelectedDurationDays(firstDuration)
                         } else {
-                            setDurationMode("forever")
+                            setDurationMode("3year")
                         }
                         setIsGenerateModalOpen(true)
                     }}
@@ -367,6 +369,18 @@ export default function LicensesPage() {
                     <Wand2 className="mr-2 h-4 w-4" />
                     Generate License Key
                 </Button>
+            </div>
+
+            {/* License upgrade policy notice */}
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 mt-8">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4M12 8h.01" />
+                </svg>
+                <div>
+                    <p className="font-semibold mb-0.5">License Upgrade Policy</p>
+                    <p className="text-blue-700">License plan changes take effect at the start of the next cycle — similar to changing a phone plan. If a user wants to switch from Monthly to Annual, generate a new Annual key. The user should activate it once their current key expires.</p>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 mt-8">
@@ -710,7 +724,7 @@ export default function LicensesPage() {
 
                             {newType !== "demo" && (() => {
                                 const isPrivileged = user?.role === "SuperAdmin" || user?.role === "Employee";
-                                const hasPerms = user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys;
+                                const hasPerms = user?.allow_monthly_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys;
                                 
                                 if (!isPrivileged && !hasPerms) {
                                     return (
@@ -731,8 +745,8 @@ export default function LicensesPage() {
                                                 onChange={(e) => setDurationMode(e.target.value as any)}
                                                 className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
                                             >
-                                                <option value="forever">Forever</option>
-                                                <option value="temporary">Temporary</option>
+                                                <option value="3year">3-Year (1095 days)</option>
+                                                <option value="temporary">Custom Date</option>
                                             </select>
 
                                             {durationMode === "temporary" && (
@@ -759,22 +773,16 @@ export default function LicensesPage() {
                                             Duration
                                         </label>
                                         <select
-                                            value={durationMode === "forever" ? "forever" : String(selectedDurationDays)}
+                                            value={String(selectedDurationDays)}
                                             onChange={(e) => {
-                                                if (e.target.value === "forever") {
-                                                    setDurationMode("forever");
-                                                } else {
-                                                    setDurationMode("temporary");
-                                                    setSelectedDurationDays(Number(e.target.value));
-                                                }
+                                                setDurationMode("temporary");
+                                                setSelectedDurationDays(Number(e.target.value));
                                             }}
                                             className="w-full h-12 px-4 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--brand-purple)] text-[var(--brand-purple)] font-medium bg-white appearance-none cursor-pointer mb-4"
                                         >
-                                            {user?.allow_perpetual_keys && <option value="forever">Perpetual (Forever)</option>}
+                                            {user?.allow_perpetual_keys && <option value="1095">3-Year (1095 Days)</option>}
+                                            {user?.allow_yearly_keys && <option value="365">Annual (365 Days)</option>}
                                             {user?.allow_monthly_keys && <option value="30">Monthly (30 Days)</option>}
-                                            {user?.allow_quarterly_keys && <option value="90">Quarterly (90 Days)</option>}
-                                            {user?.allow_6month_keys && <option value="180">6-Month (180 Days)</option>}
-                                            {user?.allow_yearly_keys && <option value="365">Yearly (365 Days)</option>}
                                         </select>
                                     </div>
                                 );
@@ -857,7 +865,7 @@ export default function LicensesPage() {
                             <Button
                                 className="w-full h-12 mt-6 rounded-xl bg-[var(--brand-purple)] hover:bg-[var(--brand-purple-hover)] text-white text-base font-medium transition-colors"
                                 onClick={handleGenerate}
-                                disabled={isGenerating || (newType !== 'demo' && !(user?.role === 'SuperAdmin' || user?.role === 'Employee') && !(user?.allow_monthly_keys || user?.allow_quarterly_keys || user?.allow_6month_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys))}
+                                disabled={isGenerating || (newType !== 'demo' && !(user?.role === 'SuperAdmin' || user?.role === 'Employee') && !(user?.allow_monthly_keys || user?.allow_yearly_keys || user?.allow_perpetual_keys))}
                             >
                                 {isGenerating ? "Generating..." : "Generate License Key"}
                             </Button>

@@ -174,6 +174,19 @@ export async function findUserBasic(userId: number): Promise<Record<string, unkn
     return rows[0] ?? null;
 }
 
+export async function findUserPermissions(userId: number) {
+    const rows = await db
+        .select({
+            allowMonthlyKeys: users.allowMonthlyKeys,
+            allowYearlyKeys: users.allowYearlyKeys,
+            allowPerpetualKeys: users.allowPerpetualKeys,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+    return rows[0] ?? null;
+}
+
 /** Apply field updates and return the fresh detail row. */
 export async function updateUser(userId: number, set: UserUpdateSet): Promise<Record<string, unknown> | null> {
     const rows = await db.update(users).set(set).where(eq(users.id, userId)).returning(userDetailColumns);

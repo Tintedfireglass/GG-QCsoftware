@@ -46,8 +46,6 @@ export default function EditUserPage() {
     })
     const [durationPerms, setDurationPerms] = useState({
         allow_monthly_keys: false,
-        allow_quarterly_keys: false,
-        allow_6month_keys: false,
         allow_yearly_keys: false,
         allow_perpetual_keys: false,
     })
@@ -91,8 +89,6 @@ export default function EditUserPage() {
             })
             setDurationPerms({
                 allow_monthly_keys: data.user.allow_monthly_keys ?? false,
-                allow_quarterly_keys: data.user.allow_quarterly_keys ?? false,
-                allow_6month_keys: data.user.allow_6month_keys ?? false,
                 allow_yearly_keys: data.user.allow_yearly_keys ?? false,
                 allow_perpetual_keys: data.user.allow_perpetual_keys ?? false,
             })
@@ -228,8 +224,6 @@ export default function EditUserPage() {
             // Duration permission flags — SuperAdmin only, for eligible roles
             if (isSuperAdmin() && userData?.role !== 'SuperAdmin' && userData?.role !== 'Employee') {
                 updateData.allow_monthly_keys = durationPerms.allow_monthly_keys
-                updateData.allow_quarterly_keys = durationPerms.allow_quarterly_keys
-                updateData.allow_6month_keys = durationPerms.allow_6month_keys
                 updateData.allow_yearly_keys = durationPerms.allow_yearly_keys
                 updateData.allow_perpetual_keys = durationPerms.allow_perpetual_keys
             }
@@ -262,8 +256,6 @@ export default function EditUserPage() {
         try {
             await updateUser(userId, {
                 allow_monthly_keys: durationPerms.allow_monthly_keys,
-                allow_quarterly_keys: durationPerms.allow_quarterly_keys,
-                allow_6month_keys: durationPerms.allow_6month_keys,
                 allow_yearly_keys: durationPerms.allow_yearly_keys,
                 allow_perpetual_keys: durationPerms.allow_perpetual_keys,
             })
@@ -646,8 +638,9 @@ export default function EditUserPage() {
                         </div>
                     )}
 
-                    {/* Duration Permissions — SuperAdmin only, eligible roles only */}
-                    {isSuperAdmin() && userData.role !== 'SuperAdmin' && userData.role !== 'Employee' && (
+                    {/* Duration Permissions — SuperAdmin can set for all eligible roles; Resellers can set for their Clients (within their own allowed durations) */}
+                    {((isSuperAdmin() && userData.role !== 'SuperAdmin' && userData.role !== 'Employee') ||
+                        (isReseller() && userData.role === 'Client' && !isOwnProfile)) && (
                         <div className="mt-6 pt-6 border-t">
                             <h3 className="text-sm font-semibold text-slate-700 mb-1">Key Permissions</h3>
                             <p className="text-xs text-slate-500 mb-4">
@@ -656,17 +649,17 @@ export default function EditUserPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 {([
                                     { key: 'allow_monthly_keys' as const, label: 'Monthly', sub: '30-day keys' },
-                                    { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: '90-day keys' },
-                                    { key: 'allow_6month_keys' as const, label: '6-Month', sub: '180-day keys' },
-                                    { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: '365-day keys' },
-                                    { key: 'allow_perpetual_keys' as const, label: 'Perpetual', sub: 'Forever keys' },
+                                    { key: 'allow_yearly_keys' as const, label: 'Annual', sub: '365-day keys' },
+                                    { key: 'allow_perpetual_keys' as const, label: '3-Year', sub: '1095-day keys' },
                                 ]).map(({ key, label, sub }) => (
                                     <label
                                         key={key}
-                                        className={`relative flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
-                                            durationPerms[key]
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                        className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all select-none ${
+                                            isReseller() && !authUser?.[key as keyof typeof authUser]
+                                                ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                                                : durationPerms[key]
+                                                    ? 'border-blue-500 bg-blue-50 cursor-pointer'
+                                                    : 'border-slate-200 hover:border-slate-300 cursor-pointer'
                                         }`}
                                     >
                                         <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -682,7 +675,8 @@ export default function EditUserPage() {
                                             type="checkbox"
                                             className="sr-only"
                                             checked={durationPerms[key]}
-                                            onChange={(e) => setDurationPerms(prev => ({ ...prev, [key]: e.target.checked }))}
+                                            disabled={isReseller() && !authUser?.[key as keyof typeof authUser]}
+                                            onChange={(e) => !isReseller() || authUser?.[key as keyof typeof authUser] ? setDurationPerms(prev => ({ ...prev, [key]: e.target.checked })) : undefined}
                                         />
                                         <div>
                                             <div className="font-medium text-slate-900 text-sm">{label}</div>

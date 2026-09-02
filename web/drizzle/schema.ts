@@ -745,3 +745,23 @@ export const partnerApiUsage = pgTable("partner_api_usage", {
 	primaryKey({ columns: [table.keyId, table.day, table.route, table.statusClass] }),
 	index("idx_partner_api_usage_key_day").using("btree", table.keyId, table.day.desc()),
 ]);
+
+// Reseller corporate lead registry — resellers log companies they are actively
+// pursuing so the GG sales team avoids approaching those companies directly.
+export const resellerLeads = pgTable("reseller_leads", {
+	id: serial().primaryKey().notNull(),
+	resellerId: integer("reseller_id").notNull(),
+	companyName: varchar("company_name", { length: 255 }).notNull(),
+	contactName: varchar("contact_name", { length: 255 }),
+	contactEmail: varchar("contact_email", { length: 255 }),
+	contactPhone: varchar("contact_phone", { length: 50 }),
+	notes: text(),
+	// active | converted | lost | expired
+	status: varchar().default('active').notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("idx_reseller_leads_reseller").using("btree", table.resellerId, table.createdAt.desc()),
+	index("idx_reseller_leads_status").using("btree", table.status),
+	check("reseller_leads_status_check", sql`(status)::text = ANY ((ARRAY['active'::character varying, 'converted'::character varying, 'lost'::character varying, 'expired'::character varying])::text[])`),
+]);

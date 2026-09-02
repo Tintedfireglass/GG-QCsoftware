@@ -28,7 +28,8 @@ import {
     DownloadCloud,
     MessageSquare,
     LifeBuoy,
-    Code2
+    Code2,
+    Briefcase
 } from "lucide-react"
 import { UserRole, UserRoleDisplayNames } from "@/lib/types"
 
@@ -55,7 +56,7 @@ export function Sidebar() {
             label: "All Reports",
             icon: Layers
         },
-        // Fleet Management – hidden while still in development
+        // Fleet Management - hidden while still in development
         // {
         //     href: "/dashboard/fleet",
         //     label: "Fleet",
@@ -79,6 +80,12 @@ export function Sidebar() {
             label: "Licenses",
             icon: Key,
             roles: ['SuperAdmin', 'Employee', 'Refurbisher', 'Enterprise', 'OEM', 'Insurer', 'Reseller', 'Client', 'Technician'] // Visible to license managers and technicians
+        },
+        {
+            href: "/dashboard/leads",
+            label: "Lead Registry",
+            icon: Briefcase,
+            roles: ['SuperAdmin', 'Reseller']
         },
         {
             href: "/dashboard/free-trials",
