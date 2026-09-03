@@ -34,8 +34,6 @@ export default function NewUserPage() {
     })
     const [durationPerms, setDurationPerms] = useState({
         allow_monthly_keys: false,
-        allow_quarterly_keys: false,
-        allow_6month_keys: false,
         allow_yearly_keys: false,
         allow_perpetual_keys: false,
     })
@@ -78,10 +76,8 @@ export default function NewUserPage() {
 
     const DURATION_OPTIONS = [
         { key: 'allow_monthly_keys' as const, label: 'Monthly', sub: 'Keys expire in exactly 30 days' },
-        { key: 'allow_quarterly_keys' as const, label: 'Quarterly', sub: 'Keys expire in exactly 90 days' },
-        { key: 'allow_6month_keys' as const, label: '6-Month', sub: 'Keys expire in exactly 180 days' },
-        { key: 'allow_yearly_keys' as const, label: 'Yearly', sub: 'Keys expire in exactly 365 days' },
-        { key: 'allow_perpetual_keys' as const, label: 'Perpetual', sub: 'Keys never expire (Forever keys)' },
+        { key: 'allow_yearly_keys' as const, label: 'Annual', sub: 'Keys expire in exactly 365 days' },
+        { key: 'allow_perpetual_keys' as const, label: '3-Year', sub: 'Keys expire in exactly 1095 days' },
     ]
 
     const showDurationSection = isSuperAdmin() && formData.role !== 'SuperAdmin' && formData.role !== 'Employee'
